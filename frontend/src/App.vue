@@ -17,6 +17,8 @@ import BlankLayout from './layouts/BlankLayout.vue'
 import LogisticLayout from './layouts/LogisticLayout.vue'
 import DispatcherLayout from './layouts/DispatcherLayout.vue'
 import WarehouseLayout from './layouts/WarehouseLayout.vue'
+import IndividualLayout from './layouts/IndividualLayout.vue'
+import VendorLayout from './layouts/VendorLayout.vue'
 
 const route = useRoute()
 
@@ -34,6 +36,10 @@ const layout = computed(() => {
       return DispatcherLayout
     case 'warehouse':
       return WarehouseLayout
+    case 'individual':
+      return IndividualLayout
+    case 'vendor':
+      return VendorLayout
     default:
       return BlankLayout
   }

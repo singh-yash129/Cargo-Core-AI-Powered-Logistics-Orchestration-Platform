@@ -47,6 +47,27 @@ const router = createRouter({
             meta: { requiresAuth: true, layout: 'warehouse' }
         },
 
+        // Individual User Routes
+        { path: '/individual/dashboard', component: () => import('../IV-views/Individual/Dashboard.vue'), meta: { requiresAuth: true, layout: 'individual' } },
+        { path: '/individual/book-move', component: () => import('../IV-views/Individual/BookMove.vue'), meta: { requiresAuth: true, layout: 'individual' } },
+        { path: '/individual/orders', component: () => import('../IV-views/Individual/Orders.vue'), meta: { requiresAuth: true, layout: 'individual' } },
+        { path: '/individual/quotes', component: () => import('../IV-views/Individual/Quotes.vue'), meta: { requiresAuth: true, layout: 'individual' } },
+        { path: '/individual/estimator', component: () => import('../IV-views/Individual/Estimator.vue'), meta: { requiresAuth: true, layout: 'individual' } },
+        { path: '/individual/payments', component: () => import('../IV-views/Individual/Payments.vue'), meta: { requiresAuth: true, layout: 'individual' } },
+        { path: '/individual/support', component: () => import('../IV-views/Individual/Support.vue'), meta: { requiresAuth: true, layout: 'individual' } },
+        { path: '/individual/profile', component: () => import('../IV-views/Individual/Profile.vue'), meta: { requiresAuth: true, layout: 'individual' } },
+
+        // Vendor Routes
+        { path: '/vendor/dashboard', component: () => import('../IV-views/Vendor/Dashboard.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+        { path: '/vendor/create-shipment', component: () => import('../IV-views/Vendor/CreateShipment.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+        { path: '/vendor/tracking', component: () => import('../IV-views/Vendor/Tracking.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+        { path: '/vendor/recurring', component: () => import('../IV-views/Vendor/RecurringShipments.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+        { path: '/vendor/bulk-upload', component: () => import('../IV-views/Vendor/BulkUpload.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+        { path: '/vendor/invoices', component: () => import('../IV-views/Vendor/Invoices.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+        { path: '/vendor/analytics', component: () => import('../IV-views/Vendor/Analytics.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+        { path: '/vendor/settings', component: () => import('../IV-views/Vendor/Settings.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+        { path: '/vendor/support', component: () => import('../IV-views/Vendor/Support.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+
         // Logistic Manager Routes
         { path: '/logistic/warehouses', component: () => import('../LWD-views/LogisticManager/WarehouseManagement.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
         { path: '/logistic/users', component: () => import('../LWD-views/LogisticManager/UserManagement.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
