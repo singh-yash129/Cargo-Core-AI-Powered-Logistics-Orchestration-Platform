@@ -27,6 +27,56 @@ import Settings from '../driver-views/Settings.vue'
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
+        // Role-Based Dashboards
+        {
+            path: '/logistic/dashboard',
+            name: 'LogisticDashboard',
+            component: () => import('../LWD-views/LogisticManager/Dashboard.vue'),
+            meta: { requiresAuth: true, layout: 'logistic' }
+        },
+        {
+            path: '/dispatcher/dashboard',
+            name: 'DispatcherDashboard',
+            component: () => import('../LWD-views/Dispatcher/Dashboard.vue'),
+            meta: { requiresAuth: true, layout: 'dispatcher' }
+        },
+        {
+            path: '/warehouse/dashboard',
+            name: 'WarehouseDashboard',
+            component: () => import('../LWD-views/WarehouseManager/Dashboard.vue'),
+            meta: { requiresAuth: true, layout: 'warehouse' }
+        },
+
+        // Logistic Manager Routes
+        { path: '/logistic/warehouses', component: () => import('../LWD-views/LogisticManager/WarehouseManagement.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+        { path: '/logistic/users', component: () => import('../LWD-views/LogisticManager/UserManagement.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+        { path: '/logistic/fleet', component: () => import('../LWD-views/LogisticManager/FleetManagement.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+        { path: '/logistic/geofencing', component: () => import('../LWD-views/LogisticManager/Geofencing.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+        { path: '/logistic/finance', component: () => import('../LWD-views/LogisticManager/Finance.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+        { path: '/logistic/reverse-logistics', component: () => import('../LWD-views/LogisticManager/ReverseLogistics.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+        { path: '/logistic/reports', component: () => import('../LWD-views/LogisticManager/Reports.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+        { path: '/logistic/ai', component: () => import('../LWD-views/LogisticManager/AIIntelligence.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+        { path: '/logistic/communication', component: () => import('../LWD-views/LogisticManager/Communication.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+
+        // Dispatcher Routes
+        { path: '/dispatcher/optimization', component: () => import('../LWD-views/Dispatcher/RouteOptimization.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+        { path: '/dispatcher/drivers', component: () => import('../LWD-views/Dispatcher/DriverManagement.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+        { path: '/dispatcher/manifest', component: () => import('../LWD-views/Dispatcher/ManifestCenter.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+        { path: '/dispatcher/crisis', component: () => import('../LWD-views/Dispatcher/CrisisManagement.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+        { path: '/dispatcher/communication', component: () => import('../LWD-views/Dispatcher/Communication.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+        { path: '/dispatcher/performance', component: () => import('../LWD-views/Dispatcher/PerformanceMetrics.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+        { path: '/dispatcher/ai-assistant', component: () => import('../LWD-views/Dispatcher/SmartDispatcher.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+
+        // Warehouse Manager Routes
+        { path: '/warehouse/inventory', component: () => import('../LWD-views/WarehouseManager/Inventory.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/inbound', component: () => import('../LWD-views/WarehouseManager/Inbound.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/floor-plan', component: () => import('../LWD-views/WarehouseManager/FloorPlan.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/picking', component: () => import('../LWD-views/WarehouseManager/Picking.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/dock', component: () => import('../LWD-views/WarehouseManager/LoadingDock.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/returns', component: () => import('../LWD-views/WarehouseManager/ReturnsWarehouse.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/labor', component: () => import('../LWD-views/WarehouseManager/LaborManagement.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/ai', component: () => import('../LWD-views/WarehouseManager/SmartWMS.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+
         {
             path: '/route-progress',
             name: 'RouteProgress',
