@@ -98,6 +98,18 @@ const router = createRouter({
         { path: '/warehouse/labor', component: () => import('../LWD-views/WarehouseManager/LaborManagement.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
         { path: '/warehouse/ai', component: () => import('../LWD-views/WarehouseManager/SmartWMS.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
 
+        // AI Support Module Routes
+        { path: '/ai/dashboard', component: () => import('../ai-views/Dashboard.vue'), meta: { requiresAuth: true, layout: 'ai' } },
+        { path: '/ai/live-conversations', component: () => import('../ai-views/LiveConversations.vue'), meta: { requiresAuth: true, layout: 'ai' } },
+        { path: '/ai/escalations', component: () => import('../ai-views/EscalationCenter.vue'), meta: { requiresAuth: true, layout: 'ai' } },
+        { path: '/ai/tickets', component: () => import('../ai-views/Tickets.vue'), meta: { requiresAuth: true, layout: 'ai' } },
+        { path: '/ai/reverse-logistics', component: () => import('../ai-views/ReverseLogistics.vue'), meta: { requiresAuth: true, layout: 'ai' } },
+        { path: '/ai/refund-center', component: () => import('../ai-views/RefundCenter.vue'), meta: { requiresAuth: true, layout: 'ai' } },
+        { path: '/ai/analytics', component: () => import('../ai-views/AIAnalytics.vue'), meta: { requiresAuth: true, layout: 'ai' } },
+        { path: '/ai/knowledge-base', component: () => import('../ai-views/KnowledgeBase.vue'), meta: { requiresAuth: true, layout: 'ai' } },
+        { path: '/ai/legal', component: () => import('../ai-views/LegalCompliance.vue'), meta: { requiresAuth: true, layout: 'ai' } },
+        { path: '/ai/settings', component: () => import('../ai-views/Settings.vue'), meta: { requiresAuth: true, layout: 'ai' } },
+
         {
             path: '/route-progress',
             name: 'RouteProgress',

@@ -19,6 +19,7 @@ import DispatcherLayout from './layouts/DispatcherLayout.vue'
 import WarehouseLayout from './layouts/WarehouseLayout.vue'
 import IndividualLayout from './layouts/IndividualLayout.vue'
 import VendorLayout from './layouts/VendorLayout.vue'
+import AILayout from './layouts/AILayout.vue'
 
 const route = useRoute()
 
@@ -40,6 +41,8 @@ const layout = computed(() => {
       return IndividualLayout
     case 'vendor':
       return VendorLayout
+    case 'ai':
+      return AILayout
     default:
       return BlankLayout
   }
