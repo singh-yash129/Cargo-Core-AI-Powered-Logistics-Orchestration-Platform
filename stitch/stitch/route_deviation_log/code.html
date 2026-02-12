@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Route Deviation Log</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2a20d",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221c10",
+                        "surface-dark": "#2C2517", // Slightly lighter than background-dark for cards
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* iOS Safe Area spacing */
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display h-screen w-full overflow-hidden relative text-white">
+<!-- Background Map Layer -->
+<div class="absolute inset-0 z-0">
+<!-- Simulated Map Background -->
+<img alt="Dark stylized city map view" class="w-full h-full object-cover opacity-40 grayscale contrast-125" data-alt="Dark stylized city map view" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlSsIjwCXUapR8C8RsJRFSfWcBoFlJ3-_52y6RHoqhY8Dg4C_njU0jfom9_3I8QeIFD4PQoL_a0s_imyy1sMnNVnGWbpz1GTWMa_rF4lesk2yk-PWgZOvJ8LsCqcPKloqsuYJO2qMvygpbBKayaB2JpIIexALhhAJOB7Dn0c_2t8GsUCZ2vuGLvVgaN4-mpOjWc-FCYKghMm6puUZvFZv50jTmSPrG2yT8hdduoa0z_SETARnfcxdfnYIPNciigbWPLDwhmGaMa78"/>
+<!-- Route Line Simulation -->
+<svg class="absolute top-0 left-0 w-full h-full pointer-events-none opacity-60" style="z-index: 1;">
+<path d="M100,-50 L150,200 L250,250 L200,400 L250,550" fill="none" stroke="#3b82f6" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"></path>
+<!-- Current Location Marker (Off route) -->
+<circle class="shadow-lg shadow-primary/50" cx="280" cy="500" fill="#f2a20d" r="12" stroke="white" stroke-width="3"></circle>
+</svg>
+<!-- Dark Overlay -->
+<div class="absolute inset-0 bg-background-dark/80 backdrop-blur-sm z-10"></div>
+</div>
+<!-- UI Overlay Layer -->
+<div class="relative z-20 h-full flex flex-col justify-end">
+<!-- Top Status Bar Simulation (Optional for context) -->
+<div class="absolute top-0 w-full p-4 flex justify-between items-center text-gray-400 text-sm font-medium">
+<span>10:42 AM</span>
+<div class="flex gap-1">
+<i class="material-icons text-base">signal_cellular_alt</i>
+<i class="material-icons text-base">wifi</i>
+<i class="material-icons text-base">battery_full</i>
+</div>
+</div>
+<!-- Alert Container -->
+<div class="w-full max-w-md mx-auto bg-surface-dark rounded-t-xl border-t border-white/10 shadow-2xl safe-bottom transform transition-all duration-300 ease-out">
+<!-- Drag Handle -->
+<div class="w-full flex justify-center pt-3 pb-1">
+<div class="w-12 h-1.5 bg-white/20 rounded-full"></div>
+</div>
+<div class="px-6 pt-4 pb-8">
+<!-- Header Section -->
+<div class="flex items-start gap-4 mb-8">
+<div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+<i class="material-icons text-primary text-2xl">alt_route</i>
+</div>
+<div>
+<h2 class="text-xl font-bold text-white mb-1">Route Deviation Detected</h2>
+<p class="text-gray-400 text-sm leading-relaxed">
+                            You seem to be 2.5km off the planned route. Please log a reason for this detour.
+                        </p>
+</div>
+</div>
+<!-- Reason Selection Grid -->
+<div class="grid grid-cols-2 gap-3 mb-8">
+<!-- Option 1: Traffic (Active/Selected State Example) -->
+<button class="group relative flex flex-col items-center justify-center p-4 rounded-lg bg-surface-dark border-2 border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+<i class="material-icons text-gray-400 group-hover:text-primary mb-2 text-3xl transition-colors">traffic</i>
+<span class="text-sm font-medium text-gray-300 group-hover:text-white">Heavy Traffic</span>
+</button>
+<!-- Option 2: Roadblock -->
+<button class="group relative flex flex-col items-center justify-center p-4 rounded-lg bg-primary/10 border-2 border-primary shadow-[0_0_15px_rgba(242,162,13,0.15)] transition-all active:scale-95">
+<div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+<i class="material-icons text-primary mb-2 text-3xl">remove_road</i>
+<span class="text-sm font-bold text-white">Roadblock</span>
+</button>
+<!-- Option 3: Fuel Stop -->
+<button class="group relative flex flex-col items-center justify-center p-4 rounded-lg bg-surface-dark border-2 border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+<i class="material-icons text-gray-400 group-hover:text-primary mb-2 text-3xl transition-colors">local_gas_station</i>
+<span class="text-sm font-medium text-gray-300 group-hover:text-white">Fuel Stop</span>
+</button>
+<!-- Option 4: Emergency -->
+<button class="group relative flex flex-col items-center justify-center p-4 rounded-lg bg-surface-dark border-2 border-white/10 hover:border-red-500/50 hover:bg-red-500/10 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+<i class="material-icons text-gray-400 group-hover:text-red-400 mb-2 text-3xl transition-colors">warning</i>
+<span class="text-sm font-medium text-gray-300 group-hover:text-red-100">Emergency</span>
+</button>
+<!-- Option 5: Rest Break -->
+<button class="group relative flex flex-col items-center justify-center p-4 rounded-lg bg-surface-dark border-2 border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+<i class="material-icons text-gray-400 group-hover:text-primary mb-2 text-3xl transition-colors">restaurant</i>
+<span class="text-sm font-medium text-gray-300 group-hover:text-white">Rest Break</span>
+</button>
+<!-- Option 6: Other -->
+<button class="group relative flex flex-col items-center justify-center p-4 rounded-lg bg-surface-dark border-2 border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+<i class="material-icons text-gray-400 group-hover:text-primary mb-2 text-3xl transition-colors">edit_note</i>
+<span class="text-sm font-medium text-gray-300 group-hover:text-white">Other</span>
+</button>
+</div>
+<!-- Action Buttons -->
+<div class="space-y-3">
+<button class="w-full bg-primary hover:bg-primary/90 text-background-dark font-bold text-lg py-4 rounded-lg shadow-lg shadow-primary/20 transform transition active:scale-[0.98] flex items-center justify-center gap-2">
+<i class="material-icons text-xl">check</i>
+                        Log Reason
+                    </button>
+<button class="w-full bg-transparent text-gray-400 font-medium text-sm py-3 rounded-lg hover:text-white transition-colors flex items-center justify-center gap-2">
+                        Ignore / I'm back on route
+                    </button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

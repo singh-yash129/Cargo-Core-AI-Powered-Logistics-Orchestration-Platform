@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Crisis Management Mode</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#44e996",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#112119",
+                        "crisis-amber": "#FFB020",
+                        "crisis-dark": "#18140a", // deeply dark amber/brown for bg
+                        "crisis-surface": "#2a2212", // slightly lighter surface for cards
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom styles for specific effects */
+        .glass-amber {
+            background: rgba(255, 176, 32, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 176, 32, 0.15);
+        }
+        
+        .grid-btn-gradient {
+            background: linear-gradient(145deg, rgba(42, 34, 18, 1) 0%, rgba(24, 20, 10, 1) 100%);
+        }
+
+        .slider-thumb {
+            transition: transform 0.1s;
+        }
+        
+        /* Simulating the Tesla-like minimal glow */
+        .active-glow {
+            box-shadow: 0 0 15px rgba(255, 176, 32, 0.2);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased h-screen w-full overflow-hidden relative selection:bg-crisis-amber selection:text-black">
+<!-- Ambient Amber Overlay for Crisis Mood -->
+<div class="absolute inset-0 pointer-events-none z-0 bg-gradient-to-b from-crisis-amber/10 via-transparent to-crisis-amber/5 mix-blend-overlay"></div>
+<!-- Background Map Texture (Abstracted) -->
+<div class="absolute inset-0 z-0 opacity-20 grayscale brightness-50 mix-blend-multiply">
+<img alt="Dark abstract map texture background" class="w-full h-full object-cover" data-alt="Dark abstract map texture background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYCxk2D7us8CDIHFeJU7dpS2tA3fWmpA4DhzA7oXjEMdlhwnzLK9UzrAAv8GMYaJ8GqZWXUopbJlEcK_29QzHClQ8tU9x2qIOL_1Iury7jJCvZ20amB58wg19U2DKBsi8nXG0gz23isRVsmX9Os0sCeMiodmEAlCabOjH_o1c8v4_wUpzWZ6DpWovNMkiFXzThw6vEnHV43-VkCMEFumU0DHNA_miGHSZsUJArWcnqnN79aVpYLO_9NLE1hZ3k1J6OqjIYlNWozhs"/>
+</div>
+<!-- Main Content Container -->
+<div class="relative z-10 flex flex-col h-full max-w-md mx-auto p-6 safe-area-inset-top safe-area-inset-bottom">
+<!-- Status Header -->
+<header class="flex items-center justify-between pt-8 pb-6">
+<div class="flex items-center space-x-3">
+<div class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-crisis-amber opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-crisis-amber"></span>
+</div>
+<span class="text-crisis-amber font-bold tracking-wider uppercase text-sm">Crisis Mode Active</span>
+</div>
+<button class="bg-white/5 hover:bg-white/10 rounded-full p-2 transition-colors">
+<span class="material-icons-round text-white/60">close</span>
+</button>
+</header>
+<!-- GPS Confirmation Card -->
+<div class="glass-amber rounded-xl p-5 mb-8 flex items-center justify-between active-glow border-l-4 border-l-crisis-amber/50">
+<div class="flex items-center space-x-4">
+<div class="bg-crisis-amber/20 p-3 rounded-full flex items-center justify-center">
+<span class="material-icons-round text-crisis-amber">near_me</span>
+</div>
+<div>
+<h3 class="text-white font-medium text-sm">Broadcasting Location</h3>
+<p class="text-white/50 text-xs font-mono mt-1">LAT: 34.0522 • LONG: -118.2437</p>
+<div class="flex items-center mt-2 space-x-1">
+<span class="material-icons-round text-primary text-[10px]">check_circle</span>
+<span class="text-primary text-[10px] uppercase font-bold tracking-wide">Connected to Dispatch</span>
+</div>
+</div>
+</div>
+<div class="h-10 w-10 rounded-lg overflow-hidden border border-white/10">
+<img alt="Mini map preview showing location pin" class="w-full h-full object-cover opacity-80" data-alt="Mini map preview showing location pin" data-location="Los Angeles" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdi_tclvW9CzN8O70n41TA7gZ4g3LVvYmRcTN1PrGywnBe1rTe6_NLfl4BLd-XNUXvAD5bE8TxPXzZ5ZFcXra3z3GFNgpv2GeHyOxOk7-dlZX2DGif2zF0OFh3W2syD4nVe8LYLD6k4c15qXbIWQwuVwpIJuTlpIEmj490YIdLvCtHFlF3NgScDyB1kQf0LMKca_QOiaBAVzfFHohKOnvs0ONTC5xA0BAkhEPZ3OusFQuqsVnaPcOsr6XwgdpleFYKBCA-FZZO2no"/>
+</div>
+</div>
+<!-- Spacer to push content -->
+<div class="flex-grow flex flex-col justify-center mb-6">
+<h2 class="text-white text-xl font-semibold mb-6 text-center">Report Emergency Type</h2>
+<!-- 2x2 Grid -->
+<div class="grid grid-cols-2 gap-4 w-full">
+<!-- Mechanical Failure -->
+<button class="group relative overflow-hidden grid-btn-gradient rounded-xl p-6 aspect-square flex flex-col items-center justify-center text-center border border-white/5 hover:border-crisis-amber/50 transition-all duration-300 active:scale-95">
+<div class="absolute inset-0 bg-crisis-amber/0 group-hover:bg-crisis-amber/5 transition-colors duration-300"></div>
+<span class="material-icons-round text-4xl text-white/80 mb-3 group-hover:text-crisis-amber transition-colors">build_circle</span>
+<span class="text-white font-medium group-hover:text-crisis-amber transition-colors">Mechanical<br/>Failure</span>
+</button>
+<!-- Accident -->
+<button class="group relative overflow-hidden grid-btn-gradient rounded-xl p-6 aspect-square flex flex-col items-center justify-center text-center border border-white/5 hover:border-red-500/50 transition-all duration-300 active:scale-95">
+<div class="absolute inset-0 bg-red-500/0 group-hover:bg-red-500/5 transition-colors duration-300"></div>
+<span class="material-icons-round text-4xl text-white/80 mb-3 group-hover:text-red-400 transition-colors">car_crash</span>
+<span class="text-white font-medium group-hover:text-red-400 transition-colors">Vehicle<br/>Accident</span>
+</button>
+<!-- Medical -->
+<button class="group relative overflow-hidden grid-btn-gradient rounded-xl p-6 aspect-square flex flex-col items-center justify-center text-center border border-white/5 hover:border-blue-400/50 transition-all duration-300 active:scale-95">
+<div class="absolute inset-0 bg-blue-400/0 group-hover:bg-blue-400/5 transition-colors duration-300"></div>
+<span class="material-icons-round text-4xl text-white/80 mb-3 group-hover:text-blue-400 transition-colors">medical_services</span>
+<span class="text-white font-medium group-hover:text-blue-400 transition-colors">Medical<br/>Emergency</span>
+</button>
+<!-- Unsafe Area -->
+<button class="group relative overflow-hidden grid-btn-gradient rounded-xl p-6 aspect-square flex flex-col items-center justify-center text-center border border-white/5 hover:border-crisis-amber/50 transition-all duration-300 active:scale-95">
+<div class="absolute inset-0 bg-crisis-amber/0 group-hover:bg-crisis-amber/5 transition-colors duration-300"></div>
+<span class="material-icons-round text-4xl text-white/80 mb-3 group-hover:text-crisis-amber transition-colors">warning_amber</span>
+<span class="text-white font-medium group-hover:text-crisis-amber transition-colors">Unsafe<br/>Area</span>
+</button>
+</div>
+<p class="text-white/30 text-xs text-center mt-6">
+                Pressing an option sends an instant high-priority alert to HQ.
+            </p>
+</div>
+<!-- Footer Actions -->
+<div class="mt-auto space-y-4 pb-4">
+<!-- Call Dispatch Button -->
+<button class="w-full bg-white/5 hover:bg-white/10 active:bg-white/20 border border-white/10 text-white font-semibold py-4 rounded-xl flex items-center justify-center space-x-2 transition-all">
+<span class="material-icons-round text-xl">phone</span>
+<span>Voice Call Dispatch</span>
+</button>
+<!-- Slide to Deactivate -->
+<div class="relative h-14 w-full bg-black/40 rounded-full flex items-center px-1 overflow-hidden border border-white/5 shadow-inner">
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="text-white/30 text-sm font-medium tracking-wide animate-pulse">Slide to Deactivate</span>
+</div>
+<!-- Slider Thumb -->
+<div class="h-12 w-12 bg-crisis-surface border border-white/10 rounded-full flex items-center justify-center shadow-lg cursor-grab active:cursor-grabbing z-10 slider-thumb">
+<span class="material-icons-round text-white/70 text-lg">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+</body></html>

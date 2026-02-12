@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Mission Manifest View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#44e996",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#112119",
+                        "card-dark": "#1a2c24", // Slightly lighter than background-dark for cards
+                        "card-darker": "#14261e", 
+                        "accent-blue": "#44a8e9",
+                        "accent-purple": "#a844e9",
+                        "accent-gold": "#e9c444",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        
+        /* Timeline line gradient */
+        .timeline-line {
+            background: linear-gradient(to bottom, #44e996 0%, #44e996 40%, #2d4a3e 100%);
+        }
+        
+        .timeline-line-future {
+            background: #2d4a3e;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 font-display min-h-screen flex justify-center overflow-hidden">
+<!-- Mobile Container -->
+<div class="w-full max-w-md h-screen bg-background-light dark:bg-background-dark relative flex flex-col shadow-2xl overflow-hidden">
+<!-- Status Bar Area (Placeholder) -->
+<div class="h-12 w-full flex justify-between items-center px-6 pt-2 z-20">
+<span class="text-sm font-medium dark:text-gray-400">9:41</span>
+<div class="flex gap-1.5">
+<span class="block w-4 h-4 rounded-sm bg-gray-800 dark:bg-gray-400"></span>
+<span class="block w-4 h-4 rounded-sm bg-gray-800 dark:bg-gray-400"></span>
+</div>
+</div>
+<!-- Header Section -->
+<div class="px-6 pt-2 pb-6 z-10 bg-background-light dark:bg-background-dark border-b border-gray-200 dark:border-gray-800/50">
+<div class="flex justify-between items-end mb-4">
+<div>
+<h2 class="text-sm font-medium text-primary uppercase tracking-wider mb-1">Thursday, Oct 24</h2>
+<h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Manifest</h1>
+</div>
+<div class="flex flex-col items-end">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mb-1">
+<span class="material-icons text-primary text-xl">person</span>
+</div>
+</div>
+</div>
+<!-- Summary Widget -->
+<div class="grid grid-cols-3 gap-2">
+<div class="bg-white dark:bg-card-dark rounded-lg p-3 flex flex-col items-center justify-center border border-gray-100 dark:border-gray-800 shadow-sm">
+<span class="text-2xl font-bold text-gray-900 dark:text-white">12</span>
+<span class="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">Stops</span>
+</div>
+<div class="bg-white dark:bg-card-dark rounded-lg p-3 flex flex-col items-center justify-center border border-gray-100 dark:border-gray-800 shadow-sm">
+<span class="text-2xl font-bold text-gray-900 dark:text-white">45<span class="text-sm font-normal text-gray-500">km</span></span>
+<span class="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">Remaining</span>
+</div>
+<div class="bg-white dark:bg-card-dark rounded-lg p-3 flex flex-col items-center justify-center border border-gray-100 dark:border-gray-800 shadow-sm">
+<span class="text-2xl font-bold text-gray-900 dark:text-white">4:30</span>
+<span class="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">Est Finish</span>
+</div>
+</div>
+</div>
+<!-- Scrollable Manifest List -->
+<div class="flex-1 overflow-y-auto px-6 py-4 relative scroll-smooth">
+<!-- Timeline Line Background -->
+<div class="absolute left-[3.25rem] top-0 bottom-0 w-0.5 timeline-line opacity-20 dark:opacity-30 z-0"></div>
+<!-- Current Location / Start Point -->
+<div class="relative z-10 mb-8 flex items-center">
+<div class="flex flex-col items-center mr-6 min-w-[3rem]">
+<div class="w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_rgba(68,233,150,0.6)]"></div>
+</div>
+<div class="flex-1 p-3 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-between">
+<div>
+<p class="text-xs font-bold text-primary uppercase tracking-wide">Current Location</p>
+<p class="text-sm font-medium text-gray-700 dark:text-gray-300">Distribution Center North</p>
+</div>
+<span class="material-icons text-primary text-lg">navigation</span>
+</div>
+</div>
+<!-- Stop 1: Active/Express -->
+<div class="relative z-10 mb-6 group">
+<div class="flex items-start">
+<!-- Stop Number Column -->
+<div class="flex flex-col items-center mr-4 min-w-[3rem] pt-1">
+<div class="w-10 h-10 rounded-full bg-card-dark border-2 border-accent-gold text-accent-gold flex items-center justify-center font-bold shadow-lg z-10 text-lg">
+                            01
+                        </div>
+</div>
+<!-- Card -->
+<div class="flex-1 bg-white dark:bg-card-dark rounded-xl p-5 shadow-md border-l-4 border-accent-gold relative overflow-hidden transition-transform active:scale-[0.98]">
+<!-- Background glow for active/priority -->
+<div class="absolute top-0 right-0 w-24 h-24 bg-accent-gold/5 blur-[50px] rounded-full -translate-y-10 translate-x-10 pointer-events-none"></div>
+<div class="flex justify-between items-start mb-2">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-accent-gold/10 text-accent-gold uppercase tracking-wider border border-accent-gold/20">
+                                Express
+                            </span>
+<span class="material-icons text-gray-400 text-lg">bolt</span>
+</div>
+<h3 class="text-lg font-bold text-gray-900 dark:text-white leading-tight mb-1">TechCorp HQ</h3>
+<p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-3">800 Market St, San Francisco, CA</p>
+<div class="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700/50">
+<div class="flex items-center gap-2">
+<span class="material-icons text-gray-400 text-sm">local_shipping</span>
+<span class="text-xs text-gray-500 dark:text-gray-400">3 Packages</span>
+</div>
+<button class="bg-primary hover:bg-green-400 text-black text-xs font-bold py-2 px-4 rounded-lg flex items-center gap-1 transition-colors">
+                                Start
+                                <span class="material-icons text-sm font-bold">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Stop 2: Move -->
+<div class="relative z-10 mb-6 group opacity-90">
+<div class="flex items-start">
+<!-- Stop Number Column -->
+<div class="flex flex-col items-center mr-4 min-w-[3rem] pt-1">
+<div class="w-8 h-8 rounded-full bg-card-darker border border-gray-700 text-gray-400 flex items-center justify-center font-bold z-10 text-sm mt-1">
+                            02
+                        </div>
+</div>
+<!-- Card -->
+<div class="flex-1 bg-white dark:bg-card-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 relative">
+<div class="flex justify-between items-start mb-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent-purple/10 text-accent-purple uppercase tracking-wider border border-accent-purple/20">
+                                Move
+                            </span>
+<span class="material-icons text-gray-500 text-lg">inventory_2</span>
+</div>
+<h3 class="text-base font-bold text-gray-900 dark:text-white leading-tight mb-1">Sarah Jenkins</h3>
+<p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-2">1242 Maple Drive, Daly City, CA</p>
+<div class="flex items-center gap-2 mt-2">
+<span class="material-icons text-gray-600 dark:text-gray-500 text-sm">straighten</span>
+<span class="text-xs text-gray-500 dark:text-gray-400">Large Item</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Stop 3: Standard -->
+<div class="relative z-10 mb-6 group opacity-80">
+<div class="flex items-start">
+<!-- Stop Number Column -->
+<div class="flex flex-col items-center mr-4 min-w-[3rem] pt-1">
+<div class="w-8 h-8 rounded-full bg-card-darker border border-gray-700 text-gray-400 flex items-center justify-center font-bold z-10 text-sm mt-1">
+                            03
+                        </div>
+</div>
+<!-- Card -->
+<div class="flex-1 bg-white dark:bg-card-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 relative">
+<div class="flex justify-between items-start mb-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent-blue/10 text-accent-blue uppercase tracking-wider border border-accent-blue/20">
+                                Standard
+                            </span>
+<span class="material-icons text-gray-500 text-lg">schedule</span>
+</div>
+<h3 class="text-base font-bold text-gray-900 dark:text-white leading-tight mb-1">Warehouse B</h3>
+<p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-2">Industrial Park Way, South SF</p>
+</div>
+</div>
+</div>
+<!-- Stop 4: Standard -->
+<div class="relative z-10 mb-6 group opacity-70">
+<div class="flex items-start">
+<!-- Stop Number Column -->
+<div class="flex flex-col items-center mr-4 min-w-[3rem] pt-1">
+<div class="w-8 h-8 rounded-full bg-card-darker border border-gray-700 text-gray-400 flex items-center justify-center font-bold z-10 text-sm mt-1">
+                            04
+                        </div>
+</div>
+<!-- Card -->
+<div class="flex-1 bg-white dark:bg-card-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 relative">
+<div class="flex justify-between items-start mb-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent-blue/10 text-accent-blue uppercase tracking-wider border border-accent-blue/20">
+                                Standard
+                            </span>
+<span class="material-icons text-gray-500 text-lg">local_post_office</span>
+</div>
+<h3 class="text-base font-bold text-gray-900 dark:text-white leading-tight mb-1">Green Logistics Hub</h3>
+<p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-2">550 Terry Francois St, SF</p>
+</div>
+</div>
+</div>
+<!-- End of List Spacer -->
+<div class="h-20"></div>
+</div>
+<!-- Floating Action Button / Bottom Bar -->
+<div class="absolute bottom-6 left-6 right-6 z-30">
+<div class="flex gap-4">
+<button class="flex-1 bg-card-darker backdrop-blur-xl bg-opacity-90 text-white border border-gray-700 p-4 rounded-xl shadow-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
+<span class="material-icons text-gray-300">map</span>
+<span class="font-medium text-sm">Map View</span>
+</button>
+<button class="flex-[2] bg-primary text-black p-4 rounded-xl shadow-[0_0_20px_rgba(68,233,150,0.3)] flex items-center justify-center gap-2 font-bold active:scale-95 transition-transform hover:bg-green-400">
+<span class="material-icons">near_me</span>
+<span>Start Route</span>
+</button>
+</div>
+</div>
+<!-- Background texture overlay for slight noise (optional "premium" feel) -->
+<div class="absolute inset-0 pointer-events-none opacity-[0.03] z-0" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22 opacity=%221%22/%3E%3C/svg%3E');"></div>
+</div>
+</body></html>
