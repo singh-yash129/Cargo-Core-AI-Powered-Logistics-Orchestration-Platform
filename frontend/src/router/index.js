@@ -111,184 +111,184 @@ const router = createRouter({
         { path: '/ai/settings', component: () => import('../ai-views/Settings.vue'), meta: { requiresAuth: true, layout: 'ai' } },
 
         {
-            path: '/route-progress',
+            path: '/driver/route-progress',
             name: 'RouteProgress',
             component: () => import('../driver-views/RouteProgress.vue'),
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/',
-            redirect: '/splash',
+            path: '/driver/',
+            redirect: '/driver/splash',
             meta: { layout: 'blank' }
         },
         {
-            path: '/splash',
+            path: '/driver/splash',
             name: 'splash',
             component: SplashScreen
         },
         {
-            path: '/login',
+            path: '/driver/login',
             name: 'login',
             component: LoginScreen
         },
         {
-            path: '/vehicle-binding',
+            path: '/driver/vehicle-binding',
             name: 'vehicle-binding',
             component: VehicleBinding,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/vehicle-inspection',
+            path: '/driver/vehicle-inspection',
             name: 'vehicle-inspection',
             component: VehicleInspection,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/pre-shift-safety',
+            path: '/driver/pre-shift-safety',
             name: 'pre-shift-safety',
             component: () => import('../driver-views/PreShiftSafety.vue'),
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/crew-checkin',
+            path: '/driver/crew-checkin',
             name: 'crew-checkin',
             component: CrewCheckIn,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/dashboard',
+            path: '/driver/dashboard',
             name: 'dashboard',
             component: CommandCenter,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/manifest',
+            path: '/driver/manifest',
             name: 'manifest',
             component: ManifestView,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/load-verification',
+            path: '/driver/load-verification',
             name: 'load-verification',
             component: LoadVerification,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/navigation',
+            path: '/driver/navigation',
             name: 'navigation',
             component: LiveNavigation,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/arrival/:stopId',
+            path: '/driver/arrival/:stopId',
             name: 'arrival',
             component: GeofenceArrival,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/delivery/:stopId',
+            path: '/driver/delivery/:stopId',
             name: 'delivery',
             component: DeliveryExecution,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/pickup/:stopId',
+            path: '/driver/pickup/:stopId',
             name: 'pickup',
             component: () => import('../driver-views/PickupExecution.vue'),
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/proof-of-delivery/:stopId',
+            path: '/driver/proof-of-delivery/:stopId',
             name: 'proof-of-delivery',
             component: ProofOfDelivery,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/cod-payment/:stopId',
+            path: '/driver/cod-payment/:stopId',
             name: 'cod-payment',
             component: CODPayment,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/route-deviation',
+            path: '/driver/route-deviation',
             name: 'route-deviation',
             component: RouteDeviation,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/damage-report',
+            path: '/driver/damage-report',
             name: 'damage-report',
             component: DamageReport,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/crisis',
+            path: '/driver/crisis',
             name: 'crisis',
             component: CrisisMode,
             meta: { requiresAuth: true, layout: 'driver' }
-        },
+        },  
         {
-            path: '/fuel-receipt',
+            path: '/driver/fuel-receipt',
             name: 'fuel-receipt',
             component: FuelReceipt,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/wallet',
+            path: '/driver/wallet',
             name: 'wallet',
             component: DriverWallet,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/safety-score',
+            path: '/driver/safety-score',
             name: 'safety-score',
             component: SafetyScore,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/shift-summary',
+            path: '/driver/shift-summary',
             name: 'shift-summary',
             component: ShiftSummary,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/offline-queue',
+            path: '/driver/offline-queue',
             name: 'offline-queue',
             component: OfflineQueue,
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/warehouse-return',
+            path: '/driver/warehouse-return',
             name: 'warehouse-return',
             component: () => import('../driver-views/WarehouseReturn.vue'),
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/chat',
+            path: '/driver/chat',
             name: 'chat',
             component: () => import('../driver-views/DispatchChat.vue'),
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/vehicle-return',
+            path: '/driver/vehicle-return',
             name: 'vehicle-return',
             component: () => import('../driver-views/VehicleReturn.vue'),
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/audit-log',
+            path: '/driver/audit-log',
             name: 'audit-log',
             component: () => import('../driver-views/AuditLog.vue'),
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/gate-exit',
+            path: '/driver/gate-exit',
             name: 'gate-exit',
             component: () => import('../driver-views/GateExit.vue'),
             meta: { requiresAuth: true, layout: 'driver' }
         },
         {
-            path: '/settings',
+            path: '/driver/settings',
             name: 'settings',
             component: Settings,
             meta: { requiresAuth: true, layout: 'driver' }
