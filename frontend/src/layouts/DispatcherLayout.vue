@@ -36,8 +36,8 @@
                 </div>
             </header>
 
-            <!-- Page Content - Full Height for Map/Control Center feel -->
-            <div class="flex-1 relative overflow-hidden">
+            <!-- Page Content - Responsive Padding -->
+            <div class="flex-1 relative" :class="route.meta.fullWidth ? 'overflow-hidden p-0' : 'overflow-y-auto p-6'">
                 <slot />
             </div>
         </main>
@@ -45,5 +45,8 @@
 </template>
 
 <script setup>
+import { useRoute } from 'vue-router'
 import DispatcherSidebar from '../LWD-components/DispatcherSidebar.vue'
+
+const route = useRoute()
 </script>
