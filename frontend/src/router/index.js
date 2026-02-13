@@ -27,6 +27,27 @@ import Settings from '../driver-views/Settings.vue'
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
+        // Landing Page
+        {
+            path: '/',
+            name: 'Home',
+            component: () => import('../LWDDVI-views/Home.vue'),
+            meta: { layout: 'blank' }
+        },
+        // Authentication (System-wide)
+        {
+            path: '/login',
+            name: 'SystemLogin',
+            component: () => import('../driver-views/LoginScreen.vue'), // Temporary placeholder using Driver Login
+            meta: { layout: 'blank' }
+        },
+        {
+            path: '/register',
+            name: 'SystemRegister',
+            component: () => import('../driver-views/LoginScreen.vue'), // Temporary placeholder
+            meta: { layout: 'blank' }
+        },
+
         // Role-Based Dashboards
         {
             path: '/logistic/dashboard',
@@ -226,7 +247,7 @@ const router = createRouter({
             name: 'crisis',
             component: CrisisMode,
             meta: { requiresAuth: true, layout: 'driver' }
-        },  
+        },
         {
             path: '/driver/fuel-receipt',
             name: 'fuel-receipt',
