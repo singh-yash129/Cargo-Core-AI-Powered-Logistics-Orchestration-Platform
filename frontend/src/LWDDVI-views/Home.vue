@@ -130,7 +130,7 @@
         <section
             class="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 py-20 relative role-section">
             <div class="w-full md:w-1/2 h-[500px] relative z-10">
-                <SplineScene scene="https://prod.spline.design/I5unjN6P8meDstJN/scene.splinecode" />
+                <SplineScene scene="https://prod.spline.design/qjGo2c4YrEdZD6EY/scene.splinecode" />
             </div>
             <div class="w-full md:w-1/2 p-8 md:pl-20 text-left">
                 <div class="role-text-container">
