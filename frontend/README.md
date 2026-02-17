@@ -1,5 +1,66 @@
-# Vue 3 + Vite
+# Cargo-Core Frontend 🚚
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+This is the frontend repository for the **Cargo-Core** logistics platform, a Software Engineering Project (2026) for IIT Madras. The platform is designed to digitize and optimize workflows for small logistics businesses.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## 🚀 Tech Stack
+
+- **Framework:** [Vue 3](https://vuejs.org/) (Composition API with `<script setup>`)
+- **Build Tool:** [Vite](https://vitejs.dev/)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/) with PostCSS
+- **State Management:** [Pinia](https://pinia.vuejs.org/)
+- **Routing:** [Vue Router](https://router.vuejs.org/)
+- **Animations:** [GSAP](https://greensock.com/gsap/) (GreenSock Animation Platform)
+- **3D Integration:** [Spline Runtime](https://spline.design/)
+
+## 🛠️ Project Setup
+
+### Prerequisites
+Ensure you have [Node.js](https://nodejs.org/) installed (version 18+ recommended).
+
+### Installation
+```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+```
+
+### Development
+Start the local development server with Hot Module Replacement (HMR):
+```bash
+npm run dev
+```
+
+### Production
+Build the project for production:
+```bash
+npm run build
+```
+
+Preview the production build locally:
+```bash
+npm run preview
+```
+
+## 📁 Project Structure
+
+```text
+  Update the project structure later
+```
+
+## 🔌 Recommended IDE Setup
+
+- [VS Code](https://code.visualstudio.com/)
+- [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur)
+- [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
+
+## 🤝 Contribution
+
+1. Create a new branch: `git checkout -b feature/your-feature-name`
+2. Commit your changes: `git commit -m 'Add some feature'`
+3. Push to the branch: `git push origin feature/your-feature-name`
+4. Open a Pull Request.
+
+---
+*Developed by QuadCore-Devs(Team-003) @ IIT Madras (2026)*
