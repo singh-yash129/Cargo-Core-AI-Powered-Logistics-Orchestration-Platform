@@ -67,8 +67,7 @@
 
             <!-- Map Result Visualization -->
             <div class="lg:col-span-2 glass-panel rounded-xl relative overflow-hidden flex flex-col">
-                <div
-                    class="absolute inset-0 bg-gray-800 bg-[url('/src/assets/map-placeholder.png')] bg-cover bg-center opacity-70">
+                <div class="absolute inset-0 bg-gray-800 bg-gradient-to-br from-gray-800 to-gray-900 opacity-70">
                 </div>
 
                 <!-- Simulated Route Lines -->

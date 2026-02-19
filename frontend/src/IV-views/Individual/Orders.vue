@@ -16,7 +16,7 @@
                 <!-- Map Section -->
                 <div class="lg:col-span-2 h-96 relative bg-gray-900 group">
                     <!-- Map Placeholder -->
-                    <div class="absolute inset-0 bg-[url('/src/assets/map-dark.png')] bg-cover bg-center opacity-60">
+                    <div class="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-60">
                     </div>
 
                     <!-- Vehicle Marker -->
@@ -111,7 +111,7 @@
                         <div class="flex items-center gap-2 mb-1">
                             <span class="font-bold text-white">Order #{{ order.id }}</span>
                             <span class="px-2 py-0.5 rounded text-[10px] bg-white/10 text-gray-400">{{ order.date
-                                }}</span>
+                            }}</span>
                         </div>
                         <div class="text-sm text-gray-400 flex items-center gap-2 truncate">
                             <span>{{ order.pickup }}</span>

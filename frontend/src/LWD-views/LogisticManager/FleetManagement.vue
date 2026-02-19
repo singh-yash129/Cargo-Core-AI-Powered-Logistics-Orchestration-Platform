@@ -16,7 +16,7 @@
         <!-- Live Map Placeholder -->
         <div class="glass-panel w-full h-[300px] rounded-xl relative overflow-hidden group">
             <div
-                class="absolute inset-0 bg-[url('/src/assets/map-placeholder.png')] bg-cover bg-center opacity-40 group-hover:opacity-50 transition-opacity">
+                class="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-40 group-hover:opacity-50 transition-opacity">
             </div>
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div

@@ -4,7 +4,11 @@
         :class="isOpen ? 'translate-x-0' : '-translate-x-full'">
         <!-- Logo area -->
         <div class="h-16 flex items-center justify-between px-6 border-b border-white/5">
-            <div class="text-xl font-bold text-white tracking-wide">Quad<span class="text-purple-500">AI</span></div>
+            <div class="flex items-center gap-3">
+                <img src="@/assets/cargo-core-logo.png" alt="Cargo-Core Logo" class="h-8 w-auto" />
+                <div class="text-xl font-bold text-white tracking-wide">Cargo-Core <span
+                        class="text-purple-500">AI</span></div>
+            </div>
             <!-- Mobile Close Button -->
             <button @click="$emit('close')" class="md:hidden text-gray-400 hover:text-white">
                 <span class="material-symbols-outlined">close</span>

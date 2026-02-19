@@ -3,7 +3,8 @@
         <!-- Mobile Header -->
         <div
             class="md:hidden h-16 bg-card-darker border-b border-white/5 flex items-center justify-between px-4 fixed top-0 left-0 right-0 z-40">
-            <div class="text-xl font-bold text-white tracking-wide">Quad<span class="text-purple-500">AI</span></div>
+            <div class="text-xl font-bold text-white tracking-wide">Cargo-Core <span class="text-purple-500">AI</span>
+            </div>
             <button @click="isSidebarOpen = true" class="text-white p-2">
                 <span class="material-symbols-outlined">menu</span>
             </button>

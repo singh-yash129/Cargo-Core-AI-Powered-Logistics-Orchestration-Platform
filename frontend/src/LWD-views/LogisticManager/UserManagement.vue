@@ -39,7 +39,7 @@
                     <div class="flex gap-2 mb-4">
                         <span
                             class="px-2 py-1 rounded bg-blue-500/10 text-blue-400 text-xs font-bold border border-blue-500/20">{{
-                            user.role }}</span>
+                                user.role }}</span>
                         <span v-if="user.status === 'Active'"
                             class="px-2 py-1 rounded bg-green-500/10 text-green-400 text-xs font-bold border border-green-500/20">Active</span>
                         <span v-else
@@ -70,9 +70,9 @@ const activeTab = ref('All Users')
 const tabs = ['All Users', 'Managers', 'Dispatchers', 'Drivers', 'Admins']
 
 const users = ref([
-    { name: 'Sarah Connor', email: 'sarah.c@quadcore.com', role: 'Logistic Manager', status: 'Active', lastLogin: '2 mins ago', avatar: 'https://i.pravatar.cc/150?u=5' },
-    { name: 'John Wick', email: 'john.w@quadcore.com', role: 'Dispatcher', status: 'Active', lastLogin: '1 hour ago', avatar: 'https://i.pravatar.cc/150?u=8' },
-    { name: 'Ellen Ripley', email: 'ellen.r@quadcore.com', role: 'Warehouse Manager', status: 'Inactive', lastLogin: '2 days ago', avatar: 'https://i.pravatar.cc/150?u=9' },
-    { name: 'Marty McFly', email: 'marty.m@quadcore.com', role: 'Driver', status: 'Active', lastLogin: 'Just now', avatar: 'https://i.pravatar.cc/150?u=12' },
+    { name: 'Sarah Connor', email: 'sarah.c@cargocore.com', role: 'Logistic Manager', status: 'Active', lastLogin: '2 mins ago', avatar: 'https://i.pravatar.cc/150?u=5' },
+    { name: 'John Wick', email: 'john.w@cargocore.com', role: 'Dispatcher', status: 'Active', lastLogin: '1 hour ago', avatar: 'https://i.pravatar.cc/150?u=8' },
+    { name: 'Ellen Ripley', email: 'ellen.r@cargocore.com', role: 'Warehouse Manager', status: 'Inactive', lastLogin: '2 days ago', avatar: 'https://i.pravatar.cc/150?u=9' },
+    { name: 'Marty McFly', email: 'marty.m@cargocore.com', role: 'Driver', status: 'Active', lastLogin: 'Just now', avatar: 'https://i.pravatar.cc/150?u=12' },
 ])
 </script>

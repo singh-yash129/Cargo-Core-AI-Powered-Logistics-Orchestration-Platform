@@ -55,7 +55,7 @@
 
                 <!-- Map Placeholder -->
                 <div
-                    class="absolute inset-0 bg-gray-800 flex items-center justify-center bg-[url('/src/assets/map-dark.png')] bg-cover">
+                    class="absolute inset-0 bg-gray-800 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
                     <div class="text-gray-500 font-mono text-sm bg-black/50 px-4 py-2 rounded-lg backdrop-blur-sm">
                         Interactive Map Editor Loading...</div>
                 </div>

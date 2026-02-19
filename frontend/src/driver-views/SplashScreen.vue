@@ -14,24 +14,12 @@
         <div class="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse-slow"></div>
 
         <!-- Logo Mark -->
-        <div class="relative w-24 h-24 md:w-32 md:h-32 flex items-center justify-center">
-          <!-- Abstract Geometric Logo -->
-          <svg class="w-full h-full text-primary neon-glow" fill="none" viewBox="0 0 100 100"
-            xmlns="http://www.w3.org/2000/svg">
-            <!-- Outer Ring Segment -->
-            <path d="M50 10 A40 40 0 0 1 90 50" stroke="currentColor" stroke-linecap="round" stroke-width="3"></path>
-            <path class="opacity-30" d="M90 50 A40 40 0 0 1 50 90" stroke="currentColor" stroke-linecap="round"
-              stroke-width="3"></path>
-            <path d="M50 90 A40 40 0 0 1 10 50" stroke="currentColor" stroke-linecap="round" stroke-width="3"></path>
-            <path class="opacity-30" d="M10 50 A40 40 0 0 1 50 10" stroke="currentColor" stroke-linecap="round"
-              stroke-width="3"></path>
-            <!-- Inner Geometric Core -->
-            <path class="drop-shadow-lg" d="M50 30 L67 60 H33 L50 30 Z" fill="rgba(68, 233, 150, 0.1)"
-              stroke="currentColor" stroke-linejoin="round" stroke-width="3"></path>
-            <circle cx="50" cy="45" fill="currentColor" r="2"></circle>
-          </svg>
+        <div class="relative w-32 h-32 md:w-40 md:h-40 flex items-center justify-center">
+          <img src="@/assets/cargo-core-logo.png" alt="Cargo-Core Logo"
+            class="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]" />
         </div>
       </div>
+      <h1 class="text-3xl font-bold tracking-wide text-white mt-6 animate-pulse">Cargo-Core</h1>
     </div>
 
     <!-- Footer: System Text & Loading -->
@@ -44,7 +32,7 @@
       <!-- Footer Text -->
       <div class="text-center">
         <h1 class="text-xs tracking-[0.3em] font-medium text-white/50 uppercase font-display">
-          Field Execution System
+          Moving What Matters
         </h1>
         <p class="text-[10px] tracking-widest text-primary/40 mt-1 uppercase opacity-60">
           v4.2.0 • Pro Driver

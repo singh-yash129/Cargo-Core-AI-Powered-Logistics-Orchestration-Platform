@@ -51,8 +51,7 @@
                 <div class="flex flex-col md:flex-row gap-6">
                     <!-- Map / Tracking -->
                     <div class="flex-1 bg-gray-800 rounded-lg h-48 relative overflow-hidden">
-                        <div
-                            class="absolute inset-0 bg-[url('/src/assets/map-dark.png')] bg-cover bg-center opacity-70">
+                        <div class="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-70">
                         </div>
                         <div class="absolute bottom-2 left-2 bg-black/80 px-3 py-1 rounded text-xs text-white">
                             ETA: <span class="text-green-400 font-bold">14:30 PM</span>

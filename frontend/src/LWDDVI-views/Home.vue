@@ -312,8 +312,7 @@
             </div>
 
             <div class="text-center pt-8 border-t border-white/5">
-                <p class="text-gray-500 text-sm tracking-widest uppercase">LWDDVI — Logistics Without Delay, Driven Via
-                    Intelligence.</p>
+                <p class="text-gray-500 text-sm tracking-widest uppercase">Cargo-Core &mdash; Moving What Matters</p>
             </div>
         </footer>
 

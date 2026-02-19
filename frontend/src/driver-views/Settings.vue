@@ -161,7 +161,7 @@
 
             <!-- App Info -->
             <div class="text-center mb-6">
-                <p class="text-gray-500 text-sm">{Quadcore Driver App</p>
+                <p class="text-gray-500 text-sm">Cargo-Core Driver App</p>
                 <p class="text-gray-600 text-xs">Version 1.0.0</p>
             </div>
 

@@ -11,13 +11,14 @@
       <!-- Header Section -->
       <div class="flex flex-col items-center pt-12 animate-fade-in-down">
         <!-- Logo Icon -->
-        <div class="w-16 h-16 rounded-2xl glass-panel flex items-center justify-center mb-6 text-primary">
-          <span class="material-icons text-4xl">local_shipping</span>
+        <div class="mb-6 flex flex-col items-center">
+          <img src="@/assets/cargo-core-logo.png" alt="Cargo-Core Logo"
+            class="h-24 w-auto drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]" />
         </div>
-        <h1 class="text-2xl font-light tracking-wide text-white/90">
-          FLEET<span class="font-bold text-primary">OS</span>
+        <h1 class="text-3xl font-light tracking-wide text-white/90 mb-1">
+          Cargo-<span class="font-bold text-primary">Core</span>
         </h1>
-        <p class="text-xs tracking-[0.2em] text-white/40 mt-2 uppercase">Driver Terminal v2.4</p>
+        <p class="text-xs tracking-[0.3em] text-white/40 mt-1 uppercase">Moving What Matters</p>
       </div>
 
       <!-- Login Form Section -->
@@ -108,6 +109,7 @@ const handleLogin = async () => {
   // Simulate API call
   setTimeout(() => {
     isLoading.value = false
+    driverStore.login(driverId.value, 'password') // Set authenticated state
     // Navigate to Pre-Shift Safety (Enterprise Flow)
     router.push('/pre-shift-safety')
   }, 1500)

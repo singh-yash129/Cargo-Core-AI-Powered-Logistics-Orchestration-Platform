@@ -56,8 +56,7 @@
 
         <!-- Map View of Alerts -->
         <div class="glass-panel rounded-xl h-[400px] relative overflow-hidden">
-            <div
-                class="absolute inset-0 bg-gray-800 bg-[url('/src/assets/map-dark.png')] bg-cover bg-center opacity-50">
+            <div class="absolute inset-0 bg-gray-800 bg-gradient-to-br from-gray-800 to-gray-900 opacity-50">
             </div>
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div class="bg-black/80 backdrop-blur border border-red-500/30 px-6 py-4 rounded-xl text-center">

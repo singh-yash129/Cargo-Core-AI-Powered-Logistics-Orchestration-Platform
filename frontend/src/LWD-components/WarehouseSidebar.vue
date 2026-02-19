@@ -3,8 +3,10 @@
         class="w-64 h-screen bg-[#0F1115] border-r border-white/5 flex flex-col fixed left-0 top-0 z-50 shadow-[4px_0_24px_rgba(0,0,0,0.4)]">
         <!-- Logo area -->
         <div
-            class="h-16 flex items-center px-6 border-b border-white/5 bg-gradient-to-r from-teal-500/10 to-transparent">
-            <div class="text-xl font-bold text-teal-400 tracking-wide">Nexus<span class="text-white">WMS</span></div>
+            class="h-16 flex items-center px-6 border-b border-white/5 bg-gradient-to-r from-teal-500/10 to-transparent gap-3">
+            <img src="@/assets/cargo-core-logo.png" alt="Cargo-Core Logo" class="h-8 w-auto" />
+            <div class="text-xl font-bold text-teal-400 tracking-wide">Cargo-Core 
+            </div>
         </div>
 
         <!-- Navigation -->

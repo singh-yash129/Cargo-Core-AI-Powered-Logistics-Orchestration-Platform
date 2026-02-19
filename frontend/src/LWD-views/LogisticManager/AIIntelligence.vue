@@ -6,7 +6,7 @@
                 <span class="material-symbols-outlined text-white">smart_toy</span>
             </div>
             <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                QuadCore AI Intelligence</h2>
+                Cargo-Core AI Intelligence</h2>
         </div>
 
         <!-- Chat Interface -->

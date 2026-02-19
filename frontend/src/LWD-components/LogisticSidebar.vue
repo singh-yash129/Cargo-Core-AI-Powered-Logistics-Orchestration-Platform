@@ -1,8 +1,9 @@
 <template>
     <aside class="w-64 h-screen bg-card-darker border-r border-white/5 flex flex-col fixed left-0 top-0 z-50">
         <!-- Logo area -->
-        <div class="h-16 flex items-center px-6 border-b border-white/5">
-            <div class="text-xl font-bold text-primary tracking-wide">LWD<span class="text-white">Manager</span></div>
+        <div class="h-16 flex items-center px-6 border-b border-white/5 gap-3">
+            <img src="@/assets/cargo-core-logo.png" alt="Cargo-Core Logo" class="h-8 w-auto" />
+            <div class="text-xl font-bold text-primary tracking-wide">Cargo-Core</div>
         </div>
 
         <!-- Navigation -->

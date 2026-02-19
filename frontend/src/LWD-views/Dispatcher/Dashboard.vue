@@ -60,7 +60,7 @@
         <!-- Center Panel: Interactive Map -->
         <div class="flex-1 bg-gray-900 relative">
             <!-- Map Placeholder -->
-            <div class="absolute inset-0 bg-[url('/src/assets/map-dark.png')] bg-cover bg-center opacity-60"></div>
+            <div class="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-60"></div>
             <div class="absolute inset-0 bg-background-dark/20 backdrop-blur-[2px]"></div>
 
             <!-- Overlay Controls -->

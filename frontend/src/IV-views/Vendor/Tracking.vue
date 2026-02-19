@@ -56,7 +56,7 @@
 
             <!-- Map Container -->
             <div class="flex-1 bg-gray-900 relative">
-                <div class="absolute inset-0 bg-[url('/src/assets/map-dark.png')] bg-cover bg-center opacity-60"></div>
+                <div class="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-60"></div>
 
                 <!-- Fake Markers -->
                 <div class="absolute top-1/3 left-1/4 group cursor-pointer">
