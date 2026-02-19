@@ -12,7 +12,7 @@
                         <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Orders Today</div>
                         <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">{{
                             store.dashboardStats.orders.toLocaleString()
-                        }}
+                            }}
                         </div>
                     </div>
                     <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -133,7 +133,7 @@
                             <div
                                 class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 bg-white dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg p-2 hidden group-hover:block z-20 shadow-xl">
                                 <div class="text-xs font-bold text-gray-900 dark:text-white">{{ store.drivers[0].vehicle
-                                    }}</div>
+                                }}</div>
                                 <div class="text-[10px] text-gray-500 dark:text-gray-400">Moving • 45 km/h</div>
                             </div>
                         </div>
@@ -238,25 +238,84 @@
             <div class="glass-panel p-5 rounded-2xl">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">SLA Compliance Trend</h3>
-                    <select
-                        class="bg-gray-100 dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg text-xs text-gray-700 dark:text-gray-300 px-2 py-1 outline-none">
-                        <option>Last 7 Days</option>
-                        <option>This Month</option>
-                    </select>
-                </div>
+                    <div class="flex gap-2">
+                        <!-- Chart Type Selection -->
+                        <select v-model="selectedChartType"
+                            class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-xs text-gray-700 dark:text-gray-300 px-2 py-1 outline-none transition-colors cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10">
+                            <option value="area">Area Chart</option>
+                            <option value="line">Line Chart</option>
+                            <option value="bar">Bar Chart</option>
+                        </select>
 
-                <!-- Simple CSS Chart Placeholder -->
-                <div class="h-48 flex items-end justify-between gap-2 px-2">
-                    <div v-for="(val, index) in store.dashboardStats.slaCompliance" :key="index"
-                        class="w-full bg-gray-200 dark:bg-gray-700/30 rounded-t-sm relative group transition-all duration-500 hover:bg-primary/20"
-                        :style="{ height: val + '%' }">
-                        <div
-                            class="absolute bottom-full left-1/2 -translate-x-1/2 text-xs text-gray-700 dark:text-white opacity-0 group-hover:opacity-100 mb-1 font-bold">
-                            {{ val }}%</div>
+                        <!-- Time Period Selection -->
+                        <select v-model="selectedTimePeriod"
+                            class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-xs text-gray-700 dark:text-gray-300 px-2 py-1 outline-none transition-colors cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10">
+                            <option value="week">Last 7 Days</option>
+                            <option value="month">This Month</option>
+                        </select>
                     </div>
                 </div>
-                <div class="flex justify-between mt-2 text-xs text-gray-500 dark:text-gray-500 px-2">
-                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+
+                <!-- Dynamic Chart Container -->
+                <div v-if="selectedChartType !== 'bar'" class="h-48 relative w-full group">
+                    <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                        <defs>
+                            <linearGradient id="slaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" class="stop-color-primary" stop-opacity="0.3" />
+                                <stop offset="100%" class="stop-color-primary" stop-opacity="0" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Area Chart -->
+                        <g v-if="selectedChartType === 'area'">
+                            <path :d="chartAreaPath"
+                                class="fill-[url(#slaGradient)] transition-all duration-500 ease-in-out" />
+                            <path :d="chartLinePath" fill="none"
+                                class="stroke-primary stroke-2 transition-all duration-500 ease-in-out"
+                                vector-effect="non-scaling-stroke" />
+                        </g>
+
+                        <!-- Line Chart -->
+                        <g v-if="selectedChartType === 'line'">
+                            <path :d="chartLinePath" fill="none"
+                                class="stroke-primary stroke-2 transition-all duration-500 ease-in-out"
+                                vector-effect="non-scaling-stroke" />
+                        </g>
+
+                        <!-- Interactivity Points for Line/Area -->
+                        <g>
+                            <circle v-for="(point, index) in chartPoints" :key="index" :cx="point.x" :cy="point.y" r="0"
+                                class="stroke-white fill-primary stroke-2 cursor-pointer transition-all duration-200"
+                                :class="{ 'r-4 hover:r-6': true }"
+                                @mouseover="hoveredDataPoint = { x: (point.x / 100) * $el.clientWidth, y: (point.y / 100) * $el.clientHeight, value: point.value }"
+                                @mouseleave="hoveredDataPoint = null" />
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- CSS Bar Chart (User's Static Style) -->
+                <div v-else class="h-48 flex items-end justify-between px-2"
+                    :class="selectedTimePeriod === 'week' ? 'gap-2' : 'gap-px'">
+                    <div v-for="(point, index) in chartPoints" :key="index"
+                        class="w-full rounded-t-sm relative group transition-all duration-500" :class="[
+                            index === chartPoints.length - 1
+                                ? 'bg-primary/20 border-t-2 border-primary'
+                                : 'bg-gray-200 dark:bg-gray-700/30 hover:bg-gray-300 dark:hover:bg-gray-600/50'
+                        ]" :style="{ height: point.value + '%' }">
+
+                        <!-- Tooltip/Label -->
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 text-xs mb-1 font-bold whitespace-nowrap transition-opacity"
+                            :class="[
+                                index === chartPoints.length - 1
+                                    ? 'text-primary opacity-100'
+                                    : 'text-gray-700 dark:text-white opacity-0 group-hover:opacity-100'
+                            ]">
+                            {{ point.value }}%
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-between mt-2 text-xs text-gray-500 dark:text-gray-500 px-2 font-medium">
+                    <span v-for="(label, idx) in xAxisLabels" :key="idx">{{ label }}</span>
                 </div>
             </div>
 
@@ -276,8 +335,12 @@
                         </thead>
                         <tbody class="text-sm">
                             <tr v-for="hub in store.hubs" :key="hub.id"
-                                class="border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                                @click="store.setWarehouse(hub.id)"> <!-- Click to switch context -->
+                                class="border-b border-gray-100 dark:border-white/5 last:border-0 transition-all cursor-pointer relative"
+                                :class="[
+                                    store.activeWarehouse === hub.id
+                                        ? 'bg-primary/5 dark:bg-primary/10 border-l-4 border-primary pl-3'
+                                        : 'hover:bg-gray-50 dark:hover:bg-white/5 border-l-4 border-transparent'
+                                ]" @click="store.setWarehouse(hub.id)"> <!-- Click to switch context -->
                                 <td class="py-3 text-gray-900 dark:text-white font-medium">{{ hub.name }}</td>
                                 <td class="py-3 text-gray-500 dark:text-gray-300">
                                     <div class="flex items-center gap-2">
@@ -315,11 +378,66 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import AlertDetailsModal from '@/LWD-components/AlertDetailsModal.vue'
 import DriverProfileModal from '@/LWD-components/DriverProfileModal.vue'
 
 const store = useLogisticStore()
+const hoveredDataPoint = ref(null)
+
+// --- Chart Controls ---
+const selectedTimePeriod = ref('week')
+const selectedChartType = ref('area')
+
+// --- Chart Logic ---
+const chartPoints = computed(() => {
+    // Default to 'week' data if not found
+    const data = store.dashboardStats.slaCompliance[selectedTimePeriod.value] || []
+    if (data.length === 0) return []
+
+    const maxVal = 100 // SLA is percentage
+    const minVal = Math.min(...data) * 0.9 // Dynamic baseline
+
+    return data.map((val, index) => {
+        const x = (index / (data.length - 1)) * 100
+        // Scale Y
+        const y = 100 - val // Simple 0-100 mapping suitable for %
+        return { x, y, value: val }
+    })
+})
+
+const xAxisLabels = computed(() => {
+    if (selectedTimePeriod.value === 'week') {
+        return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    } else {
+        // Show roughly 5-day intervals or just first/last
+        return ['1', '5', '10', '15', '20', '25', '30']
+    }
+})
+
+const chartLinePath = computed(() => {
+    const points = chartPoints.value
+    if (points.length === 0) return ''
+
+    // Create smooth bezier curve
+    return points.reduce((path, point, i, a) => {
+        if (i === 0) return `M ${point.x},${point.y}`
+
+        // Simple smoothing
+        const prev = a[i - 1]
+        const controlX = prev.x + (point.x - prev.x) / 2
+        return `${path} C ${controlX},${prev.y} ${controlX},${point.y} ${point.x},${point.y}`
+    }, '')
+})
+
+const chartAreaPath = computed(() => {
+    const points = chartPoints.value
+    if (points.length === 0) return ''
+
+    const line = chartLinePath.value
+    return `${line} L 100,100 L 0,100 Z`
+})
 
 function handleAlertAction({ type, alertId }) {
     if (type === 'acknowledge' || type === 'ignore') {

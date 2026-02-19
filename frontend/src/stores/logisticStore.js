@@ -10,15 +10,61 @@ export const useLogisticStore = defineStore('logistic', () => {
     const selectedItem = ref(null) // Data payload for the active modal
 
     // Mock Data: KPIs
-    const dashboardStats = ref({
+    // Mock Data: KPIs
+    const globalStats = {
         orders: 1248,
         activeDeliveries: 342,
         deliverySuccess: 98.2,
         revenue: 42500,
         ordersTrend: 12.5,
         revenueTrend: 8.2,
-        slaCompliance: [92, 94, 88, 95, 90, 96, 98] // Last 7 days
-    })
+        slaCompliance: {
+            week: [92, 94, 88, 95, 90, 96, 98],
+            month: [85, 88, 87, 89, 90, 92, 91, 93, 89, 88, 90, 92, 94, 95, 96, 95, 94, 93, 92, 91, 90, 89, 88, 90, 92, 94, 96, 98, 99, 98]
+        }
+    }
+
+    const dashboardStats = ref({ ...globalStats })
+
+    // Specific Data for Hubs to simulate interactivity
+    const warehouseMockData = {
+        1: { // North-East Hub
+            orders: 412,
+            activeDeliveries: 156,
+            deliverySuccess: 89.5,
+            revenue: 12500,
+            ordersTrend: -5.4,
+            revenueTrend: -2.1,
+            slaCompliance: {
+                week: [82, 80, 75, 78, 80, 82, 85],
+                month: Array(30).fill(80).map(() => 75 + Math.floor(Math.random() * 15))
+            }
+        },
+        2: { // South Hub
+            orders: 580,
+            activeDeliveries: 89,
+            deliverySuccess: 99.4,
+            revenue: 24800,
+            ordersTrend: 15.2,
+            revenueTrend: 18.5,
+            slaCompliance: {
+                week: [96, 97, 98, 98, 99, 99, 100],
+                month: Array(30).fill(98).map(() => 95 + Math.floor(Math.random() * 5))
+            }
+        },
+        3: { // West DC-04
+            orders: 256,
+            activeDeliveries: 97,
+            deliverySuccess: 94.1,
+            revenue: 8200,
+            ordersTrend: 2.1,
+            revenueTrend: 4.5,
+            slaCompliance: {
+                week: [90, 92, 91, 93, 90, 92, 94],
+                month: Array(30).fill(92).map(() => 88 + Math.floor(Math.random() * 8))
+            }
+        }
+    }
 
     // Mock Data: Alerts
     const alerts = ref([
@@ -228,12 +274,17 @@ export const useLogisticStore = defineStore('logistic', () => {
 
     function setWarehouse(id) {
         activeWarehouse.value = id
-        // In a real app, this would trigger a fetch for that warehouse's stats
-        // For mock, we could slightly randomize stats to show change
-        if (id !== 'all') {
-            dashboardStats.value.orders = Math.floor(Math.random() * 1000) + 500
+
+        if (id === 'all') {
+            dashboardStats.value = { ...globalStats }
+        } else if (warehouseMockData[id]) {
+            dashboardStats.value = { ...warehouseMockData[id] }
         }
-        closeModal()
+
+        // distinct from closeModal, as this might be called from dashboard directly
+        if (activeModal.value === 'warehouse-select') {
+            closeModal()
+        }
     }
 
     function togglePin(hub) {
