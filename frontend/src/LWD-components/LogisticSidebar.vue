@@ -33,7 +33,7 @@
             <div class="mt-6 px-4">
                 <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Pinned Warehouses</div>
                 <div class="space-y-2">
-                    <div v-for="hub in pinnedHubs" :key="hub.id"
+                    <div v-for="hub in store.pinnedHubs" :key="hub.id" @click="store.setWarehouse(hub.id)"
                         class="flex items-center justify-between p-2 rounded bg-white/5 hover:bg-white/10 cursor-pointer transition-colors group">
                         <div class="flex items-center">
                             <span class="w-1.5 h-1.5 rounded-full bg-primary mr-2"></span>
@@ -42,7 +42,8 @@
                         </div>
                         <span class="material-symbols-outlined text-[14px] text-yellow-400">star</span>
                     </div>
-                    <button class="flex items-center text-xs text-gray-500 hover:text-primary mt-2 transition-colors">
+                    <button @click="store.openModal('warehouse-select')"
+                        class="flex items-center text-xs text-gray-500 hover:text-primary mt-2 transition-colors">
                         <span class="material-symbols-outlined text-[14px] mr-1">add</span>
                         Manage list
                     </button>
@@ -68,7 +69,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { useLogisticStore } from '@/stores/logisticStore'
+
+const store = useLogisticStore()
 
 const menuItems = [
     { label: 'Dashboard', icon: 'dashboard', route: '/logistic/dashboard' },
@@ -82,9 +85,4 @@ const menuItems = [
     { label: 'AI Intelligence', icon: 'smart_toy', route: '/logistic/ai' },
     { label: 'Communication', icon: 'chat', route: '/logistic/communication', badge: '3' },
 ]
-
-const pinnedHubs = ref([
-    { id: 1, name: 'North-East Hub' },
-    { id: 2, name: 'South Hub' }
-])
 </script>

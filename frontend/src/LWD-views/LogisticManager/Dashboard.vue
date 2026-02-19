@@ -10,7 +10,9 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <div class="text-sm text-gray-400 font-medium">Total Orders Today</div>
-                        <div class="text-3xl font-bold text-white mt-1">1,248</div>
+                        <div class="text-3xl font-bold text-white mt-1">{{ store.dashboardStats.orders.toLocaleString()
+                        }}
+                        </div>
                     </div>
                     <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                         <span class="material-symbols-outlined">shopping_cart</span>
@@ -19,7 +21,7 @@
                 <div class="flex items-center text-sm">
                     <span class="text-primary font-medium flex items-center">
                         <span class="material-symbols-outlined text-[16px] mr-1">trending_up</span>
-                        +12.5%
+                        +{{ store.dashboardStats.ordersTrend }}%
                     </span>
                     <span class="text-gray-500 ml-2">vs yesterday</span>
                 </div>
@@ -33,7 +35,8 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <div class="text-sm text-gray-400 font-medium">Active Deliveries</div>
-                        <div class="text-3xl font-bold text-white mt-1">342</div>
+                        <div class="text-3xl font-bold text-white mt-1">{{ store.dashboardStats.activeDeliveries }}
+                        </div>
                     </div>
                     <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
                         <span class="material-symbols-outlined">local_shipping</span>
@@ -57,7 +60,8 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <div class="text-sm text-gray-400 font-medium">Delivery Success Rate</div>
-                        <div class="text-3xl font-bold text-white mt-1">98.2%</div>
+                        <div class="text-3xl font-bold text-white mt-1">{{ store.dashboardStats.deliverySuccess }}%
+                        </div>
                     </div>
                     <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
                         <span class="material-symbols-outlined">verified</span>
@@ -79,7 +83,8 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <div class="text-sm text-gray-400 font-medium">Revenue Today</div>
-                        <div class="text-3xl font-bold text-white mt-1">$42.5k</div>
+                        <div class="text-3xl font-bold text-white mt-1">${{ (store.dashboardStats.revenue /
+                            1000).toFixed(1) }}k</div>
                     </div>
                     <div
                         class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
@@ -89,7 +94,7 @@
                 <div class="flex items-center text-sm">
                     <span class="text-emerald-400 font-medium flex items-center">
                         <span class="material-symbols-outlined text-[16px] mr-1">trending_up</span>
-                        +8.2%
+                        +{{ store.dashboardStats.revenueTrend }}%
                     </span>
                     <span class="text-gray-500 ml-2">vs target</span>
                 </div>
@@ -113,7 +118,8 @@
 
                     <!-- Simulated Map Elements -->
                     <div class="absolute top-1/2 left-1/3 transform -translate-x-1/2 -translate-y-1/2">
-                        <div class="relative group cursor-pointer">
+                        <div class="relative group cursor-pointer"
+                            @click="store.openModal('driver-profile', store.drivers[0])">
                             <div class="w-12 h-12 bg-primary/20 rounded-full animate-ping absolute inset-0"></div>
                             <div
                                 class="w-12 h-12 bg-background-dark/80 rounded-full border-2 border-primary flex items-center justify-center relative z-10">
@@ -122,14 +128,15 @@
                             <!-- Tooltip -->
                             <div
                                 class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 bg-background-dark border border-white/10 rounded-lg p-2 hidden group-hover:block z-20 shadow-xl">
-                                <div class="text-xs font-bold text-white">Truck #402</div>
+                                <div class="text-xs font-bold text-white">{{ store.drivers[0].vehicle }}</div>
                                 <div class="text-[10px] text-gray-400">Moving • 45 km/h</div>
                             </div>
                         </div>
                     </div>
 
                     <div class="absolute top-1/3 right-1/4">
-                        <div class="relative group cursor-pointer">
+                        <div class="relative group cursor-pointer"
+                            @click="store.openModal('driver-profile', store.drivers[1])">
                             <div class="w-8 h-8 bg-yellow-500/20 rounded-full absolute inset-0"></div>
                             <div
                                 class="w-8 h-8 bg-background-dark/80 rounded-full border-2 border-yellow-500 flex items-center justify-center relative z-10">
@@ -161,31 +168,28 @@
                 </h3>
 
                 <div class="flex-1 overflow-y-auto pr-1 space-y-3 no-scrollbar">
-                    <!-- Alert Item -->
-                    <div class="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex gap-3">
-                        <div class="mt-1 min-w-[24px]">
-                            <span class="material-symbols-outlined text-red-500 text-[20px]">error</span>
-                        </div>
-                        <div>
-                            <h4 class="text-sm font-semibold text-white">Hub Congestion Alert</h4>
-                            <p class="text-xs text-gray-400 mt-0.5">North-East Hub is experiencing high dwell times (>45
-                                mins).</p>
-                            <button class="mt-2 text-xs text-red-400 font-medium hover:text-red-300">View
-                                Details</button>
-                        </div>
+                    <div v-if="store.alerts.length === 0" class="text-center py-8 text-gray-500 text-sm">
+                        No active alerts. Good job!
                     </div>
-
                     <!-- Alert Item -->
-                    <div class="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex gap-3">
+                    <div v-for="alert in store.alerts" :key="alert.id"
+                        class="p-3 rounded-lg border flex gap-3 transition-colors" :class="[
+                            alert.severity === 'high' ? 'bg-red-500/10 border-red-500/20' : 'bg-yellow-500/10 border-yellow-500/20'
+                        ]">
                         <div class="mt-1 min-w-[24px]">
-                            <span class="material-symbols-outlined text-yellow-500 text-[20px]">schedule</span>
+                            <span class="material-symbols-outlined text-[20px]" :class="[
+                                alert.severity === 'high' ? 'text-red-500' : 'text-yellow-500'
+                            ]">{{ alert.icon }}</span>
                         </div>
                         <div>
-                            <h4 class="text-sm font-semibold text-white">Delayed Shipments</h4>
-                            <p class="text-xs text-gray-400 mt-0.5">14 shipments at risk of missing SLA window in Sector
-                                4.</p>
-                            <button
-                                class="mt-2 text-xs text-yellow-400 font-medium hover:text-yellow-300">Investigate</button>
+                            <h4 class="text-sm font-semibold text-white">{{ alert.title }}</h4>
+                            <p class="text-xs text-gray-400 mt-0.5">{{ alert.description }}</p>
+                            <button @click="store.openModal('alert-details', alert)"
+                                class="mt-2 text-xs font-medium hover:underline" :class="[
+                                    alert.severity === 'high' ? 'text-red-400 hover:text-red-300' : 'text-yellow-400 hover:text-yellow-300'
+                                ]">
+                                {{ alert.severity === 'high' ? 'View Details' : 'Investigate' }}
+                            </button>
                         </div>
                     </div>
 
@@ -194,25 +198,21 @@
                         <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Drivers Needing
                             Support</h4>
                         <div class="space-y-2">
-                            <div class="flex items-center justify-between p-2 rounded hover:bg-white/5 cursor-pointer">
+                            <div v-for="driver in store.filteredDrivers" :key="driver.id"
+                                @click="store.openModal('driver-profile', driver)"
+                                class="flex items-center justify-between p-2 rounded hover:bg-white/5 cursor-pointer group transition-colors">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">D
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white"
+                                        :class="driver.avatarColor">
+                                        {{ driver.name.charAt(0) }}
                                     </div>
                                     <div>
-                                        <div class="text-sm font-medium text-white">David Miller</div>
-                                        <div class="text-[10px] text-red-400">Breakdown Reported</div>
-                                    </div>
-                                </div>
-                                <span class="material-symbols-outlined text-gray-500 text-[18px]">chevron_right</span>
-                            </div>
-
-                            <div class="flex items-center justify-between p-2 rounded hover:bg-white/5 cursor-pointer">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">S
-                                    </div>
-                                    <div>
-                                        <div class="text-sm font-medium text-white">Sarah Jenkins</div>
-                                        <div class="text-[10px] text-yellow-400">Route Deviation</div>
+                                        <div
+                                            class="text-sm font-medium text-white group-hover:text-primary transition-colors">
+                                            {{ driver.name }}</div>
+                                        <div class="text-[10px]" :class="[
+                                            driver.status === 'breakdown' ? 'text-red-400' : 'text-yellow-400'
+                                        ]">{{ driver.status }}</div>
                                     </div>
                                 </div>
                                 <span class="material-symbols-outlined text-gray-500 text-[18px]">chevron_right</span>
@@ -238,24 +238,12 @@
 
                 <!-- Simple CSS Chart Placeholder -->
                 <div class="h-48 flex items-end justify-between gap-2 px-2">
-                    <div class="w-full bg-gray-700/30 rounded-t-sm h-[60%] relative group">
+                    <div v-for="(val, index) in store.dashboardStats.slaCompliance" :key="index"
+                        class="w-full bg-gray-700/30 rounded-t-sm relative group transition-all duration-500 hover:bg-primary/20"
+                        :style="{ height: val + '%' }">
                         <div
-                            class="absolute bottom-full left-1/2 -translate-x-1/2 text-xs text-white opacity-0 group-hover:opacity-100 mb-1">
-                            92%</div>
-                    </div>
-                    <div class="w-full bg-gray-700/30 rounded-t-sm h-[75%] relative group">
-                        <div
-                            class="absolute bottom-full left-1/2 -translate-x-1/2 text-xs text-white opacity-0 group-hover:opacity-100 mb-1">
-                            94%</div>
-                    </div>
-                    <div class="w-full bg-gray-700/30 rounded-t-sm h-[65%] relative group"></div>
-                    <div class="w-full bg-gray-700/30 rounded-t-sm h-[85%] relative group"></div>
-                    <div class="w-full bg-gray-700/30 rounded-t-sm h-[70%] relative group"></div>
-                    <div class="w-full bg-gray-700/30 rounded-t-sm h-[90%] relative group"></div>
-                    <div class="w-full bg-primary/20 rounded-t-sm h-[95%] relative group border-t-2 border-primary">
-                        <div
-                            class="absolute bottom-full left-1/2 -translate-x-1/2 text-xs text-primary font-bold opacity-100 mb-1">
-                            98%</div>
+                            class="absolute bottom-full left-1/2 -translate-x-1/2 text-xs text-white opacity-0 group-hover:opacity-100 mb-1 font-bold">
+                            {{ val }}%</div>
                     </div>
                 </div>
                 <div class="flex justify-between mt-2 text-xs text-gray-500 px-2">
@@ -277,58 +265,53 @@
                             </tr>
                         </thead>
                         <tbody class="text-sm">
-                            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                <td class="py-3 text-white font-medium">North-East Hub</td>
+                            <tr v-for="hub in store.hubs" :key="hub.id"
+                                class="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors cursor-pointer"
+                                @click="store.setWarehouse(hub.id)"> <!-- Click to switch context -->
+                                <td class="py-3 text-white font-medium">{{ hub.name }}</td>
                                 <td class="py-3 text-gray-300">
                                     <div class="flex items-center gap-2">
                                         <div class="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                                            <div class="h-full bg-red-500 w-[92%]"></div>
+                                            <div class="h-full" :class="hub.bg" :style="{ width: hub.capacity + '%' }">
+                                            </div>
                                         </div>
-                                        <span class="text-xs">92%</span>
+                                        <span class="text-xs">{{ hub.capacity }}%</span>
                                     </div>
                                 </td>
-                                <td class="py-3 text-gray-300">1,240 pkgs/hr</td>
-                                <td class="py-3"><span
-                                        class="px-2 py-0.5 rounded-full bg-red-500/20 text-red-500 text-[10px] font-bold">CONGESTED</span>
+                                <td class="py-3 text-gray-300">{{ hub.processRate.toLocaleString() }} pkgs/hr</td>
+                                <td class="py-3">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                                        :class="hub.status.toLowerCase() === 'optimal' ? 'bg-green-500/20 text-green-500' : (hub.status.toLowerCase() === 'congested' ? 'bg-red-500/20 text-red-500' : 'bg-yellow-500/20 text-yellow-500')">
+                                        {{ hub.status }}
+                                    </span>
                                 </td>
-                            </tr>
-                            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                <td class="py-3 text-white font-medium">South Hub</td>
-                                <td class="py-3 text-gray-300">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                                            <div class="h-full bg-green-500 w-[45%]"></div>
-                                        </div>
-                                        <span class="text-xs">45%</span>
-                                    </div>
-                                </td>
-                                <td class="py-3 text-gray-300">850 pkgs/hr</td>
-                                <td class="py-3"><span
-                                        class="px-2 py-0.5 rounded-full bg-green-500/20 text-green-500 text-[10px] font-bold">OPTIMAL</span>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-white/5 transition-colors">
-                                <td class="py-3 text-white font-medium">West DC-04</td>
-                                <td class="py-3 text-gray-300">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                                            <div class="h-full bg-yellow-500 w-[78%]"></div>
-                                        </div>
-                                        <span class="text-xs">78%</span>
-                                    </div>
-                                </td>
-                                <td class="py-3 text-gray-300">920 pkgs/hr</td>
-                                <td class="py-3"><span
-                                        class="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 text-[10px] font-bold">HIGH
-                                        LOAD</span></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
+
+        <!-- Modals -->
+        <AlertDetailsModal :is-open="store.activeModal === 'alert-details'" :alert="store.selectedItem"
+            @close="store.closeModal()" @action="handleAlertAction" />
+
+        <DriverProfileModal :is-open="store.activeModal === 'driver-profile'" :driver="store.selectedItem"
+            @close="store.closeModal()" />
+
     </div>
 </template>
 
 <script setup>
+import { useLogisticStore } from '@/stores/logisticStore'
+import AlertDetailsModal from '@/LWD-components/AlertDetailsModal.vue'
+import DriverProfileModal from '@/LWD-components/DriverProfileModal.vue'
+
+const store = useLogisticStore()
+
+function handleAlertAction({ type, alertId }) {
+    if (type === 'acknowledge' || type === 'ignore') {
+        store.resolveAlert(alertId)
+    }
+}
 </script>
