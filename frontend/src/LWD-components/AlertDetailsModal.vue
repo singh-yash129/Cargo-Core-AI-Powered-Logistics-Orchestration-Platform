@@ -10,28 +10,30 @@
         </template>
 
         <div v-if="alert" class="space-y-4">
-            <div class="p-3 bg-white/5 rounded-lg border border-white/5">
-                <div class="text-xs text-gray-400 mb-1">Description</div>
-                <div class="text-sm text-gray-200">{{ alert.description }}</div>
+            <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/5">
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Description</div>
+                <div class="text-sm text-gray-700 dark:text-gray-200">{{ alert.description }}</div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <div class="p-3 bg-white/5 rounded-lg border border-white/5">
-                    <div class="text-xs text-gray-400 mb-1">Location</div>
-                    <div class="text-sm text-white font-medium">{{ alert.location }}</div>
+                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/5">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Location</div>
+                    <div class="text-sm text-gray-900 dark:text-white font-medium">{{ alert.location }}</div>
                 </div>
-                <div class="p-3 bg-white/5 rounded-lg border border-white/5">
-                    <div class="text-xs text-gray-400 mb-1">Time Reported</div>
-                    <div class="text-sm text-white font-medium">{{ alert.timestamp }}</div>
+                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/5">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Time Reported</div>
+                    <div class="text-sm text-gray-900 dark:text-white font-medium">{{ alert.timestamp }}</div>
                 </div>
             </div>
 
-            <div v-if="alert.recommendation" class="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+            <div v-if="alert.recommendation"
+                class="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-lg border border-blue-100 dark:border-blue-500/20">
                 <div class="flex items-start gap-2">
-                    <span class="material-symbols-outlined text-blue-400 text-sm mt-0.5">lightbulb</span>
+                    <span
+                        class="material-symbols-outlined text-blue-500 dark:text-blue-400 text-sm mt-0.5">lightbulb</span>
                     <div>
-                        <div class="text-xs text-blue-300 font-bold mb-1">AI Recommendation</div>
-                        <div class="text-sm text-blue-100">{{ alert.recommendation }}</div>
+                        <div class="text-xs text-blue-600 dark:text-blue-300 font-bold mb-1">AI Recommendation</div>
+                        <div class="text-sm text-blue-800 dark:text-blue-100">{{ alert.recommendation }}</div>
                     </div>
                 </div>
             </div>
@@ -43,7 +45,7 @@
                     Acknowledge & Assign Team
                 </button>
                 <button @click="handleAction('ignore')"
-                    class="w-full py-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg font-medium text-sm transition-colors border border-white/5">
+                    class="w-full py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg font-medium text-sm transition-colors border border-gray-200 dark:border-white/5">
                     Dismiss Alert
                 </button>
             </div>
