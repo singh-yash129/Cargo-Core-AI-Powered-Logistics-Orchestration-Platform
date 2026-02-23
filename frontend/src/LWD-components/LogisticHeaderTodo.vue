@@ -225,21 +225,23 @@ const tasks = ref([
         id: 1,
         text: 'Review daily hub performance',
         status: 'Priority',
-        targetTime: null,
+        targetTime: Date.now() + 3600000, // 1 hour from now
         repeat: 'none',
         createdAt: Date.now(),
         lastAlertTime: null,
-        silenced: false
+        silenced: false,
+        remaining: ''
     },
     {
         id: 2,
         text: 'Approve Fleet Maintenance',
         status: 'Done',
-        targetTime: null,
+        targetTime: Date.now() - 7200000, // 2 hours ago
         repeat: 'none',
-        createdAt: Date.now() - 3600000,
+        createdAt: Date.now() - 86400000,
         lastAlertTime: null,
-        silenced: false
+        silenced: false,
+        remaining: ''
     }
 ])
 
@@ -346,7 +348,8 @@ const saveTask = () => {
             repeat: draftTask.value.repeat,
             createdAt: Date.now(),
             lastAlertTime: null,
-            silenced: false
+            silenced: false,
+            remaining: ''
         })
     } else if (editingTaskId.value !== null) {
         // Update existing
