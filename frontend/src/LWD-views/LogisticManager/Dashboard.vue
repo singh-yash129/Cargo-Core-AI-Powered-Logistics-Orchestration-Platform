@@ -12,7 +12,7 @@
                         <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Orders Today</div>
                         <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">{{
                             store.dashboardStats.ordersToday.toLocaleString()
-                        }}
+                            }}
                         </div>
                     </div>
                     <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -133,7 +133,7 @@
                             <div
                                 class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 bg-white dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg p-2 hidden group-hover:block z-20 shadow-xl">
                                 <div class="text-xs font-bold text-gray-900 dark:text-white">{{ store.drivers[0].vehicle
-                                    }}</div>
+                                }}</div>
                                 <div class="text-[10px] text-gray-500 dark:text-gray-400">Moving • 45 km/h</div>
                             </div>
                         </div>
@@ -157,11 +157,11 @@
 
                 <!-- Map Controls Overlay -->
                 <div class="absolute bottom-4 right-4 flex flex-col gap-2">
-                    <button
-                        class="w-8 h-8 glass-panel rounded-lg flex items-center justify-center hover:bg-white/10 text-gray-700 dark:text-white"><span
+                    <button @click="mapZoomIn"
+                        class="w-8 h-8 glass-panel rounded-lg flex items-center justify-center hover:bg-white/10 text-gray-700 dark:text-white transition-colors"><span
                             class="material-symbols-outlined text-[18px]">add</span></button>
-                    <button
-                        class="w-8 h-8 glass-panel rounded-lg flex items-center justify-center hover:bg-white/10 text-gray-700 dark:text-white"><span
+                    <button @click="mapZoomOut"
+                        class="w-8 h-8 glass-panel rounded-lg flex items-center justify-center hover:bg-white/10 text-gray-700 dark:text-white transition-colors"><span
                             class="material-symbols-outlined text-[18px]">remove</span></button>
                 </div>
             </div>
@@ -173,58 +173,60 @@
                     Attention Needed
                 </h3>
 
-                <div class="flex-1 overflow-y-auto pr-1 space-y-3 no-scrollbar">
-                    <div v-if="store.alerts.length === 0" class="text-center py-8 text-gray-500 text-sm">
-                        No active alerts. Good job!
-                    </div>
-                    <!-- Alert Item -->
-                    <div v-for="alert in store.alerts" :key="alert.id"
-                        class="p-3 rounded-lg border flex gap-3 transition-colors" :class="[
-                            alert.severity === 'high' ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20' : 'bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/20'
-                        ]">
-                        <div class="mt-1 min-w-[24px]">
-                            <span class="material-symbols-outlined text-[20px]" :class="[
-                                alert.severity === 'high' ? 'text-red-500' : 'text-yellow-500'
-                            ]">{{ alert.icon }}</span>
+                <div class="flex-1 relative">
+                    <div class="absolute inset-0 overflow-y-auto pr-1 space-y-3 no-scrollbar">
+                        <div v-if="store.alerts.length === 0" class="text-center py-8 text-gray-500 text-sm">
+                            No active alerts. Good job!
                         </div>
-                        <div>
-                            <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ alert.title }}</h4>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{{ alert.description }}</p>
-                            <button @click="store.openModal('alert-details', alert)"
-                                class="mt-2 text-xs font-medium hover:underline" :class="[
-                                    alert.severity === 'high' ? 'text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300' : 'text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300'
-                                ]">
-                                {{ alert.severity === 'high' ? 'View Details' : 'Investigate' }}
-                            </button>
+                        <!-- Alert Item -->
+                        <div v-for="alert in store.alerts" :key="alert.id"
+                            class="p-3 rounded-lg border flex gap-3 transition-colors" :class="[
+                                alert.severity === 'high' ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20' : 'bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/20'
+                            ]">
+                            <div class="mt-1 min-w-[24px]">
+                                <span class="material-symbols-outlined text-[20px]" :class="[
+                                    alert.severity === 'high' ? 'text-red-500' : 'text-yellow-500'
+                                ]">{{ alert.icon }}</span>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ alert.title }}</h4>
+                                <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{{ alert.description }}</p>
+                                <button @click="store.openModal('alert-details', alert)"
+                                    class="mt-2 text-xs font-medium hover:underline" :class="[
+                                        alert.severity === 'high' ? 'text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300' : 'text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300'
+                                    ]">
+                                    {{ alert.severity === 'high' ? 'View Details' : 'Investigate' }}
+                                </button>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- List of Drivers Needing Attention -->
-                    <div class="mt-4">
-                        <h4
-                            class="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-2">
-                            Drivers Needing
-                            Support</h4>
-                        <div class="space-y-2">
-                            <div v-for="driver in store.filteredDrivers" :key="driver.id"
-                                @click="store.openModal('driver-profile', driver)"
-                                class="flex items-center justify-between p-2 rounded hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer group transition-colors">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-sm"
-                                        :class="driver.avatarColor">
-                                        {{ driver.name.charAt(0) }}
+                        <!-- List of Drivers Needing Attention -->
+                        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                            <h4
+                                class="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-2">
+                                Drivers Needing
+                                Support</h4>
+                            <div class="space-y-2">
+                                <div v-for="driver in store.filteredDrivers" :key="driver.id"
+                                    @click="store.openModal('driver-profile', driver)"
+                                    class="flex items-center justify-between p-2 rounded hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer group transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-sm"
+                                            :class="driver.avatarColor">
+                                            {{ driver.name.charAt(0) }}
+                                        </div>
+                                        <div>
+                                            <div
+                                                class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+                                                {{ driver.name }}</div>
+                                            <div class="text-[10px]" :class="[
+                                                driver.status === 'breakdown' ? 'text-red-500 dark:text-red-400' : 'text-yellow-500 dark:text-yellow-400'
+                                            ]">{{ driver.status }}</div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div
-                                            class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                                            {{ driver.name }}</div>
-                                        <div class="text-[10px]" :class="[
-                                            driver.status === 'breakdown' ? 'text-red-500 dark:text-red-400' : 'text-yellow-500 dark:text-yellow-400'
-                                        ]">{{ driver.status }}</div>
-                                    </div>
+                                    <span
+                                        class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-[18px]">chevron_right</span>
                                 </div>
-                                <span
-                                    class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-[18px]">chevron_right</span>
                             </div>
                         </div>
                     </div>
@@ -297,8 +299,9 @@
                 <div
                     class="mt-6 pt-4 border-t border-gray-100 dark:border-white/5 flex gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
                     <div>
-                        <span class="text-gray-900 dark:text-white font-bold">{{ store.dashboardStats.deliverySuccess
-                        }}%</span> Success Rate
+                        <span class="text-gray-900 dark:text-white font-bold">{{
+                            store.dashboardStats.deliverySuccess
+                            }}%</span> Success Rate
                     </div>
                     <div>
                         <span class="text-gray-900 dark:text-white font-bold">~42m</span> Avg. Time
@@ -362,7 +365,8 @@
                                         </span>
                                     </div>
                                 </td>
-                                <td class="py-3 text-gray-500 dark:text-gray-300">{{ hub.processRate.toLocaleString() }}
+                                <td class="py-3 text-gray-500 dark:text-gray-300">{{
+                                    hub.processRate.toLocaleString() }}
                                     pkgs/hr</td>
                                 <td class="py-3">
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
@@ -376,8 +380,8 @@
                 </div>
 
                 <!-- SINGLE HUB INTERACTIVE VIEW -->
-                <div v-else-if="currentHub" class="flex flex-col h-full animate-fade-in my-auto py-2">
-                    <div class="flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 lg:gap-6 mb-6">
+                <div v-else-if="currentHub" class="flex flex-col h-full animate-fade-in py-2">
+                    <div class="flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 lg:gap-6 my-auto">
 
                         <!-- Main Stats Group -->
                         <div class="flex items-center gap-4">
@@ -422,7 +426,7 @@
                         </div>
 
                         <!-- Secondary Metrics Group (Circular) -->
-                        <div class="flex items-center gap-3 lg:gap-4">
+                        <div class="flex items-center gap-4 lg:gap-6 justify-around w-full lg:w-auto mt-4 lg:mt-0">
                             <!-- Efficiency Circular -->
                             <div class="relative w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0 group">
                                 <svg class="w-full h-full transform -rotate-90 drop-shadow-sm" viewBox="0 0 36 36">
@@ -436,11 +440,11 @@
                                 </svg>
                                 <div class="absolute inset-0 flex flex-col items-center justify-center">
                                     <span
-                                        class="text-base lg:text-lg font-bold text-gray-900 dark:text-white leading-none">
+                                        class="text-base lg:text-xl font-bold text-gray-900 dark:text-white leading-none">
                                         {{ currentHub.efficiency }}%
                                     </span>
                                     <span
-                                        class="text-[8px] lg:text-[9px] text-gray-500 uppercase tracking-widest mt-0.5">Effic.</span>
+                                        class="text-[8px] lg:text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Effic.</span>
                                 </div>
                             </div>
 
@@ -456,12 +460,13 @@
                                 </svg>
                                 <div class="absolute inset-0 flex flex-col items-center justify-center">
                                     <span
-                                        class="text-base lg:text-lg font-bold text-gray-900 dark:text-white leading-none">
-                                        {{ currentHub.staffActive }}<span class="text-xs text-gray-400 font-normal">/{{
-                                            currentHub.staffTotal }}</span>
+                                        class="text-base lg:text-xl font-bold text-gray-900 dark:text-white leading-none">
+                                        {{ currentHub.staffActive }}<span
+                                            class="text-[10px] lg:text-xs text-gray-400 font-normal">/{{
+                                                currentHub.staffTotal }}</span>
                                     </span>
                                     <span
-                                        class="text-[8px] lg:text-[9px] text-gray-500 uppercase tracking-widest mt-0.5">Staff</span>
+                                        class="text-[8px] lg:text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Staff</span>
                                 </div>
                             </div>
 
@@ -477,26 +482,29 @@
                                 </svg>
                                 <div class="absolute inset-0 flex flex-col items-center justify-center">
                                     <span
-                                        class="text-base lg:text-lg font-bold text-gray-900 dark:text-white leading-none">
+                                        class="text-base lg:text-xl font-bold text-gray-900 dark:text-white leading-none">
                                         {{ currentHub.vehiclesActive }}<span
-                                            class="text-xs text-gray-400 font-normal">/{{ currentHub.vehiclesTotal
+                                            class="text-[10px] lg:text-xs text-gray-400 font-normal">/{{
+                                                currentHub.vehiclesTotal
                                             }}</span>
                                     </span>
                                     <span
-                                        class="text-[8px] lg:text-[9px] text-gray-500 uppercase tracking-widest mt-0.5">Vehs</span>
+                                        class="text-[8px] lg:text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Vehs</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Interactive Actions -->
-                    <div class="grid grid-cols-2 gap-3 mt-auto">
-                        <button
-                            class="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300">
-                            <span class="material-symbols-outlined text-[18px]">tune</span>
-                            Optimize Load
+                    <div class="grid grid-cols-2 gap-3 mt-6">
+                        <button @click="optimizeHub" :disabled="isOptimizing"
+                            class="border rounded-xl p-3 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300"
+                            :class="isOptimizing ? 'bg-primary/20 text-primary border-primary/20 cursor-wait' : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/20'">
+                            <span v-if="!isOptimizing" class="material-symbols-outlined text-[18px]">tune</span>
+                            <span v-else class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                            {{ isOptimizing ? 'Optimizing...' : 'Optimize Load' }}
                         </button>
-                        <button
+                        <button @click="contactHub"
                             class="bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 border border-transparent rounded-xl p-3 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300">
                             <span class="material-symbols-outlined text-[18px]">support_agent</span>
                             Contact Hub
@@ -529,9 +537,9 @@
                 <div class="ml-auto flex-shrink-0 pl-4">
                     <!-- Time Period Selection -->
                     <select v-model="selectedTimePeriod"
-                        class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-xs text-gray-700 dark:text-gray-300 px-3 py-1.5 outline-none transition-colors cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10">
-                        <option value="week">Last 7 Days</option>
-                        <option value="month">This Month</option>
+                        class="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg text-xs text-gray-700 dark:text-gray-300 px-3 py-1.5 outline-none transition-colors cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <option value="week" class="bg-white dark:bg-gray-800">Last 7 Days</option>
+                        <option value="month" class="bg-white dark:bg-gray-800">This Month</option>
                     </select>
                 </div>
             </div>
@@ -549,6 +557,8 @@
         <DriverProfileModal :is-open="store.activeModal === 'driver-profile'" :driver="store.selectedItem"
             @close="store.closeModal()" />
 
+        <ContactHubModal :is-open="store.activeModal === 'contact-hub'" :hub="currentHub" @close="store.closeModal()" />
+
     </div>
 </template>
 
@@ -557,6 +567,7 @@ import { ref, computed } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import AlertDetailsModal from '@/LWD-components/AlertDetailsModal.vue'
 import DriverProfileModal from '@/LWD-components/DriverProfileModal.vue'
+import ContactHubModal from '@/LWD-components/ContactHubModal.vue'
 
 const store = useLogisticStore()
 const hoveredDataPoint = ref(null)
@@ -570,6 +581,38 @@ const currentHub = computed(() => {
 // --- Chart Controls ---
 const selectedTimePeriod = ref('week')
 const activeTab = ref('sla')
+
+// --- Interactive Actions ---
+const isOptimizing = ref(false)
+const optimizeHub = () => {
+    isOptimizing.value = true
+    setTimeout(() => {
+        isOptimizing.value = false
+        store.addAlert({
+            id: Date.now(),
+            title: `Appx 12% boost achieved`,
+            description: `AI successfully recalibrated loads for ${currentHub.value.name}.`,
+            severity: 'low',
+            type: 'system',
+            icon: 'check_circle',
+            location: currentHub.value ? currentHub.value.location : 'Global Sector',
+            timestamp: 'Just now',
+            recommendation: 'Monitor load throughput for the next 15 minutes to verify stabilization.'
+        })
+    }, 2000)
+}
+
+const contactHub = () => {
+    store.openModal('contact-hub', currentHub.value)
+}
+
+const mapZoomIn = () => {
+
+}
+
+const mapZoomOut = () => {
+
+}
 
 // --- Chart.js Setup ---
 import {

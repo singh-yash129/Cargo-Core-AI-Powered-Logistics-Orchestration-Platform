@@ -182,6 +182,10 @@ export const useLogisticStore = defineStore('logistic', () => {
             name: 'North-East Hub',
             capacity: 92,
             efficiency: 88,
+            staffActive: 42,
+            staffTotal: 50,
+            vehiclesActive: 28,
+            vehiclesTotal: 34,
             processRate: 1240,
             status: 'Congested',
             statusColor: 'text-red-500',
@@ -192,6 +196,10 @@ export const useLogisticStore = defineStore('logistic', () => {
             name: 'South Hub',
             capacity: 45,
             efficiency: 96,
+            staffActive: 65,
+            staffTotal: 68,
+            vehiclesActive: 40,
+            vehiclesTotal: 42,
             processRate: 850,
             status: 'Optimal',
             statusColor: 'text-green-500',
@@ -202,6 +210,10 @@ export const useLogisticStore = defineStore('logistic', () => {
             name: 'West DC-04',
             capacity: 78,
             efficiency: 74,
+            staffActive: 28,
+            staffTotal: 35,
+            vehiclesActive: 19,
+            vehiclesTotal: 25,
             processRate: 920,
             status: 'High Load',
             statusColor: 'text-yellow-500',
@@ -325,6 +337,16 @@ export const useLogisticStore = defineStore('logistic', () => {
         selectedItem.value = null
     }
 
+    // Adds a dynamic alert
+    function addAlert(alert) {
+        alerts.value.unshift(alert)
+
+        // Auto-remove after 5 seconds to act like an extended toast
+        setTimeout(() => {
+            resolveAlert(alert.id)
+        }, 5000)
+    }
+
     function resolveAlert(id) {
         alerts.value = alerts.value.filter(a => a.id !== id)
         closeModal()
@@ -392,6 +414,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         // Actions
         openModal,
         closeModal,
+        addAlert,
         resolveAlert,
         setWarehouse,
         togglePin,
