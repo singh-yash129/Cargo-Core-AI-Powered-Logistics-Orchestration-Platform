@@ -188,6 +188,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useLogisticStore } from '@/stores/logisticStore'
+import { storeToRefs } from 'pinia'
+
+const logisticStore = useLogisticStore()
+const { tasks } = storeToRefs(logisticStore)
 
 const isOpen = ref(false)
 const popoverRef = ref(null)
@@ -218,32 +223,6 @@ const toTimeString = (date) => {
     const d = new Date(date)
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
-
-// Initialize dummy tasks
-const tasks = ref([
-    {
-        id: 1,
-        text: 'Review daily hub performance',
-        status: 'Priority',
-        targetTime: Date.now() + 3600000, // 1 hour from now
-        repeat: 'none',
-        createdAt: Date.now(),
-        lastAlertTime: null,
-        silenced: false,
-        remaining: ''
-    },
-    {
-        id: 2,
-        text: 'Approve Fleet Maintenance',
-        status: 'Done',
-        targetTime: Date.now() - 7200000, // 2 hours ago
-        repeat: 'none',
-        createdAt: Date.now() - 86400000,
-        lastAlertTime: null,
-        silenced: false,
-        remaining: ''
-    }
-])
 
 // --- Computed ---
 const activeTasksCount = computed(() => tasks.value.filter(t => t.status !== 'Done').length)

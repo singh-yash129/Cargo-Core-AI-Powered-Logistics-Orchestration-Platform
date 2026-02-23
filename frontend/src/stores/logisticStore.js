@@ -9,6 +9,32 @@ export const useLogisticStore = defineStore('logistic', () => {
     const activeModal = ref(null) // 'alert-details', 'driver-profile', 'warehouse-select', etc.
     const selectedItem = ref(null) // Data payload for the active modal
 
+    // Todo Tasks
+    const tasks = ref([
+        {
+            id: 1,
+            text: 'Review daily hub performance',
+            status: 'Priority',
+            targetTime: Date.now() + 3600000, // 1 hour from now
+            repeat: 'none',
+            createdAt: Date.now(),
+            lastAlertTime: null,
+            silenced: false,
+            remaining: ''
+        },
+        {
+            id: 2,
+            text: 'Approve Fleet Maintenance',
+            status: 'Done',
+            targetTime: Date.now() - 7200000, // 2 hours ago
+            repeat: 'none',
+            createdAt: Date.now() - 86400000,
+            lastAlertTime: null,
+            silenced: false,
+            remaining: ''
+        }
+    ])
+
     // Mock Data: KPIs
     // Mock Data: KPIs
     const globalStats = {
@@ -443,6 +469,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         searchQuery,
         isSearchOpen,
         notifications,
+        tasks,
         // Getters
         activeWarehouseName,
         unreadNotificationsCount,
