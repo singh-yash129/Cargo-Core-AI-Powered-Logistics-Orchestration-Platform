@@ -45,11 +45,14 @@
                 <div class="flex gap-2">
                     <select v-model="draftTask.status"
                         class="flex-1 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer">
-                        <option value="Backlog">Backlog</option>
-                        <option value="To Do">To Do</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Priority">Priority</option>
-                        <option value="Done" v-if="editingTaskId !== null">Done</option>
+                        <option value="Backlog" class="bg-white dark:bg-gray-800 text-gray-500">Backlog</option>
+                        <option value="To Do" class="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">To Do
+                        </option>
+                        <option value="In Progress" class="bg-white dark:bg-gray-800 text-blue-500">In Progress</option>
+                        <option value="Priority" class="bg-white dark:bg-gray-800 text-red-500">Priority</option>
+                        <option value="Done" v-if="editingTaskId !== null"
+                            class="bg-white dark:bg-gray-800 text-green-500">Done
+                        </option>
                     </select>
 
                     <input v-model="draftTask.dateString" type="date"
@@ -64,12 +67,12 @@
                     <select v-model="draftTask.repeat"
                         class="flex-1 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
                         :disabled="!draftTask.timeString" :title="!draftTask.timeString ? 'Select a time first' : ''">
-                        <option value="none">No Repeat</option>
-                        <option value="5m">Every 5 min</option>
-                        <option value="15m">Every 15 min</option>
-                        <option value="30m">Every 30 min</option>
-                        <option value="60m">Every 1 hour</option>
-                        <option value="120m">Every 2 hours</option>
+                        <option value="none" class="bg-white dark:bg-gray-800">No Repeat</option>
+                        <option value="5m" class="bg-white dark:bg-gray-800">Every 5 min</option>
+                        <option value="15m" class="bg-white dark:bg-gray-800">Every 15 min</option>
+                        <option value="30m" class="bg-white dark:bg-gray-800">Every 30 min</option>
+                        <option value="60m" class="bg-white dark:bg-gray-800">Every 1 hour</option>
+                        <option value="120m" class="bg-white dark:bg-gray-800">Every 2 hours</option>
                     </select>
                 </div>
 
@@ -478,7 +481,10 @@ const checkReminders = () => {
 
 // Click outside handler
 const handleClickOutside = (event) => {
-    if (popoverRef.value && !popoverRef.value.contains(event.target)) {
+    // Use composedPath() instead of contains(event.target) because Vue may have already 
+    // removed the clicked DOM node (like moving a task or opening edit mode) before 
+    // this event bubbles up to document, which would erroneously cause a close.
+    if (popoverRef.value && !event.composedPath().includes(popoverRef.value)) {
         isOpen.value = false
     }
 }
