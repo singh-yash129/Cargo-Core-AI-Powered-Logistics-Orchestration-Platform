@@ -12,56 +12,111 @@ export const useLogisticStore = defineStore('logistic', () => {
     // Mock Data: KPIs
     // Mock Data: KPIs
     const globalStats = {
-        orders: 1248,
-        activeDeliveries: 342,
+        ordersToday: 1248, // Scalar for top bar
+        activeDeliveries: 342, // In Transit
+        processing: 154, // New property for pipeline
         deliverySuccess: 98.2,
-        revenue: 42500,
+        revenueToday: 42500, // Scalar for top bar
         ordersTrend: 12.5,
         revenueTrend: 8.2,
         slaCompliance: {
             week: [92, 94, 88, 95, 90, 96, 98],
             month: [85, 88, 87, 89, 90, 92, 91, 93, 89, 88, 90, 92, 94, 95, 96, 95, 94, 93, 92, 91, 90, 89, 88, 90, 92, 94, 96, 98, 99, 98]
+        },
+        revenue: {
+            week: [38000, 41000, 39500, 42500, 45000, 48000, 46500],
+            month: Array(30).fill(40000).map(() => 35000 + Math.floor(Math.random() * 15000))
+        },
+        orders: {
+            week: [1100, 1150, 1080, 1248, 1300, 1450, 1380],
+            month: Array(30).fill(1100).map(() => 1000 + Math.floor(Math.random() * 500))
         }
     }
 
     const dashboardStats = ref({ ...globalStats })
 
     // Specific Data for Hubs to simulate interactivity
+    // Specific Data for Hubs to simulate interactivity
     const warehouseMockData = {
         1: { // North-East Hub
-            orders: 412,
+            ordersToday: 412,
             activeDeliveries: 156,
+            processing: 89,
             deliverySuccess: 89.5,
-            revenue: 12500,
+            revenueToday: 12500,
             ordersTrend: -5.4,
             revenueTrend: -2.1,
+            efficiency: 88,
+            efficiencyTrend: 2.1,
+            staffActive: 42,
+            staffTotal: 50,
+            vehiclesActive: 28,
+            vehiclesTotal: 34,
             slaCompliance: {
                 week: [82, 80, 75, 78, 80, 82, 85],
                 month: Array(30).fill(80).map(() => 75 + Math.floor(Math.random() * 15))
+            },
+            revenue: {
+                week: [11000, 11500, 10800, 12500, 13000, 12800, 13500],
+                month: Array(30).fill(11000).map(() => 10000 + Math.floor(Math.random() * 4000))
+            },
+            orders: {
+                week: [380, 390, 350, 412, 450, 480, 460],
+                month: Array(30).fill(380).map(() => 350 + Math.floor(Math.random() * 150))
             }
         },
         2: { // South Hub
-            orders: 580,
+            ordersToday: 580,
             activeDeliveries: 89,
+            processing: 42,
             deliverySuccess: 99.4,
-            revenue: 24800,
+            revenueToday: 24800,
             ordersTrend: 15.2,
             revenueTrend: 18.5,
+            efficiency: 96,
+            efficiencyTrend: 5.4,
+            staffActive: 65,
+            staffTotal: 68,
+            vehiclesActive: 40,
+            vehiclesTotal: 42,
             slaCompliance: {
                 week: [96, 97, 98, 98, 99, 99, 100],
                 month: Array(30).fill(98).map(() => 95 + Math.floor(Math.random() * 5))
+            },
+            revenue: {
+                week: [22000, 23500, 24000, 24800, 26000, 27500, 28000],
+                month: Array(30).fill(22000).map(() => 20000 + Math.floor(Math.random() * 8000))
+            },
+            orders: {
+                week: [510, 530, 550, 580, 620, 650, 680],
+                month: Array(30).fill(510).map(() => 480 + Math.floor(Math.random() * 250))
             }
         },
         3: { // West DC-04
-            orders: 256,
+            ordersToday: 256,
             activeDeliveries: 97,
+            processing: 23,
             deliverySuccess: 94.1,
-            revenue: 8200,
+            revenueToday: 8200,
             ordersTrend: 2.1,
             revenueTrend: 4.5,
+            efficiency: 74,
+            efficiencyTrend: -1.2,
+            staffActive: 28,
+            staffTotal: 35,
+            vehiclesActive: 19,
+            vehiclesTotal: 25,
             slaCompliance: {
                 week: [90, 92, 91, 93, 90, 92, 94],
                 month: Array(30).fill(92).map(() => 88 + Math.floor(Math.random() * 8))
+            },
+            revenue: {
+                week: [7500, 7800, 8000, 8200, 8500, 8100, 8300],
+                month: Array(30).fill(7500).map(() => 7000 + Math.floor(Math.random() * 2000))
+            },
+            orders: {
+                week: [220, 230, 240, 256, 265, 250, 260],
+                month: Array(30).fill(220).map(() => 200 + Math.floor(Math.random() * 80))
             }
         }
     }
@@ -126,6 +181,7 @@ export const useLogisticStore = defineStore('logistic', () => {
             id: 1,
             name: 'North-East Hub',
             capacity: 92,
+            efficiency: 88,
             processRate: 1240,
             status: 'Congested',
             statusColor: 'text-red-500',
@@ -135,6 +191,7 @@ export const useLogisticStore = defineStore('logistic', () => {
             id: 2,
             name: 'South Hub',
             capacity: 45,
+            efficiency: 96,
             processRate: 850,
             status: 'Optimal',
             statusColor: 'text-green-500',
@@ -144,6 +201,7 @@ export const useLogisticStore = defineStore('logistic', () => {
             id: 3,
             name: 'West DC-04',
             capacity: 78,
+            efficiency: 74,
             processRate: 920,
             status: 'High Load',
             statusColor: 'text-yellow-500',

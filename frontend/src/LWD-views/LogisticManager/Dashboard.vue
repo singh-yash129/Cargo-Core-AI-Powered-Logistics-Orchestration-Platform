@@ -11,8 +11,8 @@
                     <div>
                         <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Orders Today</div>
                         <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">{{
-                            store.dashboardStats.orders.toLocaleString()
-                            }}
+                            store.dashboardStats.ordersToday.toLocaleString()
+                        }}
                         </div>
                     </div>
                     <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -87,7 +87,7 @@
                     <div>
                         <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Revenue Today</div>
                         <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">${{
-                            (store.dashboardStats.revenue /
+                            (store.dashboardStats.revenueToday /
                                 1000).toFixed(1) }}k</div>
                     </div>
                     <div
@@ -133,7 +133,7 @@
                             <div
                                 class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 bg-white dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg p-2 hidden group-hover:block z-20 shadow-xl">
                                 <div class="text-xs font-bold text-gray-900 dark:text-white">{{ store.drivers[0].vehicle
-                                }}</div>
+                                    }}</div>
                                 <div class="text-[10px] text-gray-500 dark:text-gray-400">Moving • 45 km/h</div>
                             </div>
                         </div>
@@ -234,113 +234,114 @@
 
         <!-- Bottom Section: KPI Charts & Hub Performance -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- SLA Performance Chart Style -->
-            <div class="glass-panel p-5 rounded-2xl">
+            <!-- Active Delivery Pipeline -->
+            <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">SLA Compliance Trend</h3>
-                    <div class="flex gap-2">
-                        <!-- Chart Type Selection -->
-                        <select v-model="selectedChartType"
-                            class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-xs text-gray-700 dark:text-gray-300 px-2 py-1 outline-none transition-colors cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10">
-                            <option value="area">Area Chart</option>
-                            <option value="line">Line Chart</option>
-                            <option value="bar">Bar Chart</option>
-                        </select>
-
-                        <!-- Time Period Selection -->
-                        <select v-model="selectedTimePeriod"
-                            class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-xs text-gray-700 dark:text-gray-300 px-2 py-1 outline-none transition-colors cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10">
-                            <option value="week">Last 7 Days</option>
-                            <option value="month">This Month</option>
-                        </select>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Active Delivery Pipeline</h3>
+                    <div
+                        class="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-bold uppercase tracking-wider">
+                        Live Pulse
                     </div>
                 </div>
 
-                <!-- Dynamic Chart Container -->
-                <div v-if="selectedChartType !== 'bar'" class="h-48 relative w-full group">
-                    <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
-                        <defs>
-                            <linearGradient id="slaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" class="stop-color-primary" stop-opacity="0.3" />
-                                <stop offset="100%" class="stop-color-primary" stop-opacity="0" />
-                            </linearGradient>
-                        </defs>
+                <div class="space-y-6 my-auto">
+                    <!-- Stage: Processing -->
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                Processing at Hubs
+                            </span>
+                            <span class="text-gray-900 dark:text-white font-bold">{{
+                                store.dashboardStats.processing.toLocaleString() }}</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-200 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                            <div class="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                                :style="{ width: pipelinePercentages.processing + '%' }"></div>
+                        </div>
+                    </div>
 
-                        <!-- Area Chart -->
-                        <g v-if="selectedChartType === 'area'">
-                            <path :d="chartAreaPath"
-                                class="fill-[url(#slaGradient)] transition-all duration-500 ease-in-out" />
-                            <path :d="chartLinePath" fill="none"
-                                class="stroke-primary stroke-2 transition-all duration-500 ease-in-out"
-                                vector-effect="non-scaling-stroke" />
-                        </g>
+                    <!-- Stage: In Transit -->
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                                In Transit
+                            </span>
+                            <span class="text-gray-900 dark:text-white font-bold">{{
+                                store.dashboardStats.activeDeliveries.toLocaleString() }}</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-200 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                            <div class="h-full bg-yellow-500 rounded-full transition-all duration-1000"
+                                :style="{ width: pipelinePercentages.inTransit + '%' }"></div>
+                        </div>
+                    </div>
 
-                        <!-- Line Chart -->
-                        <g v-if="selectedChartType === 'line'">
-                            <path :d="chartLinePath" fill="none"
-                                class="stroke-primary stroke-2 transition-all duration-500 ease-in-out"
-                                vector-effect="non-scaling-stroke" />
-                        </g>
-
-                        <!-- Interactivity Points for Line/Area -->
-                        <g>
-                            <circle v-for="(point, index) in chartPoints" :key="index" :cx="point.x" :cy="point.y" r="0"
-                                class="stroke-white fill-primary stroke-2 cursor-pointer transition-all duration-200"
-                                :class="{ 'r-4 hover:r-6': true }"
-                                @mouseover="hoveredDataPoint = { x: (point.x / 100) * $el.clientWidth, y: (point.y / 100) * $el.clientHeight, value: point.value }"
-                                @mouseleave="hoveredDataPoint = null" />
-                        </g>
-                    </svg>
-                </div>
-
-                <!-- CSS Bar Chart (User's Static Style) -->
-                <div v-else class="h-48 flex items-end justify-between px-2"
-                    :class="selectedTimePeriod === 'week' ? 'gap-2' : 'gap-px'">
-                    <div v-for="(point, index) in chartPoints" :key="index"
-                        class="w-full rounded-t-sm relative group transition-all duration-500" :class="[
-                            index === chartPoints.length - 1
-                                ? 'bg-primary/20 border-t-2 border-primary'
-                                : 'bg-gray-200 dark:bg-gray-700/30 hover:bg-gray-300 dark:hover:bg-gray-600/50'
-                        ]" :style="{ height: point.value + '%' }">
-
-                        <!-- Tooltip/Label -->
-                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 text-xs mb-1 font-bold whitespace-nowrap transition-opacity"
-                            :class="[
-                                index === chartPoints.length - 1
-                                    ? 'text-primary opacity-100'
-                                    : 'text-gray-700 dark:text-white opacity-0 group-hover:opacity-100'
-                            ]">
-                            {{ point.value }}%
+                    <!-- Stage: Delivered -->
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                Delivered Today
+                            </span>
+                            <span class="text-gray-900 dark:text-white font-bold">{{
+                                store.dashboardStats.ordersToday.toLocaleString() }}</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-200 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                            <div class="h-full bg-green-500 rounded-full transition-all duration-1000"
+                                :style="{ width: pipelinePercentages.delivered + '%' }"></div>
                         </div>
                     </div>
                 </div>
-                <div class="flex justify-between mt-2 text-xs text-gray-500 dark:text-gray-500 px-2 font-medium">
-                    <span v-for="(label, idx) in xAxisLabels" :key="idx">{{ label }}</span>
+
+                <div
+                    class="mt-6 pt-4 border-t border-gray-100 dark:border-white/5 flex gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <div>
+                        <span class="text-gray-900 dark:text-white font-bold">{{ store.dashboardStats.deliverySuccess
+                        }}%</span> Success Rate
+                    </div>
+                    <div>
+                        <span class="text-gray-900 dark:text-white font-bold">~42m</span> Avg. Time
+                    </div>
                 </div>
             </div>
 
-            <!-- Hub Performance Table -->
-            <div class="glass-panel p-5 rounded-2xl">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Hub Performance</h3>
-                <div class="overflow-x-auto">
+            <!-- Hub Performance Table / Interactive View -->
+            <div class="glass-panel p-4 lg:p-5 rounded-2xl flex flex-col justify-between h-full">
+                <!-- Header -->
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                        <span v-if="store.activeWarehouse === 'all'">Hub Performance</span>
+                        <span v-else>{{ store.activeWarehouseName }} Overview</span>
+                    </h3>
+                    <button v-if="store.activeWarehouse !== 'all'" @click="store.setWarehouse('all')"
+                        class="text-xs text-primary hover:underline font-medium flex items-center">
+                        <span class="material-symbols-outlined text-[14px] mr-0.5">arrow_back</span>
+                        View All
+                    </button>
+                </div>
+
+                <!-- ALL HUBS VIEW -->
+                <div v-if="store.activeWarehouse === 'all'" class="overflow-x-auto my-auto py-2">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr
                                 class="text-xs text-gray-500 dark:text-gray-500 border-b border-gray-200 dark:border-white/10">
                                 <th class="py-2 font-medium">Hub Name</th>
                                 <th class="py-2 font-medium">Capacity</th>
+                                <th class="py-2 font-medium">Efficiency</th>
                                 <th class="py-2 font-medium">Process Rate</th>
                                 <th class="py-2 font-medium">Status</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm">
                             <tr v-for="hub in store.hubs" :key="hub.id"
-                                class="border-b border-gray-100 dark:border-white/5 last:border-0 transition-all cursor-pointer relative"
+                                class="border-b border-b-gray-100 dark:border-b-white/5 last:border-0 transition-all cursor-pointer relative"
                                 :class="[
                                     store.activeWarehouse === hub.id
-                                        ? 'bg-primary/5 dark:bg-primary/10 border-l-4 border-primary pl-3'
-                                        : 'hover:bg-gray-50 dark:hover:bg-white/5 border-l-4 border-transparent'
-                                ]" @click="store.setWarehouse(hub.id)"> <!-- Click to switch context -->
+                                        ? 'bg-primary/5 dark:bg-primary/10 border-l-4 border-l-primary'
+                                        : 'hover:bg-gray-50 dark:hover:bg-white/5 border-l-4 border-l-transparent'
+                                ]" @click="store.setWarehouse(hub.id)">
                                 <td class="py-3 text-gray-900 dark:text-white font-medium">{{ hub.name }}</td>
                                 <td class="py-3 text-gray-500 dark:text-gray-300">
                                     <div class="flex items-center gap-2">
@@ -350,6 +351,15 @@
                                             </div>
                                         </div>
                                         <span class="text-xs">{{ hub.capacity }}%</span>
+                                    </div>
+                                </td>
+                                <!-- Added Efficiency Column -->
+                                <td class="py-3 text-gray-500 dark:text-gray-300">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-semibold"
+                                            :class="hub.efficiency > 85 ? 'text-green-500' : (hub.efficiency > 60 ? 'text-yellow-500' : 'text-red-500')">
+                                            {{ hub.efficiency }}%
+                                        </span>
                                     </div>
                                 </td>
                                 <td class="py-3 text-gray-500 dark:text-gray-300">{{ hub.processRate.toLocaleString() }}
@@ -364,6 +374,171 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- SINGLE HUB INTERACTIVE VIEW -->
+                <div v-else-if="currentHub" class="flex flex-col h-full animate-fade-in my-auto py-2">
+                    <div class="flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 lg:gap-6 mb-6">
+
+                        <!-- Main Stats Group -->
+                        <div class="flex items-center gap-4">
+                            <!-- Capacity Circular Progress -->
+                            <div class="relative w-20 h-20 lg:w-24 lg:h-24 flex-shrink-0 group">
+                                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                    <circle cx="18" cy="18" r="15.9155" fill="none"
+                                        class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
+                                    <circle cx="18" cy="18" r="15.9155" fill="none"
+                                        class="transition-all duration-1000 ease-out"
+                                        :class="currentHub.capacity > 85 ? 'stroke-red-500' : (currentHub.capacity > 60 ? 'stroke-yellow-500' : 'stroke-green-500')"
+                                        stroke-width="3" :stroke-dasharray="`${currentHub.capacity}, 100`"
+                                        stroke-linecap="round"></circle>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span
+                                        class="text-lg lg:text-2xl font-bold text-gray-900 dark:text-white leading-none">
+                                        {{ currentHub.capacity }}%
+                                    </span>
+                                    <span
+                                        class="text-[9px] lg:text-[10px] text-gray-500 uppercase tracking-widest mt-0.5 lg:mt-1">Load</span>
+                                </div>
+                            </div>
+
+                            <!-- Pkgs/Hr Stats & Status -->
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border"
+                                        :class="currentHub.status.toLowerCase() === 'optimal' ? 'bg-green-50 border-green-200 text-green-600 dark:bg-green-500/10 dark:border-green-500/20 dark:text-green-500' : (currentHub.status.toLowerCase() === 'congested' ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-500' : 'bg-yellow-50 border-yellow-200 text-yellow-600 dark:bg-yellow-500/10 dark:border-yellow-500/20 dark:text-yellow-500')">
+                                        <span class="inline-block w-1.5 h-1.5 rounded-full mr-0.5"
+                                            :class="currentHub.status.toLowerCase() === 'optimal' ? 'bg-green-500' : (currentHub.status.toLowerCase() === 'congested' ? 'bg-red-500' : 'bg-yellow-500')"></span>
+                                        {{ currentHub.status }}
+                                    </span>
+                                </div>
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{{
+                                        currentHub.processRate.toLocaleString() }}</span>
+                                    <span
+                                        class="text-xs lg:text-sm font-medium text-gray-500 dark:text-gray-400">pkgs/hr</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Secondary Metrics Group (Circular) -->
+                        <div class="flex items-center gap-3 lg:gap-4">
+                            <!-- Efficiency Circular -->
+                            <div class="relative w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0 group">
+                                <svg class="w-full h-full transform -rotate-90 drop-shadow-sm" viewBox="0 0 36 36">
+                                    <circle cx="18" cy="18" r="15.9155" fill="none"
+                                        class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
+                                    <circle cx="18" cy="18" r="15.9155" fill="none"
+                                        class="transition-all duration-1000 ease-out"
+                                        :class="currentHub.efficiency > 85 ? 'stroke-green-500' : (currentHub.efficiency > 60 ? 'stroke-yellow-500' : 'stroke-red-500')"
+                                        stroke-width="3" :stroke-dasharray="`${currentHub.efficiency}, 100`"
+                                        stroke-linecap="round"></circle>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span
+                                        class="text-base lg:text-lg font-bold text-gray-900 dark:text-white leading-none">
+                                        {{ currentHub.efficiency }}%
+                                    </span>
+                                    <span
+                                        class="text-[8px] lg:text-[9px] text-gray-500 uppercase tracking-widest mt-0.5">Effic.</span>
+                                </div>
+                            </div>
+
+                            <!-- Staff Circular -->
+                            <div class="relative w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0 group">
+                                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                    <circle cx="18" cy="18" r="15.9155" fill="none"
+                                        class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
+                                    <circle cx="18" cy="18" r="15.9155" fill="none"
+                                        class="transition-all duration-1000 ease-out stroke-blue-500" stroke-width="3"
+                                        :stroke-dasharray="(currentHub.staffActive / currentHub.staffTotal * 100) + ', 100'"
+                                        stroke-linecap="round"></circle>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span
+                                        class="text-base lg:text-lg font-bold text-gray-900 dark:text-white leading-none">
+                                        {{ currentHub.staffActive }}<span class="text-xs text-gray-400 font-normal">/{{
+                                            currentHub.staffTotal }}</span>
+                                    </span>
+                                    <span
+                                        class="text-[8px] lg:text-[9px] text-gray-500 uppercase tracking-widest mt-0.5">Staff</span>
+                                </div>
+                            </div>
+
+                            <!-- Vehicles Circular -->
+                            <div class="relative w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0 group">
+                                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                    <circle cx="18" cy="18" r="15.9155" fill="none"
+                                        class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
+                                    <circle cx="18" cy="18" r="15.9155" fill="none"
+                                        class="transition-all duration-1000 ease-out stroke-purple-500" stroke-width="3"
+                                        :stroke-dasharray="(currentHub.vehiclesActive / currentHub.vehiclesTotal * 100) + ', 100'"
+                                        stroke-linecap="round"></circle>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span
+                                        class="text-base lg:text-lg font-bold text-gray-900 dark:text-white leading-none">
+                                        {{ currentHub.vehiclesActive }}<span
+                                            class="text-xs text-gray-400 font-normal">/{{ currentHub.vehiclesTotal
+                                            }}</span>
+                                    </span>
+                                    <span
+                                        class="text-[8px] lg:text-[9px] text-gray-500 uppercase tracking-widest mt-0.5">Vehs</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Actions -->
+                    <div class="grid grid-cols-2 gap-3 mt-auto">
+                        <button
+                            class="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl p-3 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300">
+                            <span class="material-symbols-outlined text-[18px]">tune</span>
+                            Optimize Load
+                        </button>
+                        <button
+                            class="bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 border border-transparent rounded-xl p-3 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300">
+                            <span class="material-symbols-outlined text-[18px]">support_agent</span>
+                            Contact Hub
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Width SLA Compliance Chart -->
+        <div class="glass-panel p-5 rounded-2xl w-full mt-6 flex flex-col">
+            <!-- Tabs Header -->
+            <div
+                class="flex items-center gap-4 mb-6 border-b border-gray-200 dark:border-white/10 pb-2 overflow-x-auto hide-scrollbar">
+                <button @click="activeTab = 'sla'"
+                    class="px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap"
+                    :class="activeTab === 'sla' ? 'text-primary border-b-2 border-primary -mb-[3px]' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white border-b-2 border-transparent -mb-[3px]'">
+                    SLA Compliance Trend
+                </button>
+                <button @click="activeTab = 'revenue'"
+                    class="px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap"
+                    :class="activeTab === 'revenue' ? 'text-emerald-500 border-b-2 border-emerald-500 -mb-[3px]' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white border-b-2 border-transparent -mb-[3px]'">
+                    Revenue Analysis
+                </button>
+                <button @click="activeTab = 'orders'"
+                    class="px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap"
+                    :class="activeTab === 'orders' ? 'text-purple-500 border-b-2 border-purple-500 -mb-[3px]' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white border-b-2 border-transparent -mb-[3px]'">
+                    Order Volume
+                </button>
+                <div class="ml-auto flex-shrink-0 pl-4">
+                    <!-- Time Period Selection -->
+                    <select v-model="selectedTimePeriod"
+                        class="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-xs text-gray-700 dark:text-gray-300 px-3 py-1.5 outline-none transition-colors cursor-pointer hover:bg-gray-200 dark:hover:bg-white/10">
+                        <option value="week">Last 7 Days</option>
+                        <option value="month">This Month</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Chart Container -->
+            <div class="h-64 lg:h-80 w-full relative">
+                <Line :key="activeTab" :data="chartData" :options="chartOptions" />
             </div>
         </div>
 
@@ -386,57 +561,210 @@ import DriverProfileModal from '@/LWD-components/DriverProfileModal.vue'
 const store = useLogisticStore()
 const hoveredDataPoint = ref(null)
 
-// --- Chart Controls ---
-const selectedTimePeriod = ref('week')
-const selectedChartType = ref('area')
-
-// --- Chart Logic ---
-const chartPoints = computed(() => {
-    // Default to 'week' data if not found
-    const data = store.dashboardStats.slaCompliance[selectedTimePeriod.value] || []
-    if (data.length === 0) return []
-
-    const maxVal = 100 // SLA is percentage
-    const minVal = Math.min(...data) * 0.9 // Dynamic baseline
-
-    return data.map((val, index) => {
-        const x = (index / (data.length - 1)) * 100
-        // Scale Y
-        const y = 100 - val // Simple 0-100 mapping suitable for %
-        return { x, y, value: val }
-    })
+// --- Active Hub Logic ---
+const currentHub = computed(() => {
+    if (store.activeWarehouse === 'all') return null
+    return store.hubs.find(h => h.id === store.activeWarehouse)
 })
 
-const xAxisLabels = computed(() => {
-    if (selectedTimePeriod.value === 'week') {
-        return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    } else {
-        // Show roughly 5-day intervals or just first/last
-        return ['1', '5', '10', '15', '20', '25', '30']
+// --- Chart Controls ---
+const selectedTimePeriod = ref('week')
+const activeTab = ref('sla')
+
+// --- Chart.js Setup ---
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Filler,
+    Legend
+} from 'chart.js'
+import { Line } from 'vue-chartjs'
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Filler,
+    Legend
+)
+
+// --- Pipeline Logic ---
+const pipelinePercentages = computed(() => {
+    const stats = store.dashboardStats
+    const total = stats.processing + stats.activeDeliveries + stats.ordersToday
+
+    // Guard against division by zero
+    if (total === 0) return { processing: 0, inTransit: 0, delivered: 0 }
+
+    return {
+        processing: Math.round((stats.processing / total) * 100),
+        inTransit: Math.round((stats.activeDeliveries / total) * 100),
+        delivered: Math.round((stats.ordersToday / total) * 100)
     }
 })
 
-const chartLinePath = computed(() => {
-    const points = chartPoints.value
-    if (points.length === 0) return ''
+const chartData = computed(() => {
+    const isWeek = selectedTimePeriod.value === 'week'
+    let data = []
+    let labelString = ''
+    let config = {}
 
-    // Create smooth bezier curve
-    return points.reduce((path, point, i, a) => {
-        if (i === 0) return `M ${point.x},${point.y}`
+    // 1. Resolve Data Array and Config based on Tab
+    if (activeTab.value === 'sla') {
+        data = store.dashboardStats.slaCompliance[selectedTimePeriod.value] || []
+        labelString = 'SLA Compliance (%)'
+        config = {
+            bg: 'rgba(56, 189, 248, 0.1)', // Tailwind Primary (Sky-400)
+            border: 'rgb(56, 189, 248)'
+        }
+    } else if (activeTab.value === 'revenue') {
+        data = store.dashboardStats.revenue[selectedTimePeriod.value] || []
+        labelString = 'Revenue ($)'
+        config = {
+            bg: 'rgba(16, 185, 129, 0.1)', // Tailwind Emerald-500
+            border: 'rgb(16, 185, 129)'
+        }
+    } else if (activeTab.value === 'orders') {
+        data = store.dashboardStats.orders[selectedTimePeriod.value] || []
+        labelString = 'Order Volume'
+        config = {
+            bg: 'rgba(168, 85, 247, 0.1)', // Tailwind Purple-500
+            border: 'rgb(168, 85, 247)'
+        }
+    }
 
-        // Simple smoothing
-        const prev = a[i - 1]
-        const controlX = prev.x + (point.x - prev.x) / 2
-        return `${path} C ${controlX},${prev.y} ${controlX},${point.y} ${point.x},${point.y}`
-    }, '')
+    // 2. Create X-Axis Labels
+    let labels = []
+    if (isWeek) {
+        labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    } else {
+        // Generate nice month labels, e.g., '1', '5', '10' etc. or just numbers
+        labels = Array.from({ length: data.length }, (_, i) => i + 1)
+    }
+
+    return {
+        labels,
+        datasets: [
+            {
+                label: labelString,
+                backgroundColor: config.bg,
+                borderColor: config.border,
+                borderWidth: 2,
+                pointBackgroundColor: config.border,
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: config.border,
+                fill: true,
+                tension: 0.4, // Smooth curve
+                data: data
+            }
+        ]
+    }
 })
 
-const chartAreaPath = computed(() => {
-    const points = chartPoints.value
-    if (points.length === 0) return ''
+// Progressive Animation Logic for Chart.js
+const totalDuration = 1000;
+const delayBetweenPoints = totalDuration / 30; // Max points is ~30 for month
+const previousY = (ctx) => ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(100) : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(['y'], true).y;
 
-    const line = chartLinePath.value
-    return `${line} L 100,100 L 0,100 Z`
+const animationConfig = {
+    x: {
+        type: 'number',
+        easing: 'linear',
+        duration: delayBetweenPoints,
+        from: NaN, // the point is initially skipped
+        delay(ctx) {
+            if (ctx.type !== 'data' || ctx.xStarted) {
+                return 0;
+            }
+            ctx.xStarted = true;
+            return ctx.index * delayBetweenPoints;
+        }
+    },
+    y: {
+        type: 'number',
+        easing: 'linear',
+        duration: delayBetweenPoints,
+        from: previousY,
+        delay(ctx) {
+            if (ctx.type !== 'data' || ctx.yStarted) {
+                return 0;
+            }
+            ctx.yStarted = true;
+            return ctx.index * delayBetweenPoints;
+        }
+    }
+}
+
+const chartOptions = computed(() => {
+    // Dynamic Y-axis scaling based on tab
+    let minBuild = undefined;
+    let maxBuild = undefined;
+
+    if (activeTab.value === 'sla') {
+        minBuild = 70;
+        maxBuild = 100;
+    }
+
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: animationConfig, // Inject progressive animation
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                    label: function (context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (activeTab.value === 'sla') {
+                            label += context.parsed.y + '%';
+                        } else if (activeTab.value === 'revenue') {
+                            label += '$' + context.parsed.y.toLocaleString();
+                        } else {
+                            label += context.parsed.y.toLocaleString();
+                        }
+                        return label;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                min: minBuild,
+                max: maxBuild,
+                grid: {
+                    color: 'rgba(156, 163, 175, 0.1)',
+                    drawBorder: false,
+                }
+            },
+            x: {
+                grid: {
+                    display: false,
+                    drawBorder: false,
+                }
+            }
+        },
+        interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+        }
+    }
 })
 
 function handleAlertAction({ type, alertId }) {
