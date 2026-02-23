@@ -12,7 +12,7 @@
                         <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Orders Today</div>
                         <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">{{
                             store.dashboardStats.ordersToday.toLocaleString()
-                            }}
+                        }}
                         </div>
                     </div>
                     <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -133,7 +133,7 @@
                             <div
                                 class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 bg-white dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg p-2 hidden group-hover:block z-20 shadow-xl">
                                 <div class="text-xs font-bold text-gray-900 dark:text-white">{{ store.drivers[0].vehicle
-                                }}</div>
+                                    }}</div>
                                 <div class="text-[10px] text-gray-500 dark:text-gray-400">Moving • 45 km/h</div>
                             </div>
                         </div>
@@ -168,10 +168,25 @@
 
             <!-- Right Panel: Alerts & Bottlenecks -->
             <div class="glass-panel rounded-2xl p-5 flex flex-col h-full">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-                    <span class="material-symbols-outlined mr-2 text-yellow-500">warning</span>
-                    Attention Needed
-                </h3>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center">
+                        <span class="material-symbols-outlined mr-2 text-yellow-500">warning</span>
+                        Attention Needed
+                    </h3>
+
+                    <!-- Search -->
+                    <div class="relative flex items-center">
+                        <input v-if="store.isSearchOpen" v-model="store.searchQuery" type="text"
+                            placeholder="Search drivers, alerts..."
+                            class="w-48 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-primary/50 transition-all absolute right-10 shadow-sm"
+                            autofocus />
+                        <button @click="store.toggleSearch"
+                            class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                            :class="{ 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white': store.isSearchOpen }">
+                            <span class="material-symbols-outlined text-[18px]">search</span>
+                        </button>
+                    </div>
+                </div>
 
                 <div class="flex-1 relative">
                     <div class="absolute inset-0 overflow-y-auto pr-1 space-y-3 no-scrollbar">
@@ -301,7 +316,7 @@
                     <div>
                         <span class="text-gray-900 dark:text-white font-bold">{{
                             store.dashboardStats.deliverySuccess
-                            }}%</span> Success Rate
+                        }}%</span> Success Rate
                     </div>
                     <div>
                         <span class="text-gray-900 dark:text-white font-bold">~42m</span> Avg. Time
