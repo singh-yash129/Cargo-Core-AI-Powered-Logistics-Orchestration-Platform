@@ -24,35 +24,46 @@
                     <span class="material-symbols-outlined text-primary">checklist</span>
                     My Tasks
                 </h3>
-                <button @click="isAddingTask = !isAddingTask"
+                <button @click="openAddForm" v-if="editingTaskId === null"
                     class="text-xs font-semibold px-2 py-1 rounded-md transition-colors"
                     :class="isAddingTask ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400' : 'bg-primary/10 text-primary hover:bg-primary/20'">
                     {{ isAddingTask ? 'Cancel' : '+ Add Task' }}
                 </button>
             </div>
 
-            <!-- Add Task Form -->
-            <div v-if="isAddingTask"
+            <!-- Add/Edit Task Form -->
+            <div v-if="isAddingTask || editingTaskId !== null"
                 class="p-4 bg-gray-50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5 space-y-3">
-                <input v-model="newTask.text" type="text" placeholder="What needs to be done?"
+
+                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                    {{ isAddingTask ? 'Create New Task' : 'Edit Task' }}
+                </h4>
+
+                <input v-model="draftTask.text" type="text" placeholder="What needs to be done?" autofocus
                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 transition-colors">
 
                 <div class="flex gap-2">
-                    <select v-model="newTask.status"
+                    <select v-model="draftTask.status"
                         class="flex-1 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer">
                         <option value="Backlog">Backlog</option>
                         <option value="To Do">To Do</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Priority">Priority</option>
+                        <option value="Done" v-if="editingTaskId !== null">Done</option>
                     </select>
 
-                    <input v-model="newTask.timeString" type="time"
-                        class="w-28 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer">
+                    <input v-model="draftTask.dateString" type="date"
+                        class="w-32 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer">
                 </div>
 
-                <div class="flex justify-between items-center">
-                    <select v-model="newTask.repeat"
-                        class="w-32 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer">
+                <div class="flex gap-2 items-center">
+                    <input v-model="draftTask.timeString" type="time"
+                        class="w-24 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
+                        :disabled="!draftTask.dateString" :title="!draftTask.dateString ? 'Select a date first' : ''">
+
+                    <select v-model="draftTask.repeat"
+                        class="flex-1 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary/50 transition-colors cursor-pointer"
+                        :disabled="!draftTask.timeString" :title="!draftTask.timeString ? 'Select a time first' : ''">
                         <option value="none">No Repeat</option>
                         <option value="5m">Every 5 min</option>
                         <option value="15m">Every 15 min</option>
@@ -60,16 +71,22 @@
                         <option value="60m">Every 1 hour</option>
                         <option value="120m">Every 2 hours</option>
                     </select>
+                </div>
 
-                    <button @click="addTask" :disabled="!newTask.text"
+                <div class="flex justify-end gap-2 pt-2">
+                    <button @click="cancelEdit"
+                        class="text-xs font-semibold px-3 py-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+                        Cancel
+                    </button>
+                    <button @click="saveTask" :disabled="!draftTask.text"
                         class="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold py-1.5 px-4 rounded-lg transition-colors shadow-sm">
-                        Save
+                        {{ isAddingTask ? 'Save Task' : 'Update Task' }}
                     </button>
                 </div>
             </div>
 
             <!-- Task List -->
-            <div class="max-h-[360px] overflow-y-auto no-scrollbar">
+            <div class="max-h-[360px] overflow-y-auto no-scrollbar" v-if="!isAddingTask && editingTaskId === null">
                 <div v-if="tasks.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
                     <span class="material-symbols-outlined text-4xl mb-2 opacity-50">done_all</span>
                     <p class="text-sm">You have no tasks.</p>
@@ -89,12 +106,15 @@
                             </button>
 
                             <div class="flex-1 min-w-0">
-                                <input v-model="task.text" @click.stop
-                                    class="w-full bg-transparent border-none focus:ring-0 p-0 m-0 text-sm font-medium truncate transition-all duration-300 focus:outline-none"
-                                    :class="task.status === 'Done' ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-white'" />
+                                <p class="text-sm font-medium transition-all duration-300 cursor-pointer select-none"
+                                    :class="task.status === 'Done' ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-white'"
+                                    @click.stop="handleTaskClick($event, task)" title="Triple click to edit task">
+                                    {{ task.text }}
+                                </p>
 
                                 <div class="flex flex-wrap items-center gap-2 mt-1.5">
-                                    <select v-model="task.status" @change="onStatusChange(task)" @click.stop
+                                    <!-- Inline Status Dropdown (Smart Update) -->
+                                    <select v-model="task.status" @change="onInlineStatusChange(task)" @click.stop
                                         class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border-none focus:ring-0 cursor-pointer appearance-none bg-transparent -ml-2"
                                         :class="getStatusColor(task.status)">
                                         <option value="Backlog" class="bg-white dark:bg-gray-800 text-gray-500">Backlog
@@ -110,35 +130,42 @@
                                         </option>
                                     </select>
 
-                                    <div class="flex items-center gap-1 rounded-md px-1"
-                                        :class="isTaskOverdue(task) && task.status !== 'Done' ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'">
-                                        <span class="material-symbols-outlined text-[12px]"
-                                            :class="isTaskOverdue(task) && task.status !== 'Done' ? 'animate-pulse' : ''">schedule</span>
-                                        <input type="time" v-model="task.timeString" @change="onTimeChange(task)"
-                                            @click.stop
-                                            class="bg-transparent border-none text-[10px] font-medium p-0 m-0 focus:ring-0 cursor-pointer h-4 leading-none"
-                                            :class="isTaskOverdue(task) && task.status !== 'Done' ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'" />
+                                    <span v-if="task.targetTime"
+                                        class="text-xs font-medium flex items-center gap-1 inline-block select-none cursor-pointer"
+                                        :class="isTaskOverdue(task) && task.status !== 'Done' ? 'text-red-500 animate-pulse' : 'text-gray-500 dark:text-gray-400 hover:text-primary'"
+                                        @click.stop="handleTaskClick($event, task)" title="Triple click to edit time">
+                                        <span class="material-symbols-outlined text-[12px]">schedule</span>
+                                        {{ formatDateTime(task.targetTime) }}
+                                        <span v-if="task.repeat !== 'none'"
+                                            class="material-symbols-outlined text-[12px] opacity-70 ml-0.5"
+                                            title="Repeating">autorenew</span>
+                                    </span>
 
-                                        <select v-if="task.timeString" v-model="task.repeat"
-                                            @change="onStatusChange(task)" @click.stop
-                                            class="bg-transparent border-none text-[10px] font-medium p-0 m-0 focus:ring-0 cursor-pointer h-4 leading-none ml-1 appearance-none"
-                                            :class="isTaskOverdue(task) && task.status !== 'Done' ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'"
-                                            title="Repeat Interval">
-                                            <option value="none">No Repeat</option>
-                                            <option value="5m">5m</option>
-                                            <option value="15m">15m</option>
-                                            <option value="30m">30m</option>
-                                            <option value="60m">1h</option>
-                                            <option value="120m">2h</option>
-                                        </select>
-                                    </div>
+                                    <!-- Quick Actions -->
+                                    <button v-if="task.status !== 'Done' && task.targetTime"
+                                        @click.stop="snoozeTask(task)"
+                                        class="text-gray-400 hover:text-blue-500 rounded transition-colors flex items-center"
+                                        title="Remind in 1 hour">
+                                        <span class="material-symbols-outlined text-[16px]">update</span>
+                                    </button>
+                                    <button v-if="task.status !== 'Done' && task.targetTime"
+                                        @click.stop="silenceTask(task)"
+                                        class="text-gray-400 hover:text-orange-500 rounded transition-colors flex items-center"
+                                        :title="task.silenced ? 'Unmute alerts' : 'Silence alerts'">
+                                        <span class="material-symbols-outlined text-[16px]">
+                                            {{ task.silenced ? 'notifications_active' : 'notifications_off' }}
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
 
-                            <button @click.stop="deleteTask(task.id)"
-                                class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-1">
-                                <span class="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
+                            <div class="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                <button @click.stop="deleteTask(task.id)"
+                                    class="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                                    title="Delete task">
+                                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -160,8 +187,34 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const isOpen = ref(false)
-const isAddingTask = ref(false)
 const popoverRef = ref(null)
+
+// Form State
+const isAddingTask = ref(false)
+const editingTaskId = ref(null)
+
+const defaultDraft = {
+    id: null,
+    text: '',
+    status: 'To Do',
+    dateString: '', // "YYYY-MM-DD"
+    timeString: '', // "HH:MM"
+    repeat: 'none'
+}
+
+const draftTask = ref({ ...defaultDraft })
+
+// Helper to format Date -> YYYY-MM-DD
+const toDateString = (date) => {
+    const d = new Date(date)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Helper to format Date -> HH:MM
+const toTimeString = (date) => {
+    const d = new Date(date)
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
 // Initialize dummy tasks
 const tasks = ref([
@@ -170,44 +223,36 @@ const tasks = ref([
         text: 'Review daily hub performance',
         status: 'Priority',
         targetTime: null,
-        timeString: '',
         repeat: 'none',
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        lastAlertTime: null,
+        silenced: false
     },
     {
         id: 2,
         text: 'Approve Fleet Maintenance',
         status: 'Done',
         targetTime: null,
-        timeString: '',
         repeat: 'none',
-        createdAt: Date.now() - 3600000
+        createdAt: Date.now() - 3600000,
+        lastAlertTime: null,
+        silenced: false
     }
 ])
-
-const newTask = ref({
-    text: '',
-    status: 'To Do',
-    timeString: '', // format: "HH:MM"
-    repeat: 'none'
-})
 
 // --- Computed ---
 const activeTasksCount = computed(() => tasks.value.filter(t => t.status !== 'Done').length)
 
 const sortedTasks = computed(() => {
     return [...tasks.value].sort((a, b) => {
-        // 'Done' tasks go to bottom
         if (a.status === 'Done' && b.status !== 'Done') return 1;
         if (b.status === 'Done' && a.status !== 'Done') return -1;
 
-        // Priority sort for uncompleted tasks
         const statusMap = { 'Priority': 1, 'In Progress': 2, 'To Do': 3, 'Backlog': 4, 'Done': 5 }
         if (statusMap[a.status] !== statusMap[b.status]) {
             return statusMap[a.status] - statusMap[b.status]
         }
 
-        // Time sort
         if (a.targetTime && b.targetTime) return a.targetTime - b.targetTime;
         if (a.targetTime) return -1;
         if (b.targetTime) return 1;
@@ -220,82 +265,135 @@ const sortedTasks = computed(() => {
 const togglePopover = () => {
     isOpen.value = !isOpen.value
     if (!isOpen.value) {
-        isAddingTask.value = false
+        cancelEdit()
     }
 }
 
-const addTask = () => {
-    if (!newTask.value.text) return
+const openAddForm = () => {
+    isAddingTask.value = !isAddingTask.value
+    if (isAddingTask.value) {
+        editingTaskId.value = null
+        draftTask.value = { ...defaultDraft, dateString: toDateString(new Date()) }
+    } else {
+        cancelEdit()
+    }
+}
+
+const openEditForm = (task) => {
+    // Cannot edit if done - smartly disables
+    if (task.status === 'Done') return
+
+    isAddingTask.value = false
+    editingTaskId.value = task.id
+
+    let dString = ''
+    let tString = ''
+    if (task.targetTime) {
+        dString = toDateString(task.targetTime)
+        tString = toTimeString(task.targetTime)
+    }
+
+    draftTask.value = {
+        id: task.id,
+        text: task.text,
+        status: task.status,
+        dateString: dString,
+        timeString: tString,
+        repeat: task.repeat
+    }
+}
+
+const handleTaskClick = (e, task) => {
+    if (task.status === 'Done') return
+
+    // the 'detail' property on click events returns the current click count natively
+    if (e.detail === 3) {
+        openEditForm(task)
+    }
+}
+
+const cancelEdit = () => {
+    isAddingTask.value = false
+    editingTaskId.value = null
+    draftTask.value = { ...defaultDraft }
+}
+
+const saveTask = () => {
+    if (!draftTask.value.text) return
 
     let targetTimeMs = null
-    if (newTask.value.timeString) {
-        const [hours, minutes] = newTask.value.timeString.split(':')
+    if (draftTask.value.dateString && draftTask.value.timeString) {
+        const [year, month, day] = draftTask.value.dateString.split('-')
+        const [hours, minutes] = draftTask.value.timeString.split(':')
+
         const t = new Date()
+        t.setFullYear(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10))
         t.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0)
 
-        // If time is in the past, assume it means tomorrow
-        if (t.getTime() < Date.now()) {
-            t.setDate(t.getDate() + 1)
-        }
         targetTimeMs = t.getTime()
     }
 
-    tasks.value.push({
-        id: Date.now(),
-        text: newTask.value.text,
-        status: newTask.value.status,
-        targetTime: targetTimeMs,
-        timeString: newTask.value.timeString,
-        repeat: newTask.value.repeat,
-        createdAt: Date.now(),
-        lastAlertTime: null // Used for repeat tracking
-    })
+    if (isAddingTask.value) {
+        // Add new
+        tasks.value.push({
+            id: Date.now(),
+            text: draftTask.value.text,
+            status: draftTask.value.status,
+            targetTime: targetTimeMs,
+            repeat: draftTask.value.repeat,
+            createdAt: Date.now(),
+            lastAlertTime: null,
+            silenced: false
+        })
+    } else if (editingTaskId.value !== null) {
+        // Update existing
+        const task = tasks.value.find(t => t.id === editingTaskId.value)
+        if (task) {
+            task.text = draftTask.value.text
+            task.status = draftTask.value.status
+            task.targetTime = targetTimeMs
+            task.repeat = draftTask.value.repeat
+            task.lastAlertTime = null // Reset alerts so it triggers again if modified
+            task.silenced = false // Unsilence if explicitly edited
+        }
+    }
 
-    // Reset form
-    newTask.value.text = ''
-    newTask.value.timeString = ''
-    newTask.value.status = 'To Do'
-    newTask.value.repeat = 'none'
-    isAddingTask.value = false
+    cancelEdit()
 }
 
 const toggleTaskStatus = (task) => {
     if (task.status === 'Done') {
         task.status = 'To Do'
+        // If changed back from done, re-arm alerts
+        task.lastAlertTime = null
     } else {
         task.status = 'Done'
         task.lastAlertTime = null // Stop alerts
     }
 }
 
-const onStatusChange = (task) => {
+const onInlineStatusChange = (task) => {
     if (task.status === 'Done') {
         task.lastAlertTime = null // Stop alerts
     } else {
-        // If status changes to something else, and it's overdue, it will re-trigger on the next interval tick
+        // Smart update: if status changes to anything else, and it's overdue, it will re-trigger the reminder on next tick
         task.lastAlertTime = null
     }
 }
 
-const onTimeChange = (task) => {
-    if (task.timeString) {
-        const [hours, minutes] = task.timeString.split(':')
-        const t = new Date()
-        t.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0)
-
-        // If time is in the past, assume it means tomorrow
-        if (t.getTime() < Date.now()) {
-            t.setDate(t.getDate() + 1)
-        }
-        task.targetTime = t.getTime()
-    } else {
-        task.targetTime = null
-    }
-    task.lastAlertTime = null // Reset alerts
-}
-
 const deleteTask = (id) => {
     tasks.value = tasks.value.filter(t => t.id !== id)
+}
+
+const snoozeTask = (task) => {
+    if (!task.targetTime) return
+    task.targetTime += 3600000 // Add 1 hour
+    task.lastAlertTime = null
+    task.silenced = false
+}
+
+const silenceTask = (task) => {
+    task.silenced = !task.silenced
 }
 
 const clearDoneTasks = () => {
@@ -303,9 +401,17 @@ const clearDoneTasks = () => {
 }
 
 // --- Display Helpers ---
-const formatTime = (ms) => {
+const formatDateTime = (ms) => {
     if (!ms) return ''
-    return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const d = new Date(ms)
+    const today = new Date()
+    const isToday = d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
+
+    const timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    if (isToday) return `Today, ${timeStr}`
+
+    const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    return `${dateStr}, ${timeStr}`
 }
 
 const isTaskOverdue = (task) => {
@@ -326,13 +432,12 @@ const getStatusColor = (status) => {
 
 // --- Alert System ---
 let checkInterval = null
-const dummyBeep = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU') // Silent dummy to satisfy object init, replace with real beep later if needed
+const dummyBeep = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU')
 
 const playAlert = () => {
     if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]) // Vibrate pattern: vibrate, pause, vibrate
+        navigator.vibrate([200, 100, 200])
     }
-    // Attempt play (browser auto-play policies might block this if no user interaction occurred)
     try {
         dummyBeep.play().catch(e => console.warn('Audio play blocked/failed:', e))
     } catch (e) { }
@@ -342,10 +447,10 @@ const checkReminders = () => {
     const now = Date.now()
 
     tasks.value.forEach(task => {
-        if (task.status === 'Done' || !task.targetTime) return
+        if (task.status === 'Done' || !task.targetTime || task.silenced) return
 
         if (now >= task.targetTime) {
-            // First time alert
+            // First time alert or Login alert
             if (!task.lastAlertTime) {
                 playAlert()
                 task.lastAlertTime = now
@@ -380,7 +485,10 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
     document.addEventListener('click', handleClickOutside)
-    checkInterval = setInterval(checkReminders, 5000) // Check every 5 seconds
+    // Run immediately on mount (simulates the "login" vibration for overdue tasks)
+    checkReminders()
+    // Check every 5 seconds for precise alerting
+    checkInterval = setInterval(checkReminders, 5000)
 })
 
 onUnmounted(() => {
