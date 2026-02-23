@@ -18,7 +18,7 @@
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
                         ]">
                         <span class="material-symbols-outlined mr-3 text-[20px]"
-                            :class="$route.path === item.route ? 'text-primary' : 'text-gray-500 group-hover:text-white'">
+                            :class="$route.path === item.route ? 'text-primary' : 'text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white'">
                             {{ item.icon }}
                         </span>
                         <span class="text-sm font-medium">{{ item.label }}</span>
