@@ -160,10 +160,12 @@ import GlassCard from '../components/GlassCard.vue';
 import GlassInput from '../components/GlassInput.vue';
 import GlassButton from '../components/GlassButton.vue';
 import { useAuthStore, DUMMY_OTP } from '../stores/authStore';
+import { useToast } from '../composables/useToast';
 
 const authStore = useAuthStore();
 const router = useRouter();
 const route = useRoute();
+const toast = useToast();
 
 // Email comes from the store (set by sendPasswordResetOTP) or query param fallback
 const email = ref(authStore.pendingEmail || route.query.email || '');
@@ -202,8 +204,13 @@ const startResendTimer = () => {
 };
 
 const handleResendCode = async () => {
-  await authStore.sendPasswordResetOTP(email.value);
+  const result = await authStore.sendPasswordResetOTP(email.value);
   startResendTimer();
+  if (result.success) {
+    toast.success('Verification code resent to ' + email.value);
+  } else {
+    toast.error(result.message);
+  }
 };
 
 const handleResetPassword = async () => {
@@ -212,16 +219,19 @@ const handleResetPassword = async () => {
 
   if (otp.value.length !== 6) {
     errorMessage.value = 'Please enter a valid 6-digit code';
+    toast.warning('Please enter a valid 6-digit code');
     return;
   }
 
   if (newPassword.value.length < 8) {
     errorMessage.value = 'Password must be at least 8 characters';
+    toast.warning('Password must be at least 8 characters');
     return;
   }
 
   if (newPassword.value !== confirmPassword.value) {
     errorMessage.value = 'Passwords do not match';
+    toast.error('Passwords do not match');
     return;
   }
 
@@ -232,9 +242,11 @@ const handleResetPassword = async () => {
   loading.value = false;
 
   if (result.success) {
-    router.push('/login');
+    toast.success('Password reset successfully! Please log in with your new password.');
+    setTimeout(() => router.push('/login'), 1800);
   } else {
     errorMessage.value = result.message;
+    toast.error(result.message);
   }
 };
 </script>
