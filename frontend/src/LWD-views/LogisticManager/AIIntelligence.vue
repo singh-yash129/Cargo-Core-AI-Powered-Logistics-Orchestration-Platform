@@ -13,11 +13,11 @@
         <!-- Chat Interface -->
         <div class="glass-panel h-[600px] flex flex-col rounded-2xl overflow-hidden relative">
             <div
-                class="absolute inset-0 bg-gradient-to-b from-blue-50/50 to-transparent dark:from-blue-900/10 dark:to-transparent pointer-events-none">
+                class="absolute inset-0 bg-gradient-to-b from-blue-50/50 to-transparent dark:from-blue-900/10 dark:to-transparent pointer-events-none z-0">
             </div>
 
             <!-- Chat History -->
-            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            <div class="flex-1 overflow-y-auto p-6 space-y-6 relative z-10">
                 <!-- AI Message -->
                 <div class="flex gap-4 max-w-[80%]">
                     <div
@@ -25,7 +25,7 @@
                         AI</div>
                     <div class="space-y-2">
                         <div
-                            class="bg-gray-50/50 border border-gray-100 dark:bg-white/5 dark:border-white/10 p-4 rounded-2xl rounded-tl-none text-gray-800 dark:text-gray-200 text-sm leading-relaxed shadow-sm">
+                            class="bg-white border border-gray-100 dark:bg-white/5 dark:border-white/10 p-4 rounded-2xl rounded-tl-none text-gray-700 dark:text-gray-300 text-sm leading-relaxed shadow-sm">
                             Hello, Manager. I've analyzed today's fleet data. <br><br>
                             Currently, <span class="text-yellow-600 dark:text-yellow-400 font-bold">Sector 4</span>
                             shows a <span class="text-red-500 dark:text-red-400 font-bold">15% delay risk</span> due to
@@ -60,7 +60,7 @@
                         AI</div>
                     <div class="space-y-2">
                         <div
-                            class="bg-gray-50/50 border border-gray-100 dark:bg-white/5 dark:border-white/10 p-4 rounded-2xl rounded-tl-none text-gray-800 dark:text-gray-200 text-sm leading-relaxed shadow-sm">
+                            class="bg-white border border-gray-100 dark:bg-white/5 dark:border-white/10 p-4 rounded-2xl rounded-tl-none text-gray-700 dark:text-gray-300 text-sm leading-relaxed shadow-sm">
                             <div class="flex items-center gap-2 text-green-500 dark:text-green-400 mb-2 font-bold">
                                 <span class="material-symbols-outlined text-[16px]">check_circle</span> Optimization
                                 Complete
@@ -91,10 +91,10 @@
             </div>
 
             <!-- Input Area -->
-            <div class="p-6 pt-2">
+            <div class="p-6 pt-2 relative z-10">
                 <div class="relative">
                     <input type="text" placeholder="Ask AI anything about your fleet, stock, or predictions..."
-                        class="w-full bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 rounded-xl py-4 pl-6 pr-14 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all shadow-sm">
+                        class="w-full bg-gray-50 border border-gray-200 dark:bg-white/5 dark:border-white/10 rounded-xl py-4 pl-6 pr-14 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-primary/50 focus:bg-white dark:focus:bg-white/10 transition-all shadow-inner">
                     <button
                         class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-primary rounded-lg text-white hover:bg-primary/90 transition-colors shadow-sm">
                         <span class="material-symbols-outlined text-[20px] ml-1">send</span>
