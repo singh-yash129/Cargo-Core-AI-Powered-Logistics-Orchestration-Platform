@@ -160,7 +160,11 @@ export const useLogisticStore = defineStore('logistic', () => {
             efficiency: 85,
             phone: '+1 (555) 123-4567',
             currentJob: 'Delivery #9982',
-            avatarColor: 'bg-gray-700'
+            avatarColor: 'bg-gray-700',
+            chatHistory: [
+                { id: 1, text: 'Dispatch, engine light just came on.', sender: 'driver', time: '09:15 AM' },
+                { id: 2, text: 'Copy that David. Pull over when safe. Sending mobile mechanic.', sender: 'dispatch', time: '09:16 AM' }
+            ]
         },
         {
             id: 'D002',
@@ -171,7 +175,12 @@ export const useLogisticStore = defineStore('logistic', () => {
             efficiency: 92,
             phone: '+1 (555) 987-6543',
             currentJob: 'Delivery #9991',
-            avatarColor: 'bg-gray-700'
+            avatarColor: 'bg-gray-700',
+            chatHistory: [
+                { id: 1, text: 'Hey Dispatch, traffic on Route 9 is heavily congested due to an accident.', sender: 'driver', time: '10:42 AM' },
+                { id: 2, text: 'Copy that. Initiating AI load optimization now to reroute.', sender: 'dispatch', time: '10:43 AM' },
+                { id: 3, text: 'Got the new route. Heading to the secondary interchange now. ETA updated by +15 mins.', sender: 'driver', time: '10:45 AM' }
+            ]
         }
     ])
 
@@ -394,6 +403,33 @@ export const useLogisticStore = defineStore('logistic', () => {
         if (!isSearchOpen.value) searchQuery.value = ''
     }
 
+    // --- Action Logic: Chat ---
+    function sendMessageToDriver(driverId, text) {
+        const driver = drivers.value.find(d => d.id === driverId)
+        if (!driver) return
+
+        const now = new Date()
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+        // 1. Push user (dispatch) message instantly
+        driver.chatHistory.push({
+            id: Date.now(),
+            text: text,
+            sender: 'dispatch',
+            time: timeString
+        })
+
+        // 2. Simulate driver typing / delayed reply
+        setTimeout(() => {
+            driver.chatHistory.push({
+                id: Date.now() + 1,
+                text: 'Copy that. I will keep you posted.',
+                sender: 'driver',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            })
+        }, 2500)
+    }
+
     return {
         // State
         activeWarehouse,
@@ -421,6 +457,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         markNotificationRead,
         markAllNotificationsRead,
         clearNotifications,
-        toggleSearch
+        toggleSearch,
+        sendMessageToDriver
     }
 })

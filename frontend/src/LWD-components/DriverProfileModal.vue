@@ -31,7 +31,7 @@
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5">
                         <div class="text-xs text-gray-500 dark:text-gray-500">Efficiency Score</div>
                         <div class="text-lg font-semibold text-green-600 dark:text-green-400 mt-1">{{ driver.efficiency
-                            }}%
+                        }}%
                         </div>
                     </div>
                 </div>
@@ -88,47 +88,39 @@
                 </div>
 
                 <div class="h-64 overflow-y-auto pr-2 space-y-4 no-scrollbar flex flex-col pt-2">
-                    <!-- Received -->
-                    <div class="flex items-end gap-2 max-w-[85%]">
-                        <div class="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
+                    <div v-for="msg in driver.chatHistory" :key="msg.id" class="flex gap-2 max-w-[85%]"
+                        :class="msg.sender === 'dispatch' ? 'self-end flex-row-reverse' : 'items-end'">
+
+                        <!-- Avatar (only for driver) -->
+                        <div v-if="msg.sender === 'driver'"
+                            class="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white mt-auto"
                             :class="driver.avatarColor || 'bg-gray-700'">
                             {{ driver.name.charAt(0) }}
                         </div>
-                        <div
-                            class="bg-gray-100 dark:bg-white/5 text-gray-800 dark:text-gray-200 p-3 rounded-2xl rounded-bl-sm text-sm">
-                            Hey Dispatch, traffic on Route 9 is heavily congested due to an accident.
-                            <div class="text-[9px] text-gray-400 mt-1">10:42 AM</div>
-                        </div>
-                    </div>
 
-                    <!-- Sent -->
-                    <div class="flex items-end gap-2 max-w-[85%] self-end flex-row-reverse">
-                        <div class="bg-primary text-white p-3 rounded-2xl rounded-br-sm text-sm">
-                            Copy that. Initiating AI load optimization now to reroute.
-                            <div class="text-[9px] text-white/70 mt-1 text-right">10:43 AM</div>
-                        </div>
-                    </div>
-
-                    <!-- Received -->
-                    <div class="flex items-end gap-2 max-w-[85%]">
-                        <div class="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
-                            :class="driver.avatarColor || 'bg-gray-700'">
-                            {{ driver.name.charAt(0) }}
-                        </div>
-                        <div
-                            class="bg-gray-100 dark:bg-white/5 text-gray-800 dark:text-gray-200 p-3 rounded-2xl rounded-bl-sm text-sm">
-                            Got the new route. Heading to the secondary interchange now. ETA updated by +15 mins.
-                            <div class="text-[9px] text-gray-400 mt-1">10:45 AM</div>
+                        <!-- Message Bubble -->
+                        <div class="p-3 text-sm" :class="[
+                            msg.sender === 'dispatch'
+                                ? 'bg-primary text-white rounded-2xl rounded-tr-sm'
+                                : 'bg-gray-100 dark:bg-white/5 text-gray-800 dark:text-gray-200 rounded-2xl rounded-tl-sm'
+                        ]">
+                            {{ msg.text }}
+                            <div class="text-[9px] mt-1"
+                                :class="msg.sender === 'dispatch' ? 'text-white/70 text-right' : 'text-gray-400'">
+                                {{ msg.time }}
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="pt-4 border-t border-gray-200 dark:border-white/10">
                     <div class="relative">
-                        <input type="text" placeholder="Type a message..."
+                        <input type="text" v-model="newMessage" @keyup.enter="sendMessage"
+                            placeholder="Type a message..."
                             class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full py-2.5 pl-4 pr-12 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
-                        <button
-                            class="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-primary text-white hover:bg-primary-dark transition-colors">
+                        <button @click="sendMessage"
+                            class="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-primary text-white hover:bg-primary-dark transition-colors"
+                            :class="{ 'opacity-50 cursor-not-allowed': !newMessage.trim() }">
                             <span class="material-symbols-outlined text-[16px] ml-0.5">send</span>
                         </button>
                     </div>
@@ -141,16 +133,25 @@
 <script setup>
 import { ref } from 'vue'
 import BaseModal from '../components/BaseModal.vue'
+import { useLogisticStore } from '@/stores/logisticStore'
 
-defineProps({
+const props = defineProps({
     isOpen: Boolean,
     driver: Object
 })
 
 const emit = defineEmits(['close'])
+const store = useLogisticStore()
 
 const activeView = ref('profile')
 const isShowingPhone = ref(false)
+const newMessage = ref('')
+
+const sendMessage = () => {
+    if (!newMessage.value.trim()) return
+    store.sendMessageToDriver(props.driver.id, newMessage.value)
+    newMessage.value = ''
+}
 
 const handleClose = () => {
     // Reset state on close
