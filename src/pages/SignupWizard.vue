@@ -228,26 +228,6 @@
                 />
 
                 <div>
-                  <label class="block text-white/70 text-sm mb-2">Fleet Size</label>
-                  <div class="relative">
-                    <select
-                      v-model="formData.fleetSize"
-                      class="w-full px-4 py-3.5 pl-12 bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#00C4FF] focus:ring-2 focus:ring-[#00C4FF20] transition-all duration-300"
-                      required
-                    >
-                      <option value="" disabled>Select fleet size</option>
-                      <option value="1-5">1-5 vehicles</option>
-                      <option value="6-20">6-20 vehicles</option>
-                      <option value="21-50">21-50 vehicles</option>
-                      <option value="50+">50+ vehicles</option>
-                    </select>
-                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none">
-                      <Truck class="w-5 h-5" />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
                   <label class="block text-white/70 text-sm mb-3">Services You Offer</label>
                   <div class="grid grid-cols-2 gap-3">
                     <button
@@ -555,7 +535,6 @@ const formData = reactive({
   password: '',
   confirmPassword: '',
   companyName: '',
-  fleetSize: '',
   services: [],
   businessDocument: null,
   address: '',
@@ -735,10 +714,6 @@ const handleNext = async () => {
     if (formData.role === 'vendor') {
       if (!formData.companyName.trim()) {
         toast.warning('Please enter your company name');
-        return;
-      }
-      if (!formData.fleetSize) {
-        toast.warning('Please select your fleet size');
         return;
       }
       if (formData.services.length === 0) {
