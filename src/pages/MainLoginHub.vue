@@ -247,8 +247,10 @@ import Background from '../components/Background.vue';
 import Navbar from '../components/Navbar.vue';
 import AIHelpOrb from '../components/AIHelpOrb.vue';
 import GlassCard from '../components/GlassCard.vue';
+import { useToast } from '../composables/useToast';
 
 const router = useRouter();
+const toast = useToast();
 
 const featuredRoles = [
   {
@@ -313,8 +315,7 @@ const staffRoles = [
 const handleRoleSelect = (roleId) => {
   // AI Support is open/public - no login required
   if (roleId === 'support') {
-    // TODO: Navigate to public AI support interface
-    alert('AI Support is publicly accessible - Coming soon!');
+    toast.info('AI Support is publicly accessible — Coming soon!');
     return;
   }
   router.push(`/login/${roleId}`);

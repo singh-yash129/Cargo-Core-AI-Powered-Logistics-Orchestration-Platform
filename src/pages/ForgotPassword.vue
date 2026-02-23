@@ -109,15 +109,17 @@ import GlassCard from '../components/GlassCard.vue';
 import GlassInput from '../components/GlassInput.vue';
 import GlassButton from '../components/GlassButton.vue';
 import { useAuthStore } from '../stores/authStore';
+import { useToast } from '../composables/useToast';
 
 const authStore = useAuthStore();
 const router = useRouter();
+const toast = useToast();
 const email = ref('');
 const loading = ref(false);
 
 const handleSendOTP = async () => {
   if (!email.value || email.value.trim() === '') {
-    alert('Please enter your email address');
+    toast.warning('Please enter your email address');
     return;
   }
 
@@ -129,7 +131,10 @@ const handleSendOTP = async () => {
   loading.value = false;
 
   if (result.success) {
+    toast.success('Verification code sent to ' + email.value);
     router.push({ path: '/reset-password', query: { email: email.value } });
+  } else {
+    toast.error(result.message);
   }
 };
 </script>

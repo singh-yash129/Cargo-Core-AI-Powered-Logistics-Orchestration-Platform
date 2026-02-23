@@ -513,9 +513,11 @@ import GlassCard from '../components/GlassCard.vue';
 import GlassInput from '../components/GlassInput.vue';
 import GlassButton from '../components/GlassButton.vue';
 import { useAuthStore } from '../stores/authStore';
+import { useToast } from '../composables/useToast';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const toast = useToast();
 
 const steps = [
   { id: 1, title: 'Select Role', description: 'Choose account type' },
@@ -586,14 +588,12 @@ const handleFileUpload = (event) => {
   const file = target.files?.[0];
   
   if (file) {
-    // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB');
+      toast.warning('File size must be less than 10MB');
       target.value = '';
       return;
     }
     
-    // Check file type
     const allowedTypes = [
       'application/pdf',
       'application/msword',
@@ -604,71 +604,66 @@ const handleFileUpload = (event) => {
     ];
     
     if (!allowedTypes.includes(file.type)) {
-      alert('Please upload a valid document (PDF, DOC, DOCX, JPG, or PNG)');
+      toast.warning('Please upload a valid document (PDF, DOC, DOCX, JPG, or PNG)');
       target.value = '';
       return;
     }
     
     formData.businessDocument = file;
+    toast.success('Document uploaded successfully!');
   }
 };
 
 const detectLocation = async () => {
   if (!navigator.geolocation) {
-    alert('Geolocation is not supported by your browser');
+    toast.error('Geolocation is not supported by your browser');
     return;
   }
 
   isDetectingLocation.value = true;
+  toast.info('Detecting your location...');
 
   try {
-    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+    const position = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+        enableHighAccuracy: false,
+        timeout: 8000,
+        maximumAge: 60000,
       });
     });
 
     const { latitude, longitude } = position.coords;
 
-    // Reverse geocoding using OpenStreetMap Nominatim API (free)
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
-      {
-        headers: {
-          'Accept-Language': 'en',
-        },
-      }
+      { headers: { 'Accept-Language': 'en' } }
     );
 
-    if (!response.ok) {
-      throw new Error('Failed to get address from coordinates');
-    }
+    if (!response.ok) throw new Error('Geocoding failed');
 
     const data = await response.json();
     const addr = data.address;
 
-    // Auto-fill address fields
-    formData.address = `${addr.road || addr.suburb || addr.neighbourhood || ''} ${addr.house_number || ''}`;
+    formData.address = `${addr.road || addr.suburb || addr.neighbourhood || ''} ${addr.house_number || ''}`.trim();
     formData.city = addr.city || addr.town || addr.village || addr.county || '';
     formData.state = addr.state || addr.region || '';
     formData.zipCode = addr.postcode || '';
     formData.country = addr.country || '';
 
-    // Show success message
-    alert('Location detected! Please verify the address details.');
+    toast.success('Location detected! Please verify the details.');
   } catch (error) {
-    if (error.code === 1) {
-      alert('Location access denied. Please enable location permissions and try again.');
-    } else if (error.code === 2) {
-      alert('Unable to determine your location. Please enter your address manually.');
-    } else if (error.code === 3) {
-      alert('Location request timed out. Please try again or enter your address manually.');
-    } else {
-      alert('Failed to detect location. Please enter your address manually.');
-    }
     console.error('Location detection error:', error);
+    if (error.code === 1) {
+      toast.error('Location access denied. Please allow location permission in your browser.');
+    } else {
+      // Demo fallback — fill with sample address for testing
+      formData.address = '12 MG Road';
+      formData.city = 'Bengaluru';
+      formData.state = 'Karnataka';
+      formData.zipCode = '560001';
+      formData.country = 'India';
+      toast.warning('Could not get live location. Demo address filled — please update if needed.');
+    }
   } finally {
     isDetectingLocation.value = false;
   }
@@ -678,7 +673,7 @@ const handleNext = async () => {
   // Step 1 validation: Must select a role
   if (currentStep.value === 1) {
     if (!formData.role) {
-      alert('Please select a role (Customer or Vendor)');
+      toast.warning('Please select a role (Customer or Vendor)');
       return;
     }
     currentStep.value++;
@@ -688,41 +683,40 @@ const handleNext = async () => {
   // Step 2 validation: Basic Info
   if (currentStep.value === 2) {
     if (!formData.firstName.trim()) {
-      alert('Please enter your first name');
+      toast.warning('Please enter your first name');
       return;
     }
     if (!formData.lastName.trim()) {
-      alert('Please enter your last name');
+      toast.warning('Please enter your last name');
       return;
     }
     if (!formData.email.trim()) {
-      alert('Please enter your email address');
+      toast.warning('Please enter your email address');
       return;
     }
-    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      alert('Please enter a valid email address');
+      toast.warning('Please enter a valid email address');
       return;
     }
     if (!formData.phone.trim()) {
-      alert('Please enter your phone number');
+      toast.warning('Please enter your phone number');
       return;
     }
     if (!formData.password) {
-      alert('Please enter a password');
+      toast.warning('Please enter a password');
       return;
     }
     if (formData.password.length < 8) {
-      alert('Password must be at least 8 characters long');
+      toast.warning('Password must be at least 8 characters long');
       return;
     }
     if (!formData.confirmPassword) {
-      alert('Please confirm your password');
+      toast.warning('Please confirm your password');
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
     
@@ -740,19 +734,19 @@ const handleNext = async () => {
   if (currentStep.value === 3) {
     if (formData.role === 'vendor') {
       if (!formData.companyName.trim()) {
-        alert('Please enter your company name');
+        toast.warning('Please enter your company name');
         return;
       }
       if (!formData.fleetSize) {
-        alert('Please select your fleet size');
+        toast.warning('Please select your fleet size');
         return;
       }
       if (formData.services.length === 0) {
-        alert('Please select at least one service you offer');
+        toast.warning('Please select at least one service you offer');
         return;
       }
       if (!formData.businessDocument) {
-        alert('Please upload a business verification document');
+        toast.warning('Please upload a business verification document');
         return;
       }
     }
@@ -763,23 +757,23 @@ const handleNext = async () => {
   // Step 4 validation: Address
   if (currentStep.value === 4) {
     if (!formData.address.trim()) {
-      alert('Please enter your street address');
+      toast.warning('Please enter your street address');
       return;
     }
     if (!formData.city.trim()) {
-      alert('Please enter your city');
+      toast.warning('Please enter your city');
       return;
     }
     if (!formData.state.trim()) {
-      alert('Please enter your state');
+      toast.warning('Please enter your state');
       return;
     }
     if (!formData.zipCode.trim()) {
-      alert('Please enter your ZIP code');
+      toast.warning('Please enter your ZIP code');
       return;
     }
     if (!formData.country.trim()) {
-      alert('Please enter your country');
+      toast.warning('Please enter your country');
       return;
     }
     currentStep.value++;
@@ -806,7 +800,7 @@ const handleNext = async () => {
     if (result.success) {
       router.push('/2fa');
     } else {
-      alert(result.message);
+      toast.error(result.message);
     }
   }
 };
