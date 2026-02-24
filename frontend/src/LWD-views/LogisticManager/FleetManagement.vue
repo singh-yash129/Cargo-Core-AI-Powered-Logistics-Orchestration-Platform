@@ -240,71 +240,110 @@
         </div>
 
         <!-- Tab Content: Fuel Logs (New) -->
-        <div v-if="activeTab === 'Fuel Logs'" class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-sm">
-            <!-- Fuel Stats Summary -->
+        <!-- Tab Content: Fleet Logs (Dynamic) -->
+        <div v-if="activeTab === 'Fleet Logs'" class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-sm">
+            <!-- Left Panel: Dynamic Stats & Selector -->
             <div class="glass-panel rounded-xl p-6 lg:col-span-1 border border-gray-200 dark:border-white/5 h-[500px] flex flex-col">
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Log Category</label>
+                    <div class="relative">
+                        <select v-model="activeLogType" class="w-full appearance-none bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white font-bold rounded-lg py-3 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow cursor-pointer">
+                            <option v-for="type in logTypes" :key="type" :value="type">{{ type }}</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">expand_more</span>
+                    </div>
+                </div>
+
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2 flex-shrink-0">
-                    <span class="material-symbols-outlined text-orange-500">local_gas_station</span>
-                    Fuel Consumption
+                    <span class="material-symbols-outlined" :class="`text-${logStats.color}-500`">{{ logStats.icon }}</span>
+                    {{ logStats.title }}
                 </h3>
+                
                 <div class="space-y-4 overflow-y-auto custom-scrollbar pr-2">
-                    <div class="bg-orange-50 dark:bg-orange-500/10 p-4 rounded-xl border border-orange-100 dark:border-orange-500/20">
-                        <p class="text-xs text-orange-600 dark:text-orange-400 uppercase font-bold tracking-wider mb-1">Total Cost (This Month)</p>
-                        <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ fuelStats.totalCost.toFixed(2) }}</p>
-                        <p class="text-xs text-orange-600/80 mt-1">↑ 2.4% vs last month</p>
+                    <div class="p-4 rounded-xl border" 
+                        :class="`bg-${logStats.color}-50 dark:bg-${logStats.color}-500/10 border-${logStats.color}-100 dark:border-${logStats.color}-500/20`">
+                        <p class="text-xs uppercase font-bold tracking-wider mb-1" :class="`text-${logStats.color}-600 dark:text-${logStats.color}-400`">Total Cost (This Month)</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ logStats.totalCost.toLocaleString(undefined, {minimumFractionDigits: 2}) }}</p>
+                        <p class="text-xs mt-1 opacity-80" :class="`text-${logStats.color}-600 dark:text-${logStats.color}-400`">↑ 2.4% vs last month</p>
                     </div>
+
                      <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl">
-                            <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Avg Price/Gal</p>
-                            <p class="text-lg font-bold text-gray-900 dark:text-white">${{ fuelStats.avgPrice }}</p>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl">
-                            <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Total Volume</p>
-                            <p class="text-lg font-bold text-gray-900 dark:text-white">{{ fuelStats.totalVolume }} gal</p>
+                        <div v-for="(tile, idx) in logStats.tiles" :key="idx" class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl">
+                            <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">{{ tile.label }}</p>
+                            <p class="text-lg font-bold text-gray-900 dark:text-white">{{ tile.value }}</p>
                         </div>
                     </div>
-                    <!-- Additional mock stats for professional look -->
+                    
                     <div class="p-4 border-t border-gray-100 dark:border-white/5 mt-4">
-                        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Efficiency Trend</p>
+                        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">{{ logStats.trend.label }}</p>
                         <div class="w-full bg-gray-200 dark:bg-white/10 rounded-full h-2 mb-1">
-                            <div class="bg-green-500 h-2 rounded-full" :style="{ width: fuelStats.efficiency + '%' }"></div>
+                            <div class="h-2 rounded-full" :class="`bg-${logStats.color}-500`" style="width: 75%"></div>
                         </div>
                         <div class="flex justify-between text-xs text-gray-500">
-                            <span>{{ (fuelStats.efficiency / 10).toFixed(1) }} MPG (Avg)</span>
-                            <span>Target: 8.0</span>
+                            <span>{{ logStats.trend.value }}</span>
+                            <span>Target: {{ logStats.trend.target }}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Recent Transactions Table -->
+            <!-- Right Panel: Data Table -->
             <div class="glass-panel rounded-xl p-6 lg:col-span-2 border border-gray-200 dark:border-white/5 h-[500px] flex flex-col relative overflow-hidden">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Recent Refueling Logs</h3>
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">{{ activeLogType }} Overview</h3>
                 <div class="overflow-x-auto overflow-y-auto flex-grow custom-scrollbar">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-gray-50 dark:bg-transparent sticky top-0 z-10 backdrop-blur-md">
                             <tr class="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-white/10 uppercase tracking-wider text-[10px]">
                                 <th class="py-2 px-2 font-medium">Date</th>
-                                <th class="py-2 font-medium">Vehicle</th>
+                                <th class="py-2 font-medium">Vehicle ID</th>
                                 <th class="py-2 font-medium">Warehouse</th>
-                                <th class="py-2 font-medium">Station</th>
-                                <th class="py-2 font-medium text-right">Gallons</th>
+                                
+                                <!-- Dynamic Headers -->
+                                <th v-if="activeLogType === 'Fuel Logs'" class="py-2 font-medium">Station</th>
+                                <th v-if="activeLogType === 'Fuel Logs'" class="py-2 font-medium text-right">Gallons</th>
+                                
+                                <th v-if="activeLogType === 'Service Logs'" class="py-2 font-medium">Service</th>
+                                <th v-if="activeLogType === 'Service Logs'" class="py-2 font-medium">Provider</th>
+
+                                <th v-if="activeLogType === 'Maintenance Logs'" class="py-2 font-medium">Issue</th>
+                                <th v-if="activeLogType === 'Maintenance Logs'" class="py-2 font-medium">Mechanic</th>
+
+                                <th v-if="activeLogType === 'Cleaning Logs'" class="py-2 font-medium">Type</th>
+                                <th v-if="activeLogType === 'Cleaning Logs'" class="py-2 font-medium">Provider</th>
+
                                 <th class="py-2 font-medium text-right">Cost</th>
                                 <th class="py-2 font-medium text-right">Status</th>
                             </tr>
                         </thead>
                        <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                            <tr v-for="log in searchedFuelLogs" :key="log.id" class="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <tr v-for="log in searchedLogs" :key="log.id" 
+                                class="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                                @click="openVehicleProfile(store.filteredVehicles.find(v => v.id === log.vehicleId), 'history')">
+                                
                                 <td class="py-3 px-2 text-gray-600 dark:text-gray-300 font-mono">{{ log.date }}</td>
                                 <td class="py-3 text-gray-900 dark:text-white font-medium">{{ log.vehicleId }}</td>
-                                <td class="py-3 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{{ store.hubs.find(h => h.id === log.hubId)?.name || 'Main Hub' }}</td>
-                                <td class="py-3 text-gray-600 dark:text-gray-300">{{ log.station }}</td>
-                                <td class="py-3 text-gray-600 dark:text-gray-300 text-right">{{ log.gallons }}</td>
+                                <td class="py-3 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">
+                                    {{ store.hubs.find(h => h.id === log.hubId)?.name || 'Main Hub' }}
+                                </td>
+
+                                <!-- Dynamic Cells -->
+                                <td v-if="activeLogType === 'Fuel Logs'" class="py-3 text-gray-600 dark:text-gray-300">{{ log.station }}</td>
+                                <td v-if="activeLogType === 'Fuel Logs'" class="py-3 text-gray-600 dark:text-gray-300 text-right">{{ log.gallons }}</td>
+
+                                <td v-if="activeLogType === 'Service Logs'" class="py-3 text-gray-600 dark:text-gray-300">{{ log.service }}</td>
+                                <td v-if="activeLogType === 'Service Logs'" class="py-3 text-gray-600 dark:text-gray-300">{{ log.provider }}</td>
+
+                                <td v-if="activeLogType === 'Maintenance Logs'" class="py-3 text-gray-600 dark:text-gray-300">{{ log.issue }}</td>
+                                <td v-if="activeLogType === 'Maintenance Logs'" class="py-3 text-gray-600 dark:text-gray-300">{{ log.mechanic }}</td>
+
+                                <td v-if="activeLogType === 'Cleaning Logs'" class="py-3 text-gray-600 dark:text-gray-300">{{ log.type }}</td>
+                                <td v-if="activeLogType === 'Cleaning Logs'" class="py-3 text-gray-600 dark:text-gray-300">{{ log.provider }}</td>
+
                                 <td class="py-3 text-gray-900 dark:text-white font-bold text-right">${{ log.cost }}</td>
                                 <td class="py-3 text-right">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" 
-                                        :class="log.alert ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-200' : 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400 border border-green-200'">
-                                        {{ log.alert ? 'Anomaly' : 'Verified' }}
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border" 
+                                        :class="log.status === 'Completed' || log.status === 'Verified' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-500/10 dark:text-green-400' : 'bg-yellow-50 text-yellow-600 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400'">
+                                        {{ log.alert ? 'Anomaly' : (log.status || 'Verified') }}
                                     </span>
                                 </td>
                             </tr>
@@ -1069,11 +1108,11 @@ const store = useLogisticStore()
 const { filteredTopDrivers, filteredMaintenance, filteredVehicles } = storeToRefs(store)
 
 const fuelLogs = ref([
-    { id: 101, date: 'Oct 24, 2023', vehicleId: 'TRK-992', station: 'Shell #492', gallons: 45.2, cost: 174.02, alert: false },
-    { id: 102, date: 'Oct 24, 2023', vehicleId: 'VAN-104', station: 'BP Station', gallons: 18.5, cost: 68.45, alert: false },
-    { id: 103, date: 'Oct 23, 2023', vehicleId: 'TRK-221', station: 'Exxon Mobile', gallons: 52.0, cost: 210.50, alert: true }, // High cost alert
-    { id: 104, date: 'Oct 22, 2023', vehicleId: 'VAN-882', station: 'Shell #492', gallons: 14.2, cost: 54.67, alert: false },
-    { id: 105, date: 'Oct 21, 2023', vehicleId: 'TRK-992', station: 'Chevron', gallons: 44.8, cost: 172.48, alert: false },
+    { id: 101, date: 'Oct 24, 2023', vehicleId: 'TRK-992', hubId: 1, station: 'Shell #492', gallons: 45.2, cost: 174.02, alert: false },
+    { id: 102, date: 'Oct 24, 2023', vehicleId: 'VAN-104', hubId: 1, station: 'BP Station', gallons: 18.5, cost: 68.45, alert: false },
+    { id: 103, date: 'Oct 23, 2023', vehicleId: 'TRK-221', hubId: 2, station: 'Exxon Mobile', gallons: 52.0, cost: 210.50, alert: true }, // High cost alert
+    { id: 104, date: 'Oct 22, 2023', vehicleId: 'VAN-882', hubId: 1, station: 'Shell #492', gallons: 14.2, cost: 54.67, alert: false },
+    { id: 105, date: 'Oct 21, 2023', vehicleId: 'TRK-992', hubId: 2, station: 'Chevron', gallons: 44.8, cost: 172.48, alert: false },
 ])
 
 const vehicleDocs = ref([
@@ -1091,10 +1130,32 @@ const driverDocs = ref([
     { id: 'DOC-D3', driver: 'Mike Ross', driverId: 'D003', hubId: 2, type: 'Hazardous Material Cert', licenseNo: 'HM-112', status: 'Expired', expiry: 'Sep 20, 2023', joined: 'Jan 15, 2022', url: 'https://via.placeholder.com/400x500?text=HazMat+Cert' },
 ])
 
-const tabs = ['Active Drivers', 'Fleet Vehicles', 'Fuel Logs', 'Vehicle Documents', 'Driver Documents', 'Live Locations']
+const tabs = ['Active Drivers', 'Fleet Vehicles', 'Fleet Logs', 'Vehicle Documents', 'Driver Documents', 'Live Locations']
 const activeTab = ref('Active Drivers')
 const activeDropdown = ref(null)
 const searchQuery = ref('') // Search State
+
+// Log Management State
+const logTypes = ['Fuel Logs', 'Service Logs', 'Maintenance Logs', 'Cleaning Logs']
+const activeLogType = ref('Fuel Logs')
+
+// Extra Mock Data for Logs
+const serviceLogs = ref([
+    { id: 'SL-001', date: '2025-02-28', vehicleId: 'TRK-992', hubId: 1, service: 'Oil Change', provider: 'Speedy Lube', cost: 120.00, status: 'Completed' },
+    { id: 'SL-002', date: '2025-02-25', vehicleId: 'TRK-221', hubId: 2, service: 'Tire Rotation', provider: 'Tire Discounters', cost: 80.00, status: 'Completed' },
+    { id: 'SL-003', date: '2025-02-20', vehicleId: 'VAN-104', hubId: 1, service: 'Brake Inspection', provider: 'Midas', cost: 45.00, status: 'Flagged' },
+    { id: 'SL-004', date: '2025-03-01', vehicleId: 'TRK-992', hubId: 1, service: 'Annual Inspection', provider: 'Internal', cost: 0.00, status: 'Scheduled' },
+])
+const maintenanceLogs = ref([
+    { id: 'ML-001', date: '2025-02-15', vehicleId: 'TRK-992', hubId: 1, issue: 'Engine Knock', mechanic: 'John D.', cost: 450.00, status: 'Resolved' },
+    { id: 'ML-002', date: '2025-02-10', vehicleId: 'VAN-104', hubId: 1, issue: 'Broken Taillight', mechanic: 'Sarah L.', cost: 35.00, status: 'Resolved' },
+    { id: 'ML-003', date: '2025-02-28', vehicleId: 'TRK-221', hubId: 2, issue: 'AC Failure', mechanic: 'External', cost: 800.00, status: 'Pending' },
+])
+const cleaningLogs = ref([
+    { id: 'CL-001', date: '2025-03-01', vehicleId: 'TRK-992', hubId: 1, type: 'Full Detail', provider: 'CleanFleet', cost: 150.00, status: 'Completed' },
+    { id: 'CL-002', date: '2025-02-28', vehicleId: 'VAN-104', hubId: 1, type: 'Exterior Wash', provider: 'Drive-Thru', cost: 15.00, status: 'Completed' },
+    { id: 'CL-003', date: '2025-02-27', vehicleId: 'TRK-221', hubId: 2, type: 'Sanitization', provider: 'Internal', cost: 0.00, status: 'Completed' },
+])
 
 // Vehicle Management state
 const isVehicleModalOpen = ref(false)
@@ -1159,31 +1220,77 @@ const searchedMaintenance = computed(() => {
     )
 })
 
-const searchedFuelLogs = computed(() => {
+const searchedLogs = computed(() => {
+    let logs = []
+    if (activeLogType.value === 'Fuel Logs') logs = fuelLogs.value
+    else if (activeLogType.value === 'Service Logs') logs = serviceLogs.value
+    else if (activeLogType.value === 'Maintenance Logs') logs = maintenanceLogs.value
+    else if (activeLogType.value === 'Cleaning Logs') logs = cleaningLogs.value
+
     const q = searchQuery.value.toLowerCase()
-    return fuelLogs.value.filter(l => 
+    
+    // Generic filter across all fields for simplicity
+    return logs.filter(l => 
         (store.activeWarehouse === 'all' || l.hubId === store.activeWarehouse) &&
-        (!q || 
-        l.vehicleId.toLowerCase().includes(q) || 
-        l.station.toLowerCase().includes(q) || 
-        l.date.toLowerCase().includes(q))
+        (!q || Object.values(l).some(val => String(val).toLowerCase().includes(q)))
     )
 })
 
-const fuelStats = computed(() => {
-    // These stats react to searchedFuelLogs (so they update with search and warehouse filter)
-    const logs = searchedFuelLogs.value
-    if (logs.length === 0) return { totalCost: 0, totalVolume: 0, avgPrice: 0, efficiency: 0 }
-
-    const totalCost = logs.reduce((sum, log) => sum + log.cost, 0)
-    const totalVolume = logs.reduce((sum, log) => sum + log.gallons, 0)
-    const avgPrice = totalVolume > 0 ? (totalCost / totalVolume).toFixed(2) : 0
+const logStats = computed(() => {
+    // Dynamic Stats Calculator based on current Log Type
+    const logs = searchedLogs.value
+    const totalCost = logs.reduce((sum, log) => sum + (log.cost || 0), 0)
     
-    return {
-        totalCost: totalCost,
-        totalVolume: totalVolume,
-        avgPrice: avgPrice,
-        efficiency: 78 // Mock efficiency, in real app calculate mpg
+    if (activeLogType.value === 'Fuel Logs') {
+        const totalVolume = logs.reduce((sum, log) => sum + (log.gallons || 0), 0)
+        const avgPrice = totalVolume > 0 ? (totalCost / totalVolume).toFixed(2) : 0
+        return {
+            title: 'Fuel Consumption',
+            icon: 'local_gas_station',
+            color: 'orange',
+            tiles: [
+                { label: 'Avg Price/Gal', value: `$${avgPrice}` },
+                { label: 'Total Volume', value: `${totalVolume.toLocaleString()} gal` }
+            ],
+            trend: { label: 'Efficiency Trend', value: '7.8 MPG (Avg)', target: '8.0' },
+            totalCost
+        }
+    } else if (activeLogType.value === 'Service Logs') {
+        return {
+            title: 'Service Metrics',
+            icon: 'car_repair',
+            color: 'blue',
+            tiles: [
+                { label: 'Total Services', value: logs.length },
+                { label: 'Avg Cost', value: `$${logs.length ? (totalCost / logs.length).toFixed(0) : 0}` }
+            ],
+            trend: { label: 'Completion Rate', value: '98%', target: '100%' },
+            totalCost
+        }
+    } else if (activeLogType.value === 'Maintenance Logs') {
+        return {
+            title: 'Maintenance Costs',
+            icon: 'build',
+            color: 'red',
+            tiles: [
+                { label: 'Active Repairs', value: logs.filter(l => l.status !== 'Resolved').length },
+                { label: 'Avg Repair Cost', value: `$${logs.length ? (totalCost / logs.length).toFixed(0) : 0}` }
+            ],
+            trend: { label: 'Downtime', value: '12 hrs', target: '< 24 hrs' },
+            totalCost
+        }
+    } else {
+        return {
+           title: 'Fleet Hygiene',
+            icon: 'cleaning_services',
+            color: 'teal',
+            tiles: [
+                { label: 'Total Washes', value: logs.length },
+                { label: 'Avg Wash Cost', value: `$${logs.length ? (totalCost / logs.length).toFixed(0) : 0}` }
+            ],
+            trend: { label: 'Clean Score', value: '4.8/5', target: '5.0' },
+            totalCost 
+        }
     }
 })
 
