@@ -214,7 +214,11 @@ export const useLogisticStore = defineStore('logistic', () => {
     const hubs = ref([
         {
             id: 1,
+            hubCode: 'HUB-NY-01',
             name: 'North-East Hub',
+            location: 'New York, NY',
+            manager: 'Alex Chen',
+            managerInitials: 'AC',
             capacity: 92,
             efficiency: 88,
             staffActive: 42,
@@ -228,7 +232,11 @@ export const useLogisticStore = defineStore('logistic', () => {
         },
         {
             id: 2,
+            hubCode: 'HUB-TX-04',
             name: 'South Hub',
+            location: 'Austin, TX',
+            manager: 'Sarah Connor',
+            managerInitials: 'SC',
             capacity: 45,
             efficiency: 96,
             staffActive: 65,
@@ -242,7 +250,11 @@ export const useLogisticStore = defineStore('logistic', () => {
         },
         {
             id: 3,
+            hubCode: 'HUB-CA-02',
             name: 'West DC-04',
+            location: 'Los Angeles, CA',
+            manager: 'Mike Ross',
+            managerInitials: 'MR',
             capacity: 78,
             efficiency: 74,
             staffActive: 28,
@@ -456,6 +468,54 @@ export const useLogisticStore = defineStore('logistic', () => {
         }, 2500)
     }
 
+    // --- Action Logic: Warehouse Management ---
+    function addHub(hubData) {
+        // Find highest ID
+        const maxId = hubs.value.reduce((max, h) => Math.max(max, h.id), 0)
+
+        hubs.value.push({
+            ...hubData,
+            id: maxId + 1,
+            // Assign arbitrary baseline stats for new hubs
+            efficiency: Math.floor(Math.random() * (100 - 80 + 1)) + 80,
+            staffActive: 0,
+            staffTotal: Math.floor(Math.random() * (50 - 20 + 1)) + 20,
+            vehiclesActive: 0,
+            vehiclesTotal: Math.floor(Math.random() * (30 - 10 + 1)) + 10,
+            processRate: 0,
+            statusColor: hubData.status === 'Optimal' ? 'text-green-500' : (hubData.status === 'Congested' ? 'text-red-500' : 'text-blue-500'),
+            bg: hubData.status === 'Optimal' ? 'bg-green-500' : (hubData.status === 'Congested' ? 'bg-red-500' : 'bg-blue-500')
+        })
+    }
+
+    function updateHub(hubData) {
+        const index = hubs.value.findIndex(h => h.id === hubData.id)
+        if (index !== -1) {
+            // Recalculate colors based on status
+            const statusColor = hubData.status === 'Optimal' ? 'text-green-500' : (hubData.status === 'Congested' ? 'text-red-500' : 'text-blue-500')
+            const bg = hubData.status === 'Optimal' ? 'bg-green-500' : (hubData.status === 'Congested' ? 'bg-red-500' : 'bg-blue-500')
+
+            hubs.value[index] = {
+                ...hubs.value[index],
+                ...hubData,
+                statusColor,
+                bg
+            }
+        }
+    }
+
+    function deleteHub(hubId) {
+        hubs.value = hubs.value.filter(h => h.id !== hubId)
+
+        // Remove from pinned if it was
+        pinnedHubs.value = pinnedHubs.value.filter(id => id !== hubId)
+
+        // Reset global context if deleted
+        if (activeWarehouse.value === hubId) {
+            activeWarehouse.value = 'all'
+        }
+    }
+
     return {
         // State
         activeWarehouse,
@@ -485,6 +545,9 @@ export const useLogisticStore = defineStore('logistic', () => {
         markAllNotificationsRead,
         clearNotifications,
         toggleSearch,
-        sendMessageToDriver
+        sendMessageToDriver,
+        addHub,
+        updateHub,
+        deleteHub
     }
 })
