@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import Role, User
 from app.schemas.auth import (
+    SELF_SERVICE_ROLES,
     ChangePasswordRequest,
     ForgotPasswordRequest,
     RefreshTokenRequest,
@@ -25,6 +26,7 @@ from app.schemas.auth import (
     UserProfileUpdate,
     UserRegister,
 )
+
 from app.utils.hashing import hash_password, verify_password
 from app.utils.jwt import create_access_token, create_refresh_token, decode_token
 
@@ -32,6 +34,9 @@ from app.utils.jwt import create_access_token, create_refresh_token, decode_toke
 _BLACKLIST_PREFIX = "blacklist:"
 _RESET_PREFIX = "pwd_reset:"
 _RESET_TTL_SECONDS = 3600  # 1 hour
+
+# Roles allowed through the public /register endpoint (kept in sync with schema).
+_SELF_SERVICE_ROLE_NAMES: frozenset[str] = frozenset(SELF_SERVICE_ROLES.__args__)  # type: ignore[union-attr]
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -88,7 +93,25 @@ async def _get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
 
 
 async def register_user(db: AsyncSession, data: UserRegister) -> TokenResponse:
-    """Create a new user account and return JWT token pair."""
+    """Create a new user account and return JWT token pair.
+
+    Only INDIVIDUAL and VENDOR roles may self-register.
+    LOGISTIC_MANAGER is pre-seeded at deployment.
+    WAREHOUSE_MANAGER, DISPATCHER, and DRIVER accounts are created by a
+    Logistic Manager via the /users admin endpoint (Phase 2).
+    """
+    # Guard: reject attempts to register restricted roles at the service layer.
+    # (Pydantic already enforces this via schema, but a double-check is cheap.)
+    role_upper = data.role.upper()
+    if role_upper not in _SELF_SERVICE_ROLE_NAMES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"Role '{data.role}' cannot be self-registered. "
+                "Accounts for this role are created by the Logistic Manager."
+            ),
+        )
+
     # Check duplicate email
     existing = await _get_user_by_email(db, data.email)
     if existing:
@@ -98,7 +121,7 @@ async def register_user(db: AsyncSession, data: UserRegister) -> TokenResponse:
         )
 
     # Resolve role
-    role = await _get_role_by_name(db, data.role.upper())
+    role = await _get_role_by_name(db, role_upper)
     if not role:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -30,9 +30,26 @@ async def test_register_duplicate_email(client: AsyncClient, registered_user_tok
 
 
 async def test_register_invalid_role(client: AsyncClient):
+    """Completely unknown role names are rejected by Pydantic (422)."""
     payload = {**REGISTER_PAYLOAD, "email": "newuser@example.com", "role": "SUPERMAN"}
     response = await client.post("/api/v1/auth/register", json=payload)
-    assert response.status_code == 400
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "restricted_role",
+    ["LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER", "DRIVER", "LABOURER"],
+)
+async def test_register_restricted_role_rejected(client: AsyncClient, restricted_role: str):
+    """Roles that are not self-service must be rejected (422 from Pydantic)."""
+    payload = {
+        **REGISTER_PAYLOAD,
+        "email": f"{restricted_role.lower()}@example.com",
+        "role": restricted_role,
+    }
+    response = await client.post("/api/v1/auth/register", json=payload)
+    # Pydantic rejects disallowed Literal values before the service layer is reached
+    assert response.status_code == 422
 
 
 async def test_register_weak_password(client: AsyncClient):

@@ -203,15 +203,24 @@ backend/
   - Create initial migration with `users` and `roles` tables
 
 - [x] **1.3 — Authentication System**
-  - User registration with bcrypt password hashing
+  - Self-service registration (bcrypt password hashing) — **Individual & Vendor roles only**
   - JWT access token (15 min) + refresh token (7 days)
   - Role-based `require_role()` dependency
   - Secure logout via Redis token blacklist
 
+  > **Role Onboarding Model:**
+  > | Role | How account is created |
+  > |---|---|
+  > | **Logistic Manager** | Pre-seeded at deployment (superadmin — no sign-up) |
+  > | **Warehouse Manager** | Created by Logistic Manager via `POST /api/v1/users` |
+  > | **Dispatcher** | Created by Logistic Manager via `POST /api/v1/users` |
+  > | **Driver** | Created by Logistic Manager / Warehouse Manager via `POST /api/v1/users` |
+  > | **Individual / Vendor** | Self-service via `POST /api/v1/auth/register` |
+
 ### API Endpoints
 
 ```
-POST   /api/v1/auth/register          # Create new user account
+POST   /api/v1/auth/register          # Self-service sign-up (Individual & Vendor only)
 POST   /api/v1/auth/login             # Issue JWT tokens
 POST   /api/v1/auth/refresh           # Refresh access token
 POST   /api/v1/auth/logout            # Invalidate token (Redis)

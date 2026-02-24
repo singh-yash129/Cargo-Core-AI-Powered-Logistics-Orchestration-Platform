@@ -29,7 +29,13 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
     "/register",
     response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create new user account",
+    summary="Self-service sign-up (Individual & Vendor only)",
+    description=(
+        "Creates a new account for **INDIVIDUAL** or **VENDOR** roles only. "
+        "Logistic Manager is pre-seeded at deployment. "
+        "Warehouse Manager, Dispatcher, and Driver accounts are provisioned "
+        "by the Logistic Manager via the /users admin endpoint."
+    ),
 )
 async def register(
     data: UserRegister,

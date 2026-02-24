@@ -1,7 +1,13 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
+
+# Roles that are allowed to self-register via the public /register endpoint.
+# LOGISTIC_MANAGER is pre-seeded at deployment.
+# WAREHOUSE_MANAGER, DISPATCHER, and DRIVER are created by Logistic Manager.
+SELF_SERVICE_ROLES = Literal["INDIVIDUAL", "VENDOR"]
 
 
 # ── Request Schemas ───────────────────────────────────────────────────────────
@@ -11,9 +17,9 @@ class UserRegister(BaseModel):
     email: EmailStr
     phone: str | None = Field(default=None, max_length=20)
     password: str = Field(..., min_length=8)
-    role: str = Field(
+    role: SELF_SERVICE_ROLES = Field(
         default="INDIVIDUAL",
-        description="One of: LOGISTIC_MANAGER, WAREHOUSE_MANAGER, DISPATCHER, DRIVER, LABOURER, INDIVIDUAL, VENDOR, AI_AGENT",
+        description="Self-service registration is restricted to INDIVIDUAL and VENDOR roles only.",
     )
 
 
