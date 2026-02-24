@@ -34,7 +34,7 @@
             <div class="glass-panel rounded-xl p-6">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4">Top Driver Performance</h3>
                 <div class="space-y-4">
-                    <div v-for="driver in topDrivers" :key="driver.id"
+                    <div v-for="driver in filteredTopDrivers" :key="driver.id"
                         class="flex items-center gap-4 p-3 rounded-lg bg-gray-50 border border-transparent hover:border-gray-200 dark:bg-white/5 dark:hover:bg-white/10 transition-colors shadow-sm group">
                         <img :src="driver.avatar"
                             class="w-10 h-10 rounded-full border border-gray-200 dark:border-white/10">
@@ -48,7 +48,7 @@
                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ driver.trips }} trips •
                                 <span class="font-medium"
                                     :class="driver.ontime > 95 ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'">{{
-                                    driver.ontime }}% On-time</span>
+                                        driver.ontime }}% On-time</span>
                             </div>
                         </div>
                     </div>
@@ -71,7 +71,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                            <tr v-for="issue in maintenance" :key="issue.id"
+                            <tr v-for="issue in filteredMaintenance" :key="issue.id"
                                 class="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                 <td class="py-3 px-2 text-gray-700 dark:text-white font-mono font-medium">{{ issue.id }}
                                 </td>
@@ -94,17 +94,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { useLogisticStore } from '@/stores/logisticStore'
+import { storeToRefs } from 'pinia'
 
-const topDrivers = ref([
-    { id: 1, name: 'Lewis Hamilton', rating: 4.9, trips: 142, ontime: 99, avatar: 'https://i.pravatar.cc/150?u=20' },
-    { id: 2, name: 'Max Verstappen', rating: 4.8, trips: 138, ontime: 97, avatar: 'https://i.pravatar.cc/150?u=21' },
-    { id: 3, name: 'Charles Leclerc', rating: 4.7, trips: 120, ontime: 95, avatar: 'https://i.pravatar.cc/150?u=22' },
-])
-
-const maintenance = ref([
-    { id: 'TRK-992', issue: 'Engine Check Light', status: 'In Shop', statusClass: 'bg-red-500/10 text-red-500' },
-    { id: 'VAN-104', issue: 'Tire Replacement', status: 'Scheduled', statusClass: 'bg-yellow-500/10 text-yellow-500' },
-    { id: 'TRK-221', issue: 'Oil Change', status: 'Overdue', statusClass: 'bg-orange-500/10 text-orange-500' },
-])
+const store = useLogisticStore()
+const { filteredTopDrivers, filteredMaintenance } = storeToRefs(store)
 </script>

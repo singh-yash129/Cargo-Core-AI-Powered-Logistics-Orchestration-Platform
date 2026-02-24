@@ -6,30 +6,35 @@
             <div class="glass-panel p-6 rounded-xl relative overflow-hidden group">
                 <div
                     class="absolute right-0 top-0 p-4 opacity-5 dark:opacity-10 text-gray-900 dark:text-white transition-opacity group-hover:opacity-10 dark:group-hover:opacity-20">
-                    <span class="material-symbols-outlined text-5xl">undo</span></div>
+                    <span class="material-symbols-outlined text-5xl">undo</span>
+                </div>
                 <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Pending Returns</div>
-                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">142</div>
+                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">{{ pendingReturns }}</div>
             </div>
             <div class="glass-panel p-6 rounded-xl relative overflow-hidden group">
                 <div
                     class="absolute right-0 top-0 p-4 opacity-5 dark:opacity-10 text-gray-900 dark:text-white transition-opacity group-hover:opacity-10 dark:group-hover:opacity-20">
-                    <span class="material-symbols-outlined text-5xl">recycling</span></div>
+                    <span class="material-symbols-outlined text-5xl">recycling</span>
+                </div>
                 <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Restock Rate</div>
                 <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">68%</div>
             </div>
             <div class="glass-panel p-6 rounded-xl relative overflow-hidden group">
                 <div
                     class="absolute right-0 top-0 p-4 opacity-5 dark:opacity-10 text-gray-900 dark:text-white transition-opacity group-hover:opacity-10 dark:group-hover:opacity-20">
-                    <span class="material-symbols-outlined text-5xl">delete</span></div>
+                    <span class="material-symbols-outlined text-5xl">delete</span>
+                </div>
                 <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Scrap / Dispose</div>
                 <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">12%</div>
             </div>
             <div class="glass-panel p-6 rounded-xl relative overflow-hidden group">
                 <div
                     class="absolute right-0 top-0 p-4 opacity-5 dark:opacity-10 text-gray-900 dark:text-white transition-opacity group-hover:opacity-10 dark:group-hover:opacity-20">
-                    <span class="material-symbols-outlined text-5xl">currency_exchange</span></div>
+                    <span class="material-symbols-outlined text-5xl">currency_exchange</span>
+                </div>
                 <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Refund Value</div>
-                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">$8,450</div>
+                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">${{ refundValue.toLocaleString() }}
+                </div>
             </div>
         </div>
 
@@ -53,10 +58,10 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                        <tr v-for="rma in returns" :key="rma.id"
+                        <tr v-for="rma in filteredReturns" :key="rma.id"
                             class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
                             <td class="p-4 text-primary font-mono cursor-pointer hover:underline font-medium">{{ rma.id
-                                }}</td>
+                            }}</td>
                             <td class="p-4 text-gray-600 dark:text-gray-300">{{ rma.orderId }}</td>
                             <td class="p-4 text-gray-900 dark:text-white font-medium">{{ rma.customer }}</td>
                             <td class="p-4 text-gray-500 dark:text-gray-400">{{ rma.reason }}</td>
@@ -87,12 +92,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { useLogisticStore } from '@/stores/logisticStore'
+import { storeToRefs } from 'pinia'
 
-const returns = ref([
-    { id: 'RMA-9921', orderId: 'ORD-1102', customer: 'Alice Cooper', reason: 'Damaged in transit', condition: 'Damaged', conditionClass: 'bg-red-500/10 text-red-400 border-red-500/20' },
-    { id: 'RMA-9922', orderId: 'ORD-3321', customer: 'Bob Dylan', reason: 'Wrong Item Sent', condition: 'New/Open Box', conditionClass: 'bg-green-500/10 text-green-400 border-green-500/20' },
-    { id: 'RMA-9923', orderId: 'ORD-5541', customer: 'Charlie Watts', reason: 'Changed Mind', condition: 'Unopened', conditionClass: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
-    { id: 'RMA-9924', orderId: 'ORD-1105', customer: 'David Gilmour', reason: 'Defective', condition: 'Defective', conditionClass: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
-])
+const store = useLogisticStore()
+const { filteredReturns } = storeToRefs(store)
+
+const pendingReturns = computed(() => filteredReturns.value.length)
+const refundValue = computed(() => filteredReturns.value.length * 1250 + 500) // Dummy formula for reactivity
 </script>

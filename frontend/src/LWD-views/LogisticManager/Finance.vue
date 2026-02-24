@@ -8,19 +8,22 @@
                 <div class="glass-panel p-6 rounded-xl relative overflow-hidden">
                     <div class="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-widest font-bold">Total
                         Revenue (MTD)</div>
-                    <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">$402,120</div>
+                    <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">${{ totalRevenue.toLocaleString()
+                        }}</div>
                     <div class="text-green-500 dark:text-green-400 text-xs mt-1 font-medium">↑ 12% vs last month</div>
                 </div>
                 <div class="glass-panel p-6 rounded-xl relative overflow-hidden">
                     <div class="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-widest font-bold">Driver
                         Payroll Pending</div>
-                    <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">$34,500</div>
+                    <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">${{
+                        pendingPayroll.toLocaleString() }}</div>
                     <div class="text-yellow-500 dark:text-yellow-400 text-xs mt-1 font-medium">Due in 3 days</div>
                 </div>
                 <div class="glass-panel p-6 rounded-xl relative overflow-hidden">
                     <div class="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-widest font-bold">COD
                         Collected</div>
-                    <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">$12,850</div>
+                    <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">${{ codCollected.toLocaleString()
+                        }}</div>
                     <div class="text-blue-500 dark:text-blue-400 text-xs mt-1 font-medium">Reconciliation needed</div>
                 </div>
             </div>
@@ -56,7 +59,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                        <tr v-for="tx in transactions" :key="tx.id"
+                        <tr v-for="tx in filteredTransactions" :key="tx.id"
                             class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
                             <td class="p-4 font-mono text-gray-600 dark:text-gray-300">{{ tx.id }}</td>
                             <td class="p-4 text-gray-500 dark:text-gray-400">{{ tx.date }}</td>
@@ -78,12 +81,28 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { useLogisticStore } from '@/stores/logisticStore'
+import { storeToRefs } from 'pinia'
 
-const transactions = ref([
-    { id: 'TX-99212', date: 'Oct 24, 2023', desc: 'Client Payment - Amazon', type: 'Incoming', amount: 15400 },
-    { id: 'TX-99213', date: 'Oct 24, 2023', desc: 'Fuel Expense - Shell', type: 'Expense', amount: -2400 },
-    { id: 'TX-99214', date: 'Oct 23, 2023', desc: 'Driver Payout - Weekly', type: 'Payroll', amount: -6500 },
-    { id: 'TX-99215', date: 'Oct 23, 2023', desc: 'COD Deposit - Zone A', type: 'Incoming', amount: 1250 },
-])
+const store = useLogisticStore()
+const { filteredTransactions } = storeToRefs(store)
+
+const totalRevenue = computed(() => {
+    return filteredTransactions.value
+        .filter(t => t.type === 'Incoming')
+        .reduce((sum, t) => sum + t.amount, 0)
+})
+
+const pendingPayroll = computed(() => {
+    return Math.abs(filteredTransactions.value
+        .filter(t => t.type === 'Payroll')
+        .reduce((sum, t) => sum + t.amount, 0))
+})
+
+const codCollected = computed(() => {
+    return filteredTransactions.value
+        .filter(t => t.desc.includes('COD'))
+        .reduce((sum, t) => sum + t.amount, 0)
+})
 </script>

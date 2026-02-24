@@ -24,11 +24,12 @@
         <div class="glass-panel rounded-xl overflow-hidden p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- User Card -->
-                <div v-for="user in users" :key="user.email"
+                <div v-for="user in displayedUsers" :key="user.email"
                     class="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-gray-200 dark:border-white/5 hover:border-primary/50 dark:hover:border-primary/30 transition-all group relative shadow-sm">
                     <div
                         class="absolute top-4 right-4 text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white cursor-pointer transition-colors">
-                        <span class="material-symbols-outlined">more_vert</span></div>
+                        <span class="material-symbols-outlined">more_vert</span>
+                    </div>
 
                     <div class="flex items-center gap-4 mb-4">
                         <img :src="user.avatar"
@@ -71,15 +72,29 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useLogisticStore } from '@/stores/logisticStore'
+import { storeToRefs } from 'pinia'
+
+const store = useLogisticStore()
+const { filteredUsers } = storeToRefs(store)
 
 const activeTab = ref('All Users')
 const tabs = ['All Users', 'Managers', 'Dispatchers', 'Drivers', 'Admins']
 
-const users = ref([
-    { name: 'Sarah Connor', email: 'sarah.c@cargocore.com', role: 'Logistic Manager', status: 'Active', lastLogin: '2 mins ago', avatar: 'https://i.pravatar.cc/150?u=5' },
-    { name: 'John Wick', email: 'john.w@cargocore.com', role: 'Dispatcher', status: 'Active', lastLogin: '1 hour ago', avatar: 'https://i.pravatar.cc/150?u=8' },
-    { name: 'Ellen Ripley', email: 'ellen.r@cargocore.com', role: 'Warehouse Manager', status: 'Inactive', lastLogin: '2 days ago', avatar: 'https://i.pravatar.cc/150?u=9' },
-    { name: 'Marty McFly', email: 'marty.m@cargocore.com', role: 'Driver', status: 'Active', lastLogin: 'Just now', avatar: 'https://i.pravatar.cc/150?u=12' },
-])
+const displayedUsers = computed(() => {
+    let list = filteredUsers.value
+
+    if (activeTab.value !== 'All Users') {
+        list = list.filter(u => {
+            if (activeTab.value === 'Managers') return u.role.includes('Manager')
+            if (activeTab.value === 'Dispatchers') return u.role.includes('Dispatcher')
+            if (activeTab.value === 'Drivers') return u.role.includes('Driver')
+            if (activeTab.value === 'Admins') return u.role.includes('Admin')
+            return true
+        })
+    }
+
+    return list
+})
 </script>

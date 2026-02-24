@@ -179,6 +179,7 @@ export const useLogisticStore = defineStore('logistic', () => {
     const drivers = ref([
         {
             id: 'D001',
+            hubId: 1,
             name: 'David Miller',
             status: 'breakdown', // active, breakdown, delayed, idle
             location: 'Route 4B',
@@ -194,6 +195,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         },
         {
             id: 'D002',
+            hubId: 2,
             name: 'Sarah Jenkins',
             status: 'deviation',
             location: 'Sector 7',
@@ -208,6 +210,60 @@ export const useLogisticStore = defineStore('logistic', () => {
                 { id: 3, text: 'Got the new route. Heading to the secondary interchange now. ETA updated by +15 mins.', sender: 'driver', time: '10:45 AM' }
             ]
         }
+    ])
+
+    const topDrivers = ref([
+        { id: 1, hubId: 1, name: 'Lewis Hamilton', rating: 4.9, trips: 142, ontime: 99, avatar: 'https://i.pravatar.cc/150?u=20' },
+        { id: 2, hubId: 1, name: 'Max Verstappen', rating: 4.8, trips: 138, ontime: 97, avatar: 'https://i.pravatar.cc/150?u=21' },
+        { id: 3, hubId: 2, name: 'Charles Leclerc', rating: 4.7, trips: 120, ontime: 95, avatar: 'https://i.pravatar.cc/150?u=22' },
+    ])
+
+    const maintenance = ref([
+        { id: 'TRK-992', hubId: 1, issue: 'Engine Check Light', status: 'In Shop', statusClass: 'bg-red-500/10 text-red-500' },
+        { id: 'VAN-104', hubId: 1, issue: 'Tire Replacement', status: 'Scheduled', statusClass: 'bg-yellow-500/10 text-yellow-500' },
+        { id: 'TRK-221', hubId: 2, issue: 'Oil Change', status: 'Overdue', statusClass: 'bg-orange-500/10 text-orange-500' },
+    ])
+
+    const transactions = ref([
+        { id: 'TX-99212', hubId: 1, date: 'Oct 24, 2023', desc: 'Client Payment - Amazon', type: 'Incoming', amount: 15400 },
+        { id: 'TX-99213', hubId: 1, date: 'Oct 24, 2023', desc: 'Fuel Expense - Shell', type: 'Expense', amount: -2400 },
+        { id: 'TX-99214', hubId: 2, date: 'Oct 23, 2023', desc: 'Driver Payout - Weekly', type: 'Payroll', amount: -6500 },
+        { id: 'TX-99215', hubId: 2, date: 'Oct 23, 2023', desc: 'COD Deposit - Zone A', type: 'Incoming', amount: 1250 },
+    ])
+
+    const reports = ref([
+        { id: 'RPT-1', hubId: 1, title: 'Monthly Financial Summary', date: 'Oct 31, 2023', icon: 'picture_as_pdf', color: 'red' },
+        { id: 'RPT-2', hubId: 1, title: 'Driver Performance Log', date: 'Yesterday', icon: 'table_view', color: 'green' },
+        { id: 'RPT-3', hubId: 2, title: 'SLA Breach Analysis', date: '2 hours ago', icon: 'analytics', color: 'blue' },
+        { id: 'RPT-4', hubId: 2, title: 'Fleet Efficiency Report', date: 'Oct 28, 2023', icon: 'local_shipping', color: 'orange' },
+    ])
+
+    const users = ref([
+        { name: 'Sarah Connor', hubId: 1, email: 'sarah.c@cargocore.com', role: 'Logistic Manager', status: 'Active', lastLogin: '2 mins ago', avatar: 'https://i.pravatar.cc/150?u=5' },
+        { name: 'John Wick', hubId: 1, email: 'john.w@cargocore.com', role: 'Dispatcher', status: 'Active', lastLogin: '1 hour ago', avatar: 'https://i.pravatar.cc/150?u=8' },
+        { name: 'Ellen Ripley', hubId: 2, email: 'ellen.r@cargocore.com', role: 'Warehouse Manager', status: 'Inactive', lastLogin: '2 days ago', avatar: 'https://i.pravatar.cc/150?u=9' },
+        { name: 'Marty McFly', hubId: 2, email: 'marty.m@cargocore.com', role: 'Driver', status: 'Active', lastLogin: 'Just now', avatar: 'https://i.pravatar.cc/150?u=12' },
+    ])
+
+    const returns = ref([
+        { id: 'RMA-9921', hubId: 1, orderId: 'ORD-1102', customer: 'Alice Cooper', reason: 'Damaged in transit', condition: 'Damaged', conditionClass: 'bg-red-500/10 text-red-400 border-red-500/20' },
+        { id: 'RMA-9922', hubId: 1, orderId: 'ORD-3321', customer: 'Bob Dylan', reason: 'Wrong Item Sent', condition: 'New/Open Box', conditionClass: 'bg-green-500/10 text-green-400 border-green-500/20' },
+        { id: 'RMA-9923', hubId: 2, orderId: 'ORD-5541', customer: 'Charlie Watts', reason: 'Changed Mind', condition: 'Unopened', conditionClass: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+        { id: 'RMA-9924', hubId: 2, orderId: 'ORD-1105', customer: 'David Gilmour', reason: 'Defective', condition: 'Defective', conditionClass: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
+    ])
+
+    const zones = ref([
+        { id: 1, hubId: 1, name: 'Downtown Delivery Zone', type: 'Polygon', radius: 12 },
+        { id: 2, hubId: 1, name: 'North-East Hub Perimeter', type: 'Circle', radius: 0.5 },
+        { id: 3, hubId: 2, name: 'Red Zone - Construction', type: 'Exclusion', radius: 2.5 },
+        { id: 4, hubId: 2, name: 'Airport Logistics Corridor', type: 'Polygon', radius: 45 },
+    ])
+
+    const chats = ref([
+        { id: 1, hubId: 1, name: 'Dispatcher Mike', time: '2m', lastMessage: 'Two trucks are down. We need approval...' },
+        { id: 2, hubId: 1, name: 'Warehouse Team A', time: '1h', lastMessage: 'Inventory count complete.' },
+        { id: 3, hubId: 2, name: 'Sarah (Admin)', time: '3h', lastMessage: 'Payroll report is ready for review.' },
+        { id: 4, hubId: 2, name: 'Global Broadcast', time: '1d', lastMessage: 'System maintenance scheduled for...' },
     ])
 
     // Mock Data: Hubs
@@ -363,11 +419,60 @@ export const useLogisticStore = defineStore('logistic', () => {
     })
 
     const filteredDrivers = computed(() => {
-        if (!searchQuery.value) return drivers.value
-        return drivers.value.filter(d =>
-            d.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            d.id.toLowerCase().includes(searchQuery.value.toLowerCase())
-        )
+        let result = drivers.value
+
+        // Context Filter
+        if (activeWarehouse.value !== 'all') {
+            result = result.filter(d => d.hubId === activeWarehouse.value)
+        }
+
+        // Search Filter
+        if (searchQuery.value) {
+            const q = searchQuery.value.toLowerCase()
+            result = result.filter(d => d.name.toLowerCase().includes(q) || d.id.toLowerCase().includes(q))
+        }
+
+        return result
+    })
+
+    const filteredTopDrivers = computed(() => {
+        if (activeWarehouse.value === 'all') return topDrivers.value
+        return topDrivers.value.filter(d => d.hubId === activeWarehouse.value)
+    })
+
+    const filteredMaintenance = computed(() => {
+        if (activeWarehouse.value === 'all') return maintenance.value
+        return maintenance.value.filter(m => m.hubId === activeWarehouse.value)
+    })
+
+    const filteredTransactions = computed(() => {
+        if (activeWarehouse.value === 'all') return transactions.value
+        return transactions.value.filter(t => t.hubId === activeWarehouse.value)
+    })
+
+    const filteredReports = computed(() => {
+        if (activeWarehouse.value === 'all') return reports.value
+        return reports.value.filter(r => r.hubId === activeWarehouse.value)
+    })
+
+    const filteredUsers = computed(() => {
+        if (activeWarehouse.value === 'all') return users.value
+        return users.value.filter(u => u.hubId === activeWarehouse.value)
+    })
+
+    const filteredReturns = computed(() => {
+        if (activeWarehouse.value === 'all') return returns.value
+        return returns.value.filter(r => r.hubId === activeWarehouse.value)
+    })
+
+    const filteredZones = computed(() => {
+        if (activeWarehouse.value === 'all') return zones.value
+        return zones.value.filter(z => z.hubId === activeWarehouse.value)
+    })
+
+    const filteredChats = computed(() => {
+        if (activeWarehouse.value === 'all') return chats.value
+        return chats.value.filter(c => c.hubId === activeWarehouse.value)
     })
 
     // --- Actions ---
@@ -534,6 +639,14 @@ export const useLogisticStore = defineStore('logistic', () => {
         activeWarehouseName,
         unreadNotificationsCount,
         filteredDrivers,
+        filteredTopDrivers,
+        filteredMaintenance,
+        filteredTransactions,
+        filteredReports,
+        filteredUsers,
+        filteredReturns,
+        filteredZones,
+        filteredChats,
         // Actions
         openModal,
         closeModal,

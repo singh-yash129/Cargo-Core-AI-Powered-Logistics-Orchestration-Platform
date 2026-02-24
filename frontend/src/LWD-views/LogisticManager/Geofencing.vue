@@ -23,7 +23,7 @@
                     </button>
                 </div>
                 <div class="flex-1 overflow-y-auto p-2 space-y-2">
-                    <div v-for="zone in zones" :key="zone.id"
+                    <div v-for="zone in filteredZones" :key="zone.id"
                         class="p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-all group shadow-sm">
                         <div class="flex justify-between items-start">
                             <div class="font-bold text-gray-900 dark:text-white">{{ zone.name }}</div>
@@ -70,12 +70,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { useLogisticStore } from '@/stores/logisticStore'
+import { storeToRefs } from 'pinia'
 
-const zones = ref([
-    { id: 1, name: 'Downtown Delivery Zone', type: 'Polygon', radius: 12 },
-    { id: 2, name: 'North-East Hub Perimeter', type: 'Circle', radius: 0.5 },
-    { id: 3, name: 'Red Zone - Construction', type: 'Exclusion', radius: 2.5 },
-    { id: 4, name: 'Airport Logistics Corridor', type: 'Polygon', radius: 45 },
-])
+const store = useLogisticStore()
+const { filteredZones } = storeToRefs(store)
 </script>

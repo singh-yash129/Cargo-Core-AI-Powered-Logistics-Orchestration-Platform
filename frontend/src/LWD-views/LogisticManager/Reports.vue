@@ -102,7 +102,8 @@
                         <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">Fuel costs have risen by
                             <span class="text-red-500 dark:text-red-400 font-bold">8%</span> compared to last week.
                             Consider optimizing routes
-                            in Sector 4.</div>
+                            in Sector 4.
+                        </div>
                     </div>
                 </div>
             </div>
@@ -112,42 +113,16 @@
         <div class="glass-panel p-6 rounded-xl">
             <h3 class="font-bold text-gray-900 dark:text-white mb-4">Generated Reports</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div
+                <div v-for="report in filteredReports" :key="report.id"
                     class="p-4 bg-gray-50 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-xl border border-gray-200 dark:border-white/5 hover:border-primary/50 dark:hover:border-primary/30 cursor-pointer transition-all group flex items-start gap-4 shadow-sm">
-                    <div class="p-2.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500 rounded-lg shadow-sm">
-                        <span class="material-symbols-outlined">picture_as_pdf</span></div>
-                    <div>
-                        <div
-                            class="font-bold text-gray-900 dark:text-white text-sm group-hover:text-primary transition-colors leading-tight mb-1">
-                            Monthly
-                            Financial Summary</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Generated: Oct 31, 2023</div>
+                    <div class="p-2.5 rounded-lg shadow-sm" :class="colorMap[report.color]">
+                        <span class="material-symbols-outlined">{{ report.icon }}</span>
                     </div>
-                </div>
-                <div
-                    class="p-4 bg-gray-50 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-xl border border-gray-200 dark:border-white/5 hover:border-primary/50 dark:hover:border-primary/30 cursor-pointer transition-all group flex items-start gap-4 shadow-sm">
-                    <div
-                        class="p-2.5 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-500 rounded-lg shadow-sm">
-                        <span class="material-symbols-outlined">table_view</span></div>
                     <div>
                         <div
                             class="font-bold text-gray-900 dark:text-white text-sm group-hover:text-primary transition-colors leading-tight mb-1">
-                            Driver
-                            Performance Log</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Generated: Yesterday</div>
-                    </div>
-                </div>
-                <div
-                    class="p-4 bg-gray-50 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-xl border border-gray-200 dark:border-white/5 hover:border-primary/50 dark:hover:border-primary/30 cursor-pointer transition-all group flex items-start gap-4 shadow-sm">
-                    <div
-                        class="p-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500 rounded-lg shadow-sm">
-                        <span class="material-symbols-outlined">analytics</span></div>
-                    <div>
-                        <div
-                            class="font-bold text-gray-900 dark:text-white text-sm group-hover:text-primary transition-colors leading-tight mb-1">
-                            SLA Breach
-                            Analysis</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Generated: 2 hours ago</div>
+                            {{ report.title }}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">Generated: {{ report.date }}</div>
                     </div>
                 </div>
             </div>
@@ -156,4 +131,16 @@
 </template>
 
 <script setup>
+import { useLogisticStore } from '@/stores/logisticStore'
+import { storeToRefs } from 'pinia'
+
+const store = useLogisticStore()
+const { filteredReports } = storeToRefs(store)
+
+const colorMap = {
+    red: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500',
+    green: 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-500',
+    blue: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500',
+    orange: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-500'
+}
 </script>

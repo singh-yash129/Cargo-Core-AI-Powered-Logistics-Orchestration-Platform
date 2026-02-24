@@ -11,7 +11,7 @@
                 </div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar">
-                <div v-for="chat in chats" :key="chat.id"
+                <div v-for="chat in filteredChats" :key="chat.id"
                     class="p-4 border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
                     :class="activeChat === chat.id ? 'bg-primary/5 border-l-2 border-l-primary dark:bg-white/5' : ''"
                     @click="activeChat = chat.id">
@@ -97,13 +97,11 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useLogisticStore } from '@/stores/logisticStore'
+import { storeToRefs } from 'pinia'
+
+const store = useLogisticStore()
+const { filteredChats } = storeToRefs(store)
 
 const activeChat = ref(1)
-
-const chats = ref([
-    { id: 1, name: 'Dispatcher Mike', time: '2m', lastMessage: 'Two trucks are down. We need approval...' },
-    { id: 2, name: 'Warehouse Team A', time: '1h', lastMessage: 'Inventory count complete.' },
-    { id: 3, name: 'Sarah (Admin)', time: '3h', lastMessage: 'Payroll report is ready for review.' },
-    { id: 4, name: 'Global Broadcast', time: '1d', lastMessage: 'System maintenance scheduled for...' },
-])
 </script>
