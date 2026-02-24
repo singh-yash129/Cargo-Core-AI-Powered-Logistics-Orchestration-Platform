@@ -232,10 +232,10 @@ export const useLogisticStore = defineStore('logistic', () => {
     ])
 
     const transactions = ref([
-        { id: 'TX-99212', hubId: 1, date: 'Oct 24, 2023', desc: 'Client Payment - Amazon', type: 'Incoming', amount: 15400 },
-        { id: 'TX-99213', hubId: 1, date: 'Oct 24, 2023', desc: 'Fuel Expense - Shell', type: 'Expense', amount: -2400 },
-        { id: 'TX-99214', hubId: 2, date: 'Oct 23, 2023', desc: 'Driver Payout - Weekly', type: 'Payroll', amount: -6500 },
-        { id: 'TX-99215', hubId: 2, date: 'Oct 23, 2023', desc: 'COD Deposit - Zone A', type: 'Incoming', amount: 1250 },
+        { id: 'TX-99212', hubId: 1, date: 'Oct 24, 2023', desc: 'Client Payment - Amazon', type: 'Incoming', amount: 15400, status: 'Completed' },
+        { id: 'TX-99213', hubId: 1, date: 'Oct 24, 2023', desc: 'Fuel Expense - Shell', type: 'Expense', amount: -2400, status: 'Completed' },
+        { id: 'TX-99214', hubId: 2, date: 'Oct 23, 2023', desc: 'Driver Payout - Weekly', type: 'Payroll', amount: -6500, status: 'Paid' },
+        { id: 'TX-99215', hubId: 2, date: 'Oct 23, 2023', desc: 'COD Deposit - Zone A', type: 'Incoming', amount: 1250, status: 'Pending' },
     ])
 
     const reports = ref([

@@ -10,10 +10,15 @@
                 <p class="text-xs text-gray-500 mt-1">Manage cash flow, reconcile COD, and process payments across all departments.</p>
             </div>
             <div class="flex gap-3">
-                <button @click="processAllPayroll" 
-                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
-                    <span class="material-symbols-outlined">payments</span> Pay All Due
-                </button>
+                <div class="relative group">
+                    <button @click="openPayrollModal" :disabled="!filteredUsers.some(u => u.pending_payout > 0)"
+                        class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                        <span class="material-symbols-outlined">payments</span> Pay All Due
+                    </button>
+                    <div v-if="!filteredUsers.some(u => u.pending_payout > 0)" class="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 bg-black/80 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-center">
+                        No pending payouts
+                    </div>
+                </div>
                 <button @click="openBulkActionModal" 
                     class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
                     <span class="material-symbols-outlined">auto_fix_high</span> Smart Bonus/Deduct
@@ -330,6 +335,140 @@
             </div>
         </Teleport>
 
+        <!-- Payroll Confirmation Modal -->
+        <Teleport to="body">
+            <div v-if="showPayrollModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scale-in">
+                    <template v-if="!payrollSuccess">
+                        <div class="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span class="material-symbols-outlined text-green-600">payments</span>
+                                Confirm Payroll Run
+                            </h3>
+                            <button @click="showPayrollModal = false" :disabled="payrollProcessing" class="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 p-4 rounded-lg flex gap-3">
+                                <span class="material-symbols-outlined text-yellow-600 text-2xl">warning</span>
+                                <div>
+                                    <h4 class="font-bold text-yellow-800 dark:text-yellow-400 text-sm">Action Confirmation</h4>
+                                    <p class="text-xs text-yellow-700 dark:text-yellow-300/80 mt-1">This will process payouts for all staff with pending balances. This action cannot be undone.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-white/5">
+                                <span class="text-sm text-gray-500">Total Employees</span>
+                                <span class="font-bold text-gray-900 dark:text-white">{{ payrollSummary.count }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2">
+                                <span class="text-lg font-bold text-gray-900 dark:text-white">Total Payout</span>
+                                <span class="text-2xl font-mono font-bold text-green-600">${{ payrollSummary.total.toLocaleString() }}</span>
+                            </div>
+
+                            <div class="max-h-32 overflow-y-auto custom-scrollbar bg-gray-50 dark:bg-black/20 p-2 rounded text-xs space-y-1">
+                                <div v-for="u in payrollSummary.pendingUsers" :key="u.id" class="flex justify-between">
+                                    <span class="text-gray-600 dark:text-gray-400">{{ u.name }}</span>
+                                    <span class="font-mono font-bold">${{ u.pending_payout }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 dark:bg-white/5 flex justify-end gap-2">
+                            <button @click="showPayrollModal = false" :disabled="payrollProcessing" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 disabled:opacity-50">Cancel</button>
+                            <button @click="confirmPayrollRun" :disabled="payrollProcessing" class="px-6 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 shadow-sm flex items-center gap-2 justify-center min-w-[160px] disabled:opacity-75 disabled:cursor-wait">
+                                <span v-if="!payrollProcessing" class="material-symbols-outlined text-[18px]">check_circle</span>
+                                <span v-if="payrollProcessing" class="animate-spin material-symbols-outlined text-[18px]">progress_activity</span>
+                                {{ payrollProcessing ? 'Processing Batch...' : 'Confirm Payout' }}
+                            </button>
+                        </div>
+                    </template>
+
+                    <!-- Payroll Success State -->
+                    <template v-else>
+                        <div class="p-8 flex flex-col items-center justify-center text-center space-y-4">
+                            <div class="w-20 h-20 rounded-full bg-green-100 text-green-600 flex items-center justify-center animate-bounce-short">
+                                <span class="material-symbols-outlined text-5xl">checklist</span>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Batch Payment Complete!</h3>
+                                <p class="text-sm text-gray-500 mt-1">Successfully processed payouts for {{ payrollSummary.count }} employees.</p>
+                            </div>
+                            <div class="w-full bg-gray-50 dark:bg-white/5 p-4 rounded-lg mt-4 border border-dashed border-gray-200 dark:border-white/10">
+                                <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Total Disbursed</p>
+                                <p class="text-3xl font-bold font-mono text-gray-900 dark:text-white mt-1">${{ payrollSummary.total.toLocaleString() }}</p>
+                            </div>
+                            <button @click="showPayrollModal = false" class="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-bold text-sm mt-4 hover:opacity-90 transition-opacity shadow-lg">
+                                Close & Return to Dashboard
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Single Payment Modal -->
+        <Teleport to="body">
+            <div v-if="showPaymentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-scale-in">
+                    <!-- Default State -->
+                    <template v-if="!paymentSuccess">
+                        <div class="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Process Payout</h3>
+                            <button @click="showPaymentModal = false" :disabled="paymentProcessing" class="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-16 h-16 rounded-full bg-gray-100 mb-3 overflow-hidden border-2 border-gray-200 shadow-inner">
+                                    <img v-if="paymentTarget?.avatar" :src="paymentTarget.avatar" class="w-full h-full object-cover">
+                                    <span v-else class="material-symbols-outlined text-3xl text-gray-400">person</span>
+                                </div>
+                                <h4 class="font-bold text-lg text-gray-900 dark:text-white">{{ paymentTarget?.name }}</h4>
+                                <p class="text-xs text-gray-500 font-mono">{{ paymentTarget?.role }} • {{ paymentTarget?.id }}</p>
+                            </div>
+                            
+                            <div class="bg-gray-50 dark:bg-black/20 p-4 rounded-xl border border-dashed border-gray-200 dark:border-white/10 text-center">
+                                <p class="text-xs font-bold uppercase text-gray-500 mb-1">Total Transfer Amount</p>
+                                <p class="text-3xl font-bold font-mono text-gray-900 dark:text-white">${{ paymentTarget?.amount.toLocaleString() }}</p>
+                            </div>
+
+                            <p class="text-center text-xs text-gray-400 px-4">Funds will be transferred directly to the linked account ending in **4291.</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 dark:bg-white/5 flex justify-end gap-2">
+                            <button @click="showPaymentModal = false" :disabled="paymentProcessing" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 disabled:opacity-50">Cancel</button>
+                            <button @click="confirmSinglePayment" :disabled="paymentProcessing" class="px-6 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 shadow-sm flex items-center gap-2 min-w-[140px] justify-center disabled:opacity-75 disabled:cursor-wait">
+                                <span v-if="!paymentProcessing" class="material-symbols-outlined text-[18px]">send_money</span>
+                                <span v-if="paymentProcessing" class="animate-spin material-symbols-outlined text-[18px]">progress_activity</span>
+                                {{ paymentProcessing ? 'Processing...' : 'Transfer Now' }}
+                            </button>
+                        </div>
+                    </template>
+
+                    <!-- Success State -->
+                    <template v-else>
+                        <div class="p-8 flex flex-col items-center justify-center text-center space-y-4">
+                            <div class="w-16 h-16 rounded-full bg-green-100 text-green-600 flex items-center justify-center animate-bounce-short">
+                                <span class="material-symbols-outlined text-4xl">check_circle</span>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Payment Successful!</h3>
+                                <p class="text-sm text-gray-500 mt-1">Transaction ID: #tx-{{ Math.floor(Math.random()*100000) }}</p>
+                            </div>
+                            <div class="w-full bg-gray-50 dark:bg-white/5 p-4 rounded-lg mt-4">
+                                <p class="text-xs text-gray-400">Total Paid</p>
+                                <p class="text-lg font-bold font-mono text-gray-900 dark:text-white">${{ paymentTarget?.amount.toLocaleString() }}</p>
+                            </div>
+                            <button @click="showPaymentModal = false" class="w-full py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-bold text-sm mt-4 hover:opacity-90 transition-opacity">
+                                Close Receipt
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </Teleport>
+
         <!-- Create Transaction Modal -->
         <Teleport to="body">
             <div v-if="showTransactionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -443,6 +582,18 @@ const selectedItem = ref(null)
 const reconcileAmount = ref(0)
 const newTx = ref({ desc: '', type: 'Expense', amount: 0, hubId: null })
 
+// Payroll Modal State
+const showPayrollModal = ref(false)
+const payrollProcessing = ref(false)
+const payrollSuccess = ref(false)
+const payrollSummary = ref({ count: 0, total: 0, pendingUsers: [] })
+
+// Single Payment State
+const showPaymentModal = ref(false)
+const paymentTarget = ref(null)
+const paymentProcessing = ref(false)
+const paymentSuccess = ref(false)
+
 // Bulk Action State
 const showBulkActionModal = ref(false)
 const bulkForm = ref({
@@ -520,31 +671,47 @@ const applyBulkAction = () => {
     showBulkActionModal.value = false
 }
 
-const processAllPayroll = () => {
-    if (!confirm('Are you sure you want to process ALL pending payroll payouts?')) return
-
-    const pendingUsers = filteredUsers.value.filter(u => u.pending_payout > 0)
+const openPayrollModal = () => {
+    payrollSuccess.value = false
+    const pending = filteredUsers.value.filter(u => u.pending_payout > 0)
     
-    if (pendingUsers.length === 0) {
-        alert('No pending payouts found.')
+    if (pending.length === 0) {
+        // Optional: show a toast or small notification instead of alert
         return
     }
 
-    const totalPayout = pendingUsers.reduce((sum, u) => sum + u.pending_payout, 0)
+    payrollSummary.value = {
+        count: pending.length,
+        total: pending.reduce((sum, u) => sum + u.pending_payout, 0),
+        pendingUsers: pending
+    }
+    showPayrollModal.value = true
+}
+
+const confirmPayrollRun = async () => {
+    payrollProcessing.value = true
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 2000))
 
     store.addTransaction({
         id: Date.now(),
         date: new Date().toISOString().split('T')[0],
-        desc: `Batch Payroll Run (${pendingUsers.length} staff)`,
-        amount: -totalPayout, 
+        desc: `Batch Payroll Run (${payrollSummary.value.count} staff)`,
+        amount: -payrollSummary.value.total, 
         type: 'Expense',
         status: 'Completed',
         hubId: store.activeWarehouse
     })
     
-    // Clear pending payouts
-    // store.batchClearPayouts(pendingUsers.map(u => u.id))
-    alert(`Successfully processed payroll for ${pendingUsers.length} employees. Total: $${totalPayout.toLocaleString()}`)
+    // Clear pending payoutsMock
+    payrollSummary.value.pendingUsers.forEach(u => {
+        // In real app, call store action to clear
+        u.pending_payout = 0
+    })
+
+    payrollProcessing.value = false
+    payrollSuccess.value = true
 }
 
 // Tabs Configuration
@@ -663,11 +830,40 @@ const confirmReconciliation = () => {
 }
 
 const payUser = (item) => {
-    // In real app, trigger payment gateway
-    if(confirm(`Process payment of $${item.amount} to ${item.name}?`)) {
-        item.status = 'Paid' // update local mock state
-        window.alert(`Payment processed successfully. Reference: PAY-${Date.now()}`)
-    }
+    paymentTarget.value = item
+    showPaymentModal.value = true
+    paymentSuccess.value = false
+    paymentProcessing.value = false
+}
+
+const confirmSinglePayment = async () => {
+    paymentProcessing.value = true
+    
+    // Simulate transaction
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    store.addTransaction({
+        id: `TX-PAY-${Math.floor(Math.random()*90000)}`,
+        hubId: store.activeWarehouse,
+        date: new Date().toLocaleDateString(),
+        desc: `Payout to ${paymentTarget.value.name}`,
+        type: 'Expense',
+        amount: -paymentTarget.value.amount,
+        status: 'Completed'
+    })
+
+    // Update Local State (Mock)
+    paymentTarget.value.status = 'Paid'
+
+    paymentProcessing.value = false
+    paymentSuccess.value = true
+
+    // Auto close
+    setTimeout(() => {
+        showPaymentModal.value = false
+        paymentSuccess.value = false
+        paymentTarget.value = null
+    }, 2000)
 }
 
 const downloadSlip = (item) => {
