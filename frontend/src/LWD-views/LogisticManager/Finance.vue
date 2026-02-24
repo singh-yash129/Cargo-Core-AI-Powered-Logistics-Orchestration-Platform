@@ -9,7 +9,7 @@
                     <div class="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-widest font-bold">Total
                         Revenue (MTD)</div>
                     <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">${{ totalRevenue.toLocaleString()
-                        }}</div>
+                    }}</div>
                     <div class="text-green-500 dark:text-green-400 text-xs mt-1 font-medium">↑ 12% vs last month</div>
                 </div>
                 <div class="glass-panel p-6 rounded-xl relative overflow-hidden">
@@ -23,7 +23,7 @@
                     <div class="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-widest font-bold">COD
                         Collected</div>
                     <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2">${{ codCollected.toLocaleString()
-                        }}</div>
+                    }}</div>
                     <div class="text-blue-500 dark:text-blue-400 text-xs mt-1 font-medium">Reconciliation needed</div>
                 </div>
             </div>

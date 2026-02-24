@@ -61,7 +61,7 @@
                         <tr v-for="rma in filteredReturns" :key="rma.id"
                             class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
                             <td class="p-4 text-primary font-mono cursor-pointer hover:underline font-medium">{{ rma.id
-                            }}</td>
+                                }}</td>
                             <td class="p-4 text-gray-600 dark:text-gray-300">{{ rma.orderId }}</td>
                             <td class="p-4 text-gray-900 dark:text-white font-medium">{{ rma.customer }}</td>
                             <td class="p-4 text-gray-500 dark:text-gray-400">{{ rma.reason }}</td>

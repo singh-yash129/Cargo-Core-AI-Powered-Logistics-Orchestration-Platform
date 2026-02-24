@@ -17,7 +17,7 @@
                             <span
                                 class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-[18px]">public</span>
                             <span class="text-sm font-medium text-gray-700 dark:text-white">{{ store.activeWarehouseName
-                                }}</span>
+                            }}</span>
                             <span class="material-symbols-outlined text-gray-500 text-[18px]">arrow_drop_down</span>
                         </button>
                     </div>

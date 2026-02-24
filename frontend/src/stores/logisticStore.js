@@ -239,10 +239,10 @@ export const useLogisticStore = defineStore('logistic', () => {
     ])
 
     const users = ref([
-        { name: 'Sarah Connor', hubId: 1, email: 'sarah.c@cargocore.com', role: 'Logistic Manager', status: 'Active', lastLogin: '2 mins ago', avatar: 'https://i.pravatar.cc/150?u=5' },
-        { name: 'John Wick', hubId: 1, email: 'john.w@cargocore.com', role: 'Dispatcher', status: 'Active', lastLogin: '1 hour ago', avatar: 'https://i.pravatar.cc/150?u=8' },
-        { name: 'Ellen Ripley', hubId: 2, email: 'ellen.r@cargocore.com', role: 'Warehouse Manager', status: 'Inactive', lastLogin: '2 days ago', avatar: 'https://i.pravatar.cc/150?u=9' },
-        { name: 'Marty McFly', hubId: 2, email: 'marty.m@cargocore.com', role: 'Driver', status: 'Active', lastLogin: 'Just now', avatar: 'https://i.pravatar.cc/150?u=12' },
+        { name: 'Sarah Connor', hubId: 1, email: 'sarah.c@cargocore.com', role: 'Logistic Manager', status: 'Active', lastLogin: '2 mins ago', avatar: 'https://i.pravatar.cc/150?u=5', username: 'WM-001', password: 'password123' },
+        { name: 'John Wick', hubId: 1, email: 'john.w@cargocore.com', role: 'Dispatcher', status: 'Active', lastLogin: '1 hour ago', avatar: 'https://i.pravatar.cc/150?u=8', username: 'DSP-001', password: 'password123' },
+        { name: 'Ellen Ripley', hubId: 2, email: 'ellen.r@cargocore.com', role: 'Warehouse Manager', status: 'Inactive', lastLogin: '2 days ago', avatar: 'https://i.pravatar.cc/150?u=9', username: 'WM-002', password: 'password123' },
+        { name: 'Marty McFly', hubId: 2, email: 'marty.m@cargocore.com', role: 'Driver', status: 'Active', lastLogin: 'Just now', avatar: 'https://i.pravatar.cc/150?u=12', username: 'DRV-001', password: 'password123' },
     ])
 
     const returns = ref([
@@ -621,6 +621,33 @@ export const useLogisticStore = defineStore('logistic', () => {
         }
     }
 
+    // --- Action Logic: User Management ---
+    function addUser(userData) {
+        users.value.unshift({
+            ...userData,
+            lastLogin: 'Never',
+            avatar: userData.avatar || `https://i.pravatar.cc/150?u=${Math.random()}` // generic placeholder
+        })
+    }
+
+    function updateUser(email, updates) {
+        const index = users.value.findIndex(u => u.email === email)
+        if (index !== -1) {
+            users.value[index] = { ...users.value[index], ...updates }
+        }
+    }
+
+    function deleteUser(email) {
+        users.value = users.value.filter(u => u.email !== email)
+    }
+
+    function toggleUserStatus(email) {
+        const user = users.value.find(u => u.email === email)
+        if (user) {
+            user.status = user.status === 'Active' ? 'Inactive' : 'Active'
+        }
+    }
+
     return {
         // State
         activeWarehouse,
@@ -661,6 +688,10 @@ export const useLogisticStore = defineStore('logistic', () => {
         sendMessageToDriver,
         addHub,
         updateHub,
-        deleteHub
+        deleteHub,
+        addUser,
+        updateUser,
+        deleteUser,
+        toggleUserStatus
     }
 })
