@@ -246,11 +246,11 @@ export const useLogisticStore = defineStore('logistic', () => {
     ])
 
     const users = ref([
-        { name: 'Sarah Connor', hubId: 1, email: 'sarah.c@cargocore.com', role: 'Logistic Manager', status: 'Active', lastLogin: '2 mins ago', avatar: 'https://i.pravatar.cc/150?u=5', username: 'WM-001', password: 'password123' },
-        { name: 'John Wick', hubId: 1, email: 'john.w@cargocore.com', role: 'Dispatcher', status: 'Active', lastLogin: '1 hour ago', avatar: 'https://i.pravatar.cc/150?u=8', username: 'DSP-001', password: 'password123' },
-        { name: 'Ellen Ripley', hubId: 2, email: 'ellen.r@cargocore.com', role: 'Warehouse Manager', status: 'Inactive', lastLogin: '2 days ago', avatar: 'https://i.pravatar.cc/150?u=9', username: 'WM-002', password: 'password123' },
-        { name: 'Marty McFly', hubId: 2, email: 'marty.m@cargocore.com', role: 'Driver', status: 'Active', lastLogin: 'Just now', avatar: 'https://i.pravatar.cc/150?u=12', username: 'DRV-001', password: 'password123' },
-        { name: 'Diana Prince', hubId: 'all', email: 'diana.p@cargocore.com', role: 'Customer Support', status: 'Active', lastLogin: '10 mins ago', avatar: 'https://i.pravatar.cc/150?u=31', username: 'CS-001', password: 'password123' },
+        { name: 'Sarah Connor', hubId: 1, email: 'sarah.c@cargocore.com', role: 'Logistic Manager', status: 'Active', lastLogin: '2 mins ago', avatar: 'https://i.pravatar.cc/150?u=5', username: 'WM-001', password: 'password123', pending_payout: 4200 },
+        { name: 'John Wick', hubId: 1, email: 'john.w@cargocore.com', role: 'Dispatcher', status: 'Active', lastLogin: '1 hour ago', avatar: 'https://i.pravatar.cc/150?u=8', username: 'DSP-001', password: 'password123', pending_payout: 0 },
+        { name: 'Ellen Ripley', hubId: 2, email: 'ellen.r@cargocore.com', role: 'Warehouse Manager', status: 'Inactive', lastLogin: '2 days ago', avatar: 'https://i.pravatar.cc/150?u=9', username: 'WM-002', password: 'password123', pending_payout: 3100 },
+        { name: 'Marty McFly', hubId: 2, email: 'marty.m@cargocore.com', role: 'Driver', status: 'Active', lastLogin: 'Just now', avatar: 'https://i.pravatar.cc/150?u=12', username: 'DRV-001', password: 'password123', pending_payout: 1250 },
+        { name: 'Diana Prince', hubId: 'all', email: 'diana.p@cargocore.com', role: 'Customer Support', status: 'Active', lastLogin: '10 mins ago', avatar: 'https://i.pravatar.cc/150?u=31', username: 'CS-001', password: 'password123', pending_payout: 0 },
     ])
 
     const returns = ref([
@@ -503,6 +503,24 @@ export const useLogisticStore = defineStore('logistic', () => {
         selectedItem.value = null
     }
 
+    function addTransaction(tx) {
+        transactions.value.unshift(tx)
+    }
+
+    function updateUserBalance(userId, amount) {
+        const user = users.value.find(u => u.username === userId || u.id === userId)
+        if (user) {
+             if (!user.balance) user.balance = 0
+             user.balance += amount
+             
+             // Mock clearing pending payout
+             if (amount < 0 && user.pending_payout) {
+                 user.pending_payout += amount 
+                 if (user.pending_payout < 0) user.pending_payout = 0
+             }
+        }
+    }
+
     // Adds a dynamic alert
     function addAlert(alert) {
         alerts.value.unshift(alert)
@@ -714,6 +732,13 @@ export const useLogisticStore = defineStore('logistic', () => {
         drivers,
         topDrivers,
         vehicles,
+        maintenance,
+        transactions,
+        users,
+        returns,
+        zones,
+        chats,
+        reports,
         hubs,
         pinnedHubs,
         searchQuery,
@@ -736,6 +761,8 @@ export const useLogisticStore = defineStore('logistic', () => {
         // Actions
         openModal,
         closeModal,
+        addTransaction,
+        updateUserBalance,
         addAlert,
         resolveAlert,
         setWarehouse,
