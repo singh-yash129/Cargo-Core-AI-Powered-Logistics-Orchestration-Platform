@@ -69,8 +69,8 @@
                                 <path class="text-primary transition-all duration-1000 ease-out" :stroke-dasharray="`${completionRate}, 100`" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
                             </svg>
                             <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span class="text-3xl font-black text-gray-900 dark:text-white">{{ completedOrders }}/{{ totalOrders }}</span>
-                                <span class="text-xs text-gray-500">Orders</span>
+                                <span class="text-xl font-black text-gray-900 dark:text-white">{{ completedOrders }}/{{ totalOrders }}</span>
+                                <span class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Orders</span>
                             </div>
                         </div>
                     </div>
@@ -491,6 +491,14 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Staff Efficiency & Overtime (Filling the gap) -->
+                    <div class="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden flex flex-col p-6">
+                        <h3 class="font-bold text-gray-900 dark:text-white mb-4">Shift Efficiency & Overtime</h3>
+                        <div class="h-64 relative">
+                            <Bar :data="shiftEfficiencyData" :options="chartOptions" />
+                        </div>
+                    </div>
                  </div>
 
                  <!-- Driver Performance Scorecard -->
@@ -586,14 +594,20 @@
                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                      <!-- MAIN INVENTORY TABLE -->
                      <div class="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm p-6 overflow-hidden flex flex-col">
-                         <h3 class="font-bold text-gray-900 dark:text-white mb-4">Detailed Inventory Levels</h3>
+                         <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-gray-900 dark:text-white">Detailed Inventory Levels</h3>
+                            <button @click="openRestockModal" class="bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">add_circle</span> Restock
+                            </button>
+                         </div>
                          <div class="flex-1 overflow-y-auto custom-scrollbar">
                              <table class="w-full text-left text-xs">
                                  <thead>
                                      <tr class="text-gray-400 border-b border-gray-100 dark:border-white/5">
                                          <th class="pb-2">Item Name</th>
                                          <th class="pb-2">Category</th>
-                                         <th class="pb-2 text-right">Qty</th>
+                                         <th class="pb-2 text-right">Capacity</th>
+                                         <th class="pb-2 text-right">Stock Left</th>
                                          <th class="pb-2 text-right">Status</th>
                                      </tr>
                                  </thead>
@@ -601,7 +615,8 @@
                                      <tr v-for="item in store.filteredInventory" :key="item.id">
                                          <td class="py-2 font-medium">{{ item.name }}</td>
                                           <td class="py-2 text-gray-500">{{ item.category }}</td>
-                                          <td class="py-2 text-right font-mono">{{ item.quantity }} {{ item.unit }}</td>
+                                          <td class="py-2 text-right font-mono">{{ Math.floor(item.quantity * 1.5) }} {{ item.unit }}</td>
+                                          <td class="py-2 text-right font-mono font-bold">{{ item.quantity }} {{ item.unit }}</td>
                                           <td class="py-2 text-right">
                                             <span class="px-2 py-0.5 rounded text-[10px]" :class="item.status === 'Good' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">{{ item.status }}</span>
                                           </td>
@@ -615,15 +630,47 @@
                      <div class="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm p-6 overflow-hidden flex flex-col">
                          <h3 class="font-bold text-gray-900 dark:text-white mb-4">Damage & Claims Queue</h3>
                          <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3">
-                             <div class="p-3 border border-red-100 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5 rounded-xl flex gap-3">
-                                 <div class="w-12 h-12 bg-gray-300 rounded-lg shrink-0 flex items-center justify-center font-bold text-gray-500 bg-gray-200">IMG</div>
+                             <div v-for="(claim, index) in damageClaims" :key="index" @click="openClaimModal(claim)" class="p-3 border border-red-100 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5 rounded-xl flex gap-3 cursor-pointer hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors">
+                                 <div class="w-12 h-12 bg-gray-300 rounded-lg shrink-0 flex items-center justify-center font-bold text-gray-500 bg-gray-200 overflow-hidden">
+                                     <img v-if="claim.image" :src="claim.image" class="w-full h-full object-cover">
+                                     <span v-else>IMG</span>
+                                 </div>
                                  <div class="flex-1">
-                                     <h4 class="text-sm font-bold text-gray-900 dark:text-white">Broken Crate #C-99</h4>
-                                     <p class="text-xs text-gray-500">Reported by Driver Mike • 2h ago</p>
-                                     <div class="mt-2 text-red-500 text-xs font-bold">Pending Review</div>
+                                     <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ claim.title }}</h4>
+                                     <p class="text-xs text-gray-500">Reported by {{ claim.reporter }} • {{ claim.time }}</p>
+                                     <div class="mt-2 text-red-500 text-xs font-bold" :class="{'text-green-500': claim.status === 'Resolved'}">{{ claim.status }}</div>
                                  </div>
                              </div>
                          </div>
+                     </div>
+                 </div>
+             </div>
+
+             <!-- Claims Action Modal -->
+             <div v-if="claimsModalOpen && selectedClaim" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+                 <div class="bg-white dark:bg-gray-900 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-gray-100 dark:border-white/10 transform transition-all scale-100">
+                     <div class="flex justify-between items-start mb-4">
+                         <h3 class="text-lg font-bold text-gray-900 dark:text-white">Review Damage Claim</h3>
+                         <button @click="claimsModalOpen = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-white">
+                             <span class="material-symbols-outlined">close</span>
+                         </button>
+                     </div>
+                     
+                     <div class="mb-4">
+                         <img v-if="selectedClaim.image" :src="selectedClaim.image" class="w-full h-48 object-cover rounded-xl bg-gray-100 mb-3">
+                         <div v-else class="w-full h-48 bg-gray-100 dark:bg-white/5 rounded-xl flex items-center justify-center text-gray-400 mb-3">No Image Available</div>
+                         
+                         <h4 class="font-bold text-gray-800 dark:text-gray-200">{{ selectedClaim.title }}</h4>
+                         <p class="text-sm text-gray-500 mt-1">Reported by: <span class="font-mono text-gray-700 dark:text-gray-300">{{ selectedClaim.reporter }}</span></p>
+                         <p class="text-sm text-gray-500">Time: {{ selectedClaim.time }}</p>
+                         <div class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-xs leading-relaxed text-red-800 dark:text-red-200">
+                             <strong>Description:</strong> {{ selectedClaim.description || 'Item was found damaged upon arrival at the loading bay. Packaging was torn.' }}
+                         </div>
+                     </div>
+
+                     <div class="grid grid-cols-2 gap-3 mt-6">
+                         <button @click="resolveClaim('Approved')" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-sm transition-colors">Approve Replacement</button>
+                         <button @click="resolveClaim('Rejected')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300 rounded-lg font-bold text-sm transition-colors">Reject Claim</button>
                      </div>
                  </div>
              </div>
@@ -684,6 +731,50 @@
                      </div>
                  </div>
              </div>
+
+            <!-- Restock Modal -->
+            <div v-if="restockModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+                 <div class="bg-white dark:bg-gray-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-white/10 flex flex-col max-h-[90vh]">
+                     <div class="p-4 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
+                         <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                             <span class="material-symbols-outlined text-green-600">inventory</span> Inbound Restock Manifest
+                         </h3>
+                         <button @click="restockModalOpen = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-white">
+                             <span class="material-symbols-outlined">close</span>
+                         </button>
+                     </div>
+                     
+                     <div class="p-6 overflow-y-auto custom-scrollbar">
+                         <p class="text-sm text-gray-500 mb-4">Enter the quantity of new stock arriving today. Previous stock levels are shown for reference.</p>
+                         
+                         <div class="space-y-3">
+                             <div v-for="item in restockItems" :key="item.id" class="flex items-center gap-4 p-3 border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                 <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">
+                                     {{ item.category.substring(0,2).toUpperCase() }}
+                                 </div>
+                                 <div class="flex-1">
+                                     <h4 class="font-bold text-sm text-gray-900 dark:text-white">{{ item.name }}</h4>
+                                     <p class="text-xs text-gray-500">
+                                        Ref Capacity: <span class="font-mono text-gray-400 mr-2">{{ Math.floor(item.quantity * 1.5) }} {{ item.unit }}</span>
+                                        Stock Left: <span class="font-mono font-bold">{{ item.quantity }} {{ item.unit }}</span>
+                                     </p>
+                                 </div>
+                                 <div class="w-32">
+                                     <label class="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Add Qty</label>
+                                     <input type="number" v-model.number="item.incomingQty" min="0" class="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded px-2 py-1 text-sm font-mono focus:ring-2 focus:ring-primary/50 outline-none">
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+
+                     <div class="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex justify-end gap-3">
+                         <button @click="restockModalOpen = false" class="px-4 py-2 text-gray-500 hover:text-gray-700 font-bold text-sm">Cancel</button>
+                         <button @click="confirmRestock" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-sm shadow-lg shadow-green-500/30 transition-all flex items-center gap-2">
+                             <span class="material-symbols-outlined text-[18px]">verified</span> Confirm Inbound
+                         </button>
+                     </div>
+                 </div>
+            </div>
 
             <!-- 8. SECURITY & AUDIT LOGS (New) -->
             <div v-if="activeTab === 'security_audit'" class="space-y-6 animate-fade-in">
@@ -912,9 +1003,17 @@ const aiInsights = ref([
 // --- Mock Data Generators (Reactive) ---
 const seed = computed(() => store.activeWarehouse === 'all' ? 0 : store.activeWarehouse)
 
-// Helper to simulate dynamic data based on warehouse selection
+// Helper to simulate dynamic data based on warehouse selection AND Time Range
 const getDynamicData = (baseData, variance = 10) => {
-    return baseData.map(v => Math.max(0, v + (Math.random() * variance * 2 - variance) * (seed.value + 1)))
+    let multiplier = 1
+    if (timeRange.value === '7d') multiplier = 6.5
+    if (timeRange.value === '30d') multiplier = 28
+    if (timeRange.value === 'ytd') multiplier = 120
+
+    return baseData.map(v => {
+        let val = Math.max(0, v * multiplier + (Math.random() * variance * multiplier * 0.2 - variance))
+        return Math.floor(val) // Convert to integer for clean charts
+    })
 }
 
 // 2. Financial Data
@@ -943,6 +1042,56 @@ const fuelAuditData = computed(() => ({
         { label: 'GPS Mileage (km/10)', borderColor: '#3b82f6', data: getDynamicData([1150, 1200, 1080, 1380], 100), tension: 0.4, borderDash: [5, 5] }
     ]
 }))
+
+// Damage Claims Logic
+const claimsModalOpen = ref(false)
+const selectedClaim = ref(null)
+
+const damageClaims = ref([
+    { title: 'Broken Crate #C-99', reporter: 'Driver Mike', time: '2h ago', status: 'Pending Review', image: 'https://placehold.co/100x100?text=Damaged' },
+    { title: 'Dented Package #P-22', reporter: 'Loader Sarah', time: '3h ago', status: 'Pending Review', image: 'https://placehold.co/100x100?text=Scan' },
+    { title: 'Missing Label #L-44', reporter: 'Sorter Tom', time: '5h ago', status: 'Pending Review', image: '' },
+])
+
+const openClaimModal = (claim) => {
+    selectedClaim.value = claim
+    claimsModalOpen.value = true
+}
+
+const resolveClaim = (decision) => {
+    if (!selectedClaim.value) return
+    showNotification(`Claim resolved: ${decision}. Notification sent to reporter.`, 'success')
+    selectedClaim.value.status = 'Resolved'
+    claimsModalOpen.value = false
+    selectedClaim.value = null
+}
+
+// Restock Logic
+const restockModalOpen = ref(false)
+const restockItems = ref([])
+
+const openRestockModal = () => {
+    // Populate with current inventory
+    restockItems.value = store.filteredInventory.map(i => ({
+        ...i,
+        incomingQty: 0
+    }))
+    restockModalOpen.value = true
+}
+
+const confirmRestock = () => {
+    const totalAdded = restockItems.value.reduce((sum, item) => sum + item.incomingQty, 0)
+    
+    if (totalAdded > 0) {
+        // In a real app, dispatch an action to update store
+        // store.updateInventory(restockItems.value)
+        showNotification(`Inventory Updated: +${totalAdded} items added to stock successfully.`, 'success')
+    } else {
+        showNotification('No items were added.', 'info')
+    }
+    
+    restockModalOpen.value = false
+}
 
 // 4. Workforce Data
 const workforceData = computed(() => ({
@@ -976,6 +1125,14 @@ const safetyIncidentData = computed(() => ({
             data: getDynamicData([2, 5, 1, 3, 0, 1], 1),
             borderRadius: 4
         }
+    ]
+}))
+
+const shiftEfficiencyData = computed(() => ({
+    labels: ['Shift A', 'Shift B', 'Shift C'],
+    datasets: [
+        { label: 'Avg Efficiency (%)', backgroundColor: '#10b981', data: getDynamicData([92, 88, 95], 5) },
+        { label: 'Overtime Hours', backgroundColor: '#f59e0b', data: getDynamicData([12, 18, 5], 3) }
     ]
 }))
 
