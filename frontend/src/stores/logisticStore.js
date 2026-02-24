@@ -218,6 +218,13 @@ export const useLogisticStore = defineStore('logistic', () => {
         { id: 3, hubId: 2, name: 'Charles Leclerc', rating: 4.7, trips: 120, ontime: 95, avatar: 'https://i.pravatar.cc/150?u=22' },
     ])
 
+    const vehicles = ref([
+        { id: 'TRK-992', type: 'Heavy Truck', hubId: 1, model: 'Volvo FH16', year: 2021, licensePlate: 'NY-442-XM', status: 'In Shop', driver: 'Unassigned', fuelEfficiency: '8.2 MPG', mileage: 124500, nextService: 'Overdue' },
+        { id: 'VAN-104', type: 'Delivery Van', hubId: 1, model: 'Ford Transit', year: 2022, licensePlate: 'NY-991-AB', status: 'Scheduled', driver: 'David Miller', fuelEfficiency: '18.5 MPG', mileage: 45200, nextService: 'Oct 28, 2023' },
+        { id: 'TRK-221', type: 'Heavy Truck', hubId: 2, model: 'Peterbilt 579', year: 2020, licensePlate: 'TX-118-PQ', status: 'Active', driver: 'Sarah Jenkins', fuelEfficiency: '7.9 MPG', mileage: 210000, nextService: 'Nov 15, 2023' },
+        { id: 'VAN-882', type: 'Delivery Van', hubId: 2, model: 'Mercedes Sprinter', year: 2023, licensePlate: 'TX-442-ZZ', status: 'Active', driver: 'Unassigned', fuelEfficiency: '20.1 MPG', mileage: 12000, nextService: 'Jan 10, 2024' },
+    ])
+
     const maintenance = ref([
         { id: 'TRK-992', hubId: 1, issue: 'Engine Check Light', status: 'In Shop', statusClass: 'bg-red-500/10 text-red-500' },
         { id: 'VAN-104', hubId: 1, issue: 'Tire Replacement', status: 'Scheduled', statusClass: 'bg-yellow-500/10 text-yellow-500' },
@@ -441,6 +448,11 @@ export const useLogisticStore = defineStore('logistic', () => {
         return topDrivers.value.filter(d => d.hubId === activeWarehouse.value)
     })
 
+    const filteredVehicles = computed(() => {
+        if (activeWarehouse.value === 'all') return vehicles.value
+        return vehicles.value.filter(v => v.hubId === activeWarehouse.value)
+    })
+
     const filteredMaintenance = computed(() => {
         if (activeWarehouse.value === 'all') return maintenance.value
         return maintenance.value.filter(m => m.hubId === activeWarehouse.value)
@@ -575,6 +587,48 @@ export const useLogisticStore = defineStore('logistic', () => {
         }, 2500)
     }
 
+    function updateDriverStatus(driverId, newStatus) {
+        const driver = drivers.value.find(d => d.id === driverId)
+        if (driver) driver.status = newStatus
+    }
+
+    // --- Action Logic: Fleet Management ---
+    function addVehicle(vehicleData) {
+        vehicles.value.unshift({
+            ...vehicleData,
+            status: vehicleData.status || 'Active',
+            mileage: 0,
+            driver: 'Unassigned',
+            fuelEfficiency: 'Pending Calibration',
+            nextService: 'In 6 Months'
+        })
+    }
+
+    function updateVehicleStatus(vehicleId, newStatus) {
+        const vehicle = vehicles.value.find(v => v.id === vehicleId)
+        if (vehicle) vehicle.status = newStatus
+
+        // Sync with maintenance alerts
+        if (newStatus === 'In Shop' || newStatus === 'Scheduled') {
+            const existingAlert = maintenance.value.find(m => m.id === vehicleId)
+            if (existingAlert) {
+                existingAlert.status = newStatus
+                existingAlert.statusClass = newStatus === 'In Shop' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-500'
+            } else {
+                maintenance.value.unshift({
+                    id: vehicleId,
+                    hubId: vehicle.hubId,
+                    issue: 'Scheduled Routine Maintenance',
+                    status: newStatus,
+                    statusClass: newStatus === 'In Shop' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-500'
+                })
+            }
+        } else if (newStatus === 'Active') {
+            // Remove from maintenance if it's back to active
+            maintenance.value = maintenance.value.filter(m => m.id !== vehicleId)
+        }
+    }
+
     // --- Action Logic: Warehouse Management ---
     function addHub(hubData) {
         // Find highest ID
@@ -658,6 +712,8 @@ export const useLogisticStore = defineStore('logistic', () => {
         dashboardStats,
         alerts,
         drivers,
+        topDrivers,
+        vehicles,
         hubs,
         pinnedHubs,
         searchQuery,
@@ -669,6 +725,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         unreadNotificationsCount,
         filteredDrivers,
         filteredTopDrivers,
+        filteredVehicles,
         filteredMaintenance,
         filteredTransactions,
         filteredReports,
@@ -688,6 +745,9 @@ export const useLogisticStore = defineStore('logistic', () => {
         clearNotifications,
         toggleSearch,
         sendMessageToDriver,
+        updateDriverStatus,
+        addVehicle,
+        updateVehicleStatus,
         addHub,
         updateHub,
         deleteHub,
