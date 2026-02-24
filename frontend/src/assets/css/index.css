@@ -6,6 +6,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+    .h-74 {
+        height: 18.5rem; /* 296px */
+    }
+}
+
 @layer base {
     body {
         min-height: max(884px, 100dvh);

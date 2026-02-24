@@ -324,6 +324,19 @@ export const useLogisticStore = defineStore('logistic', () => {
         { id: 4, hubId: 2, name: 'Global Broadcast', time: '1d', lastMessage: 'System maintenance scheduled for...' },
     ])
 
+    const inventory = ref([
+        { id: 'INV-001', name: 'Packing Tape', category: 'Consumables', quantity: 1540, unit: 'Rolls', threshold: 200, location: 'Zone A', status: 'Good', hubId: 1 },
+        { id: 'INV-002', name: 'Cardboard Box (L)', category: 'Packaging', quantity: 4200, unit: 'Pcs', threshold: 1000, location: 'Zone A', status: 'Good', hubId: 1 },
+        { id: 'INV-003', name: 'Cardboard Box (M)', category: 'Packaging', quantity: 850, unit: 'Pcs', threshold: 1000, location: 'Zone B', status: 'Low Stock', hubId: 2 },
+        { id: 'INV-004', name: 'Plastic Crates', category: 'Equipment', quantity: 320, unit: 'Units', threshold: 50, location: 'Zone C', status: 'Good', hubId: 1 },
+        { id: 'INV-005', name: 'Forklift Batteries', category: 'Equipment', quantity: 12, unit: 'Units', threshold: 5, location: 'Zone C', status: 'Good', hubId: 2 },
+        { id: 'INV-006', name: 'Barcode Scanners', category: 'Devices', quantity: 45, unit: 'Units', threshold: 10, location: 'Office', status: 'Good', hubId: 1 },
+        { id: 'INV-007', name: 'Stretch Wrap', category: 'Consumables', quantity: 85, unit: 'Rolls', threshold: 20, location: 'Zone A', status: 'Good', hubId: 2 },
+        { id: 'INV-008', name: 'Safety Vests', category: 'Uniform', quantity: 150, unit: 'Pcs', threshold: 50, location: 'HR', status: 'Good', hubId: 1 },
+        { id: 'INV-009', name: 'Cargo Straps', category: 'Cargo', quantity: 500, unit: 'Set', threshold: 100, location: 'Loading Dock', status: 'Good', hubId: 1 },
+        { id: 'INV-010', name: 'Utensils (Breakroom)', category: 'Utensils', quantity: 200, unit: 'Set', threshold: 50, location: 'Breakroom', status: 'Low Stock', hubId: 2 },
+    ])
+
     // Mock Data: Hubs
     const hubs = ref([
         {
@@ -798,6 +811,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         returns,
         zones,
         chats,
+        inventory,
         reports,
         hubs,
         pinnedHubs,
@@ -818,6 +832,10 @@ export const useLogisticStore = defineStore('logistic', () => {
         filteredReturns,
         filteredZones,
         filteredChats,
+        filteredInventory: computed(() => {
+            if (activeWarehouse.value === 'all') return inventory.value
+            return inventory.value.filter(i => i.hubId === activeWarehouse.value)
+        }),
         // Actions
         openModal,
         closeModal,
