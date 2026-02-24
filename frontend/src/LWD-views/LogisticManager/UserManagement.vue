@@ -23,6 +23,16 @@
         <!-- User List -->
         <div class="glass-panel rounded-xl overflow-hidden p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Add Support Card -->
+                <div v-if="activeTab === 'Support'" @click="openModal('create-support')"
+                    class="bg-gray-50/50 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 rounded-xl p-5 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-primary/5 dark:hover:bg-primary/10 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[160px] text-gray-500 dark:text-gray-400 hover:text-primary group">
+                    <div
+                        class="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                        <span class="material-symbols-outlined text-[24px]">person_add</span>
+                    </div>
+                    <span class="font-medium">Add Customer Support</span>
+                </div>
+
                 <!-- User Card -->
                 <div v-for="user in displayedUsers" :key="user.email"
                     class="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-gray-200 dark:border-white/5 hover:border-primary/50 dark:hover:border-primary/30 transition-all group relative shadow-sm">
@@ -104,8 +114,9 @@
                     <div
                         class="px-6 py-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-gray-50 dark:bg-white/5">
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                            {{ modalMode === 'create' ? 'Create Manager / Dispatcher' : (modalMode === 'edit-profile' ?
-                                `Edit Profile: ${formData.role || 'User'}` : `Edit Access: ${formData.role || 'User'}`) }}
+                            {{ modalMode === 'create' ? 'Create Manager / Dispatcher' : (modalMode === 'create-support'
+                                ? 'Create Customer Support' : (modalMode === 'edit-profile' ?
+                                    `Edit Profile: ${formData.role || 'User'}` : `Edit Access: ${formData.role || 'User'}`)) }}
                         </h3>
                         <button @click="closeModal"
                             class="text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors">
@@ -147,25 +158,84 @@
                                     </div>
                                 </div>
                             </div>
+                        </template>
 
+                        <!-- === CREATE SUPPORT MODE === -->
+                        <template v-else-if="modalMode === 'create-support'">
+                            <!-- Role & Hub -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
+                                    <input value="Customer Support" type="text" disabled
+                                        class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white opacity-60 cursor-not-allowed">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hub
+                                        Assignment</label>
+                                    <div class="relative">
+                                        <select v-model="formData.hubId"
+                                            class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none">
+                                            <option value="all">Global (All Warehouses)</option>
+                                            <option v-for="h in store.hubs" :key="h.id" :value="h.id">{{ h.name }}
+                                            </option>
+                                        </select>
+                                        <span
+                                            class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">arrow_drop_down</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Common Fields for Creation (shared by Manager/Dispatcher and Support) -->
+                        <template v-if="modalMode === 'create' || modalMode === 'create-support'">
                             <div class="h-px bg-gray-200 dark:bg-white/10 my-4"></div>
                             <h4 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-2">
                                 Personal Details</h4>
 
-                            <!-- Loop through strict fields to apply Lock/Unlock mechanics -->
-                            <div v-for="(field, key) in strictFields" :key="key" class="relative">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{
-                                    field.label }}</label>
-                                <div class="relative flex items-center">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="col-span-2">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Full
+                                            Name</label>
+                                        <button @click.prevent="unlockedFields['name'] = !unlockedFields['name']"
+                                            class="text-gray-400 hover:text-primary transition-colors">
+                                            <span class="material-symbols-outlined text-[18px]">
+                                                {{ unlockedFields['name'] ? 'check' : 'edit' }}
+                                            </span>
+                                        </button>
+                                    </div>
+                                    <input v-model="formData.name" type="text" :disabled="!unlockedFields['name']"
+                                        class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                </div>
+                                <div class="col-span-2">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email
+                                            Address</label>
+                                        <button @click.prevent="unlockedFields['email'] = !unlockedFields['email']"
+                                            class="text-gray-400 hover:text-primary transition-colors">
+                                            <span class="material-symbols-outlined text-[18px]">
+                                                {{ unlockedFields['email'] ? 'check' : 'edit' }}
+                                            </span>
+                                        </button>
+                                    </div>
+                                    <input v-model="formData.email" type="email" :disabled="!unlockedFields['email']"
+                                        class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                </div>
+                                <div v-for="(field, key) in strictFields" :key="key" class="relative">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{
+                                            field.label }}</label>
+                                        <button @click.prevent="unlockedFields[key] = !unlockedFields[key]"
+                                            class="p-1 text-gray-400 hover:text-primary transition-colors flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-[18px]">
+                                                {{ unlockedFields[key] ? 'check' : 'edit' }}
+                                            </span>
+                                        </button>
+                                    </div>
                                     <input v-model="formData[key]" :type="field.type" :placeholder="field.placeholder"
                                         @input="formatField(key)" :disabled="!unlockedFields[key]"
                                         class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed pr-10">
-                                    <button @click.prevent="unlockedFields[key] = !unlockedFields[key]"
-                                        class="absolute right-2 p-1 text-gray-400 hover:text-primary transition-colors flex items-center justify-center">
-                                        <span class="material-symbols-outlined text-[18px]">
-                                            {{ unlockedFields[key] ? 'check' : 'edit' }}
-                                        </span>
-                                    </button>
                                 </div>
                             </div>
                         </template>
@@ -260,6 +330,7 @@
                                     <div class="relative">
                                         <select v-model="formData.hubId"
                                             class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none">
+                                            <option value="all">Global (All Warehouses)</option>
                                             <option v-for="h in store.hubs" :key="h.id" :value="h.id">{{ h.name }}
                                             </option>
                                         </select>
@@ -292,7 +363,7 @@
                         </button>
                         <button @click="submitForm"
                             class="px-4 py-2 rounded-lg font-medium text-white bg-primary hover:bg-primary/90 transition-colors shadow-sm">
-                            {{ modalMode === 'create' ? 'Add User' : 'Save Changes' }}
+                            {{ modalMode === 'create' || modalMode === 'create-support' ? 'Add User' : 'Save Changes' }}
                         </button>
                     </div>
                 </div>
@@ -360,7 +431,7 @@ const store = useLogisticStore()
 const { filteredUsers } = storeToRefs(store)
 
 const activeTab = ref('All Users')
-const tabs = ['All Users', 'Managers', 'Dispatchers', 'Drivers']
+const tabs = ['All Users', 'Managers', 'Dispatchers', 'Drivers', 'Support']
 
 const displayedUsers = computed(() => {
     let list = filteredUsers.value
@@ -370,6 +441,7 @@ const displayedUsers = computed(() => {
             if (activeTab.value === 'Managers') return u.role.includes('Manager')
             if (activeTab.value === 'Dispatchers') return u.role.includes('Dispatcher')
             if (activeTab.value === 'Drivers') return u.role.includes('Driver')
+            if (activeTab.value === 'Support') return u.role.includes('Support')
             return true
         })
     }
@@ -416,11 +488,19 @@ const strictFields = {
 const formData = ref({})
 const unlockedFields = ref({})
 
-const initEmptyForm = () => {
-    formData.value = {
-        role: 'Warehouse Manager',
-        status: 'Active',
-        hubId: store.hubs.length > 0 ? store.hubs[0].id : null
+const initEmptyForm = (mode) => {
+    if (mode === 'create') {
+        formData.value = {
+            role: 'Warehouse Manager',
+            status: 'Active',
+            hubId: store.hubs.length > 0 ? store.hubs[0].id : null
+        }
+    } else if (mode === 'create-support') {
+        formData.value = {
+            role: 'Customer Support',
+            status: 'Active',
+            hubId: 'all' // Customer Support can be global
+        }
     }
     unlockedFields.value = {}
     Object.keys(strictFields).forEach(key => {
@@ -464,7 +544,7 @@ const formatField = (key) => {
     formData.value[key] = val
 }
 
-const roles = ['Warehouse Manager', 'Dispatcher', 'Driver']
+const roles = ['Warehouse Manager', 'Dispatcher', 'Driver', 'Customer Support']
 const statuses = ['Active', 'Inactive']
 
 // Credential View Modal
@@ -483,10 +563,10 @@ const openModal = (mode, user = null) => {
     modalMode.value = mode
     isCredentialsVisible.value = false
 
-    if (mode === 'edit' && user) {
+    if (mode === 'edit-profile' || mode === 'edit-access') {
         formData.value = { ...user } // copy data
     } else {
-        initEmptyForm()
+        initEmptyForm(mode) // Pass mode to initEmptyForm
     }
     isModalOpen.value = true
 }
@@ -496,7 +576,11 @@ const closeModal = () => {
 }
 
 const generateCredentials = (role) => {
-    const prefix = role === 'Warehouse Manager' ? 'WM' : (role === 'Dispatcher' ? 'DSP' : 'USR')
+    let prefix = 'USR'
+    if (role === 'Warehouse Manager') prefix = 'WM'
+    else if (role === 'Dispatcher') prefix = 'DSP'
+    else if (role === 'Customer Support') prefix = 'CS'
+
     // Generate Random number for mock purposes e.g. WM-047
     const suffix = String(Math.floor(Math.random() * 999)).padStart(3, '0')
     const pass = Math.random().toString(36).slice(-8)
@@ -507,11 +591,12 @@ const generateCredentials = (role) => {
 }
 
 const submitForm = () => {
-    if (modalMode.value === 'create') {
+    if (modalMode.value === 'create' || modalMode.value === 'create-support') {
         // Auto-generate credentials on save
         const creds = generateCredentials(formData.value.role)
         store.addUser({
             ...formData.value,
+            lastLogin: 'Never',
             username: creds.username,
             password: creds.password
         })

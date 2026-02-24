@@ -243,6 +243,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         { name: 'John Wick', hubId: 1, email: 'john.w@cargocore.com', role: 'Dispatcher', status: 'Active', lastLogin: '1 hour ago', avatar: 'https://i.pravatar.cc/150?u=8', username: 'DSP-001', password: 'password123' },
         { name: 'Ellen Ripley', hubId: 2, email: 'ellen.r@cargocore.com', role: 'Warehouse Manager', status: 'Inactive', lastLogin: '2 days ago', avatar: 'https://i.pravatar.cc/150?u=9', username: 'WM-002', password: 'password123' },
         { name: 'Marty McFly', hubId: 2, email: 'marty.m@cargocore.com', role: 'Driver', status: 'Active', lastLogin: 'Just now', avatar: 'https://i.pravatar.cc/150?u=12', username: 'DRV-001', password: 'password123' },
+        { name: 'Diana Prince', hubId: 'all', email: 'diana.p@cargocore.com', role: 'Customer Support', status: 'Active', lastLogin: '10 mins ago', avatar: 'https://i.pravatar.cc/150?u=31', username: 'CS-001', password: 'password123' },
     ])
 
     const returns = ref([
@@ -457,7 +458,8 @@ export const useLogisticStore = defineStore('logistic', () => {
 
     const filteredUsers = computed(() => {
         if (activeWarehouse.value === 'all') return users.value
-        return users.value.filter(u => u.hubId === activeWarehouse.value)
+        // Update getters to handle string 'all' for hubId so global users appear everywhere
+        return users.value.filter(u => u.hubId === activeWarehouse.value || u.hubId === 'all')
     })
 
     const filteredReturns = computed(() => {
