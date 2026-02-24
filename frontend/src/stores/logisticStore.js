@@ -254,10 +254,60 @@ export const useLogisticStore = defineStore('logistic', () => {
     ])
 
     const returns = ref([
-        { id: 'RMA-9921', hubId: 1, orderId: 'ORD-1102', customer: 'Alice Cooper', reason: 'Damaged in transit', condition: 'Damaged', conditionClass: 'bg-red-500/10 text-red-400 border-red-500/20' },
-        { id: 'RMA-9922', hubId: 1, orderId: 'ORD-3321', customer: 'Bob Dylan', reason: 'Wrong Item Sent', condition: 'New/Open Box', conditionClass: 'bg-green-500/10 text-green-400 border-green-500/20' },
-        { id: 'RMA-9923', hubId: 2, orderId: 'ORD-5541', customer: 'Charlie Watts', reason: 'Changed Mind', condition: 'Unopened', conditionClass: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
-        { id: 'RMA-9924', hubId: 2, orderId: 'ORD-1105', customer: 'David Gilmour', reason: 'Defective', condition: 'Defective', conditionClass: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
+        { 
+            id: 'RMA-9921', 
+            hubId: 1, 
+            orderId: 'ORD-1102', 
+            customer: 'Alice Cooper', 
+            reason: 'Damaged in transit', 
+            condition: 'Damaged', 
+            status: 'Pending', 
+            originalPrice: 150.00,
+            refundAmount: 0,
+            images: [
+                'https://placehold.co/600x400/png?text=Damaged+Box+Corner',
+                'https://placehold.co/600x400/png?text=Dented+Product'
+            ]
+        },
+        { 
+            id: 'RMA-9922', 
+            hubId: 1, 
+            orderId: 'ORD-3321', 
+            customer: 'Bob Dylan', 
+            reason: 'Wrong Item Sent', 
+            condition: 'New/Open Box', 
+            status: 'Pending', 
+            originalPrice: 200.00,
+            refundAmount: 0,
+            images: [
+                'https://placehold.co/600x400/png?text=Wrong+Item+Label'
+            ]
+        },
+        { 
+            id: 'RMA-9923', 
+            hubId: 2, 
+            orderId: 'ORD-5541', 
+            customer: 'Charlie Watts', 
+            reason: 'Changed Mind', 
+            condition: 'Unopened', 
+            status: 'Approved', 
+            refundAmount: 1250,
+            images: []
+        },
+        { 
+            id: 'RMA-9924', 
+            hubId: 2, 
+            orderId: 'ORD-1105', 
+            customer: 'David Gilmour', 
+            reason: 'Defective', 
+            condition: 'Defective', 
+            status: 'Rejected', 
+            refundAmount: 0,
+            images: [
+                 'https://placehold.co/600x400/png?text=Defective+Screen',
+                 'https://placehold.co/600x400/png?text=Serial+Number'
+            ]
+        },
     ])
 
     const zones = ref([
@@ -505,6 +555,16 @@ export const useLogisticStore = defineStore('logistic', () => {
 
     function addTransaction(tx) {
         transactions.value.unshift(tx)
+    }
+
+    function updateReturnStatus(rmaId, newStatus, details = {}) {
+        const rma = returns.value.find(r => r.id === rmaId)
+        if (rma) {
+            rma.status = newStatus
+            if (details.refundAmount) rma.refundAmount = details.refundAmount
+            if (details.notes) rma.notes = details.notes
+            if (details.condition) rma.condition = details.condition
+        }
     }
 
     function updateUserBalance(userId, amount) {
@@ -763,6 +823,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         closeModal,
         addTransaction,
         updateUserBalance,
+        updateReturnStatus,
         addAlert,
         resolveAlert,
         setWarehouse,
