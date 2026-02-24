@@ -1,4 +1,4 @@
-# Backend Development Roadmap
+ywa# Backend Development Roadmap
 ### Logistics & Personal Move Management System
 **Stack:** FastAPI · PostgreSQL · SQLAlchemy · Alembic · Redis · Celery  
 **Last Updated:** 24 February 2026
@@ -190,19 +190,19 @@ backend/
 
 ### Milestones
 
-- [ ] **1.1 — Project Scaffolding**
+- [x] **1.1 — Project Scaffolding**
   - Initialize `backend/` directory with the structure above
   - Set up `pyproject.toml` / `requirements.txt`
   - Configure `docker-compose.yml` with `app`, `db` (postgres), `redis` services
   - Set up `Dockerfile` for the FastAPI app
 
-- [ ] **1.2 — Database Connection**
+- [x] **1.2 — Database Connection**
   - Configure async SQLAlchemy engine with `asyncpg` driver
   - Set up `get_db()` dependency for session management
   - Configure Alembic for migration management
   - Create initial migration with `users` and `roles` tables
 
-- [ ] **1.3 — Authentication System**
+- [x] **1.3 — Authentication System**
   - User registration with bcrypt password hashing
   - JWT access token (15 min) + refresh token (7 days)
   - Role-based `require_role()` dependency
