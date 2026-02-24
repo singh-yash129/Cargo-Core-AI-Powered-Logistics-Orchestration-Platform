@@ -30,25 +30,31 @@
                 </li>
             </ul>
 
-            <!-- Pinned Warehouses Section -->
-            <div class="mt-6 px-4">
-                <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Pinned Warehouses</div>
+            <!-- Comparative Viewers Section -->
+            <div v-if="$route.path.includes('/logistic/comparative-viewers')" class="mt-6 px-4 animate-fade-in">
+                <router-link to="/logistic/comparative-viewers" 
+                    class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 hover:text-primary transition-colors cursor-pointer flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">compare_arrows</span>
+                    Comparative Viewers
+                </router-link>
+                
+                <p class="text-[10px] text-gray-400 mb-3">Drag warehouses to compare</p>
+                
                 <div class="space-y-2">
-                    <div v-for="hub in store.pinnedHubs" :key="hub.id" @click="store.setWarehouse(hub.id)"
-                        class="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer transition-colors group">
-                        <div class="flex items-center">
-                            <span class="w-1.5 h-1.5 rounded-full bg-primary mr-2"></span>
-                            <span
-                                class="text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white truncate max-w-[120px]">{{
-                                    hub.name }}</span>
+                    <div v-for="hub in availableHubs" :key="hub.id" 
+                        draggable="true"
+                        @dragstart="onDragStart($event, hub)"
+                        class="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 cursor-grab active:cursor-grabbing transition-colors group border border-transparent hover:border-primary/20">
+                        <div class="flex items-center w-full">
+                            <span class="material-symbols-outlined text-[16px] text-gray-400 mr-2 group-hover:text-primary">drag_indicator</span>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white truncate font-medium">
+                                    {{ hub.name }}
+                                </div>
+                                <div class="text-[10px] text-gray-400 truncate">{{ hub.location }}</div>
+                            </div>
                         </div>
-                        <span class="material-symbols-outlined text-[14px] text-yellow-400">star</span>
                     </div>
-                    <button @click="store.openModal('warehouse-select')"
-                        class="flex items-center text-xs text-gray-500 hover:text-primary mt-2 transition-colors">
-                        <span class="material-symbols-outlined text-[14px] mr-1">add</span>
-                        Manage list
-                    </button>
                 </div>
             </div>
         </nav>
@@ -73,8 +79,13 @@
 
 <script setup>
 import { useLogisticStore } from '@/stores/logisticStore'
+import { computed } from 'vue'
 
 const store = useLogisticStore()
+
+const availableHubs = computed(() => {
+    return store.hubs.filter(hub => !store.comparedWarehouses.find(w => w.id === hub.id))
+})
 
 const menuItems = [
     { label: 'Dashboard', icon: 'dashboard', route: '/logistic/dashboard' },
@@ -87,5 +98,12 @@ const menuItems = [
     { label: 'Reports', icon: 'bar_chart', route: '/logistic/reports' },
     { label: 'AI Intelligence', icon: 'smart_toy', route: '/logistic/ai' },
     { label: 'Communication', icon: 'chat', route: '/logistic/communication', badge: '3' },
+    { label: 'Comparative Viewers', icon: 'compare_arrows', route: '/logistic/comparative-viewers' },
 ]
+
+const onDragStart = (event, hub) => {
+    event.dataTransfer.effectAllowed = 'copy'
+    event.dataTransfer.setData('warehouseId', hub.id)
+    event.dataTransfer.setData('text/plain', JSON.stringify(hub))
+}
 </script>

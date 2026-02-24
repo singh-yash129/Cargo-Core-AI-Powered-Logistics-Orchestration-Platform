@@ -26,10 +26,10 @@
                     <div v-else
                         class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-primary/10 border border-primary/20 dark:bg-primary/20 dark:border-primary/30 shadow-sm cursor-default">
                         <span class="material-symbols-outlined text-primary text-[18px]">
-                            {{ route.path.includes('ai') ? 'smart_toy' : 'domain' }}
+                            {{ route.path.includes('ai') ? 'smart_toy' : (route.path.includes('comparative') ? 'compare_arrows' : 'domain') }}
                         </span>
                         <span class="text-sm font-bold text-primary dark:text-blue-400 tracking-wide uppercase">
-                            {{ route.path.includes('ai') ? 'Corporate AI Assistant' : 'Global Network Overview' }}
+                            {{ route.path.includes('ai') ? 'Corporate AI Assistant' : (route.path.includes('comparative') ? 'Comparative Viewers' : 'Global Network Overview') }}
                         </span>
                     </div>
 
@@ -83,6 +83,6 @@ const store = useLogisticStore()
 const route = useRoute()
 
 const isGlobalPage = computed(() => {
-    return route.path.includes('/logistic/warehouses') || route.path.includes('/logistic/ai')
+    return route.path.includes('/logistic/warehouses') || route.path.includes('/logistic/ai') || route.path.includes('/logistic/comparative-viewers')
 })
 </script>

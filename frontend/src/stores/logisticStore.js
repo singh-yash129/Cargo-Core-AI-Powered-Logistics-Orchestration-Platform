@@ -8,6 +8,7 @@ export const useLogisticStore = defineStore('logistic', () => {
     const activeWarehouse = ref('all') // 'all' or specific hub ID
     const activeModal = ref(null) // 'alert-details', 'driver-profile', 'warehouse-select', etc.
     const selectedItem = ref(null) // Data payload for the active modal
+    const comparedWarehouses = ref([]) // Warehouses currently in the comparison view
 
     // Todo Tasks
     const tasks = ref([
@@ -849,6 +850,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         activeWarehouse,
         activeModal,
         selectedItem,
+        comparedWarehouses,
         dashboardStats,
         alerts,
         drivers,
