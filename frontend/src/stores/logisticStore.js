@@ -318,10 +318,59 @@ export const useLogisticStore = defineStore('logistic', () => {
     ])
 
     const chats = ref([
-        { id: 1, hubId: 1, name: 'Dispatcher Mike', time: '2m', lastMessage: 'Two trucks are down. We need approval...' },
-        { id: 2, hubId: 1, name: 'Warehouse Team A', time: '1h', lastMessage: 'Inventory count complete.' },
-        { id: 3, hubId: 2, name: 'Sarah (Admin)', time: '3h', lastMessage: 'Payroll report is ready for review.' },
-        { id: 4, hubId: 2, name: 'Global Broadcast', time: '1d', lastMessage: 'System maintenance scheduled for...' },
+        { 
+            id: 1, 
+            hubId: 1, 
+            name: 'Dispatcher Mike', 
+            time: '2m', 
+            lastMessage: 'Two trucks are down.', 
+            status: 'Online',
+            phone: '+1 (555) 012-3456',
+            messages: [
+                { id: 1, text: 'Hi Boss, we have a situation at Hub 4.', sender: 'other', time: '10:30 AM' },
+                { id: 2, text: 'Two trucks are down. We need approval for expedited maintenance.', sender: 'other', time: '10:32 AM' },
+                { id: 3, text: 'Approved. Get them fixed ASAP. Use the contingency budget.', sender: 'me', time: '10:35 AM' }
+            ]
+        },
+        { 
+            id: 2, 
+            hubId: 1, 
+            name: 'Warehouse Team A', 
+            time: '1h', 
+            lastMessage: 'Inventory count complete.', 
+            status: 'Offline',
+            phone: '+1 (555) 012-7890',
+            messages: [
+                { id: 1, text: 'Starting inventory count for Zone A.', sender: 'other', time: '08:00 AM' },
+                { id: 2, text: 'Checking crates and pallets now.', sender: 'other', time: '09:15 AM' },
+                { id: 3, text: 'Inventory count complete. Report filed.', sender: 'other', time: '09:45 AM' }
+            ]
+        },
+        { 
+            id: 3, 
+            hubId: 2, 
+            name: 'Sarah (Admin)', 
+            time: '3h', 
+            lastMessage: 'Payroll report is ready.', 
+            status: 'Away',
+            phone: '+1 (555) 012-4567',
+            messages: [
+                 { id: 1, text: 'Hey, did you review the payroll yet?', sender: 'other', time: '07:30 AM' },
+                 { id: 2, text: 'Not yet, sending it over in an hour.', sender: 'me', time: '07:35 AM' }
+            ]
+        },
+        { 
+            id: 4, 
+            hubId: 2, 
+            name: 'Global Broadcast', 
+            time: '1d', 
+            lastMessage: 'System maintenance scheduled.', 
+            status: 'Online',
+            phone: '',
+            messages: [
+                { id: 1, text: 'System maintenance scheduled for this Sunday at 2 AM EST.', sender: 'other', time: 'Yesterday' }
+            ]
+        },
     ])
 
     const inventory = ref([
