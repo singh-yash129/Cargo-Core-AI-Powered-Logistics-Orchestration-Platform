@@ -58,17 +58,7 @@ uvicorn app.main:app --reload --port 8000
 ## Running Tests
 
 ```bash
-pytest tests/ -v --cov=app --cov-report=term-missing
-```
-
----
-
-## Linting & Formatting
-
-```bash
-ruff check .          # Lint
-black .               # Format
-ruff check --fix .    # Auto-fix lint issues
+pytest tests/ -v 
 ```
 
 ---

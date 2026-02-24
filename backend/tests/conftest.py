@@ -14,6 +14,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from app.config import get_settings
 from app.database import Base, get_db
@@ -28,7 +29,11 @@ TEST_DATABASE_URL = settings.database_url.replace(
     "/logistics_db", "/logistics_db_test"
 )
 
-test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+# NullPool: every acquire() opens a fresh connection on the *current* event loop
+# and every release() closes it immediately.  This prevents cross-loop reuse,
+# which is the root cause of asyncpg's "another operation is in progress" error
+# when pytest-asyncio uses separate session/function event loops.
+test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, poolclass=NullPool)
 TestSessionLocal = async_sessionmaker(
     bind=test_engine, class_=AsyncSession, expire_on_commit=False
 )
