@@ -23,16 +23,6 @@
         <!-- User List -->
         <div class="glass-panel rounded-xl overflow-hidden p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Add Support Card -->
-                <div v-if="activeTab === 'Support'" @click="openModal('create-support')"
-                    class="bg-gray-50/50 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 rounded-xl p-5 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-primary/5 dark:hover:bg-primary/10 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[160px] text-gray-500 dark:text-gray-400 hover:text-primary group">
-                    <div
-                        class="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                        <span class="material-symbols-outlined text-[24px]">person_add</span>
-                    </div>
-                    <span class="font-medium">Add Customer Support</span>
-                </div>
-
                 <!-- User Card -->
                 <div v-for="user in displayedUsers" :key="user.email"
                     class="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-gray-200 dark:border-white/5 hover:border-primary/50 dark:hover:border-primary/30 transition-all group relative shadow-sm">
@@ -98,6 +88,16 @@
                             class="text-primary hover:text-primary/80 transition-colors hover:underline">Edit
                             Access</button>
                     </div>
+                </div>
+
+                <!-- Add Support Card (Moved to the end) -->
+                <div v-if="activeTab === 'Support'" @click="openModal('create-support')"
+                    class="bg-gray-50/50 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 rounded-xl p-5 hover:border-primary/50 dark:hover:border-primary/50 hover:bg-primary/5 dark:hover:bg-primary/10 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[160px] text-gray-500 dark:text-gray-400 hover:text-primary group">
+                    <div
+                        class="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                        <span class="material-symbols-outlined text-[24px]">person_add</span>
+                    </div>
+                    <span class="font-medium">Add Customer Support</span>
                 </div>
 
             </div>
