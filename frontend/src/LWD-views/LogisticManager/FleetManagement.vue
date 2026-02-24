@@ -41,11 +41,11 @@
         </div>
 
         <!-- Tab Content: Active Drivers -->
-        <div v-if="activeTab === 'Active Drivers'" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div v-if="activeTab === 'Active Drivers'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             <!-- Driver Scorecard -->
-            <div class="glass-panel rounded-xl p-6">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Driver Roster & Performance</h3>
-                <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+            <div class="glass-panel rounded-xl p-6 h-[500px] flex flex-col">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Driver Roster & Performance</h3>
+                <div class="space-y-4 overflow-y-auto pr-2 flex-grow custom-scrollbar">
                     <div v-for="driver in store.filteredDrivers" :key="driver.id" @click="openDriverProfile(driver)"
                         class="flex items-center gap-4 p-3 rounded-lg bg-gray-50 border border-transparent hover:border-primary/30 cursor-pointer dark:bg-white/5 dark:hover:bg-primary/20 transition-colors shadow-sm group">
                         <!-- Real drivers mock data avatar fallback -->
@@ -70,9 +70,9 @@
             </div>
 
             <!-- Top Driver Stats -->
-            <div class="glass-panel rounded-xl p-6">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Top Leaderboard</h3>
-                <div class="space-y-4">
+            <div class="glass-panel rounded-xl p-6 h-[500px] flex flex-col">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Top Leaderboard</h3>
+                <div class="space-y-4 overflow-y-auto pr-2 flex-grow custom-scrollbar">
                     <div v-for="driver in filteredTopDrivers" :key="driver.id"
                         class="flex items-center gap-4 p-3 rounded-lg bg-gray-50 border border-transparent hover:border-gray-200 dark:bg-white/5 dark:hover:bg-white/10 transition-colors shadow-sm group">
                         <img :src="driver.avatar"
@@ -96,18 +96,17 @@
         </div>
 
         <!-- Tab Content: Fleet Vehicles -->
-        <div v-if="activeTab === 'Fleet Vehicles'" class="grid grid-cols-1 gap-6">
-            <div class="glass-panel rounded-xl p-6 relative overflow-hidden flex flex-col">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Vehicle Roster</h3>
-                <div class="overflow-x-auto">
+        <div v-if="activeTab === 'Fleet Vehicles'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div class="glass-panel rounded-xl p-6 h-[500px] flex flex-col relative overflow-hidden">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Vehicle Roster</h3>
+                <div class="overflow-x-auto overflow-y-auto flex-grow custom-scrollbar">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-50 dark:bg-transparent">
+                        <thead class="bg-gray-50 dark:bg-transparent sticky top-0 z-10 backdrop-blur-md">
                             <tr
                                 class="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-white/10 uppercase tracking-wider text-[10px]">
                                 <th class="py-2 px-2 font-medium">Vehicle ID</th>
                                 <th class="py-2 font-medium">Type / Model</th>
                                 <th class="py-2 font-medium">Driver</th>
-                                <th class="py-2 font-medium">Mileage</th>
                                 <th class="py-2 font-medium text-right">Status</th>
                                 <th class="py-2 px-2 text-right"></th>
                             </tr>
@@ -123,8 +122,6 @@
                                         class="text-xs text-gray-400">{{ vehicle.model }} ({{ vehicle.year }})</span>
                                 </td>
                                 <td class="py-3 text-gray-600 dark:text-gray-300 font-medium">{{ vehicle.driver }}</td>
-                                <td class="py-3 text-gray-600 dark:text-gray-300">{{ vehicle.mileage.toLocaleString() }}
-                                    mi</td>
                                 <td class="py-3 text-right">
                                     <span
                                         class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm"
@@ -161,13 +158,13 @@
             </div>
 
             <!-- Maintenance Alerts -->
-            <div class="glass-panel rounded-xl p-6 relative overflow-hidden flex flex-col">
+            <div class="glass-panel rounded-xl p-6 h-[500px] flex flex-col relative overflow-hidden">
                 <div class="absolute top-0 right-0 p-6 opacity-5 dark:opacity-10 pointer-events-none"><span
                         class="material-symbols-outlined text-6xl text-gray-900 dark:text-white">build</span></div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Pending Maintenance</h3>
-                <div class="overflow-x-auto">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Pending Maintenance</h3>
+                <div class="overflow-x-auto overflow-y-auto flex-grow custom-scrollbar">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-50 dark:bg-transparent">
+                        <thead class="bg-gray-50 dark:bg-transparent sticky top-0 z-10 backdrop-blur-md">
                             <tr
                                 class="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-white/10 uppercase tracking-wider text-[10px]">
                                 <th class="py-2 px-2 font-medium">Vehicle ID</th>
@@ -194,14 +191,14 @@
         </div>
 
         <!-- Tab Content: Fuel Logs (New) -->
-        <div v-if="activeTab === 'Fuel Logs'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div v-if="activeTab === 'Fuel Logs'" class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-sm">
             <!-- Fuel Stats Summary -->
-            <div class="glass-panel rounded-xl p-6 lg:col-span-1 border border-gray-200 dark:border-white/5">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <div class="glass-panel rounded-xl p-6 lg:col-span-1 border border-gray-200 dark:border-white/5 h-[500px] flex flex-col">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2 flex-shrink-0">
                     <span class="material-symbols-outlined text-orange-500">local_gas_station</span>
                     Fuel Consumption
                 </h3>
-                <div class="space-y-4">
+                <div class="space-y-4 overflow-y-auto custom-scrollbar pr-2">
                     <div class="bg-orange-50 dark:bg-orange-500/10 p-4 rounded-xl border border-orange-100 dark:border-orange-500/20">
                         <p class="text-xs text-orange-600 dark:text-orange-400 uppercase font-bold tracking-wider mb-1">Total Cost (This Month)</p>
                         <p class="text-2xl font-bold text-gray-900 dark:text-white">$12,450.00</p>
@@ -217,15 +214,26 @@
                             <p class="text-lg font-bold text-gray-900 dark:text-white">3,233 gal</p>
                         </div>
                     </div>
+                    <!-- Additional mock stats for professional look -->
+                    <div class="p-4 border-t border-gray-100 dark:border-white/5 mt-4">
+                        <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Efficiency Trend</p>
+                        <div class="w-full bg-gray-200 dark:bg-white/10 rounded-full h-2 mb-1">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 78%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <span>7.8 MPG (Avg)</span>
+                            <span>Target: 8.0</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Recent Transactions Table -->
-            <div class="glass-panel rounded-xl p-6 lg:col-span-2 border border-gray-200 dark:border-white/5">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Recent Refueling Logs</h3>
-                <div class="overflow-x-auto">
+            <div class="glass-panel rounded-xl p-6 lg:col-span-2 border border-gray-200 dark:border-white/5 h-[500px] flex flex-col relative overflow-hidden">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Recent Refueling Logs</h3>
+                <div class="overflow-x-auto overflow-y-auto flex-grow custom-scrollbar">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-50 dark:bg-transparent">
+                        <thead class="bg-gray-50 dark:bg-transparent sticky top-0 z-10 backdrop-blur-md">
                             <tr class="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-white/10 uppercase tracking-wider text-[10px]">
                                 <th class="py-2 px-2 font-medium">Date</th>
                                 <th class="py-2 font-medium">Vehicle</th>
@@ -235,7 +243,7 @@
                                 <th class="py-2 font-medium text-right">Status</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                       <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                             <tr v-for="log in fuelLogs" :key="log.id" class="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                 <td class="py-3 px-2 text-gray-600 dark:text-gray-300 font-mono">{{ log.date }}</td>
                                 <td class="py-3 text-gray-900 dark:text-white font-medium">{{ log.vehicleId }}</td>
@@ -249,6 +257,177 @@
                                     </span>
                                 </td>
                             </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Vehicle Documents -->
+        <div v-if="activeTab === 'Vehicle Documents'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div class="glass-panel rounded-xl p-6 h-[500px] flex flex-col relative overflow-hidden col-span-2">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Vehicle Documentation & Compliance</h3>
+                <div class="overflow-x-auto overflow-y-auto flex-grow custom-scrollbar">
+                    <table class="w-full text-left text-sm">
+                         <thead class="bg-gray-50 dark:bg-transparent sticky top-0 z-10 backdrop-blur-md">
+                            <tr class="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-white/10 uppercase tracking-wider text-[10px]">
+                                <th class="py-2 px-2 font-medium">Vehicle ID</th>
+                                <th class="py-2 font-medium">Doc Types</th>
+                                <th class="py-2 font-medium">Next Expiry</th>
+                                <th class="py-2 font-medium">Status Overview</th>
+                                <th class="py-2 px-2 text-right">View</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                            <template v-for="(docs, vehicleId) in groupedVehicleDocs" :key="vehicleId">
+                                <!-- Parent Row -->
+                                <tr class="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer" @click="toggleDocExpand(vehicleId)">
+                                    <td class="py-3 px-2 text-gray-900 dark:text-white font-mono font-medium flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-gray-400 text-sm transition-transform duration-200" :class="expandedDocs.includes(vehicleId) ? 'rotate-90' : ''">chevron_right</span>
+                                        {{ vehicleId }}
+                                    </td>
+                                    <td class="py-3 text-gray-600 dark:text-gray-300">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span v-for="type in [...new Set(docs.map(d => d.type))].slice(0, 2)" :key="type" class="text-[10px] bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300">
+                                                {{ type }}
+                                            </span>
+                                            <span v-if="[...new Set(docs.map(d => d.type))].length > 2" class="text-[10px] text-gray-400">+{{ [...new Set(docs.map(d => d.type))].length - 2 }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 text-gray-600 dark:text-gray-300 font-mono text-xs">
+                                        {{ docs.map(d => d.expiry).sort((a,b) => new Date(a) - new Date(b))[0] }}
+                                    </td>
+                                    <td class="py-3">
+                                        <div class="flex gap-2 items-center">
+                                            <span v-if="docs.some(d => new Date(d.expiry) < new Date())" class="w-2 h-2 rounded-full bg-red-500" title="Expired Doc"></span>
+                                            <span v-else-if="docs.some(d => d.status === 'Expiring Soon')" class="w-2 h-2 rounded-full bg-yellow-500" title="Expiring Soon"></span>
+                                            <span v-else class="w-2 h-2 rounded-full bg-green-500" title="All Good"></span>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ docs.some(d => new Date(d.expiry) < new Date()) ? 'Action Required' : (docs.some(d => d.status === 'Expiring Soon') ? 'Renew Soon' : 'Compliant') }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-2 text-right">
+                                        <button @click.stop="toggleDocExpand(vehicleId)" class="text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white p-1 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-white/10">
+                                            <span class="material-symbols-outlined">expand_circle_down</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <!-- Child Rows (Dropdown) -->
+                                <tr v-if="expandedDocs.includes(vehicleId)" class="bg-gray-50/50 dark:bg-white/5">
+                                    <td colspan="5" class="p-0">
+                                        <div class="px-4 py-2 border-l-2 border-primary ml-6 my-2 space-y-2">
+                                            <div v-for="doc in docs" :key="doc.id" class="flex justify-between items-center p-2 rounded-lg hover:bg-white dark:hover:bg-white/5 border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-colors">
+                                                <div class="flex items-center gap-3">
+                                                    <span class="material-symbols-outlined text-gray-400">description</span>
+                                                    <div>
+                                                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ doc.type }}</p>
+                                                        <p class="text-[10px] text-gray-500">Exp: {{ doc.expiry }}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-4">
+                                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border"
+                                                        :class="doc.status === 'Active' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-500/10 dark:text-green-400' : (doc.status === 'Expiring Soon' ? 'bg-yellow-50 text-yellow-600 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400')">
+                                                        {{ doc.status }}
+                                                    </span>
+                                                    <button @click.stop="openDocModal(doc)" class="text-primary hover:text-primary/80 font-medium text-xs flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors">
+                                                        <span class="material-symbols-outlined text-[14px]">visibility</span> View
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Driver Documents -->
+        <div v-if="activeTab === 'Driver Documents'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div class="glass-panel rounded-xl p-6 h-[500px] flex flex-col relative overflow-hidden col-span-2">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Driver Personnel Files</h3>
+                 <div class="overflow-x-auto overflow-y-auto flex-grow custom-scrollbar">
+                    <table class="w-full text-left text-sm">
+                         <thead class="bg-gray-50 dark:bg-transparent sticky top-0 z-10 backdrop-blur-md">
+                            <tr class="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-white/10 uppercase tracking-wider text-[10px]">
+                                <th class="py-2 px-2 font-medium">Driver Name</th>
+                                <th class="py-2 font-medium">Files on Record</th>
+                                <th class="py-2 font-medium">Next Expiry</th>
+                                <th class="py-2 font-medium">Compliance Status</th>
+                                <th class="py-2 px-2 text-right">View</th>
+                            </tr>
+                        </thead>
+                       <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                            <template v-for="driverGroup in groupedDriverDocs" :key="driverGroup.id">
+                                <!-- Parent Row -->
+                                <tr class="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer" @click="toggleDocExpand(driverGroup.id)">
+                                    <td class="py-3 px-2 flex items-center gap-3">
+                                        <span class="material-symbols-outlined text-gray-400 text-sm transition-transform duration-200" :class="expandedDocs.includes(driverGroup.id) ? 'rotate-90' : ''">chevron_right</span>
+                                        <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                                            {{ driverGroup.name.charAt(0) }}
+                                        </div>
+                                        <span class="text-gray-900 dark:text-white font-medium">{{ driverGroup.name }}</span>
+                                    </td>
+                                    <td class="py-3 text-gray-600 dark:text-gray-300">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span v-for="doc in driverGroup.docs.slice(0, 2)" :key="doc.id" class="text-[10px] bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300 truncate max-w-[100px]">
+                                                {{ doc.type }}
+                                            </span>
+                                            <span v-if="driverGroup.docs.length > 2" class="text-[10px] text-gray-400">+{{ driverGroup.docs.length - 2 }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 text-gray-600 dark:text-gray-300 text-xs">
+                                        {{ driverGroup.docs.map(d => d.expiry).sort((a,b) => new Date(a) - new Date(b))[0] }}
+                                    </td>
+                                    <td class="py-3">
+                                          <div class="flex gap-2 items-center">
+                                            <span v-if="driverGroup.docs.some(d => new Date(d.expiry) < new Date())" class="w-2 h-2 rounded-full bg-red-500" title="Expired Doc"></span>
+                                            <span v-else-if="driverGroup.docs.some(d => d.status === 'Expiring Soon')" class="w-2 h-2 rounded-full bg-yellow-500" title="Expiring Soon"></span>
+                                            <span v-else class="w-2 h-2 rounded-full bg-green-500" title="All Good"></span>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ driverGroup.docs.some(d => new Date(d.expiry) < new Date()) ? 'Action Required' : (driverGroup.docs.some(d => d.status === 'Expiring Soon') ? 'Renew Soon' : 'Compliant') }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-2 text-right">
+                                         <button @click.stop="toggleDocExpand(driverGroup.id)" class="text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white p-1 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-white/10">
+                                            <span class="material-symbols-outlined">expand_circle_down</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <!-- Child Rows -->
+                                <tr v-if="expandedDocs.includes(driverGroup.id)" class="bg-gray-50/50 dark:bg-white/5">
+                                    <td colspan="5" class="p-0">
+                                        <div class="px-4 py-2 border-l-2 border-primary ml-10 my-2 space-y-2">
+                                            <div v-for="doc in driverGroup.docs" :key="doc.id" class="flex justify-between items-center p-2 rounded-lg hover:bg-white dark:hover:bg-white/5 border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-colors">
+                                                <div class="flex items-center gap-3">
+                                                    <span class="material-symbols-outlined text-gray-400">badge</span>
+                                                    <div>
+                                                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ doc.type }}</p>
+                                                        <p class="text-[10px] text-gray-500">ID: {{ doc.licenseNo }}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-4">
+                                                    <div class="text-right">
+                                                        <p class="text-[10px] text-gray-400">Expiry</p>
+                                                        <p class="text-xs font-medium" :class="new Date(doc.expiry) < new Date() ? 'text-red-500' : 'text-gray-900 dark:text-white'">{{ doc.expiry }}</p>
+                                                    </div>
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border"
+                                                        :class="doc.status === 'Active' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-500/10 dark:text-green-400' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400'">
+                                                        {{ doc.status }}
+                                                    </span>
+                                                    <button @click.stop="openDocModal(doc)" class="text-primary hover:text-primary/80 font-medium text-xs flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors">
+                                                        <span class="material-symbols-outlined text-[14px]">visibility</span> View
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>
@@ -332,7 +511,7 @@
                     <!-- Left: Profile Details -->
                     <div class="w-full md:w-1/2 p-6 overflow-y-auto border-r border-gray-200 dark:border-white/10">
                         <div class="flex items-center gap-4 mb-6">
-                            <div class="w-16 h-16 rounded-full flex items-center justify-center font-bold text-whit text-2xl shadow-sm"
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center font-bold text-white text-2xl shadow-sm"
                                 :class="activeDriverProfile.avatarColor">
                                 {{ activeDriverProfile.name.charAt(0) }}
                             </div>
@@ -475,6 +654,7 @@
                             </div>
                         </div>
 
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <!-- Left: Spec & Metrics -->
                             <div>
@@ -539,11 +719,65 @@
                 </div>
             </div>
         </Teleport>
+
+        <!-- Document Viewer Modal -->
+        <Teleport to="body">
+            <div v-if="activeDoc"
+                class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                @click.self="closeDocModal">
+                <div class="bg-white dark:bg-card-dark w-full max-w-3xl rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col h-[80vh]">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-gray-50 dark:bg-white/5">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-primary">description</span>
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ activeDoc.type }}</h3>
+                                <p class="text-xs text-gray-500">
+                                    {{ activeDoc.vehicleId ? `Vehicle: ${activeDoc.vehicleId}` : `Driver: ${activeDoc.driver}` }}
+                                </p>
+                            </div>
+                        </div>
+                        <button @click="closeDocModal"
+                            class="text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    
+                    <div class="flex-1 bg-gray-100 dark:bg-black/50 overflow-hidden relative flex items-center justify-center p-4">
+                        <!-- Mock Doc Viewer -->
+                        <div class="bg-white shadow-lg p-2 max-h-full overflow-y-auto">
+                            <img :src="activeDoc.url" class="max-w-full object-contain" alt="Document Preview"/>
+                        </div>
+                        <div class="absolute bottom-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full text-white text-sm flex gap-4">
+                            <button class="hover:text-primary transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">download</span> Download</button>
+                            <span class="w-px h-4 bg-white/20 my-auto"></span>
+                            <button class="hover:text-primary transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">print</span> Print</button>
+                            <span class="w-px h-4 bg-white/20 my-auto"></span>
+                            <button class="hover:text-primary transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">share</span> Share</button>
+                        </div>
+                    </div>
+
+                    <div class="px-6 py-4 border-t border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 grid grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Expiry Date</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ activeDoc.expiry }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Status</p>
+                            <p class="text-sm font-bold" :class="activeDoc.status === 'Active' ? 'text-green-600' : 'text-red-500'">{{ activeDoc.status }}</p>
+                        </div>
+                         <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Verified By</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">Admin System (Auto)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
 
@@ -558,7 +792,22 @@ const fuelLogs = ref([
     { id: 105, date: 'Oct 21, 2023', vehicleId: 'TRK-992', station: 'Chevron', gallons: 44.8, cost: 172.48, alert: false },
 ])
 
-const tabs = ['Active Drivers', 'Fleet Vehicles', 'Fuel Logs']
+const vehicleDocs = ref([
+    { id: 'DOC-V1', vehicleId: 'TRK-992', hubId: 1, type: 'Insurance Policy', status: 'Active', expiry: 'Dec 31, 2024', lastRenewed: 'Jan 01, 2024', url: 'https://via.placeholder.com/400x500?text=Insurance+Policy' },
+    { id: 'DOC-V2', vehicleId: 'TRK-992', hubId: 1, type: 'Vehicle Registration', status: 'Active', expiry: 'Nov 15, 2024', lastRenewed: 'Nov 15, 2023', url: 'https://via.placeholder.com/400x500?text=Registration' },
+    { id: 'DOC-V3', vehicleId: 'VAN-104', hubId: 1, type: 'Insurance Policy', status: 'Expiring Soon', expiry: 'Oct 30, 2023', lastRenewed: 'Oct 30, 2022', url: 'https://via.placeholder.com/400x500?text=Insurance+Van' },
+    { id: 'DOC-V4', vehicleId: 'VAN-104', hubId: 1, type: 'Emission Cart', status: 'Active', expiry: 'Jun 10, 2025', lastRenewed: 'Jun 10, 2023', url: 'https://via.placeholder.com/400x500?text=Emission+Cert' },
+    { id: 'DOC-V5', vehicleId: 'TRK-221', hubId: 2, type: 'Insurance Policy', status: 'Active', expiry: 'Jan 15, 2025', lastRenewed: 'Jan 15, 2024', url: 'https://via.placeholder.com/400x500?text=Insurance+TRK221' },
+])
+
+const driverDocs = ref([
+    { id: 'DOC-D1', driver: 'David Miller', driverId: 'D001', hubId: 1, type: 'Commercial License (CDL)', licenseNo: 'DL-992812', status: 'Active', expiry: 'Aug 12, 2025', joined: 'Mar 10, 2021', url: 'https://via.placeholder.com/400x500?text=CDL+David' },
+    { id: 'DOC-D1-2', driver: 'David Miller', driverId: 'D001', hubId: 1, type: 'Medical Certificate', licenseNo: 'MED-552', status: 'Active', expiry: 'Sep 10, 2024', joined: 'Mar 10, 2021', url: 'https://via.placeholder.com/400x500?text=Medical+Results' },
+    { id: 'DOC-D2', driver: 'Sarah Jenkins', driverId: 'D002', hubId: 2, type: 'Commercial License (CDL)', licenseNo: 'DL-441299', status: 'Active', expiry: 'Dec 05, 2024', joined: 'Jul 22, 2020', url: 'https://via.placeholder.com/400x500?text=CDL+Sarah' },
+    { id: 'DOC-D3', driver: 'Mike Ross', driverId: 'D003', hubId: 2, type: 'Hazardous Material Cert', licenseNo: 'HM-112', status: 'Expired', expiry: 'Sep 20, 2023', joined: 'Jan 15, 2022', url: 'https://via.placeholder.com/400x500?text=HazMat+Cert' },
+])
+
+const tabs = ['Active Drivers', 'Fleet Vehicles', 'Fuel Logs', 'Vehicle Documents', 'Driver Documents']
 const activeTab = ref('Active Drivers')
 const activeDropdown = ref(null)
 
@@ -567,14 +816,75 @@ const isVehicleModalOpen = ref(false)
 const vehicleModalMode = ref('add') // 'add' or 'edit'
 const vehicleFormData = ref({})
 
+// Document Viewing State
+const activeDoc = ref(null)
+const expandedDocs = ref([]) // IDs of expanded rows
+
 // Profile Viewers state
 const activeDriverProfile = ref(null)
 const activeVehicleProfile = ref(null)
 const chatInput = ref('')
 
+// Computed properties for document grouping & filtering
+const groupedVehicleDocs = computed(() => {
+    // 1. Filter by active warehouse
+    let docs = vehicleDocs.value
+    if (store.activeWarehouse !== 'all') {
+        docs = docs.filter(d => d.hubId === store.activeWarehouse)
+    }
+    
+    // 2. Group by Vehicle ID
+    const groups = {}
+    docs.forEach(doc => {
+        if (!groups[doc.vehicleId]) {
+            groups[doc.vehicleId] = []
+        }
+        groups[doc.vehicleId].push(doc)
+    })
+    return groups
+})
+
+const groupedDriverDocs = computed(() => {
+    // 1. Filter by active warehouse
+    let docs = driverDocs.value
+    if (store.activeWarehouse !== 'all') {
+        docs = docs.filter(d => d.hubId === store.activeWarehouse)
+    }
+
+    // 2. Group by Driver Name/ID
+    const groups = {}
+    docs.forEach(doc => {
+        if (!groups[doc.driverId]) {
+            groups[doc.driverId] = {
+                id: doc.driverId,
+                name: doc.driver,
+                docs: []
+            }
+        }
+        groups[doc.driverId].docs.push(doc)
+    })
+    return Object.values(groups)
+})
+
 // Dropdowns logic
 const toggleVehicleDropdown = (id) => {
     activeDropdown.value = activeDropdown.value === id ? null : id
+}
+
+const toggleDocExpand = (id) => {
+    if (expandedDocs.value.includes(id)) {
+        expandedDocs.value = expandedDocs.value.filter(e => e !== id)
+    } else {
+        expandedDocs.value.push(id)
+    }
+}
+
+const openDocModal = (doc) => {
+    activeDoc.value = doc
+}
+
+const closeDocModal = () => {
+    activeDoc.value = null
 }
 
 const closeDropdowns = () => {
