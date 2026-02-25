@@ -72,6 +72,7 @@
                         <tr>
                             <th class="p-4 font-medium">Hub Name</th>
                             <th class="p-4 font-medium">Location</th>
+                            <th class="p-4 font-medium">Operating Hours</th>
                             <th class="p-4 font-medium">Manager</th>
                             <th class="p-4 font-medium">Capacity</th>
                             <th class="p-4 font-medium">Status</th>
@@ -86,6 +87,8 @@
                                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ hub.hubCode }}</div>
                             </td>
                             <td class="p-4 text-gray-600 dark:text-gray-300">{{ hub.location }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-300 font-mono text-xs">{{ hub.operatingHours ||
+                                '09:00 AM - 09:00 PM' }}</td>
                             <td class="p-4">
                                 <div class="flex items-center gap-2">
                                     <div
@@ -183,6 +186,13 @@
                                 class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Location</label>
                             <input type="text" v-model="draftHub.location" placeholder="New York, NY"
                                 class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Operating
+                                Hours</label>
+                            <input type="text" v-model="draftHub.operatingHours" placeholder="09:00 AM - 09:00 PM"
+                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm font-mono text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
@@ -302,6 +312,7 @@ const openAddModal = () => {
         name: '',
         location: '',
         manager: '',
+        operatingHours: '09:00 AM - 09:00 PM',
         capacity: 0,
         status: 'Optimal'
     }
