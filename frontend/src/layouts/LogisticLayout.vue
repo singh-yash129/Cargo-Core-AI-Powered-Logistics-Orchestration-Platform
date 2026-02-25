@@ -48,6 +48,9 @@
                         :unread-count="store.unreadNotificationsCount" @mark-read="store.markNotificationRead"
                         @mark-all-read="store.markAllNotificationsRead" @clear-all="store.clearNotifications" />
 
+                    <!-- Meeting Scheduler -->
+                    <LogisticHeaderMeetingScheduler />
+
                     <!-- To-Do List -->
                     <LogisticHeaderTodo />
 
@@ -74,6 +77,7 @@ import WarehouseSelectorModal from '@/LWD-components/WarehouseSelectorModal.vue'
 import NotificationPopover from '@/LWD-components/NotificationPopover.vue'
 import LogisticHeaderWeather from '@/LWD-components/LogisticHeaderWeather.vue'
 import LogisticHeaderTodo from '@/LWD-components/LogisticHeaderTodo.vue'
+import LogisticHeaderMeetingScheduler from '@/LWD-components/LogisticHeaderMeetingScheduler.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { useRoute } from 'vue-router'
