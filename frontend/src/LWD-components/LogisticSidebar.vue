@@ -59,29 +59,166 @@
             </div>
         </nav>
 
+
         <!-- User Profile -->
-        <div class="p-4 border-t border-gray-200 dark:border-white/5">
+        <div class="p-4 border-t border-gray-200 dark:border-white/5 relative" @mouseenter="isUserMenuOpen = true" @mouseleave="isUserMenuOpen = false">
+            
+            <!-- Context Menu -->
+            <transition
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="transform scale-95 opacity-0 translate-y-2"
+                enter-to-class="transform scale-100 opacity-100 translate-y-0"
+                leave-active-class="transition duration-150 ease-in"
+                leave-from-class="transform scale-100 opacity-100 translate-y-0"
+                leave-to-class="transform scale-95 opacity-0 translate-y-2"
+            >
+                <div v-if="isUserMenuOpen" class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-card-dark rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50">
+                    <div class="py-1">
+                        <!-- Profile Option -->
+                        <button @click="showProfileModal = true" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3">
+                            <span class="material-symbols-outlined text-[20px]">person</span>
+                            Profile
+                        </button>
+                        
+                        <!-- Need Support Option -->
+                        <div class="relative group/support">
+                            <button @click="showSupportModal = true" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[20px]">help</span>
+                                Need Support
+                            </button>
+                            <!-- Tooltip/Hover for email -->
+                            <div class="hidden group-hover/support:block absolute left-full bottom-0 ml-2 p-2 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                                {{ userEmail }}
+                            </div>
+                        </div>
+
+                         <div class="border-t border-gray-200 dark:border-white/5 my-1"></div>
+
+                        <!-- Logout Option -->
+                        <button @click="handleLogout" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3">
+                            <span class="material-symbols-outlined text-[20px]">logout</span>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </transition>
+
             <div
-                class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer transition-colors">
+                class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer transition-colors relative z-10">
                 <div
                     class="w-9 h-9 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center ring-1 ring-black/5 dark:ring-white/10">
-                    <span class="font-bold text-xs text-gray-700 dark:text-white">LM</span>
+                    <span class="font-bold text-xs text-gray-700 dark:text-white">{{ userInitials }}</span>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="text-sm font-medium text-gray-900 dark:text-white truncate">Logistics Admin</div>
-                    <div class="text-xs text-gray-500 truncate">System Owner</div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ userName }}</div>
+                    <div class="text-xs text-gray-500 truncate">{{ userRole }}</div>
                 </div>
                 <span class="material-symbols-outlined text-gray-400">more_vert</span>
             </div>
         </div>
     </aside>
+
+    <!-- Support Modal -->
+    <BaseModal :isOpen="showSupportModal" @close="showSupportModal = false">
+        <template #title>Need Support?</template>
+        <div class="space-y-4">
+            <p class="text-gray-600 dark:text-gray-300">
+                Contact our support team for assistance with any issues or questions.
+            </p>
+            <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="material-symbols-outlined text-primary">mail</span>
+                    <span class="font-medium">Email Support</span>
+                </div>
+                <a :href="'mailto:' + userEmail" class="text-primary hover:underline block ml-9">{{ userEmail }}</a>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="material-symbols-outlined text-primary">phone</span>
+                    <span class="font-medium">Phone Support</span>
+                </div>
+                <a href="tel:+1234567890" class="text-gray-600 dark:text-gray-300 hover:text-primary block ml-9">+1 (234) 567-890</a>
+            </div>
+        </div>
+        <template #footer>
+            <button @click="showSupportModal = false" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+                Close
+            </button>
+        </template>
+    </BaseModal>
+
+    <!-- Profile Modal -->
+    <BaseModal :isOpen="showProfileModal" @close="showProfileModal = false">
+        <template #title>User Profile</template>
+        <div class="space-y-6">
+            <div class="flex items-center gap-4">
+                <div class="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-2xl font-bold text-primary border-2 border-primary/20">
+                    {{ userInitials }}
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold text-gray-900 dark:text-white">{{ userName }}</h4>
+                    <p class="text-gray-500">{{ userRole }}</p>
+                    <div class="mt-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full inline-block">Active</div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                    <div class="text-xs text-gray-500 mb-1">Email Address</div>
+                    <div class="font-medium text-sm">{{ userEmail }}</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                    <div class="text-xs text-gray-500 mb-1">Employee ID</div>
+                    <div class="font-medium text-sm">LOG-8842</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                    <div class="text-xs text-gray-500 mb-1">Department</div>
+                    <div class="font-medium text-sm">Logistics Operations</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                    <div class="text-xs text-gray-500 mb-1">Last Login</div>
+                    <div class="font-medium text-sm">Today, 09:41 AM</div>
+                </div>
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end gap-3">
+                <button @click="showProfileModal = false" class="px-4 py-2 text-gray-600 hover:text-gray-900">Close</button>
+                <!-- <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Edit Profile</button> -->
+            </div>
+        </template>
+    </BaseModal>
 </template>
 
 <script setup>
 import { useLogisticStore } from '@/stores/logisticStore'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import BaseModal from '@/components/BaseModal.vue'
 
 const store = useLogisticStore()
+
+// State for User Menu and Modals
+const isUserMenuOpen = ref(false)
+const showSupportModal = ref(false)
+const showProfileModal = ref(false)
+
+// User Data
+const userName = ref('Logistics Admin')
+const userRole = ref('System Owner')
+const userEmail = ref('support@quadcore.dev')
+const userInitials = computed(() => {
+    return userName.value
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2)
+})
+
+const handleLogout = () => {
+    console.log('Logging out...')
+    // Add logout logic here
+}
 
 const availableHubs = computed(() => {
     return store.hubs.filter(hub => !store.comparedWarehouses.find(w => w.id === hub.id))
