@@ -2,17 +2,17 @@
     <div class="space-y-6">
         <!-- Header -->
         <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-white">Operational Performance</h2>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Operational Performance</h2>
             <div class="flex gap-3 items-center">
                 <select v-model="timeRange"
-                    class="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-primary/50">
+                    class="bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
                     <option value="today">Today</option>
                     <option value="week">This Week</option>
                     <option value="month">This Month</option>
                     <option value="quarter">This Quarter</option>
                 </select>
                 <button @click="exportReport"
-                    class="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">
+                    class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">
                     <span class="material-symbols-outlined text-[18px]">download</span> Export Report
                 </button>
             </div>
@@ -22,14 +22,15 @@
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div v-for="kpi in primaryKPIs" :key="kpi.label"
                 class="glass-panel p-4 rounded-xl relative overflow-hidden group hover:border-primary/20 transition-colors">
-                <div class="text-xs text-gray-400 uppercase font-semibold tracking-wide">{{ kpi.label }}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">{{ kpi.label
+                    }}</div>
                 <div class="text-2xl font-bold mt-1" :class="kpi.color">{{ kpi.value }}</div>
                 <div class="flex items-center gap-1 mt-1">
                     <span class="material-symbols-outlined text-[14px]"
                         :class="kpi.trend > 0 ? 'text-green-400' : 'text-red-400'">{{ kpi.trend > 0 ? 'trending_up' :
                             'trending_down' }}</span>
                     <span class="text-xs" :class="kpi.trend > 0 ? 'text-green-400' : 'text-red-400'">{{ kpi.trendLabel
-                    }}</span>
+                        }}</span>
                 </div>
                 <div class="absolute bottom-0 left-0 right-0 h-0.5" :class="kpi.barColor"></div>
             </div>
@@ -39,27 +40,18 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Order Processing Time Trend -->
             <div class="glass-panel p-5 rounded-xl">
-                <h3 class="font-bold text-white flex items-center gap-2 mb-4">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-blue-400">timeline</span>
                     Order Processing Time (Hours)
                 </h3>
-                <div class="h-60 flex items-end gap-2 px-2">
-                    <div v-for="(bar, idx) in processingTimeBars" :key="idx"
-                        class="flex-1 flex flex-col items-center gap-1 h-full">
-                        <div class="text-[10px] text-gray-500 shrink-0">{{ bar.value }}h</div>
-                        <div class="w-full flex-1 flex items-end">
-                            <div class="w-full rounded-t transition-all hover:opacity-80"
-                                :class="bar.value > 4 ? 'bg-red-500' : bar.value > 3 ? 'bg-yellow-500' : 'bg-primary'"
-                                :style="`height: ${(bar.value / 6) * 100}%`"></div>
-                        </div>
-                        <div class="text-[10px] text-gray-500 shrink-0">{{ bar.day }}</div>
-                    </div>
+                <div class="h-60 relative">
+                    <Bar :data="processingChartData" :options="processingChartOptions" />
                 </div>
             </div>
 
             <!-- Pick Accuracy Gauge -->
             <div class="glass-panel p-5 rounded-xl">
-                <h3 class="font-bold text-white flex items-center gap-2 mb-4">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-green-400">check_circle</span>
                     Pick Accuracy Rate
                 </h3>
@@ -74,22 +66,22 @@
                                 :stroke-dasharray="`${pickAccuracy * 2.64} 264`" />
                         </svg>
                         <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <div class="text-3xl font-bold text-white">{{ pickAccuracy }}%</div>
+                            <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ pickAccuracy }}%</div>
                             <div class="text-[10px] text-gray-500 uppercase">Accuracy</div>
                         </div>
                     </div>
                     <!-- Breakdown -->
                     <div class="space-y-4">
                         <div>
-                            <div class="text-sm text-gray-400">Total Picks Today</div>
-                            <div class="text-xl font-bold text-white">1,248</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Total Picks Today</div>
+                            <div class="text-xl font-bold text-gray-900 dark:text-white">1,248</div>
                         </div>
                         <div>
-                            <div class="text-sm text-gray-400">Correct Picks</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Correct Picks</div>
                             <div class="text-xl font-bold text-green-400">1,223</div>
                         </div>
                         <div>
-                            <div class="text-sm text-gray-400">Errors</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Errors</div>
                             <div class="text-xl font-bold text-red-400">25</div>
                         </div>
                     </div>
@@ -101,7 +93,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Labor Utilization -->
             <div class="glass-panel p-5 rounded-xl">
-                <h3 class="font-bold text-white flex items-center gap-2 mb-4">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-purple-400">groups</span>
                     Labor Utilization
                 </h3>
@@ -113,7 +105,7 @@
                                 :class="dept.percent >= 90 ? 'text-green-400' : dept.percent >= 70 ? 'text-yellow-400' : 'text-red-400'">{{
                                     dept.percent }}%</span>
                         </div>
-                        <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
                             <div class="h-full rounded-full transition-all"
                                 :class="dept.percent >= 90 ? 'bg-green-500' : dept.percent >= 70 ? 'bg-yellow-500' : 'bg-red-500'"
                                 :style="`width: ${dept.percent}%`"></div>
@@ -126,21 +118,21 @@
 
             <!-- Dock Dwell Time -->
             <div class="glass-panel p-5 rounded-xl">
-                <h3 class="font-bold text-white flex items-center gap-2 mb-4">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-yellow-400">local_shipping</span>
                     Dock Dwell Time
                 </h3>
                 <div class="space-y-3">
                     <div v-for="dock in dwellTimes" :key="dock.dock"
-                        class="p-3 bg-white/5 rounded-lg border border-white/5">
+                        class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                         <div class="flex justify-between items-center mb-1">
-                            <span class="text-sm font-bold text-white">{{ dock.dock }}</span>
+                            <span class="text-sm font-bold text-gray-900 dark:text-white">{{ dock.dock }}</span>
                             <span class="text-sm font-mono"
                                 :class="dock.minutes > 45 ? 'text-red-400' : dock.minutes > 30 ? 'text-yellow-400' : 'text-green-400'">
                                 {{ dock.minutes }} min
                             </span>
                         </div>
-                        <div class="w-full bg-gray-700 h-1.5 rounded-full overflow-hidden">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
                             <div class="h-full rounded-full"
                                 :class="dock.minutes > 45 ? 'bg-red-500' : dock.minutes > 30 ? 'bg-yellow-500' : 'bg-green-500'"
                                 :style="`width: ${Math.min((dock.minutes / 60) * 100, 100)}%`"></div>
@@ -151,58 +143,58 @@
                 <div class="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
                     <div class="flex justify-between">
                         <span class="text-xs text-blue-400 font-bold">Avg. Dwell Today</span>
-                        <span class="text-xs text-white font-bold">{{ avgDwell }} min</span>
+                        <span class="text-xs text-gray-900 dark:text-white font-bold">{{ avgDwell }} min</span>
                     </div>
                 </div>
             </div>
 
             <!-- Stock & Packing Metrics -->
             <div class="glass-panel p-5 rounded-xl">
-                <h3 class="font-bold text-white flex items-center gap-2 mb-4">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-teal-400">inventory</span>
                     Stock & Packing Health
                 </h3>
                 <div class="space-y-4">
-                    <div class="p-3 bg-white/5 rounded-lg">
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-400">Stock Discrepancy</span>
+                            <span class="text-gray-600 dark:text-gray-400">Stock Discrepancy</span>
                             <span class="font-bold"
                                 :class="stockDiscrepancy <= 1 ? 'text-green-400' : 'text-red-400'">{{ stockDiscrepancy
                                 }}%</span>
                         </div>
-                        <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
                             <div class="h-full rounded-full"
                                 :class="stockDiscrepancy <= 1 ? 'bg-green-500' : 'bg-red-500'"
                                 :style="`width: ${stockDiscrepancy * 10}%`"></div>
                         </div>
                     </div>
-                    <div class="p-3 bg-white/5 rounded-lg">
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-400">Packing Error Rate</span>
+                            <span class="text-gray-600 dark:text-gray-400">Packing Error Rate</span>
                             <span class="font-bold" :class="packingError <= 2 ? 'text-green-400' : 'text-red-400'">{{
                                 packingError }}%</span>
                         </div>
-                        <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
                             <div class="h-full rounded-full" :class="packingError <= 2 ? 'bg-green-500' : 'bg-red-500'"
                                 :style="`width: ${packingError * 10}%`"></div>
                         </div>
                     </div>
-                    <div class="p-3 bg-white/5 rounded-lg">
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-400">Daily Demand Load</span>
-                            <span class="font-bold text-white">{{ demandLoad }} orders</span>
+                            <span class="text-gray-600 dark:text-gray-400">Daily Demand Load</span>
+                            <span class="font-bold text-gray-900 dark:text-white">{{ demandLoad }} orders</span>
                         </div>
-                        <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
                             <div class="bg-blue-500 h-full rounded-full" :style="`width: ${(demandLoad / 60) * 100}%`">
                             </div>
                         </div>
                     </div>
-                    <div class="p-3 bg-white/5 rounded-lg">
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-400">Returns Processing Rate</span>
+                            <span class="text-gray-600 dark:text-gray-400">Returns Processing Rate</span>
                             <span class="font-bold text-green-400">94%</span>
                         </div>
-                        <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
                             <div class="bg-green-500 h-full rounded-full" style="width: 94%"></div>
                         </div>
                     </div>
@@ -212,19 +204,12 @@
 
         <!-- Daily Demand Load Chart -->
         <div class="glass-panel p-5 rounded-xl">
-            <h3 class="font-bold text-white flex items-center gap-2 mb-4">
+            <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
                 <span class="material-symbols-outlined text-primary">bar_chart</span>
                 Daily Demand Load (Orders per Day)
             </h3>
-            <div class="h-48 flex items-end gap-1 px-2">
-                <div v-for="(d, idx) in demandChart" :key="idx" class="flex-1 flex flex-col items-center gap-1 h-full">
-                    <div class="text-[9px] text-gray-500 shrink-0">{{ d.count }}</div>
-                    <div class="w-full flex-1 flex items-end">
-                        <div class="w-full rounded-t transition-all hover:opacity-80 bg-gradient-to-t from-primary/60 to-primary"
-                            :style="`height: ${d.count > 0 ? (d.count / 60) * 100 : 0}%`"></div>
-                    </div>
-                    <div class="text-[9px] text-gray-500 shrink-0">{{ d.day }}</div>
-                </div>
+            <div class="h-48 relative">
+                <Bar :data="demandChartData" :options="demandChartOptions" />
             </div>
         </div>
 
@@ -238,7 +223,11 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+import { Bar } from 'vue-chartjs'
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js'
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 const timeRange = ref('today')
 const pickAccuracy = ref(98)
@@ -313,4 +302,118 @@ const demandChart = ref([
     { day: '23', count: 55 }, { day: '24', count: 42 }, { day: '25', count: 36 },
     { day: '26', count: 38 }, { day: '27', count: 0 }, { day: '28', count: 0 },
 ])
+
+// ======== Chart.js Configs ========
+
+// Order Processing Time Bar Chart
+const processingChartData = computed(() => ({
+    labels: processingTimeBars.value.map(b => b.day),
+    datasets: [{
+        label: 'Processing Time (hrs)',
+        data: processingTimeBars.value.map(b => b.value),
+        backgroundColor: processingTimeBars.value.map(b =>
+            b.value > 4 ? 'rgba(239, 68, 68, 0.8)' :
+                b.value > 3 ? 'rgba(245, 158, 11, 0.8)' :
+                    'rgba(68, 233, 150, 0.8)'
+        ),
+        borderColor: processingTimeBars.value.map(b =>
+            b.value > 4 ? 'rgb(239, 68, 68)' :
+                b.value > 3 ? 'rgb(245, 158, 11)' :
+                    'rgb(68, 233, 150)'
+        ),
+        borderWidth: 1,
+        borderRadius: 6,
+        borderSkipped: false,
+    }]
+}))
+
+const processingChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            titleFont: { size: 13, weight: 'bold' },
+            bodyFont: { size: 12 },
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+                label: (ctx) => `${ctx.parsed.y} hours`
+            }
+        }
+    },
+    scales: {
+        x: {
+            grid: { display: false },
+            ticks: { color: '#9ca3af', font: { size: 11 } }
+        },
+        y: {
+            min: 0,
+            max: 6,
+            grid: { color: 'rgba(156,163,175,0.1)' },
+            ticks: {
+                color: '#9ca3af',
+                font: { size: 11 },
+                callback: (v) => v + 'h'
+            }
+        }
+    }
+}
+
+// Daily Demand Load Bar Chart
+const demandChartData = computed(() => ({
+    labels: demandChart.value.map(d => 'Day ' + d.day),
+    datasets: [{
+        label: 'Orders',
+        data: demandChart.value.map(d => d.count),
+        backgroundColor: (ctx) => {
+            const chart = ctx.chart
+            const { ctx: canvasCtx, chartArea } = chart
+            if (!chartArea) return 'rgba(68, 233, 150, 0.6)'
+            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top)
+            gradient.addColorStop(0, 'rgba(68, 233, 150, 0.3)')
+            gradient.addColorStop(1, 'rgba(68, 233, 150, 0.9)')
+            return gradient
+        },
+        borderColor: 'rgb(68, 233, 150)',
+        borderWidth: 1,
+        borderRadius: 4,
+        borderSkipped: false,
+    }]
+}))
+
+const demandChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            titleFont: { size: 13, weight: 'bold' },
+            bodyFont: { size: 12 },
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+                label: (ctx) => `${ctx.parsed.y} orders`
+            }
+        }
+    },
+    scales: {
+        x: {
+            grid: { display: false },
+            ticks: { color: '#9ca3af', font: { size: 10 } }
+        },
+        y: {
+            min: 0,
+            max: 60,
+            grid: { color: 'rgba(156,163,175,0.1)' },
+            ticks: {
+                color: '#9ca3af',
+                font: { size: 11 },
+                stepSize: 15
+            }
+        }
+    }
+}
 </script>

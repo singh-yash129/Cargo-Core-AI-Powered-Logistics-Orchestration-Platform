@@ -3,7 +3,7 @@
         <div class="flex items-center gap-3">
             <div
                 class="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-400 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
-                <span class="material-symbols-outlined text-white">psychology</span>
+                <span class="material-symbols-outlined text-gray-900 dark:text-white">psychology</span>
             </div>
             <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">
                 Smart WMS Intelligence</h2>
@@ -11,8 +11,9 @@
 
         <!-- AI Chat Interface -->
         <div class="glass-panel rounded-xl overflow-hidden border border-purple-500/20">
-            <div class="p-4 border-b border-white/5 bg-gradient-to-r from-purple-500/10 to-pink-500/10">
-                <h3 class="font-bold text-white flex items-center gap-2">
+            <div
+                class="p-4 border-b border-gray-100 dark:border-white/5 bg-gradient-to-r from-purple-500/10 to-pink-500/10">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <span class="material-symbols-outlined text-purple-400">smart_toy</span>
                     AI Assistant — Ask me anything about your warehouse
                 </h3>
@@ -21,17 +22,17 @@
                 <div v-for="(msg, idx) in chatMessages" :key="idx" class="flex"
                     :class="msg.type === 'user' ? 'justify-end' : 'justify-start'">
                     <div class="max-w-[80%] p-3 rounded-lg text-sm"
-                        :class="msg.type === 'user' ? 'bg-primary/20 text-primary border border-primary/20' : 'bg-white/5 text-gray-200 border border-white/5'">
+                        :class="msg.type === 'user' ? 'bg-primary/20 text-primary border border-primary/20' : 'bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-white/5'">
                         {{ msg.text }}
                     </div>
                 </div>
             </div>
-            <div class="p-4 border-t border-white/5 flex gap-3">
+            <div class="p-4 border-t border-gray-100 dark:border-white/5 flex gap-3">
                 <input v-model="chatInput" @keyup.enter="sendChat" type="text"
                     placeholder="Ask: 'Which aisle has free space?' or 'How many laborers are free at 3 PM?'"
-                    class="flex-1 bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500/50 text-sm" />
+                    class="flex-1 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-purple-500/50 text-sm" />
                 <button @click="sendChat"
-                    class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-5 py-3 rounded-lg font-bold transition-colors flex items-center gap-2">
+                    class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-gray-900 dark:text-white px-5 py-3 rounded-lg font-bold transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]">send</span>
                 </button>
             </div>
@@ -55,10 +56,10 @@
                     </div>
                     <div class="text-xs text-gray-500">{{ insight.confidence }}</div>
                 </div>
-                <h3 class="font-bold text-white mb-2 transition-colors"
+                <h3 class="font-bold text-gray-900 dark:text-white mb-2 transition-colors"
                     :class="`group-hover:text-${insight.color}-400`">
                     {{ insight.title }}</h3>
-                <p class="text-sm text-gray-400 mb-4">{{ insight.description }}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">{{ insight.description }}</p>
                 <button @click="handleInsightAction(insight)"
                     class="w-full py-2 rounded text-sm font-bold transition-colors"
                     :class="`bg-${insight.color}-500/20 hover:bg-${insight.color}-500/30 text-${insight.color}-400`">
@@ -69,28 +70,32 @@
 
         <!-- Tomorrow's Workload Prediction -->
         <div class="glass-panel p-6 rounded-xl border border-purple-500/10">
-            <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+            <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-purple-400">auto_graph</span>
                 Tomorrow's Workload Prediction
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="p-4 bg-white/5 rounded-lg border border-white/5 text-center">
-                    <div class="text-xs text-gray-400 uppercase mb-1">Expected Orders</div>
-                    <div class="text-3xl font-bold text-white">48</div>
+                <div
+                    class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-center">
+                    <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Expected Orders</div>
+                    <div class="text-3xl font-bold text-gray-900 dark:text-white">48</div>
                     <div class="text-xs text-red-400 mt-1">↑ 26% vs today</div>
                 </div>
-                <div class="p-4 bg-white/5 rounded-lg border border-white/5 text-center">
-                    <div class="text-xs text-gray-400 uppercase mb-1">Staff Needed</div>
+                <div
+                    class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-center">
+                    <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Staff Needed</div>
                     <div class="text-3xl font-bold text-blue-400">52</div>
                     <div class="text-xs text-yellow-400 mt-1">+10 extra suggested</div>
                 </div>
-                <div class="p-4 bg-white/5 rounded-lg border border-white/5 text-center">
-                    <div class="text-xs text-gray-400 uppercase mb-1">Peak Hours</div>
+                <div
+                    class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-center">
+                    <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Peak Hours</div>
                     <div class="text-3xl font-bold text-orange-400">10-2</div>
                     <div class="text-xs text-gray-500 mt-1">High volume window</div>
                 </div>
-                <div class="p-4 bg-white/5 rounded-lg border border-white/5 text-center">
-                    <div class="text-xs text-gray-400 uppercase mb-1">Dock Need</div>
+                <div
+                    class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-center">
+                    <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Dock Need</div>
                     <div class="text-3xl font-bold text-green-400">5/6</div>
                     <div class="text-xs text-yellow-400 mt-1">Near capacity</div>
                 </div>
@@ -101,7 +106,7 @@
                     <span class="material-symbols-outlined text-[18px]">schedule</span> Auto-Schedule Extra Staff
                 </button>
                 <button @click="alertLogistics"
-                    class="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2">
+                    class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]">notifications</span> Alert Logistics Manager
                 </button>
             </div>
@@ -109,7 +114,7 @@
 
         <!-- Toast -->
         <div v-if="toastMsg"
-            class="fixed bottom-6 right-6 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce"
+            class="fixed bottom-6 right-6 text-gray-900 dark:text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce"
             :class="toastClass">
             <span class="material-symbols-outlined">{{ toastIcon }}</span>
             <div class="font-bold">{{ toastMsg }}</div>

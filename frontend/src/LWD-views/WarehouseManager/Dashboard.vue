@@ -6,30 +6,30 @@
                 <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                     <span class="material-symbols-outlined text-4xl text-teal-500">inventory_2</span>
                 </div>
-                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Inventory Value</div>
+                <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Inventory Value</div>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-2xl font-bold text-white">$4.2M</span>
+                    <span class="text-2xl font-bold text-gray-900 dark:text-white">$4.2M</span>
                     <span class="text-xs text-green-400">+12%</span>
                 </div>
-                <div class="w-full bg-gray-800 h-1 mt-2 rounded-full overflow-hidden">
+                <div class="w-full bg-gray-100 dark:bg-gray-800 h-1 mt-2 rounded-full overflow-hidden">
                     <div class="bg-teal-500 h-full w-[85%]"></div>
                 </div>
             </div>
 
             <div
                 class="glass-panel p-4 rounded-xl flex flex-col justify-between h-32 group border-l-4 border-yellow-500">
-                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Orders Pending Pick</div>
+                <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Orders Pending Pick</div>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold text-white">{{ pendingOrdersCount }}</span>
+                    <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ pendingOrdersCount }}</span>
                     <span class="text-xs text-yellow-500">Critical</span>
                 </div>
                 <div class="text-xs text-gray-500">Avg Pick Time: 12m</div>
             </div>
 
             <div class="glass-panel p-4 rounded-xl flex flex-col justify-between h-32 group">
-                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Ready for Dispatch</div>
+                <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Ready for Dispatch</div>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold text-white">{{ readyForDispatch }}</span>
+                    <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ readyForDispatch }}</span>
                 </div>
                 <div class="text-xs text-blue-400 flex items-center gap-1">
                     <span class="material-symbols-outlined text-[14px]">local_shipping</span> Next Truck: 15m
@@ -37,16 +37,16 @@
             </div>
 
             <div class="glass-panel p-4 rounded-xl flex flex-col justify-between h-32 group">
-                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Labor Active</div>
+                <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Labor Active</div>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold text-white">{{ activeLabor }}</span>
+                    <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ activeLabor }}</span>
                     <span class="text-xs text-gray-500">/ {{ totalLabor }}</span>
                 </div>
                 <div class="flex -space-x-2 mt-2">
-                    <div class="w-6 h-6 rounded-full bg-gray-700 border border-black"></div>
+                    <div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 border border-black"></div>
                     <div class="w-6 h-6 rounded-full bg-gray-600 border border-black"></div>
                     <div
-                        class="w-6 h-6 rounded-full bg-gray-500 border border-black flex items-center justify-center text-[8px] text-white">
+                        class="w-6 h-6 rounded-full bg-gray-500 border border-black flex items-center justify-center text-[8px] text-gray-900 dark:text-white">
                         +{{ activeLabor - 2 }}</div>
                 </div>
             </div>
@@ -59,7 +59,7 @@
                     Safety Stock Alerts
                 </div>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold text-white">{{ criticalSkus.length }}</span>
+                    <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ criticalSkus.length }}</span>
                     <span v-if="criticalSkus.length > 0" class="text-xs text-red-400">SKUs Warning</span>
                     <span v-else class="text-xs text-green-400">All Good</span>
                 </div>
@@ -74,7 +74,7 @@
         <!-- Charts Row -->
         <div class="glass-panel p-5 rounded-xl h-[300px] md:h-[400px] flex flex-col">
             <div class="flex justify-between items-center mb-2">
-                <h3 class="font-bold text-white flex items-center gap-2">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <span class="material-symbols-outlined text-teal-500">trending_up</span>
                     Daily Throughput (Picks per Hour)
                 </h3>
@@ -89,7 +89,7 @@
 
             <!-- 1. Orders VS Returns (Bar) -->
             <div class="glass-panel p-5 rounded-xl flex flex-col transition-transform hover:scale-[1.01] h-64 md:h-80">
-                <h3 class="font-bold text-white flex items-center gap-2 mb-2 shrink-0">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-2 shrink-0">
                     <span class="material-symbols-outlined text-blue-400">compare_arrows</span>
                     Orders vs Returns
                 </h3>
@@ -100,7 +100,7 @@
 
             <!-- 2. Stock vs Packaging (Pie) -->
             <div class="glass-panel p-5 rounded-xl flex flex-col transition-transform hover:scale-[1.01] h-64 md:h-80">
-                <h3 class="font-bold text-white flex items-center gap-2 mb-2 shrink-0">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-2 shrink-0">
                     <span class="material-symbols-outlined text-purple-400">inventory</span>
                     Inventory Composition
                 </h3>
@@ -112,7 +112,7 @@
             <!-- 3. Active Workers vs Drivers (Doughnut) -->
             <div
                 class="glass-panel p-5 rounded-xl flex flex-col transition-transform hover:scale-[1.01] h-64 md:h-80 sm:col-span-2 md:col-span-1">
-                <h3 class="font-bold text-white flex items-center gap-2 mb-2 shrink-0">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-2 shrink-0">
                     <span class="material-symbols-outlined text-yellow-400">group</span>
                     On-Site Labor
                 </h3>
@@ -127,8 +127,8 @@
 
             <!-- Center: Interactive Picking Queue Table -->
             <div class="lg:col-span-2 glass-panel rounded-xl flex flex-col overflow-hidden">
-                <div class="p-4 border-b border-white/5 flex flex-wrap gap-4 justify-between items-center bg-black/20">
-                    <h3 class="font-bold text-white flex items-center gap-2">
+                <div class="p-4 border-b border-gray-100 dark:border-white/5 flex flex-wrap gap-4 justify-between items-center bg-gray-100 dark:bg-black/20">
+                    <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <span class="material-symbols-outlined text-teal-500">list_alt</span>
                         Live Picking Queue
                     </h3>
@@ -139,10 +139,10 @@
                             <span
                                 class="material-symbols-outlined absolute left-2 top-1.5 text-gray-500 text-[18px]">search</span>
                             <input v-model="searchQuery" type="text" placeholder="Search ID or Staff..."
-                                class="w-full bg-black/30 border border-white/10 rounded-lg pl-8 pr-3 py-1 text-sm text-white focus:outline-none focus:border-teal-500/50 transition-colors">
+                                class="w-full bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg pl-8 pr-3 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors">
                         </div>
                         <select v-model="statusFilter"
-                            class="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-teal-500/50 transition-colors">
+                            class="bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-teal-500/50 transition-colors">
                             <option value="">All Statuses</option>
                             <option value="Pending">Pending</option>
                             <option value="In Progress">In Progress</option>
@@ -154,8 +154,8 @@
 
                 <div class="flex-1 overflow-auto">
                     <table class="w-full text-left border-collapse min-w-[600px]">
-                        <thead class="bg-white/5 sticky top-0 z-10 backdrop-blur-md">
-                            <tr class="text-xs text-gray-400 uppercase tracking-wider">
+                        <thead class="bg-gray-50 dark:bg-white/5 sticky top-0 z-10 backdrop-blur-md">
+                            <tr class="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                                 <th class="p-3 font-medium">Order ID</th>
                                 <th class="p-3 font-medium">Items</th>
                                 <th class="p-3 font-medium">Zone</th>
@@ -165,9 +165,9 @@
                                 <th class="p-3 font-medium text-center">Action</th>
                             </tr>
                         </thead>
-                        <tbody class="text-sm divide-y divide-white/5">
+                        <tbody class="text-sm divide-y divide-gray-100 dark:divide-white/5">
                             <tr v-for="order in filteredQueue" :key="order.id"
-                                class="hover:bg-white/5 transition-colors group">
+                                class="hover:bg-gray-50 dark:bg-white/5 transition-colors group">
                                 <td class="p-3 font-mono text-teal-400">{{ order.id }}</td>
                                 <td class="p-3 text-gray-300">{{ order.items }} items</td>
                                 <td class="p-3 text-gray-300">
@@ -178,7 +178,7 @@
                                         class="text-red-400 text-xs font-bold bg-red-500/10 px-2 py-0.5 rounded flex items-center gap-1 w-fit">
                                         <span class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span> HIGH
                                     </span>
-                                    <span v-else class="text-gray-400 text-xs">Normal</span>
+                                    <span v-else class="text-gray-600 dark:text-gray-400 text-xs">Normal</span>
                                 </td>
                                 <td class="p-3">
                                     <div class="flex items-center gap-2" v-if="order.assigned">
@@ -190,12 +190,12 @@
                                     <span v-else class="text-gray-500 italic">-- Unassigned --</span>
                                 </td>
                                 <td class="p-3">
-                                    <div class="w-24 bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                    <div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
                                         <div class="bg-teal-500 h-full transition-all duration-500"
                                             :class="{ 'bg-blue-400': order.status === 'Review' }"
                                             :style="`width: ${order.progress}%`"></div>
                                     </div>
-                                    <div class="text-[10px] text-gray-400 mt-1 font-medium">
+                                    <div class="text-[10px] text-gray-600 dark:text-gray-400 mt-1 font-medium">
                                         <span v-if="order.status === 'Review'" class="text-blue-400">Reviewing</span>
                                         <span v-else-if="order.status === 'Unassigned'"
                                             class="text-gray-500">Waiting</span>
@@ -205,23 +205,23 @@
                                 <!-- Dynamic Context Menu -->
                                 <td class="p-3 relative text-center">
                                     <button @click.stop="toggleActionMenu(order.id)"
-                                        class="text-gray-500 hover:text-white p-1 rounded hover:bg-white/10 transition-colors">
+                                        class="text-gray-500 hover:text-gray-900 dark:text-white p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
                                         <span class="material-symbols-outlined">more_horiz</span>
                                     </button>
                                     <div v-if="activeActionMenu === order.id"
-                                        class="absolute right-8 mt-1 w-36 bg-gray-800 border border-white/10 rounded-lg shadow-xl py-1 z-20 text-left">
+                                        class="absolute right-8 mt-1 w-36 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 z-20 text-left">
                                         <button @click="markComplete(order)"
-                                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-white/5 text-green-400 flex items-center gap-2">
+                                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:bg-white/5 text-green-400 flex items-center gap-2">
                                             <span class="material-symbols-outlined text-[14px]">check_circle</span> Mark
                                             Complete
                                         </button>
                                         <button @click="reassign(order)"
-                                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-white/5 text-blue-400 flex items-center gap-2">
+                                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:bg-white/5 text-blue-400 flex items-center gap-2">
                                             <span class="material-symbols-outlined text-[14px]">person_add</span>
                                             Reassign
                                         </button>
                                         <button @click="toggleActionMenu(order.id)"
-                                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-white/5 text-gray-400 flex items-center gap-2">
+                                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 flex items-center gap-2">
                                             <span class="material-symbols-outlined text-[14px]">close</span> Close
                                         </button>
                                     </div>
@@ -242,15 +242,15 @@
             <div class="flex flex-col gap-6">
                 <!-- Labor Distribution Chart -->
                 <div class="glass-panel p-5 rounded-xl flex-1 flex flex-col">
-                    <h3 class="font-bold text-white mb-2">Real-time Labor Status</h3>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">Real-time Labor Status</h3>
 
                     <div class="flex-1 relative w-full flex justify-center items-center min-h-[160px]">
                         <Doughnut :data="laborChartData" :options="doughnutOptions" />
                     </div>
 
-                    <div class="mt-4 p-3 bg-white/5 rounded-lg border border-white/5">
-                        <div class="text-xs text-gray-400 mb-1">Efficiency Insight</div>
-                        <div class="text-sm text-white">Picking rate dropped by <span
+                    <div class="mt-4 p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">Efficiency Insight</div>
+                        <div class="text-sm text-gray-900 dark:text-white">Picking rate dropped by <span
                                 class="text-red-400 font-bold">4%</span> in Zone B due to spill hazard.</div>
                     </div>
                 </div>
@@ -258,18 +258,18 @@
                 <!-- Return Processing Queue (Small) -->
                 <div class="glass-panel p-4 rounded-xl space-y-2 bg-gray-800/20">
                     <div class="flex justify-between items-center mb-1">
-                        <h3 class="font-bold text-white text-sm">Recent Returns</h3>
+                        <h3 class="font-bold text-gray-900 dark:text-white text-sm">Recent Returns</h3>
                         <span class="text-xs text-gray-500">Today</span>
                     </div>
-                    <div class="flex items-center justify-between p-2 rounded bg-black/20 text-xs text-gray-300">
+                    <div class="flex items-center justify-between p-2 rounded bg-gray-100 dark:bg-black/20 text-xs text-gray-300">
                         <span>Damaged Item #992</span>
                         <span class="text-red-400 font-medium">Scrap</span>
                     </div>
-                    <div class="flex items-center justify-between p-2 rounded bg-black/20 text-xs text-gray-300">
+                    <div class="flex items-center justify-between p-2 rounded bg-gray-100 dark:bg-black/20 text-xs text-gray-300">
                         <span>Wrong Color #221</span>
                         <span class="text-green-400 font-medium">Restock</span>
                     </div>
-                    <div class="flex items-center justify-between p-2 rounded bg-black/20 text-xs text-gray-300">
+                    <div class="flex items-center justify-between p-2 rounded bg-gray-100 dark:bg-black/20 text-xs text-gray-300">
                         <span>Size Mismatch #110</span>
                         <span class="text-green-400 font-medium">Restock</span>
                     </div>
@@ -281,29 +281,29 @@
         <div v-if="showRestockModal"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
             <div
-                class="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl transform transition-all">
+                class="bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl transform transition-all">
                 <!-- Header -->
                 <div
-                    class="p-5 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-red-500/20 to-transparent">
-                    <h3 class="font-bold text-white flex items-center gap-2 text-lg">
+                    class="p-5 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-gradient-to-r from-red-500/20 to-transparent">
+                    <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-lg">
                         <span class="material-symbols-outlined text-red-400">warning</span>
                         Critical Restock Required
                     </h3>
-                    <button @click="showRestockModal = false" class="text-gray-400 hover:text-white transition-colors">
+                    <button @click="showRestockModal = false" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-colors">
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
 
                 <!-- Body -->
                 <div class="p-5 max-h-[60vh] overflow-y-auto no-scrollbar">
-                    <p class="text-sm text-gray-400 mb-4">The following SKUs have fallen below their safety stock
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">The following SKUs have fallen below their safety stock
                         thresholds and require immediate attention.</p>
                     <div class="space-y-3">
                         <div v-for="sku in criticalSkus" :key="sku.id"
-                            class="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-colors">
+                            class="flex justify-between items-center p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
                             <div>
-                                <div class="text-sm font-bold text-white">{{ sku.name }}</div>
-                                <div class="text-[10px] text-gray-400 font-mono mt-0.5">{{ sku.id }}</div>
+                                <div class="text-sm font-bold text-gray-900 dark:text-white">{{ sku.name }}</div>
+                                <div class="text-[10px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">{{ sku.id }}</div>
                             </div>
                             <div class="text-right">
                                 <div class="text-sm text-red-400 font-bold flex items-center gap-1 justify-end">
@@ -317,9 +317,9 @@
                 </div>
 
                 <!-- Footer -->
-                <div class="p-4 border-t border-white/10 flex gap-3 bg-black/20">
+                <div class="p-4 border-t border-gray-200 dark:border-white/10 flex gap-3 bg-gray-100 dark:bg-black/20">
                     <button @click="showRestockModal = false"
-                        class="flex-1 py-2.5 text-sm font-bold text-gray-300 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
+                        class="flex-1 py-2.5 text-sm font-bold text-gray-300 bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors">
                         Review Later
                     </button>
                     <button @click="processRestock"

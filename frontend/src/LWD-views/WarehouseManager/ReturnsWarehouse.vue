@@ -1,13 +1,13 @@
 <template>
     <div class="space-y-6">
         <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-white">Returns Processing (Warehouse)</h2>
-            <div class="bg-black/40 border border-white/10 rounded-lg p-1 flex">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Returns Processing (Warehouse)</h2>
+            <div class="bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-1 flex">
                 <button
-                    :class="activeTab === 'processing' ? 'px-4 py-1.5 bg-primary rounded text-background-dark text-sm font-bold shadow-lg' : 'px-4 py-1.5 text-gray-400 hover:text-white text-sm transition-colors'"
+                    :class="activeTab === 'processing' ? 'px-4 py-1.5 bg-primary rounded text-background-dark text-sm font-bold shadow-lg' : 'px-4 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm transition-colors'"
                     @click="activeTab = 'processing'">Processing</button>
                 <button
-                    :class="activeTab === 'completed' ? 'px-4 py-1.5 bg-primary rounded text-background-dark text-sm font-bold shadow-lg' : 'px-4 py-1.5 text-gray-400 hover:text-white text-sm transition-colors'"
+                    :class="activeTab === 'completed' ? 'px-4 py-1.5 bg-primary rounded text-background-dark text-sm font-bold shadow-lg' : 'px-4 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm transition-colors'"
                     @click="activeTab = 'completed'">Completed</button>
             </div>
         </div>
@@ -16,22 +16,23 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-yellow-400">{{ processingItems.length }}</div>
-                <div class="text-xs text-gray-400">Awaiting Inspection</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Awaiting Inspection</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-green-400">{{completedItems.filter(i => i.disposition ===
-                    'restock').length }}</div>
-                <div class="text-xs text-gray-400">Restocked Today</div>
+                    'restock').length}}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Restocked Today</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-red-400">{{completedItems.filter(i => i.disposition ===
-                    'claims').length }}</div>
-                <div class="text-xs text-gray-400">Sent to Claims</div>
+                    'claims').length}}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Sent to Claims</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-gray-400">{{completedItems.filter(i => i.disposition === 'discard'
+                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">{{completedItems.filter(i =>
+                    i.disposition === 'discard'
                     || i.disposition === 'recycle').length }}</div>
-                <div class="text-xs text-gray-400">Discarded / Recycled</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Discarded / Recycled</div>
             </div>
         </div>
 
@@ -40,7 +41,7 @@
             <!-- Grading Station -->
             <div class="lg:col-span-2 glass-panel p-6 rounded-xl">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-bold text-white">Item Grading Station 1</h3>
+                    <h3 class="font-bold text-gray-900 dark:text-white">Item Grading Station 1</h3>
                     <span
                         class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/30 animate-pulse">Active</span>
                 </div>
@@ -49,7 +50,7 @@
                     <!-- Damage Photo Capture Area -->
                     <div class="w-1/3 space-y-3">
                         <div @click="capturedPhoto = !capturedPhoto"
-                            class="aspect-square bg-gray-800 rounded-lg flex items-center justify-center border border-white/5 relative overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors">
+                            class="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center border border-gray-100 dark:border-white/5 relative overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors">
                             <div v-if="!capturedPhoto" class="flex flex-col items-center gap-2">
                                 <span
                                     class="material-symbols-outlined text-5xl text-gray-600 group-hover:scale-110 transition-transform">photo_camera</span>
@@ -69,15 +70,16 @@
 
                     <div class="flex-1 space-y-4">
                         <div>
-                            <label class="text-xs text-gray-400 mb-1 block">RMA ID / Tracking #</label>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">RMA ID / Tracking
+                                #</label>
                             <input type="text" v-model="rmaId" placeholder="Scan barcode..."
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50 font-mono">
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono">
                         </div>
 
                         <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Item Condition</label>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Item Condition</label>
                             <select v-model="itemCondition"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50">
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
                                 <option value="">Select condition...</option>
                                 <option value="Like New">Like New — No visible damage</option>
                                 <option value="Minor Wear">Minor Wear — Cosmetic only</option>
@@ -87,14 +89,15 @@
                         </div>
 
                         <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Condition Notes</label>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Condition Notes</label>
                             <textarea v-model="conditionNotes" placeholder="Describe the condition in detail..."
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50 text-sm h-16 resize-none"></textarea>
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm h-16 resize-none"></textarea>
                         </div>
 
                         <!-- Disposition Workflow -->
                         <div>
-                            <label class="text-xs text-gray-400 mb-2 block">Disposition Decision</label>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-2 block">Disposition
+                                Decision</label>
                             <div class="grid grid-cols-2 gap-3">
                                 <button @click="disposition = 'restock'"
                                     class="p-3 rounded-lg font-bold transition-all flex flex-col items-center gap-1 text-sm"
@@ -136,14 +139,14 @@
 
             <!-- Processing Queue -->
             <div class="glass-panel rounded-xl overflow-hidden p-6">
-                <h3 class="font-bold text-white mb-4">Items Awaiting Grading</h3>
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Items Awaiting Grading</h3>
                 <div class="space-y-3 max-h-[500px] overflow-y-auto">
                     <div v-for="item in processingItems" :key="item.id"
-                        class="p-3 bg-white/5 rounded-lg border border-white/5 hover:border-yellow-500/30 transition-colors cursor-pointer"
+                        class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 hover:border-yellow-500/30 transition-colors cursor-pointer"
                         @click="rmaId = item.rma">
                         <div class="flex justify-between items-start">
                             <div>
-                                <div class="text-white text-sm font-bold">{{ item.name }}</div>
+                                <div class="text-gray-900 dark:text-white text-sm font-bold">{{ item.name }}</div>
                                 <div class="text-xs text-gray-500 font-mono">{{ item.rma }}</div>
                             </div>
                             <span
@@ -162,19 +165,20 @@
         <!-- ===== COMPLETED TAB ===== -->
         <div v-if="activeTab === 'completed'">
             <div class="glass-panel rounded-xl overflow-hidden">
-                <div class="p-4 border-b border-white/5 flex justify-between items-center bg-black/20">
-                    <h3 class="font-bold text-white">Completed Returns Log</h3>
+                <div
+                    class="p-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-100 dark:bg-black/20">
+                    <h3 class="font-bold text-gray-900 dark:text-white">Completed Returns Log</h3>
                     <div class="flex gap-2">
                         <button v-for="f in ['All', 'restock', 'claims', 'discard', 'recycle']" :key="f"
                             @click="completedFilter = f === 'All' ? '' : f"
                             class="px-3 py-1 rounded text-xs font-bold transition-colors"
-                            :class="(f === 'All' && !completedFilter) || completedFilter === f ? 'bg-primary/20 text-primary' : 'bg-white/5 text-gray-400 hover:text-white'">
+                            :class="(f === 'All' && !completedFilter) || completedFilter === f ? 'bg-primary/20 text-primary' : 'bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'">
                             {{ f === 'All' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1) }}
                         </button>
                     </div>
                 </div>
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-white/5 text-gray-400 uppercase">
+                    <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 uppercase">
                         <tr>
                             <th class="p-4">Item</th>
                             <th class="p-4">RMA</th>
@@ -184,10 +188,12 @@
                             <th class="p-4">Time</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-white/5">
-                        <tr v-for="item in filteredCompleted" :key="item.id" class="hover:bg-white/5 transition-colors">
-                            <td class="p-4 text-white font-bold">{{ item.name }}</td>
-                            <td class="p-4 font-mono text-gray-400 text-xs">{{ item.rma || '--' }}</td>
+                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                        <tr v-for="item in filteredCompleted" :key="item.id"
+                            class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
+                            <td class="p-4 text-gray-900 dark:text-white font-bold">{{ item.name }}</td>
+                            <td class="p-4 font-mono text-gray-600 dark:text-gray-400 text-xs">{{ item.rma || '--' }}
+                            </td>
                             <td class="p-4">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold"
                                     :class="getConditionClass(item.condition)">{{ item.condition }}</span>
@@ -198,7 +204,7 @@
                                         :class="getDispositionBg(item.disposition)">
                                         <span class="material-symbols-outlined text-[14px]"
                                             :class="getDispositionColor(item.disposition)">{{
-                                            getDispositionIcon(item.disposition) }}</span>
+                                                getDispositionIcon(item.disposition) }}</span>
                                     </div>
                                     <span class="text-xs" :class="getDispositionColor(item.disposition)">{{
                                         item.dispositionLabel }}</span>

@@ -1,9 +1,9 @@
 <template>
     <div class="space-y-6">
         <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-white">Picking & Packing</h2>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Picking & Packing</h2>
             <div class="flex gap-2">
-                <div class="px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm">
+                <div class="px-4 py-2 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white text-sm">
                     Active Pickers: <span class="text-green-400 font-bold">{{stations.filter(s => s.active).length * 5
                         }}</span>
                 </div>
@@ -15,19 +15,19 @@
 
         <!-- Order Status Flow -->
         <div class="glass-panel p-4 rounded-xl">
-            <div class="text-xs text-gray-400 uppercase font-semibold mb-3">Order Fulfillment Pipeline</div>
+            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold mb-3">Order Fulfillment Pipeline</div>
             <div class="flex items-center justify-between gap-2">
                 <div v-for="(step, idx) in pipelineSteps" :key="step.label"
                     class="flex-1 flex flex-col items-center relative group">
                     <div class="w-full flex items-center">
                         <div class="flex-1 h-1 rounded-full"
-                            :class="idx === 0 ? 'bg-transparent' : step.active ? 'bg-primary' : 'bg-gray-700'"></div>
+                            :class="idx === 0 ? 'bg-transparent' : step.active ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'"></div>
                         <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all"
-                            :class="step.active ? 'bg-primary text-background-dark shadow-lg shadow-primary/30' : 'bg-white/5 text-gray-500 border border-white/10'">
+                            :class="step.active ? 'bg-primary text-background-dark shadow-lg shadow-primary/30' : 'bg-gray-50 dark:bg-white/5 text-gray-500 border border-gray-200 dark:border-white/10'">
                             <span class="material-symbols-outlined text-[18px]">{{ step.icon }}</span>
                         </div>
                         <div class="flex-1 h-1 rounded-full"
-                            :class="idx === pipelineSteps.length - 1 ? 'bg-transparent' : pipelineSteps[idx + 1]?.active ? 'bg-primary' : 'bg-gray-700'">
+                            :class="idx === pipelineSteps.length - 1 ? 'bg-transparent' : pipelineSteps[idx + 1]?.active ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'">
                         </div>
                     </div>
                     <div class="text-[10px] mt-2 font-bold text-center"
@@ -40,12 +40,12 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Pick Wave Status -->
             <div class="lg:col-span-2 glass-panel rounded-xl overflow-hidden">
-                <div class="p-6 border-b border-white/5 flex justify-between">
-                    <h3 class="font-bold text-white">Active Pick Waves</h3>
-                    <span class="text-xs text-gray-400">Auto-refreshing in 30s</span>
+                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between">
+                    <h3 class="font-bold text-gray-900 dark:text-white">Active Pick Waves</h3>
+                    <span class="text-xs text-gray-600 dark:text-gray-400">Auto-refreshing in 30s</span>
                 </div>
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-white/5 text-gray-400 uppercase">
+                    <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 uppercase">
                         <tr>
                             <th class="p-4">Wave ID</th>
                             <th class="p-4">Staff</th>
@@ -55,20 +55,20 @@
                             <th class="p-4">Status</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-white/5">
-                        <tr v-for="wave in waves" :key="wave.id" class="hover:bg-white/5 transition-colors">
+                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                        <tr v-for="wave in waves" :key="wave.id" class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
                             <td class="p-4 font-mono text-primary">{{ wave.id }}</td>
-                            <td class="p-4 text-white">{{ wave.staff }}</td>
+                            <td class="p-4 text-gray-900 dark:text-white">{{ wave.staff }}</td>
                             <td class="p-4 text-gray-300 w-32">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-full bg-gray-700 h-1.5 rounded-full overflow-hidden">
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
                                         <div class="bg-primary h-full" :style="`width: ${wave.progress}%`"></div>
                                     </div>
-                                    <span class="text-xs text-gray-400">{{ wave.progress }}%</span>
+                                    <span class="text-xs text-gray-600 dark:text-gray-400">{{ wave.progress }}%</span>
                                 </div>
                             </td>
-                            <td class="p-4 text-gray-400">{{ wave.zone }}</td>
-                            <td class="p-4 text-white font-mono">{{ wave.deadline }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-400">{{ wave.zone }}</td>
+                            <td class="p-4 text-gray-900 dark:text-white font-mono">{{ wave.deadline }}</td>
                             <td class="p-4">
                                 <span class="px-2 py-1 rounded text-[10px] font-bold border" :class="wave.statusClass">
                                     {{ wave.status }}
@@ -82,23 +82,23 @@
             <!-- Packing Station View + Quality Check -->
             <div class="space-y-6">
                 <div class="glass-panel p-6 rounded-xl">
-                    <h3 class="font-bold text-white mb-4">Packing Stations</h3>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Packing Stations</h3>
                     <div class="space-y-4">
                         <div v-for="station in stations" :key="station.id"
-                            class="p-4 bg-white/5 border border-white/5 rounded-lg">
+                            class="p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-lg">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="font-bold text-white">{{ station.name }}</span>
+                                <span class="font-bold text-gray-900 dark:text-white">{{ station.name }}</span>
                                 <span class="w-2 h-2 rounded-full"
                                     :class="station.active ? 'bg-green-500 animate-pulse' : 'bg-gray-500'"></span>
                             </div>
-                            <div class="text-xs text-gray-400 mb-2">{{ station.packer }}</div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400 mb-2">{{ station.packer }}</div>
                             <div class="flex justify-between items-end text-sm">
                                 <div>
                                     <div class="text-gray-500 text-[10px] uppercase">Throughput</div>
-                                    <div class="text-white font-bold">{{ station.rate }} / hr</div>
+                                    <div class="text-gray-900 dark:text-white font-bold">{{ station.rate }} / hr</div>
                                 </div>
                                 <button @click="monitorStation(station)"
-                                    class="bg-white/10 hover:bg-white/20 text-white px-2 py-1 rounded text-xs transition-colors"
+                                    class="bg-gray-100 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 text-gray-900 dark:text-white px-2 py-1 rounded text-xs transition-colors"
                                     :class="station.monitoring ? 'ring-1 ring-primary bg-primary/20 text-primary' : ''">
                                     {{ station.monitoring ? '● Live' : 'Monitor' }}
                                 </button>
@@ -109,13 +109,13 @@
 
                 <!-- Quality Check Panel -->
                 <div class="glass-panel p-6 rounded-xl">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-green-400">verified</span>
                         Quality Verification
                     </h3>
                     <div class="space-y-3">
                         <div v-for="check in qualityChecks" :key="check.orderId"
-                            class="p-3 bg-white/5 rounded-lg border border-white/5">
+                            class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                             <div class="flex justify-between items-center mb-2">
                                 <span class="font-mono text-primary text-xs font-bold">{{ check.orderId }}</span>
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold"
@@ -126,7 +126,7 @@
                             <div class="space-y-1 text-xs">
                                 <div v-for="(field, fIdx) in checkFields" :key="fIdx"
                                     @click="toggleCheck(check, field.key)"
-                                    class="flex items-center gap-2 cursor-pointer hover:bg-white/5 rounded p-0.5 transition-colors">
+                                    class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:bg-white/5 rounded p-0.5 transition-colors">
                                     <span class="material-symbols-outlined text-[14px]"
                                         :class="check[field.key] ? 'text-green-400' : 'text-gray-600'">{{
                                             check[field.key] ? 'check_circle' : 'radio_button_unchecked' }}</span>
@@ -151,17 +151,17 @@
         <div v-if="showBatchModal"
             class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             @click.self="showBatchModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-white/10">
-                <div class="p-6 border-b border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-white text-lg">Assign New Pick Batch</h3>
-                    <button @click="showBatchModal = false" class="text-gray-500 hover:text-white"><span
+            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Assign New Pick Batch</h3>
+                    <button @click="showBatchModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
                             class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="text-xs text-gray-400 mb-1 block">Assign To Team</label>
+                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Assign To Team</label>
                         <select v-model="batchForm.staff"
-                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white">
+                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white">
                             <option>Team A</option>
                             <option>Team B</option>
                             <option>Team C</option>
@@ -169,9 +169,9 @@
                         </select>
                     </div>
                     <div>
-                        <label class="text-xs text-gray-400 mb-1 block">Zone</label>
+                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Zone</label>
                         <select v-model="batchForm.zone"
-                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white">
+                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white">
                             <option>Zone A (High Vel)</option>
                             <option>Zone B (Bulk)</option>
                             <option>Zone C</option>
@@ -179,9 +179,9 @@
                         </select>
                     </div>
                     <div>
-                        <label class="text-xs text-gray-400 mb-1 block">Deadline</label>
+                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Deadline</label>
                         <input type="time" v-model="batchForm.deadline"
-                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                     </div>
                     <button @click="assignBatch"
                         class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Create

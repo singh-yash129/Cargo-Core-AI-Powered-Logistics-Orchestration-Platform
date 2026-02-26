@@ -1,10 +1,10 @@
 <template>
     <div class="space-y-6">
         <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-white">Inventory Management</h2>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Inventory Management</h2>
             <div class="flex gap-2">
                 <button @click="showScanModal = true"
-                    class="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
+                    class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined">qr_code_scanner</span> Scan Item
                 </button>
                 <button @click="showAddModal = true"
@@ -17,48 +17,48 @@
         <!-- Inventory Stats -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-white">{{ totalItems.toLocaleString() }}</div>
-                <div class="text-xs text-gray-400">Total Items</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ totalItems.toLocaleString() }}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Total Items</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-yellow-400">{{ lowStockCount }}</div>
-                <div class="text-xs text-gray-400">Low Stock Alerts</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Low Stock Alerts</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-green-400">98%</div>
-                <div class="text-xs text-gray-400">Inventory Accuracy</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Inventory Accuracy</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-orange-400">{{ fastMovingCount }}</div>
-                <div class="text-xs text-gray-400">Fast-Moving SKUs</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Fast-Moving SKUs</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-blue-400">$1.2M</div>
-                <div class="text-xs text-gray-400">Total Value</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Total Value</div>
             </div>
         </div>
 
         <!-- Inventory Table -->
         <div class="glass-panel rounded-xl overflow-hidden">
-            <div class="p-4 border-b border-white/5 flex flex-wrap gap-4 items-center">
+            <div class="p-4 border-b border-gray-100 dark:border-white/5 flex flex-wrap gap-4 items-center">
                 <input v-model="searchQuery" type="text" placeholder="Search SKU, name, or location..."
-                    class="flex-1 min-w-[200px] bg-black/20 border border-white/10 rounded-lg py-2 px-4 text-white focus:outline-none focus:border-primary/50">
+                    class="flex-1 min-w-[200px] bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-4 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
                 <select v-model="categoryFilter"
-                    class="bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white">
+                    class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white">
                     <option value="">All Categories</option>
                     <option value="Electronics">Electronics</option>
                     <option value="Home & Garden">Home & Garden</option>
                     <option value="Apparel">Apparel</option>
                     <option value="Furniture">Furniture</option>
                 </select>
-                <select v-model="zoneFilter" class="bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white">
+                <select v-model="zoneFilter" class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white">
                     <option value="">All Zones</option>
                     <option value="A">Zone A</option>
                     <option value="B">Zone B</option>
                     <option value="C">Zone C</option>
                     <option value="D">Zone D</option>
                 </select>
-                <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+                <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
                     <input type="checkbox" v-model="showFastMoving" class="accent-primary" />
                     Fast-Moving Only
                 </label>
@@ -66,7 +66,7 @@
 
             <div class="overflow-auto max-h-[600px]">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-white/5 text-gray-400 uppercase sticky top-0">
+                    <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 uppercase sticky top-0">
                         <tr>
                             <th class="p-4">SKU</th>
                             <th class="p-4">Product Name</th>
@@ -78,21 +78,21 @@
                             <th class="p-4">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-white/5">
+                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                         <tr v-for="item in filteredInventory" :key="item.sku"
-                            class="hover:bg-white/5 transition-colors">
+                            class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
                             <td class="p-4 font-mono text-gray-300">{{ item.sku }}</td>
                             <td class="p-4">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-bold text-white">{{ item.name }}</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">{{ item.name }}</span>
                                     <span v-if="item.fastMoving"
                                         class="px-1.5 py-0.5 bg-orange-500/20 text-orange-400 text-[9px] font-bold rounded border border-orange-500/20 animate-pulse">🔥
                                         FAST</span>
                                 </div>
                             </td>
-                            <td class="p-4 text-gray-400">{{ item.category }}</td>
-                            <td class="p-4 text-gray-400 font-mono text-xs">{{ item.dimensions }}</td>
-                            <td class="p-4 text-gray-400">{{ item.weight }} kg</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-400">{{ item.category }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-400 font-mono text-xs">{{ item.dimensions }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-400">{{ item.weight }} kg</td>
                             <td class="p-4">
                                 <div class="flex flex-col">
                                     <span class="font-mono text-primary text-xs">{{ item.zone }}-{{ item.aisle }}-{{
@@ -103,7 +103,7 @@
                             </td>
                             <td class="p-4">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-24 bg-gray-700 h-1.5 rounded-full overflow-hidden">
+                                    <div class="w-24 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
                                         <div class="h-full" :class="item.stock < 20 ? 'bg-red-500' : 'bg-green-500'"
                                             :style="`width: ${item.stockPercentage}%`"></div>
                                     </div>
@@ -112,13 +112,13 @@
                                 </div>
                             </td>
                             <td class="p-4 flex gap-2">
-                                <button @click="openEditModal(item)" class="text-gray-400 hover:text-white"
+                                <button @click="openEditModal(item)" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
                                     title="Edit"><span
                                         class="material-symbols-outlined text-[18px]">edit</span></button>
-                                <button @click="openMoveModal(item)" class="text-gray-400 hover:text-white"
+                                <button @click="openMoveModal(item)" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
                                     title="Move"><span
                                         class="material-symbols-outlined text-[18px]">move_down</span></button>
-                                <button @click="printLabel(item)" class="text-gray-400 hover:text-white"
+                                <button @click="printLabel(item)" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
                                     title="Print Label"><span
                                         class="material-symbols-outlined text-[18px]">print</span></button>
                             </td>
@@ -132,34 +132,34 @@
         <div v-if="showEditModal && editItem"
             class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             @click.self="showEditModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-white/10">
-                <div class="p-6 border-b border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-white text-lg">Edit {{ editItem.sku }}</h3>
-                    <button @click="showEditModal = false" class="text-gray-500 hover:text-white"><span
+            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Edit {{ editItem.sku }}</h3>
+                    <button @click="showEditModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
                             class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="text-xs text-gray-400 mb-1 block">Product Name</label>
+                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Product Name</label>
                         <input type="text" v-model="editItem.name"
-                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Stock Qty</label>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Stock Qty</label>
                             <input type="number" v-model.number="editItem.stock"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Weight (kg)</label>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Weight (kg)</label>
                             <input type="number" step="0.1" v-model.number="editItem.weight"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                         </div>
                     </div>
                     <div>
-                        <label class="text-xs text-gray-400 mb-1 block">Dimensions (cm)</label>
+                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Dimensions (cm)</label>
                         <input type="text" v-model="editItem.dimensions"
-                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                     </div>
                     <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
                         <input type="checkbox" v-model="editItem.fastMoving" class="accent-primary" />
@@ -176,15 +176,15 @@
         <div v-if="showMoveModal && moveItem"
             class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             @click.self="showMoveModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-white/10">
-                <div class="p-6 border-b border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-white text-lg">Move {{ moveItem.sku }}</h3>
-                    <button @click="showMoveModal = false" class="text-gray-500 hover:text-white"><span
+            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Move {{ moveItem.sku }}</h3>
+                    <button @click="showMoveModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
                             class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="p-6 space-y-4">
-                    <div class="p-3 bg-white/5 rounded-lg border border-white/5 text-center">
-                        <div class="text-xs text-gray-400">Current Location</div>
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-center">
+                        <div class="text-xs text-gray-600 dark:text-gray-400">Current Location</div>
                         <div class="font-mono text-primary font-bold">{{ moveItem.zone }}-{{ moveItem.aisle }}-{{
                             moveItem.rack }}-{{ moveItem.shelf }}-{{ moveItem.bin }}</div>
                     </div>
@@ -192,31 +192,31 @@
                     </div>
                     <div class="grid grid-cols-5 gap-2">
                         <div>
-                            <label class="text-[10px] text-gray-400 block mb-1">Zone</label>
+                            <label class="text-[10px] text-gray-600 dark:text-gray-400 block mb-1">Zone</label>
                             <select v-model="newLocation.zone"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm">
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm">
                                 <option v-for="z in ['A', 'B', 'C', 'D']" :key="z">{{ z }}</option>
                             </select>
                         </div>
                         <div>
-                            <label class="text-[10px] text-gray-400 block mb-1">Aisle</label>
+                            <label class="text-[10px] text-gray-600 dark:text-gray-400 block mb-1">Aisle</label>
                             <input type="text" v-model="newLocation.aisle"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm" />
                         </div>
                         <div>
-                            <label class="text-[10px] text-gray-400 block mb-1">Rack</label>
+                            <label class="text-[10px] text-gray-600 dark:text-gray-400 block mb-1">Rack</label>
                             <input type="text" v-model="newLocation.rack"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm" />
                         </div>
                         <div>
-                            <label class="text-[10px] text-gray-400 block mb-1">Shelf</label>
+                            <label class="text-[10px] text-gray-600 dark:text-gray-400 block mb-1">Shelf</label>
                             <input type="text" v-model="newLocation.shelf"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm" />
                         </div>
                         <div>
-                            <label class="text-[10px] text-gray-400 block mb-1">Bin</label>
+                            <label class="text-[10px] text-gray-600 dark:text-gray-400 block mb-1">Bin</label>
                             <input type="text" v-model="newLocation.bin"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm" />
                         </div>
                     </div>
                     <button @click="confirmMove"
@@ -230,31 +230,31 @@
         <div v-if="showScanModal"
             class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             @click.self="showScanModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-white/10">
-                <div class="p-6 border-b border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-white text-lg">Scan Item</h3>
-                    <button @click="showScanModal = false" class="text-gray-500 hover:text-white"><span
+            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Scan Item</h3>
+                    <button @click="showScanModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
                             class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div
-                        class="aspect-video bg-gray-800 rounded-lg flex items-center justify-center border border-white/5">
+                        class="aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center border border-gray-100 dark:border-white/5">
                         <div class="flex flex-col items-center gap-2">
                             <span class="material-symbols-outlined text-5xl text-gray-600">qr_code_scanner</span>
                             <div class="text-xs text-gray-500">Scanner ready</div>
                         </div>
                     </div>
                     <div>
-                        <label class="text-xs text-gray-400 mb-1 block">Or enter SKU manually</label>
+                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Or enter SKU manually</label>
                         <input type="text" v-model="scanInput" placeholder="EL-XXXX"
-                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50 font-mono" />
+                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono" />
                     </div>
                     <button @click="lookupScan"
                         class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Look
                         Up</button>
                     <div v-if="scanResult" class="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                        <div class="text-sm font-bold text-white">{{ scanResult.name }}</div>
-                        <div class="text-xs text-gray-400">{{ scanResult.sku }} — Stock: {{ scanResult.stock }} — Zone
+                        <div class="text-sm font-bold text-gray-900 dark:text-white">{{ scanResult.name }}</div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400">{{ scanResult.sku }} — Stock: {{ scanResult.stock }} — Zone
                             {{ scanResult.zone }}</div>
                     </div>
                     <div v-if="scanError"
@@ -268,40 +268,40 @@
         <div v-if="showAddModal"
             class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             @click.self="showAddModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-white/10">
-                <div class="p-6 border-b border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-white text-lg">Add New Stock</h3>
-                    <button @click="showAddModal = false" class="text-gray-500 hover:text-white"><span
+            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Add New Stock</h3>
+                    <button @click="showAddModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
                             class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="p-6 space-y-4">
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-xs text-gray-400 mb-1 block">SKU</label>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">SKU</label>
                             <input type="text" v-model="addForm.sku" placeholder="XX-XXXX"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50 font-mono" />
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono" />
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Product Name</label>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Product Name</label>
                             <input type="text" v-model="addForm.name" placeholder="Product name"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                         </div>
                     </div>
                     <div class="grid grid-cols-3 gap-3">
                         <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Qty</label>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Qty</label>
                             <input type="number" v-model.number="addForm.stock"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Weight (kg)</label>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Weight (kg)</label>
                             <input type="number" step="0.1" v-model.number="addForm.weight"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Zone</label>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Zone</label>
                             <select v-model="addForm.zone"
-                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white">
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white">
                                 <option v-for="z in ['A', 'B', 'C', 'D']" :key="z">{{ z }}</option>
                             </select>
                         </div>

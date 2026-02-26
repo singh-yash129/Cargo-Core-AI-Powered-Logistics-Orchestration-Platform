@@ -2,17 +2,18 @@
     <div class="space-y-6">
         <!-- Header -->
         <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-white">New Orders / Demand Management</h2>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">New Orders / Demand Management</h2>
             <div class="flex gap-3">
-                <div class="bg-black/40 border border-white/10 rounded-lg p-1 flex">
+                <div
+                    class="bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-1 flex">
                     <button
-                        :class="activeTab === 'incoming' ? 'bg-primary rounded text-background-dark text-sm font-bold shadow-lg px-4 py-1.5' : 'px-4 py-1.5 text-gray-400 hover:text-white text-sm transition-colors'"
+                        :class="activeTab === 'incoming' ? 'bg-primary rounded text-background-dark text-sm font-bold shadow-lg px-4 py-1.5' : 'px-4 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm transition-colors'"
                         @click="activeTab = 'incoming'">Incoming</button>
                     <button
-                        :class="activeTab === 'accepted' ? 'bg-primary rounded text-background-dark text-sm font-bold shadow-lg px-4 py-1.5' : 'px-4 py-1.5 text-gray-400 hover:text-white text-sm transition-colors'"
+                        :class="activeTab === 'accepted' ? 'bg-primary rounded text-background-dark text-sm font-bold shadow-lg px-4 py-1.5' : 'px-4 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm transition-colors'"
                         @click="activeTab = 'accepted'">Accepted</button>
                     <button
-                        :class="activeTab === 'onhold' ? 'bg-yellow-500 rounded text-background-dark text-sm font-bold shadow-lg px-4 py-1.5' : 'px-4 py-1.5 text-gray-400 hover:text-white text-sm transition-colors'"
+                        :class="activeTab === 'onhold' ? 'bg-yellow-500 rounded text-background-dark text-sm font-bold shadow-lg px-4 py-1.5' : 'px-4 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm transition-colors'"
                         @click="activeTab = 'onhold'">On Hold</button>
                 </div>
             </div>
@@ -21,29 +22,33 @@
         <!-- Capacity Overview KPIs -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="glass-panel p-4 rounded-xl">
-                <div class="text-xs text-gray-400 uppercase font-semibold tracking-wide">Today's Orders</div>
-                <div class="text-3xl font-bold text-white mt-1">{{ orders.length }}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Today's
+                    Orders</div>
+                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">{{ orders.length }}</div>
                 <div class="text-xs mt-1" :class="capacityPercent > 90 ? 'text-red-400' : 'text-green-400'">
                     {{ capacityPercent }}% of daily capacity
                 </div>
-                <div class="w-full bg-gray-700 h-1.5 mt-2 rounded-full overflow-hidden">
+                <div class="w-full bg-gray-200 dark:bg-gray-700 h-1.5 mt-2 rounded-full overflow-hidden">
                     <div class="h-full rounded-full transition-all"
                         :class="capacityPercent > 90 ? 'bg-red-500' : capacityPercent > 70 ? 'bg-yellow-500' : 'bg-green-500'"
                         :style="`width: ${capacityPercent}%`"></div>
                 </div>
             </div>
             <div class="glass-panel p-4 rounded-xl">
-                <div class="text-xs text-gray-400 uppercase font-semibold tracking-wide">Pending Validation</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Pending
+                    Validation</div>
                 <div class="text-3xl font-bold text-yellow-400 mt-1">{{ pendingCount }}</div>
                 <div class="text-xs text-gray-500 mt-1">Awaiting stock/labor check</div>
             </div>
             <div class="glass-panel p-4 rounded-xl">
-                <div class="text-xs text-gray-400 uppercase font-semibold tracking-wide">Dock Slots Free</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Dock Slots
+                    Free</div>
                 <div class="text-3xl font-bold text-primary mt-1">{{ freeDocks }}/6</div>
                 <div class="text-xs text-gray-500 mt-1">Available for dispatch</div>
             </div>
             <div class="glass-panel p-4 rounded-xl">
-                <div class="text-xs text-gray-400 uppercase font-semibold tracking-wide">Labor Available</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Labor
+                    Available</div>
                 <div class="text-3xl font-bold text-blue-400 mt-1">{{ freeLabor }}</div>
                 <div class="text-xs text-gray-500 mt-1">Ready to assign</div>
             </div>
@@ -51,8 +56,9 @@
 
         <!-- Orders Table -->
         <div class="glass-panel rounded-xl overflow-hidden">
-            <div class="p-4 border-b border-white/5 flex gap-4 items-center bg-black/20">
-                <h3 class="font-bold text-white flex items-center gap-2">
+            <div
+                class="p-4 border-b border-gray-100 dark:border-white/5 flex gap-4 items-center bg-gray-100 dark:bg-black/20">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary">orders</span>
                     {{ activeTab === 'incoming' ? 'Incoming Orders' : activeTab === 'accepted' ? 'Accepted Orders' : 'On Hold Orders' }}
                 </h3>
@@ -61,13 +67,13 @@
                     <span
                         class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-[18px]">search</span>
                     <input v-model="searchQuery" type="text" placeholder="Search orders..."
-                        class="w-full bg-black/30 border border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-primary/50" />
+                        class="w-full bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                 </div>
             </div>
 
             <div class="overflow-auto max-h-[600px]">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-white/5 text-gray-400 uppercase sticky top-0">
+                    <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 uppercase sticky top-0">
                         <tr>
                             <th class="p-4">Order ID</th>
                             <th class="p-4">Cargo Type</th>
@@ -79,12 +85,13 @@
                             <th class="p-4">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-white/5">
-                        <tr v-for="order in filteredOrders" :key="order.id" class="hover:bg-white/5 transition-colors">
+                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                        <tr v-for="order in filteredOrders" :key="order.id"
+                            class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
                             <td class="p-4 font-mono text-primary font-bold">{{ order.id }}</td>
-                            <td class="p-4 text-white">{{ order.cargoType }}</td>
+                            <td class="p-4 text-gray-900 dark:text-white">{{ order.cargoType }}</td>
                             <td class="p-4">
-                                <div class="text-white">{{ order.quantity }} items</div>
+                                <div class="text-gray-900 dark:text-white">{{ order.quantity }} items</div>
                                 <div class="text-xs text-gray-500">{{ order.weight }} kg</div>
                             </td>
                             <td class="p-4">
@@ -103,7 +110,7 @@
                                     {{ order.packingReady ? 'Ready' : 'Short' }}
                                 </span>
                             </td>
-                            <td class="p-4 text-white font-mono text-xs">{{ order.deadline }}</td>
+                            <td class="p-4 text-gray-900 dark:text-white font-mono text-xs">{{ order.deadline }}</td>
                             <td class="p-4">
                                 <span class="px-2 py-1 rounded text-[10px] font-bold border" :class="order.statusClass">
                                     {{ order.status }}
@@ -125,7 +132,7 @@
                                         Hold
                                     </button>
                                     <button @click="selectedOrder = order; showDetailModal = true"
-                                        class="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-2 py-1 rounded text-xs transition-colors">
+                                        class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white px-2 py-1 rounded text-xs transition-colors">
                                         <span class="material-symbols-outlined text-[16px]">visibility</span>
                                     </button>
                                 </div>
@@ -140,36 +147,41 @@
         <div v-if="showDetailModal && selectedOrder"
             class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             @click.self="showDetailModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-white/10">
-                <div class="p-6 border-b border-white/5 flex justify-between items-center">
-                    <h3 class="text-xl font-bold text-white">Order {{ selectedOrder.id }}</h3>
-                    <button @click="showDetailModal = false" class="text-gray-500 hover:text-white transition-colors">
+            <div
+                class="glass-panel rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-gray-200 dark:border-white/10">
+                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Order {{ selectedOrder.id }}</h3>
+                    <button @click="showDetailModal = false"
+                        class="text-gray-500 hover:text-gray-900 dark:text-white transition-colors">
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
                 <div class="p-6 space-y-6">
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white/5 p-4 rounded-lg">
-                            <div class="text-xs text-gray-400 uppercase mb-1">Cargo Type</div>
-                            <div class="text-white font-bold">{{ selectedOrder.cargoType }}</div>
+                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Cargo Type</div>
+                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.cargoType }}</div>
                         </div>
-                        <div class="bg-white/5 p-4 rounded-lg">
-                            <div class="text-xs text-gray-400 uppercase mb-1">Quantity / Weight</div>
-                            <div class="text-white font-bold">{{ selectedOrder.quantity }} items / {{
+                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Quantity / Weight</div>
+                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.quantity }} items / {{
                                 selectedOrder.weight }} kg</div>
                         </div>
-                        <div class="bg-white/5 p-4 rounded-lg">
-                            <div class="text-xs text-gray-400 uppercase mb-1">Delivery Deadline</div>
-                            <div class="text-white font-bold">{{ selectedOrder.deadline }}</div>
+                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Delivery Deadline</div>
+                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.deadline }}</div>
                         </div>
-                        <div class="bg-white/5 p-4 rounded-lg">
-                            <div class="text-xs text-gray-400 uppercase mb-1">Special Instructions</div>
-                            <div class="text-white font-bold">{{ selectedOrder.specialInstructions || 'None' }}</div>
+                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Special Instructions
+                            </div>
+                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.specialInstructions ||
+                                'None' }}</div>
                         </div>
                     </div>
 
                     <div>
-                        <h4 class="text-sm font-bold text-white mb-3">Demand Validation Checklist</h4>
+                        <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3">Demand Validation Checklist
+                        </h4>
                         <div class="space-y-3">
                             <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
                                 :class="selectedOrder.inventoryCheck ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
@@ -177,7 +189,8 @@
                                 <span class="material-symbols-outlined"
                                     :class="selectedOrder.inventoryCheck ? 'text-green-400' : 'text-red-400'">{{
                                         selectedOrder.inventoryCheck ? 'check_circle' : 'cancel' }}</span>
-                                <span class="text-sm text-white">Inventory Availability — Stock sufficient</span>
+                                <span class="text-sm text-gray-900 dark:text-white">Inventory Availability — Stock
+                                    sufficient</span>
                             </div>
                             <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
                                 :class="selectedOrder.packingReady ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
@@ -185,7 +198,8 @@
                                 <span class="material-symbols-outlined"
                                     :class="selectedOrder.packingReady ? 'text-green-400' : 'text-red-400'">{{
                                         selectedOrder.packingReady ? 'check_circle' : 'cancel' }}</span>
-                                <span class="text-sm text-white">Packing Materials — Boxes, wrap, crates</span>
+                                <span class="text-sm text-gray-900 dark:text-white">Packing Materials — Boxes, wrap,
+                                    crates</span>
                             </div>
                             <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
                                 :class="selectedOrder.laborAvailable ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
@@ -193,13 +207,15 @@
                                 <span class="material-symbols-outlined"
                                     :class="selectedOrder.laborAvailable ? 'text-green-400' : 'text-red-400'">{{
                                         selectedOrder.laborAvailable ? 'check_circle' : 'cancel' }}</span>
-                                <span class="text-sm text-white">Labor Availability — {{ selectedOrder.laborNeeded }}
+                                <span class="text-sm text-gray-900 dark:text-white">Labor Availability — {{
+                                    selectedOrder.laborNeeded }}
                                     workers required</span>
                             </div>
                             <div
                                 class="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
                                 <span class="material-symbols-outlined text-blue-400">dock</span>
-                                <span class="text-sm text-white">Dock Capacity — {{ freeDocks }} slots available</span>
+                                <span class="text-sm text-gray-900 dark:text-white">Dock Capacity — {{ freeDocks }}
+                                    slots available</span>
                             </div>
                         </div>
                     </div>
