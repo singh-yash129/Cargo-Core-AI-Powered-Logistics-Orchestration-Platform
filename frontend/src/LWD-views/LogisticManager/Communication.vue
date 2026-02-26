@@ -9,8 +9,9 @@
                 <button @click="activeTab = 'escalations'"
                     class="flex-1 py-3 text-sm font-bold text-center transition-colors flex items-center justify-center gap-1"
                     :class="activeTab === 'escalations' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'">
-                    Escalations <span v-if="escalations.length"
-                        class="bg-red-500 text-white text-[10px] px-1.5 rounded-full">{{ escalations.length }}</span>
+                    Escalations <span v-if="filteredEscalations.length"
+                        class="bg-red-500 text-white text-[10px] px-1.5 rounded-full">{{ filteredEscalations.length
+                        }}</span>
                 </button>
             </div>
             <div class="p-4 border-b border-gray-200 dark:border-white/5">
@@ -39,13 +40,13 @@
 
                 <!-- Escalations List -->
                 <div v-if="activeTab === 'escalations'">
-                    <div v-for="ticket in escalations" :key="ticket.id"
+                    <div v-for="ticket in displayEscalations" :key="ticket.id"
                         class="p-4 border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
                         :class="activeTicketId === ticket.id ? 'bg-red-500/5 border-l-2 border-l-red-500 dark:bg-white/5' : ''"
                         @click="activeTicketId = ticket.id">
                         <div class="flex justify-between items-start mb-1">
                             <div class="font-bold text-gray-900 dark:text-white text-sm truncate pr-2">{{ ticket.title
-                                }}</div>
+                            }}</div>
                             <div class="text-[10px] text-gray-500 flex-shrink-0">{{ ticket.time }}</div>
                         </div>
                         <div class="flex items-center gap-2 mt-1">
@@ -56,8 +57,11 @@
                             <span class="text-xs text-gray-500 truncate">From: {{ ticket.from }}</span>
                         </div>
                     </div>
-                    <div v-if="escalations.length === 0" class="p-8 text-center text-sm text-gray-500">
+                    <div v-if="filteredEscalations.length === 0" class="p-8 text-center text-sm text-gray-500">
                         No pending escalations.
+                    </div>
+                    <div v-else-if="displayEscalations.length === 0" class="p-8 text-center text-sm text-gray-500">
+                        No escalations match "{{ searchQuery }}".
                     </div>
                 </div>
             </div>
@@ -96,7 +100,7 @@
                                 </span>
                                 <span v-if="activeChat.phone"
                                     class="text-gray-400 border-l border-gray-300 dark:border-gray-600 pl-2 font-mono">{{
-                                    activeChat.phone }}</span>
+                                        activeChat.phone }}</span>
                             </div>
                         </div>
                     </div>
@@ -119,7 +123,7 @@
                                 @click="handleMuteChat">
                                 <span class="material-symbols-outlined text-[18px] text-gray-400">{{ activeChat.muted ?
                                     'notifications' : 'notifications_off' }}</span> {{ activeChat.muted ? 'Unmute Chat'
-                                : 'Mute Chat' }}
+                                        : 'Mute Chat' }}
                             </button>
                             <button
                                 class="w-full text-left px-4 py-3 text-sm hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 dark:text-red-400 flex items-center gap-3 transition-colors"
@@ -147,8 +151,9 @@
                                     : 'bg-white border border-gray-100 dark:bg-white/5 dark:border-white/10 rounded-tl-none text-gray-700 dark:text-gray-300'">
                                 {{ msg.text }}
                             </div>
-                            <div class="text-[10px] text-gray-400 mt-1" :class="{ 'text-right': msg.sender === 'me' }">{{
-                                msg.time }}</div>
+                            <div class="text-[10px] text-gray-400 mt-1" :class="{ 'text-right': msg.sender === 'me' }">
+                                {{
+                                    msg.time }}</div>
                         </div>
                     </div>
                 </div>
@@ -332,7 +337,8 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to delete the chat with
                     <span class="font-bold text-gray-900 dark:text-white">{{ activeChat?.name }}</span>? This action
                     cannot be
-                    undone.</p>
+                    undone.
+                </p>
 
                 <div class="flex gap-3 justify-center">
                     <button @click="isDeleteModalOpen = false"
@@ -404,7 +410,7 @@ import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
 
 const store = useLogisticStore()
-const { filteredChats } = storeToRefs(store)
+const { filteredChats, filteredEscalations } = storeToRefs(store)
 
 const activeTab = ref('chats')
 const activeChatId = ref(1)
@@ -423,41 +429,30 @@ const broadcastForm = ref({
     message: ''
 })
 
-const escalations = ref([
-    {
-        id: 1,
-        title: 'Route Deviation Override Required',
-        priority: 'High',
-        from: 'Sarah Connor',
-        role: 'Dispatcher (South Hub)',
-        time: '10:45 AM',
-        description: 'Driver Alex Morgan (V-402) is requesting to deviate from the assigned route due to major road construction not logged in the GPS. Needs manager approval to override the geofence perimeter without penalizing the scorecard.',
-        actionDetails: 'Approve Geofence Override for V-402'
-    },
-    {
-        id: 2,
-        title: 'Fuel Limit Exceeded Action Required',
-        priority: 'Medium',
-        from: 'System Bot',
-        role: 'Automated Alert',
-        time: '09:15 AM',
-        description: 'Vehicle V-105 submitted a fuel receipt via OCR that exceeds the 120L daily limit. GPS logs show anomalous mileage. Flagged for Manager investigation before processing payout.',
-        actionDetails: 'Review OCR Receipt vs GPS Log'
-    }
-])
-
 const activeChat = computed(() => {
     return filteredChats.value.find(c => c.id === activeChatId.value) || (filteredChats.value.length ? filteredChats.value[0] : null)
 })
 
 const activeTicket = computed(() => {
-    return escalations.value.find(t => t.id === activeTicketId.value) || (escalations.value.length ? escalations.value[0] : null)
+    return filteredEscalations.value?.find(t => t.id === activeTicketId.value) || (filteredEscalations.value?.length ? filteredEscalations.value[0] : null)
 })
 
 const displayChats = computed(() => {
     if (activeTab.value !== 'chats') return []
     if (!searchQuery.value) return filteredChats.value
     return filteredChats.value.filter(c => c.name.toLowerCase().includes(searchQuery.value.toLowerCase()))
+})
+
+const displayEscalations = computed(() => {
+    if (activeTab.value !== 'escalations') return []
+    if (!searchQuery.value) return filteredEscalations.value || []
+
+    const query = searchQuery.value.toLowerCase()
+    return (filteredEscalations.value || []).filter(t =>
+        t.title.toLowerCase().includes(query) ||
+        t.from.toLowerCase().includes(query) ||
+        t.description.toLowerCase().includes(query)
+    )
 })
 
 const scrollToBottom = async () => {

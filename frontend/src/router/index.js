@@ -95,6 +95,7 @@ const router = createRouter({
         { path: '/logistic/fleet', component: () => import('../LWD-views/LogisticManager/FleetManagement.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
         { path: '/logistic/geofencing', component: () => import('../LWD-views/LogisticManager/Geofencing.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
         { path: '/logistic/finance', component: () => import('../LWD-views/LogisticManager/Finance.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+        { path: '/logistic/rate-governance', component: () => import('../LWD-views/LogisticManager/RateGovernance.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
         { path: '/logistic/reverse-logistics', component: () => import('../LWD-views/LogisticManager/ReverseLogistics.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
         { path: '/logistic/reports', component: () => import('../LWD-views/LogisticManager/Reports.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
         { path: '/logistic/comparative-viewers', component: () => import('../LWD-views/LogisticManager/ComparativeViewers.vue'), meta: { requiresAuth: true, layout: 'logistic' } },

@@ -26,10 +26,10 @@
                     <div v-else
                         class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-primary/10 border border-primary/20 dark:bg-primary/20 dark:border-primary/30 shadow-sm cursor-default">
                         <span class="material-symbols-outlined text-primary text-[18px]">
-                            {{ route.path.includes('ai') ? 'smart_toy' : (route.path.includes('comparative') ? 'compare_arrows' : 'domain') }}
+                            {{ globalPageIcon }}
                         </span>
                         <span class="text-sm font-bold text-primary dark:text-blue-400 tracking-wide uppercase">
-                            {{ route.path.includes('ai') ? 'Corporate AI Assistant' : (route.path.includes('comparative') ? 'Comparative Viewers' : 'Global Network Overview') }}
+                            {{ globalPageTitle }}
                         </span>
                     </div>
 
@@ -87,6 +87,23 @@ const store = useLogisticStore()
 const route = useRoute()
 
 const isGlobalPage = computed(() => {
-    return route.path.includes('/logistic/warehouses') || route.path.includes('/logistic/ai') || route.path.includes('/logistic/comparative-viewers')
+    return route.path.includes('/logistic/warehouses') ||
+        route.path.includes('/logistic/ai') ||
+        route.path.includes('/logistic/comparative-viewers') ||
+        route.path.includes('/logistic/rate-governance')
+})
+
+const globalPageIcon = computed(() => {
+    if (route.path.includes('ai')) return 'smart_toy'
+    if (route.path.includes('comparative')) return 'compare_arrows'
+    if (route.path.includes('rate-governance')) return 'account_balance'
+    return 'domain'
+})
+
+const globalPageTitle = computed(() => {
+    if (route.path.includes('ai')) return 'Corporate AI Assistant'
+    if (route.path.includes('comparative')) return 'Comparative Viewers'
+    if (route.path.includes('rate-governance')) return 'Global Rate Governance'
+    return 'Global Network Overview'
 })
 </script>

@@ -255,14 +255,14 @@ export const useLogisticStore = defineStore('logistic', () => {
     ])
 
     const returns = ref([
-        { 
-            id: 'RMA-9921', 
-            hubId: 1, 
-            orderId: 'ORD-1102', 
-            customer: 'Alice Cooper', 
-            reason: 'Damaged in transit', 
-            condition: 'Damaged', 
-            status: 'Pending', 
+        {
+            id: 'RMA-9921',
+            hubId: 1,
+            orderId: 'ORD-1102',
+            customer: 'Alice Cooper',
+            reason: 'Damaged in transit',
+            condition: 'Damaged',
+            status: 'Pending',
             originalPrice: 150.00,
             refundAmount: 0,
             images: [
@@ -270,43 +270,43 @@ export const useLogisticStore = defineStore('logistic', () => {
                 'https://placehold.co/600x400/png?text=Dented+Product'
             ]
         },
-        { 
-            id: 'RMA-9922', 
-            hubId: 1, 
-            orderId: 'ORD-3321', 
-            customer: 'Bob Dylan', 
-            reason: 'Wrong Item Sent', 
-            condition: 'New/Open Box', 
-            status: 'Pending', 
+        {
+            id: 'RMA-9922',
+            hubId: 1,
+            orderId: 'ORD-3321',
+            customer: 'Bob Dylan',
+            reason: 'Wrong Item Sent',
+            condition: 'New/Open Box',
+            status: 'Pending',
             originalPrice: 200.00,
             refundAmount: 0,
             images: [
                 'https://placehold.co/600x400/png?text=Wrong+Item+Label'
             ]
         },
-        { 
-            id: 'RMA-9923', 
-            hubId: 2, 
-            orderId: 'ORD-5541', 
-            customer: 'Charlie Watts', 
-            reason: 'Changed Mind', 
-            condition: 'Unopened', 
-            status: 'Approved', 
+        {
+            id: 'RMA-9923',
+            hubId: 2,
+            orderId: 'ORD-5541',
+            customer: 'Charlie Watts',
+            reason: 'Changed Mind',
+            condition: 'Unopened',
+            status: 'Approved',
             refundAmount: 1250,
             images: []
         },
-        { 
-            id: 'RMA-9924', 
-            hubId: 2, 
-            orderId: 'ORD-1105', 
-            customer: 'David Gilmour', 
-            reason: 'Defective', 
-            condition: 'Defective', 
-            status: 'Rejected', 
+        {
+            id: 'RMA-9924',
+            hubId: 2,
+            orderId: 'ORD-1105',
+            customer: 'David Gilmour',
+            reason: 'Defective',
+            condition: 'Defective',
+            status: 'Rejected',
             refundAmount: 0,
             images: [
-                 'https://placehold.co/600x400/png?text=Defective+Screen',
-                 'https://placehold.co/600x400/png?text=Serial+Number'
+                'https://placehold.co/600x400/png?text=Defective+Screen',
+                'https://placehold.co/600x400/png?text=Serial+Number'
             ]
         },
     ])
@@ -319,12 +319,12 @@ export const useLogisticStore = defineStore('logistic', () => {
     ])
 
     const chats = ref([
-        { 
-            id: 1, 
-            hubId: 1, 
-            name: 'Dispatcher Mike', 
-            time: '2m', 
-            lastMessage: 'Two trucks are down.', 
+        {
+            id: 1,
+            hubId: 1,
+            name: 'Dispatcher Mike',
+            time: '2m',
+            lastMessage: 'Two trucks are down.',
             status: 'Online',
             phone: '+1 (555) 012-3456',
             messages: [
@@ -333,12 +333,12 @@ export const useLogisticStore = defineStore('logistic', () => {
                 { id: 3, text: 'Approved. Get them fixed ASAP. Use the contingency budget.', sender: 'me', time: '10:35 AM' }
             ]
         },
-        { 
-            id: 2, 
-            hubId: 1, 
-            name: 'Warehouse Team A', 
-            time: '1h', 
-            lastMessage: 'Inventory count complete.', 
+        {
+            id: 2,
+            hubId: 1,
+            name: 'Warehouse Team A',
+            time: '1h',
+            lastMessage: 'Inventory count complete.',
             status: 'Offline',
             phone: '+1 (555) 012-7890',
             messages: [
@@ -347,31 +347,56 @@ export const useLogisticStore = defineStore('logistic', () => {
                 { id: 3, text: 'Inventory count complete. Report filed.', sender: 'other', time: '09:45 AM' }
             ]
         },
-        { 
-            id: 3, 
-            hubId: 2, 
-            name: 'Sarah (Admin)', 
-            time: '3h', 
-            lastMessage: 'Payroll report is ready.', 
+        {
+            id: 3,
+            hubId: 2,
+            name: 'Sarah (Admin)',
+            time: '3h',
+            lastMessage: 'Payroll report is ready.',
             status: 'Away',
             phone: '+1 (555) 012-4567',
             messages: [
-                 { id: 1, text: 'Hey, did you review the payroll yet?', sender: 'other', time: '07:30 AM' },
-                 { id: 2, text: 'Not yet, sending it over in an hour.', sender: 'me', time: '07:35 AM' }
+                { id: 1, text: 'Hey, did you review the payroll yet?', sender: 'other', time: '07:30 AM' },
+                { id: 2, text: 'Not yet, sending it over in an hour.', sender: 'me', time: '07:35 AM' }
             ]
         },
-        { 
-            id: 4, 
-            hubId: 2, 
-            name: 'Global Broadcast', 
-            time: '1d', 
-            lastMessage: 'System maintenance scheduled.', 
+        {
+            id: 4,
+            hubId: 2,
+            name: 'Global Broadcast',
+            time: '1d',
+            lastMessage: 'System maintenance scheduled.',
             status: 'Online',
             phone: '',
             messages: [
                 { id: 1, text: 'System maintenance scheduled for this Sunday at 2 AM EST.', sender: 'other', time: 'Yesterday' }
             ]
         },
+    ])
+
+    const escalations = ref([
+        {
+            id: 1,
+            hubId: 2,
+            title: 'Route Deviation Override Required',
+            priority: 'High',
+            from: 'Sarah Connor',
+            role: 'Dispatcher (South Hub)',
+            time: '10:45 AM',
+            description: 'Driver Alex Morgan (V-402) is requesting to deviate from the assigned route due to major road construction not logged in the GPS. Needs manager approval to override the geofence perimeter without penalizing the scorecard.',
+            actionDetails: 'Approve Geofence Override for V-402'
+        },
+        {
+            id: 2,
+            hubId: 1,
+            title: 'Fuel Limit Exceeded Action Required',
+            priority: 'Medium',
+            from: 'System Bot',
+            role: 'Automated Alert',
+            time: '09:15 AM',
+            description: 'Vehicle V-105 submitted a fuel receipt via OCR that exceeds the 120L daily limit. GPS logs show anomalous mileage. Flagged for Manager investigation before processing payout.',
+            actionDetails: 'Review OCR Receipt vs GPS Log'
+        }
     ])
 
     const inventory = ref([
@@ -602,6 +627,11 @@ export const useLogisticStore = defineStore('logistic', () => {
         return chats.value.filter(c => c.hubId === activeWarehouse.value)
     })
 
+    const filteredEscalations = computed(() => {
+        if (activeWarehouse.value === 'all') return escalations.value
+        return escalations.value.filter(e => e.hubId === activeWarehouse.value)
+    })
+
     // --- Actions ---
 
     function openModal(name, data = null) {
@@ -633,14 +663,14 @@ export const useLogisticStore = defineStore('logistic', () => {
     function updateUserBalance(userId, amount) {
         const user = users.value.find(u => u.username === userId || u.id === userId)
         if (user) {
-             if (!user.balance) user.balance = 0
-             user.balance += amount
-             
-             // Mock clearing pending payout
-             if (amount < 0 && user.pending_payout) {
-                 user.pending_payout += amount 
-                 if (user.pending_payout < 0) user.pending_payout = 0
-             }
+            if (!user.balance) user.balance = 0
+            user.balance += amount
+
+            // Mock clearing pending payout
+            if (amount < 0 && user.pending_payout) {
+                user.pending_payout += amount
+                if (user.pending_payout < 0) user.pending_payout = 0
+            }
         }
     }
 
@@ -883,6 +913,8 @@ export const useLogisticStore = defineStore('logistic', () => {
         filteredReturns,
         filteredZones,
         filteredChats,
+        escalations,
+        filteredEscalations,
         filteredInventory: computed(() => {
             if (activeWarehouse.value === 'all') return inventory.value
             return inventory.value.filter(i => i.hubId === activeWarehouse.value)

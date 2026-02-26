@@ -32,23 +32,24 @@
 
             <!-- Comparative Viewers Section -->
             <div v-if="$route.path.includes('/logistic/comparative-viewers')" class="mt-6 px-4 animate-fade-in">
-                <router-link to="/logistic/comparative-viewers" 
+                <router-link to="/logistic/comparative-viewers"
                     class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 hover:text-primary transition-colors cursor-pointer flex items-center gap-2">
                     <span class="material-symbols-outlined text-[16px]">compare_arrows</span>
                     Comparative Viewers
                 </router-link>
-                
+
                 <p class="text-[10px] text-gray-400 mb-3">Drag warehouses to compare</p>
-                
+
                 <div class="space-y-2">
-                    <div v-for="hub in availableHubs" :key="hub.id" 
-                        draggable="true"
+                    <div v-for="hub in availableHubs" :key="hub.id" draggable="true"
                         @dragstart="onDragStart($event, hub)"
                         class="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 cursor-grab active:cursor-grabbing transition-colors group border border-transparent hover:border-primary/20">
                         <div class="flex items-center w-full">
-                            <span class="material-symbols-outlined text-[16px] text-gray-400 mr-2 group-hover:text-primary">drag_indicator</span>
+                            <span
+                                class="material-symbols-outlined text-[16px] text-gray-400 mr-2 group-hover:text-primary">drag_indicator</span>
                             <div class="flex-1 min-w-0">
-                                <div class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white truncate font-medium">
+                                <div
+                                    class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white truncate font-medium">
                                     {{ hub.name }}
                                 </div>
                                 <div class="text-[10px] text-gray-400 truncate">{{ hub.location }}</div>
@@ -61,41 +62,45 @@
 
 
         <!-- User Profile -->
-        <div class="p-4 border-t border-gray-200 dark:border-white/5 relative" @mouseenter="isUserMenuOpen = true" @mouseleave="isUserMenuOpen = false">
-            
+        <div class="p-4 border-t border-gray-200 dark:border-white/5 relative" @mouseenter="isUserMenuOpen = true"
+            @mouseleave="isUserMenuOpen = false">
+
             <!-- Context Menu -->
-            <transition
-                enter-active-class="transition duration-200 ease-out"
+            <transition enter-active-class="transition duration-200 ease-out"
                 enter-from-class="transform scale-95 opacity-0 translate-y-2"
                 enter-to-class="transform scale-100 opacity-100 translate-y-0"
                 leave-active-class="transition duration-150 ease-in"
                 leave-from-class="transform scale-100 opacity-100 translate-y-0"
-                leave-to-class="transform scale-95 opacity-0 translate-y-2"
-            >
-                <div v-if="isUserMenuOpen" class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-card-dark rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50">
+                leave-to-class="transform scale-95 opacity-0 translate-y-2">
+                <div v-if="isUserMenuOpen"
+                    class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-card-dark rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50">
                     <div class="py-1">
                         <!-- Profile Option -->
-                        <button @click="showProfileModal = true" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3">
+                        <button @click="showProfileModal = true"
+                            class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3">
                             <span class="material-symbols-outlined text-[20px]">person</span>
                             Profile
                         </button>
-                        
+
                         <!-- Need Support Option -->
                         <div class="relative group/support">
-                            <button @click="showSupportModal = true" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3">
+                            <button @click="showSupportModal = true"
+                                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3">
                                 <span class="material-symbols-outlined text-[20px]">help</span>
                                 Need Support
                             </button>
                             <!-- Tooltip/Hover for email -->
-                            <div class="hidden group-hover/support:block absolute left-full bottom-0 ml-2 p-2 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                            <div
+                                class="hidden group-hover/support:block absolute left-full bottom-0 ml-2 p-2 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
                                 {{ userEmail }}
                             </div>
                         </div>
 
-                         <div class="border-t border-gray-200 dark:border-white/5 my-1"></div>
+                        <div class="border-t border-gray-200 dark:border-white/5 my-1"></div>
 
                         <!-- Logout Option -->
-                        <button @click="handleLogout" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3">
+                        <button @click="handleLogout"
+                            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3">
                             <span class="material-symbols-outlined text-[20px]">logout</span>
                             Logout
                         </button>
@@ -137,11 +142,14 @@
                     <span class="material-symbols-outlined text-primary">phone</span>
                     <span class="font-medium">Phone Support</span>
                 </div>
-                <a href="tel:+1234567890" class="text-gray-600 dark:text-gray-300 hover:text-primary block ml-9">+1 (234) 567-890</a>
+                <a href="tel:+1234567890" class="text-gray-600 dark:text-gray-300 hover:text-primary block ml-9">+1
+                    (234)
+                    567-890</a>
             </div>
         </div>
         <template #footer>
-            <button @click="showSupportModal = false" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+            <button @click="showSupportModal = false"
+                class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
                 Close
             </button>
         </template>
@@ -152,16 +160,18 @@
         <template #title>User Profile</template>
         <div class="space-y-6">
             <div class="flex items-center gap-4">
-                <div class="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-2xl font-bold text-primary border-2 border-primary/20">
+                <div
+                    class="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-2xl font-bold text-primary border-2 border-primary/20">
                     {{ userInitials }}
                 </div>
                 <div>
                     <h4 class="text-xl font-bold text-gray-900 dark:text-white">{{ userName }}</h4>
                     <p class="text-gray-500">{{ userRole }}</p>
-                    <div class="mt-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full inline-block">Active</div>
+                    <div class="mt-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full inline-block">Active
+                    </div>
                 </div>
             </div>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                     <div class="text-xs text-gray-500 mb-1">Email Address</div>
@@ -183,7 +193,8 @@
         </div>
         <template #footer>
             <div class="flex justify-end gap-3">
-                <button @click="showProfileModal = false" class="px-4 py-2 text-gray-600 hover:text-gray-900">Close</button>
+                <button @click="showProfileModal = false"
+                    class="px-4 py-2 text-gray-600 hover:text-gray-900">Close</button>
                 <!-- <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Edit Profile</button> -->
             </div>
         </template>
@@ -231,6 +242,7 @@ const menuItems = [
     { label: 'Fleet & Drivers', icon: 'local_shipping', route: '/logistic/fleet' },
     { label: 'Geofencing', icon: 'map', route: '/logistic/geofencing' },
     { label: 'Finance & Payroll', icon: 'payments', route: '/logistic/finance' },
+    { label: 'Rate Governance', icon: 'currency_exchange', route: '/logistic/rate-governance' },
     { label: 'Reverse Logistics', icon: 'undo', route: '/logistic/reverse-logistics' },
     { label: 'Reports', icon: 'bar_chart', route: '/logistic/reports' },
     { label: 'AI Intelligence', icon: 'smart_toy', route: '/logistic/ai' },
