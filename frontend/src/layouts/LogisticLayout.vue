@@ -17,7 +17,7 @@
                             <span
                                 class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-[18px]">public</span>
                             <span class="text-sm font-medium text-gray-700 dark:text-white">{{ store.activeWarehouseName
-                            }}</span>
+                                }}</span>
                             <span class="material-symbols-outlined text-gray-500 text-[18px]">arrow_drop_down</span>
                         </button>
                     </div>
@@ -41,7 +41,7 @@
                     <!-- Search Bar Moved to Dashboard -->
 
                     <!-- Weather & Clock Widget -->
-                    <LogisticHeaderWeather />
+                    <HeaderWeather />
 
                     <!-- Notifications -->
                     <NotificationPopover :notifications="store.notifications"
@@ -49,10 +49,10 @@
                         @mark-all-read="store.markAllNotificationsRead" @clear-all="store.clearNotifications" />
 
                     <!-- Meeting Scheduler -->
-                    <LogisticHeaderMeetingScheduler />
+                    <HeaderMeetingScheduler />
 
                     <!-- To-Do List -->
-                    <LogisticHeaderTodo />
+                    <HeaderTodo />
 
                     <!-- Theme Toggle -->
                     <ThemeToggle />
@@ -74,10 +74,10 @@
 <script setup>
 import LogisticSidebar from '../LWD-components/LogisticSidebar.vue'
 import WarehouseSelectorModal from '@/LWD-components/WarehouseSelectorModal.vue'
-import NotificationPopover from '@/LWD-components/NotificationPopover.vue'
-import LogisticHeaderWeather from '@/LWD-components/LogisticHeaderWeather.vue'
-import LogisticHeaderTodo from '@/LWD-components/LogisticHeaderTodo.vue'
-import LogisticHeaderMeetingScheduler from '@/LWD-components/LogisticHeaderMeetingScheduler.vue'
+import NotificationPopover from '@/components/NotificationPopover.vue'
+import HeaderWeather from '@/components/HeaderWeather.vue'
+import HeaderTodo from '@/components/HeaderTodo.vue'
+import HeaderMeetingScheduler from '@/components/HeaderMeetingScheduler.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { useRoute } from 'vue-router'

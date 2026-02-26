@@ -101,7 +101,7 @@ const router = createRouter({
         { path: '/logistic/comparative-viewers', component: () => import('../LWD-views/LogisticManager/ComparativeViewers.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
         { path: '/logistic/ai', component: () => import('../LWD-views/LogisticManager/AIIntelligence.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
         { path: '/logistic/communication', component: () => import('../LWD-views/LogisticManager/Communication.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
-        { path: '/logistic/meeting-room', component: () => import('../LWD-views/MeetingRoom/MeetingRoom.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+        { path: '/logistic/meeting-room', component: () => import('../views/MeetingRoom/MeetingRoom.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
 
         // Dispatcher Routes
         { path: '/dispatcher/optimization', component: () => import('../LWD-views/Dispatcher/RouteOptimization.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
