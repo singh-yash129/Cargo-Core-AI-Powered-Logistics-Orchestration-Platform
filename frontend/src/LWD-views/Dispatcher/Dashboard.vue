@@ -4,23 +4,25 @@
         <!-- Left Panel: Active Driver Roster -->
         <div class="w-80 bg-card-dark border-r border-white/5 flex flex-col z-10 glass-panel">
             <div class="p-4 border-b border-white/5 flex justify-between items-center">
-                <h3 class="font-bold text-white text-sm">Active Drivers (14)</h3>
-                <button class="text-xs text-primary hover:underline">View All</button>
+                <h3 class="font-bold text-white text-sm">Active Drivers ({{ filteredDrivers.length }})</h3>
+                <button @click="showAllDrivers = !showAllDrivers" class="text-xs text-primary hover:underline">{{ showAllDrivers ? 'Show Active' : 'View All' }}</button>
             </div>
 
             <div class="p-3 bg-white/5">
                 <div class="relative">
                     <span
                         class="material-symbols-outlined absolute left-2 top-1.5 text-gray-500 text-[18px]">search</span>
-                    <input type="text" placeholder="Search driver..."
+                    <input v-model="driverSearch" type="text" placeholder="Search driver..."
                         class="w-full bg-black/20 border border-white/10 rounded-md py-1.5 pl-8 pr-3 text-xs text-white focus:outline-none focus:border-primary/50 transition-colors">
                 </div>
             </div>
 
             <div class="flex-1 overflow-y-auto no-scrollbar p-2 space-y-2">
                 <!-- Driver Card -->
-                <div v-for="driver in drivers" :key="driver.id"
-                    class="p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 cursor-pointer transition-all group">
+                <div v-for="driver in filteredDrivers" :key="driver.id"
+                    @click="selectDriver(driver)"
+                    :class="selectedDriver?.id === driver.id ? 'border-primary/50 bg-primary/5' : 'border-transparent'"
+                    class="p-3 rounded-lg bg-white/5 hover:bg-white/10 border hover:border-white/10 cursor-pointer transition-all group">
                     <div class="flex items-center gap-3 mb-2">
                         <div class="relative">
                             <img :src="driver.avatar" class="w-10 h-10 rounded-full bg-gray-700 object-cover">
@@ -49,7 +51,7 @@
                         <span class="text-[10px] text-gray-400 flex items-center gap-1">
                             <span class="material-symbols-outlined text-[12px]">location_on</span> {{ driver.location }}
                         </span>
-                        <button class="text-primary hover:text-white transition-colors">
+                        <button @click.stop="chatWithDriver(driver)" class="text-primary hover:text-white transition-colors">
                             <span class="material-symbols-outlined text-[16px]">chat</span>
                         </button>
                     </div>
@@ -113,14 +115,14 @@
 
             <!-- Bottom Map Toolbar -->
             <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 glass-panel p-2 rounded-xl flex gap-1">
-                <button class="p-2 hover:bg-white/10 rounded-lg text-white tooltip-trigger" title="Layers"><span
+                <button @click="toggleMapLayer('layers')" :class="mapLayers.layers ? 'bg-primary/20 text-primary' : 'text-white'" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Layers"><span
                         class="material-symbols-outlined">layers</span></button>
-                <button class="p-2 hover:bg-white/10 rounded-lg text-white" title="Traffic"><span
+                <button @click="toggleMapLayer('traffic')" :class="mapLayers.traffic ? 'bg-primary/20 text-primary' : 'text-white'" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Traffic"><span
                         class="material-symbols-outlined">traffic</span></button>
-                <button class="p-2 hover:bg-white/10 rounded-lg text-white" title="Heatmap"><span
+                <button @click="toggleMapLayer('heatmap')" :class="mapLayers.heatmap ? 'bg-primary/20 text-primary' : 'text-white'" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Heatmap"><span
                         class="material-symbols-outlined">blur_on</span></button>
                 <div class="w-[1px] h-8 bg-white/10 mx-1"></div>
-                <button class="p-2 hover:bg-white/10 rounded-lg text-white" title="Route Replay"><span
+                <button @click="toggleMapLayer('history')" :class="mapLayers.history ? 'bg-primary/20 text-primary' : 'text-white'" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Route Replay"><span
                         class="material-symbols-outlined">history</span></button>
             </div>
         </div>
@@ -129,7 +131,7 @@
         <div class="w-80 bg-card-dark border-l border-white/5 flex flex-col z-10 glass-panel">
             <div class="p-4 border-b border-white/5 flex justify-between items-center">
                 <h3 class="font-bold text-white text-sm">Pending Loads (8)</h3>
-                <button
+                <button @click="showAssignModal = true"
                     class="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary/20 transition-colors">
                     <span class="material-symbols-outlined text-[14px]">add</span> Assign
                 </button>
@@ -158,7 +160,13 @@
                     <div class="flex items-center justify-between pt-2 border-t border-white/5">
                         <div class="text-[10px] text-gray-400">Hub: <span class="text-gray-300">{{ load.hub }}</span>
                         </div>
-                        <button class="text-xs text-primary hover:text-white transition-colors">Details</button>
+                        <button @click="toggleLoadDetail(load)" class="text-xs text-primary hover:text-white transition-colors">{{ expandedLoad?.id === load.id ? 'Close' : 'Details' }}</button>
+                    </div>
+                    <div v-if="expandedLoad?.id === load.id" class="mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400 space-y-1">
+                        <div>Origin: {{ load.hub }} Warehouse</div>
+                        <div>Window: Today 14:00 - 18:00</div>
+                        <div>Assignment: Unassigned</div>
+                        <button @click="assignLoad(load)" class="mt-1 w-full text-center bg-primary/10 text-primary py-1 rounded hover:bg-primary/20 text-xs font-bold">Quick Assign</button>
                     </div>
                 </div>
             </div>
@@ -177,10 +185,73 @@
         </div>
 
     </div>
+
+    <!-- Assign Modal -->
+    <div v-if="showAssignModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" @click.self="showAssignModal = false">
+        <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-white/10">
+            <h3 class="font-bold text-white mb-4">Quick Assign Load</h3>
+            <div class="mb-3">
+                <label class="text-xs text-gray-400 mb-1 block">Select Order</label>
+                <select v-model="assignOrderId" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                    <option value="">Choose order...</option>
+                    <option v-for="load in pendingLoads" :key="load.id" :value="load.id">{{ load.id }} — {{ load.type }} ({{ load.weight }}kg)</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="text-xs text-gray-400 mb-1 block">Select Driver</label>
+                <select v-model="assignDriverId" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                    <option value="">Choose driver...</option>
+                    <option v-for="d in drivers" :key="d.id" :value="d.id">{{ d.name }} ({{ d.vehicle }}, {{ d.load }}% load)</option>
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <button @click="confirmAssign" :disabled="!assignOrderId || !assignDriverId"
+                    class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark transition-colors">Assign</button>
+                <button @click="showAssignModal = false" class="flex-1 bg-white/10 text-white py-2 rounded-lg text-sm hover:bg-white/20 transition-colors">Cancel</button>
+            </div>
+            <div v-if="assignSuccess" class="mt-3 text-center text-xs text-green-400 font-bold">✓ Order assigned successfully!</div>
+        </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div v-if="showChatModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" @click.self="showChatModal = false">
+        <div class="glass-panel rounded-2xl w-full max-w-sm m-4 border border-white/10 flex flex-col h-[400px]">
+            <div class="p-4 border-b border-white/5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <img :src="chatDriver?.avatar" class="w-8 h-8 rounded-full bg-gray-700">
+                    <div><div class="text-sm font-bold text-white">{{ chatDriver?.name }}</div><div class="text-[10px] text-gray-400">{{ chatDriver?.id }}</div></div>
+                </div>
+                <button @click="showChatModal = false" class="text-gray-400 hover:text-white"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <div class="flex-1 overflow-y-auto no-scrollbar p-4 space-y-2">
+                <div v-for="msg in driverChatMessages" :key="msg.id" :class="msg.from === 'dispatch' ? 'flex justify-end' : 'flex justify-start'">
+                    <div class="max-w-[80%] p-2 rounded-xl text-xs" :class="msg.from === 'dispatch' ? 'bg-primary/20 text-white' : 'bg-white/10 text-gray-300'">{{ msg.text }}</div>
+                </div>
+            </div>
+            <div class="p-3 border-t border-white/5 flex gap-2">
+                <input v-model="chatMsg" @keyup.enter="sendDriverMsg" type="text" placeholder="Type message..."
+                    class="flex-1 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-sm text-white focus:outline-none">
+                <button @click="sendDriverMsg" class="p-1.5 bg-primary rounded-full text-black"><span class="material-symbols-outlined text-[16px]">send</span></button>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+
+const driverSearch = ref('')
+const showAllDrivers = ref(false)
+const selectedDriver = ref(null)
+const expandedLoad = ref(null)
+const showAssignModal = ref(false)
+const assignOrderId = ref('')
+const assignDriverId = ref('')
+const assignSuccess = ref(false)
+const showChatModal = ref(false)
+const chatDriver = ref(null)
+const chatMsg = ref('')
+const mapLayers = ref({ layers: false, traffic: false, heatmap: false, history: false })
 
 const drivers = ref([
     { id: 'DRV-001', name: 'Mike Ross', vehicle: 'Van T-20', location: 'Sector 4', statusColor: 'bg-green-500', load: 85, hours: 4.5, avatar: 'https://i.pravatar.cc/150?u=1' },
@@ -195,4 +266,54 @@ const pendingLoads = ref([
     { id: 'ORD-1102', type: 'Furniture', weight: 850, volume: 5.4, priority: 'NORMAL', hub: 'North-East' },
     { id: 'ORD-5541', type: 'Retail Goods', weight: 200, volume: 1.2, priority: 'NORMAL', hub: 'West DC' },
 ])
+
+const filteredDrivers = computed(() => {
+    let list = drivers.value
+    if (!showAllDrivers.value) list = list.filter(d => d.statusColor !== 'bg-gray-500')
+    if (driverSearch.value) {
+        const q = driverSearch.value.toLowerCase()
+        list = list.filter(d => d.name.toLowerCase().includes(q) || d.id.toLowerCase().includes(q) || d.vehicle.toLowerCase().includes(q))
+    }
+    return list
+})
+
+function selectDriver(driver) { selectedDriver.value = selectedDriver.value?.id === driver.id ? null : driver }
+function toggleLoadDetail(load) { expandedLoad.value = expandedLoad.value?.id === load.id ? null : load }
+function toggleMapLayer(layer) { mapLayers.value[layer] = !mapLayers.value[layer] }
+
+function assignLoad(load) {
+    assignOrderId.value = load.id
+    showAssignModal.value = true
+}
+
+function confirmAssign() {
+    if (!assignOrderId.value || !assignDriverId.value) return
+    const loadIdx = pendingLoads.value.findIndex(l => l.id === assignOrderId.value)
+    if (loadIdx > -1) pendingLoads.value.splice(loadIdx, 1)
+    const driver = drivers.value.find(d => d.id === assignDriverId.value)
+    if (driver) driver.load = Math.min(100, driver.load + 15)
+    assignSuccess.value = true
+    setTimeout(() => { showAssignModal.value = false; assignSuccess.value = false; assignOrderId.value = ''; assignDriverId.value = '' }, 1200)
+}
+
+const driverChatMessages = ref([])
+let chatMsgId = 1
+function chatWithDriver(driver) {
+    chatDriver.value = driver
+    driverChatMessages.value = [
+        { id: chatMsgId++, from: 'driver', text: `Hi dispatch, I\'m at ${driver.location}. Ready for next instructions.` },
+        { id: chatMsgId++, from: 'dispatch', text: `Copy ${driver.name.split(' ')[0]}. Stand by for assignment update.` }
+    ]
+    showChatModal.value = true
+}
+
+function sendDriverMsg() {
+    if (!chatMsg.value.trim()) return
+    driverChatMessages.value.push({ id: chatMsgId++, from: 'dispatch', text: chatMsg.value })
+    const msg = chatMsg.value
+    chatMsg.value = ''
+    setTimeout(() => {
+        driverChatMessages.value.push({ id: chatMsgId++, from: 'driver', text: msg.includes('?') ? 'Yes, copy that. I\'ll check and confirm.' : 'Roger, acknowledged.' })
+    }, 1000)
+}
 </script>

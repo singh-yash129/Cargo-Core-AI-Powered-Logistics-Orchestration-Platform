@@ -1,6 +1,13 @@
 <template>
     <div class="space-y-6">
-        <h2 class="text-2xl font-bold text-white">Manifest Center</h2>
+        <div class="flex justify-between items-center">
+            <h2 class="text-2xl font-bold text-white">Manifest Center</h2>
+            <button @click="showManifestDetail = !showManifestDetail"
+                class="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">
+                <span class="material-symbols-outlined text-[18px]">{{ showManifestDetail ? 'table_view' : 'view_agenda' }}</span>
+                {{ showManifestDetail ? 'Table View' : 'Detail View' }}
+            </button>
+        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- New Manifest Form -->
@@ -9,27 +16,48 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Select Hub</label>
-                        <select class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm">
+                        <select v-model="newManifest.hub" class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm">
                             <option>North-East Hub</option>
                             <option>South Hub</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Select Driver</label>
-                        <select class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm">
-                            <option>Choose Driver...</option>
+                        <select v-model="newManifest.driver" class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm">
+                            <option value="">Choose Driver...</option>
                             <option>Mike Ross</option>
+                            <option>Harvey Specter</option>
+                            <option>Rachel Zane</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Select Vehicle</label>
+                        <select v-model="newManifest.vehicle" class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm">
+                            <option>Auto-assign best fit</option>
+                            <option>Van T-15 (1500kg)</option>
+                            <option>Van T-20 (2000kg)</option>
+                            <option>Truck XL (5000kg)</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Route ID (Auto-generated)</label>
-                        <input type="text" value="RT-2023-10-31-001" readonly
+                        <input type="text" :value="generatedRouteId" readonly
                             class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-gray-500 text-sm">
                     </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Labor Crew (if applicable)</label>
+                        <select v-model="newManifest.crew" class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm">
+                            <option>No crew needed</option>
+                            <option>2 loaders</option>
+                            <option>3 loaders + 1 helper</option>
+                            <option>Custom crew assign...</option>
+                        </select>
+                    </div>
                     <div class="pt-2">
-                        <button
-                            class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 rounded-lg transition-colors">Generate
+                        <button @click="generateManifest" :disabled="!newManifest.driver"
+                            class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 rounded-lg transition-colors disabled:opacity-50">Generate
                             Manifest</button>
+                        <div v-if="manifestGenerated" class="text-center text-xs text-green-400 mt-2 font-bold">✓ Manifest created successfully</div>
                     </div>
                 </div>
             </div>
@@ -45,22 +73,27 @@
                 </div>
 
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-white/5 text-gray-400 uppercase">
+                    <thead class="bg-white/5 text-gray-400 uppercase text-[10px] tracking-wider">
                         <tr>
                             <th class="p-4">Manifest ID</th>
                             <th class="p-4">Driver</th>
                             <th class="p-4">Orders</th>
                             <th class="p-4">Weight</th>
+                            <th class="p-4">Distance</th>
+                            <th class="p-4">Stops</th>
                             <th class="p-4">Status</th>
                             <th class="p-4">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-white/5">
-                        <tr v-for="manifest in manifests" :key="manifest.id" class="hover:bg-white/5 transition-colors">
+                        <tr v-for="manifest in manifests" :key="manifest.id" class="hover:bg-white/5 transition-colors cursor-pointer"
+                            @click="selectedManifest = manifest; showManifestDetail = true">
                             <td class="p-4 font-mono text-white">{{ manifest.id }}</td>
                             <td class="p-4 text-gray-300">{{ manifest.driver }}</td>
                             <td class="p-4 text-gray-300">{{ manifest.orders }}</td>
                             <td class="p-4 text-gray-300">{{ manifest.weight }} kg</td>
+                            <td class="p-4 text-gray-300">{{ manifest.totalDistance }} km</td>
+                            <td class="p-4 text-gray-300">{{ manifest.stopCount }}</td>
                             <td class="p-4">
                                 <span class="px-2 py-1 rounded text-[10px] font-bold border"
                                     :class="manifest.statusClass">
@@ -68,24 +101,197 @@
                                 </span>
                             </td>
                             <td class="p-4 flex gap-2">
-                                <button class="text-primary hover:underline text-xs">View</button>
-                                <button class="text-gray-400 hover:text-white text-xs">Print</button>
+                                <button @click.stop="selectedManifest = manifest; showManifestDetail = true" class="text-primary hover:underline text-xs">View</button>
+                                <button @click.stop="printManifest(manifest)" class="text-gray-400 hover:text-white text-xs">{{ manifest.printed ? '✓ Printed' : 'Print' }}</button>
+                                <button @click.stop="pushToDriver(manifest)" class="text-xs" :class="manifest.pushed ? 'text-green-400' : 'text-blue-400 hover:text-white'">{{ manifest.pushed ? '✓ Pushed' : 'Push to Driver' }}</button>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
+
+        <!-- Manifest Detail View (Digital Manifest) -->
+        <div v-if="showManifestDetail && selectedManifest" class="glass-panel rounded-xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-white text-lg flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">description</span>
+                    Digital Manifest: {{ selectedManifest.id }}
+                </h3>
+                <div class="flex gap-2">
+                    <button @click="printManifest(selectedManifest)" class="bg-white/5 hover:bg-white/10 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">print</span> {{ selectedManifest.printed ? '✓ Printed' : 'Print' }}
+                    </button>
+                    <button @click="pushToDriver(selectedManifest)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1" :class="selectedManifest.pushed ? 'bg-green-500/20 text-green-400' : 'bg-primary/10 hover:bg-primary/20 text-primary'">
+                        <span class="material-symbols-outlined text-[14px]">send</span> {{ selectedManifest.pushed ? '✓ Pushed' : 'Push to Driver App' }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Manifest Summary -->
+                <div class="p-4 bg-white/5 rounded-xl space-y-3">
+                    <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Manifest Summary</div>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between"><span class="text-gray-400">Driver</span><span class="text-white font-bold">{{ selectedManifest.driver }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Vehicle</span><span class="text-white">{{ selectedManifest.vehicle }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Total Weight</span><span class="text-white">{{ selectedManifest.weight }} kg</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Total Distance</span><span class="text-white">{{ selectedManifest.totalDistance }} km</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Total Stops</span><span class="text-white">{{ selectedManifest.stopCount }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Est. Trip Duration</span><span class="text-white">{{ selectedManifest.estDuration }}</span></div>
+                    </div>
+                </div>
+
+                <!-- Labor Crew List -->
+                <div class="p-4 bg-white/5 rounded-xl">
+                    <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-3">Labor / Crew List</div>
+                    <div v-if="selectedManifest.crew && selectedManifest.crew.length > 0" class="space-y-2">
+                        <div v-for="member in selectedManifest.crew" :key="member.name"
+                            class="flex items-center justify-between p-2 bg-black/20 rounded text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[14px]" :class="member.role === 'Driver' ? 'text-primary' : 'text-blue-400'">
+                                    {{ member.role === 'Driver' ? 'local_shipping' : 'person' }}
+                                </span>
+                                <span class="text-white">{{ member.name }}</span>
+                            </div>
+                            <span class="text-gray-400">{{ member.role }}</span>
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-gray-500 text-center py-4">No crew assigned — parcel delivery only</div>
+                </div>
+
+                <!-- Load Summary -->
+                <div class="p-4 bg-white/5 rounded-xl">
+                    <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-3">Load Details</div>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between"><span class="text-gray-400">Total Parcels</span><span class="text-white">{{ selectedManifest.orders }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Total Volume</span><span class="text-white">{{ selectedManifest.totalVolume }} m³</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Fragile Items</span><span class="text-yellow-400">{{ selectedManifest.fragileCount }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Perishable</span><span class="text-blue-400">{{ selectedManifest.perishableCount }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">COD Orders</span><span class="text-green-400">{{ selectedManifest.codCount }}</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stop Sequence with ETA -->
+            <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-3">Stop Sequence & Estimated Arrival</div>
+            <div class="space-y-2">
+                <div v-for="(stop, index) in selectedManifest.stops" :key="stop.id"
+                    class="flex items-center gap-4 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                    <!-- Stop Number -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                            :class="stop.completed ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-primary/20 text-primary border border-primary/30'">
+                            {{ index + 1 }}
+                        </div>
+                        <div v-if="index < selectedManifest.stops.length - 1" class="w-0.5 h-4 bg-gray-600 mt-1"></div>
+                    </div>
+
+                    <!-- Stop Details -->
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-white text-sm font-bold">{{ stop.location }}</span>
+                            <span v-if="stop.type === 'pickup'" class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[9px] font-bold">PICKUP</span>
+                            <span v-else class="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[9px] font-bold">DELIVERY</span>
+                        </div>
+                        <div class="text-xs text-gray-400 mt-0.5">{{ stop.orderIds.join(', ') }}</div>
+                    </div>
+
+                    <!-- ETA -->
+                    <div class="text-right">
+                        <div class="text-sm font-mono font-bold" :class="stop.completed ? 'text-green-400' : 'text-white'">
+                            {{ stop.completed ? stop.actualTime : stop.eta }}
+                        </div>
+                        <div class="text-[10px]" :class="stop.completed ? 'text-green-400' : stop.delayRisk ? 'text-yellow-400' : 'text-gray-500'">
+                            {{ stop.completed ? 'Completed' : stop.delayRisk ? 'Delay risk' : 'On schedule' }}
+                        </div>
+                    </div>
+
+                    <!-- Distance from prev -->
+                    <div class="text-right w-16">
+                        <div class="text-xs text-gray-500">{{ stop.distFromPrev }} km</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, computed } from 'vue'
+
+const showManifestDetail = ref(false)
+const selectedManifest = ref(null)
+const manifestGenerated = ref(false)
+const newManifest = reactive({ hub: 'North-East Hub', driver: '', vehicle: 'Auto-assign best fit', crew: 'No crew needed' })
+
+const generatedRouteId = computed(() => {
+    const d = new Date()
+    const count = manifests.value.length + 1
+    return `RT-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}-${String(count).padStart(3,'0')}`
+})
 
 const manifests = ref([
-    { id: 'MAN-9921', driver: 'Mike Ross', orders: 42, weight: 1250, status: 'Dispatched', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20' },
-    { id: 'MAN-9922', driver: 'Harvey Specter', orders: 15, weight: 450, status: 'Loading', statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
-    { id: 'MAN-9923', driver: 'Rachel Zane', orders: 88, weight: 2100, status: 'Dispatched', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20' },
-    { id: 'MAN-9924', driver: '-- Unassigned --', orders: 12, weight: 320, status: 'Draft', statusClass: 'bg-gray-500/10 text-gray-500 border-gray-500/20' },
+    {
+        id: 'MAN-9921', driver: 'Mike Ross', vehicle: 'Van T-20', orders: 42, weight: 1250, totalDistance: 145,
+        stopCount: 18, estDuration: '6h 30m', status: 'Dispatched', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20',
+        totalVolume: 8.5, fragileCount: 4, perishableCount: 0, codCount: 6,
+        crew: [{ name: 'Mike Ross', role: 'Driver' }],
+        stops: [
+            { id: 1, location: 'North-East Hub (Depart)', type: 'pickup', orderIds: ['ORD-9921', 'ORD-8843'], eta: '9:00 AM', actualTime: '9:02 AM', completed: true, delayRisk: false, distFromPrev: 0 },
+            { id: 2, location: '42 Oak Street, Downtown', type: 'delivery', orderIds: ['ORD-9921'], eta: '9:45 AM', actualTime: '9:40 AM', completed: true, delayRisk: false, distFromPrev: 12 },
+            { id: 3, location: '88 Park Ave, Midtown', type: 'delivery', orderIds: ['ORD-8843'], eta: '10:15 AM', actualTime: null, completed: false, delayRisk: false, distFromPrev: 8 },
+            { id: 4, location: '120 River Rd, West End', type: 'delivery', orderIds: ['ORD-5541'], eta: '11:00 AM', actualTime: null, completed: false, delayRisk: true, distFromPrev: 15 },
+            { id: 5, location: 'Return to Hub', type: 'pickup', orderIds: [], eta: '12:30 PM', actualTime: null, completed: false, delayRisk: false, distFromPrev: 22 },
+        ]
+    },
+    {
+        id: 'MAN-9922', driver: 'Harvey Specter', vehicle: 'Truck XL', orders: 15, weight: 450, totalDistance: 88,
+        stopCount: 8, estDuration: '4h 15m', status: 'Loading', statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+        totalVolume: 3.2, fragileCount: 1, perishableCount: 2, codCount: 3,
+        crew: [{ name: 'Harvey Specter', role: 'Driver' }, { name: 'John T.', role: 'Loader' }, { name: 'Amit K.', role: 'Loader' }],
+        stops: [
+            { id: 1, location: 'South Hub (Depart)', type: 'pickup', orderIds: ['ORD-1102'], eta: '11:00 AM', actualTime: null, completed: false, delayRisk: false, distFromPrev: 0 },
+            { id: 2, location: '55 Industrial Blvd', type: 'delivery', orderIds: ['ORD-1102'], eta: '12:00 PM', actualTime: null, completed: false, delayRisk: false, distFromPrev: 25 },
+        ]
+    },
+    { id: 'MAN-9923', driver: 'Rachel Zane', vehicle: 'Van T-15', orders: 88, weight: 2100, totalDistance: 65, stopCount: 24, estDuration: '7h', status: 'Dispatched', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20', totalVolume: 6.1, fragileCount: 8, perishableCount: 0, codCount: 12, crew: [{ name: 'Rachel Zane', role: 'Driver' }], stops: [] },
+    { id: 'MAN-9924', driver: '-- Unassigned --', vehicle: '—', orders: 12, weight: 320, totalDistance: 0, stopCount: 0, estDuration: 'TBD', status: 'Draft', statusClass: 'bg-gray-500/10 text-gray-500 border-gray-500/20', totalVolume: 1.8, fragileCount: 0, perishableCount: 0, codCount: 2, crew: [], stops: [] },
 ])
+
+// Auto-select the first manifest for detail view
+selectedManifest.value = manifests.value[0]
+
+function generateManifest() {
+    const id = `MAN-${9924 + manifests.value.length}`
+    const veh = newManifest.vehicle === 'Auto-assign best fit' ? 'Van T-20' : newManifest.vehicle.split(' (')[0]
+    const crewList = newManifest.driver ? [{ name: newManifest.driver, role: 'Driver' }] : []
+    if (newManifest.crew.includes('loader')) {
+        crewList.push({ name: 'Crew A', role: 'Loader' })
+    }
+    manifests.value.unshift({
+        id, driver: newManifest.driver || '-- Unassigned --', vehicle: veh, orders: Math.floor(Math.random() * 30) + 5,
+        weight: Math.floor(Math.random() * 1500) + 200, totalDistance: Math.floor(Math.random() * 120) + 30,
+        stopCount: Math.floor(Math.random() * 15) + 3, estDuration: `${Math.floor(Math.random() * 5) + 2}h`,
+        status: 'Draft', statusClass: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
+        totalVolume: (Math.random() * 8 + 1).toFixed(1), fragileCount: Math.floor(Math.random() * 5),
+        perishableCount: 0, codCount: Math.floor(Math.random() * 4), crew: crewList, stops: [],
+        pushed: false, printed: false
+    })
+    manifestGenerated.value = true
+    newManifest.driver = ''
+    setTimeout(() => { manifestGenerated.value = false }, 2000)
+}
+
+function pushToDriver(manifest) {
+    manifest.pushed = true
+    if (manifest.status === 'Draft') {
+        manifest.status = 'Dispatched'
+        manifest.statusClass = 'bg-green-500/10 text-green-500 border-green-500/20'
+    }
+}
+
+function printManifest(manifest) {
+    manifest.printed = true
+}
 </script>

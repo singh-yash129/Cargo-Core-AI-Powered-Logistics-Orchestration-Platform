@@ -79,9 +79,14 @@
 <script setup>
 const menuItems = [
     { label: 'Dispatch Board', icon: 'dashboard_customize', route: '/dispatcher/dashboard' },
+    { label: 'Pending Queue', icon: 'pending_actions', route: '/dispatcher/pending-queue', badge: '24' },
+    { label: 'Order Clustering', icon: 'hub', route: '/dispatcher/clustering' },
     { label: 'Route Optimization', icon: 'alt_route', route: '/dispatcher/optimization' },
+    { label: 'Load Balancing', icon: 'balance', route: '/dispatcher/load-balancing' },
     { label: 'Driver Management', icon: 'badge', route: '/dispatcher/drivers' },
     { label: 'Manifest Center', icon: 'inventory_2', route: '/dispatcher/manifest' },
+    { label: 'Service Moves', icon: 'local_shipping', route: '/dispatcher/service-moves' },
+    { label: 'Order Status', icon: 'package_2', route: '/dispatcher/order-status' },
     { label: 'Crisis Management', icon: 'emergency_home', route: '/dispatcher/crisis', alert: '!' },
     { label: 'Communication Hub', icon: 'forum', route: '/dispatcher/communication', badge: '5' },
     { label: 'Performance Metrics', icon: 'monitoring', route: '/dispatcher/performance' },

@@ -104,9 +104,14 @@ const router = createRouter({
         { path: '/logistic/meeting-room', component: () => import('../views/MeetingRoom/MeetingRoom.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
 
         // Dispatcher Routes
+        { path: '/dispatcher/pending-queue', component: () => import('../LWD-views/Dispatcher/PendingDispatchQueue.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+        { path: '/dispatcher/clustering', component: () => import('../LWD-views/Dispatcher/OrderClustering.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
         { path: '/dispatcher/optimization', component: () => import('../LWD-views/Dispatcher/RouteOptimization.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+        { path: '/dispatcher/load-balancing', component: () => import('../LWD-views/Dispatcher/LoadBalancing.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
         { path: '/dispatcher/drivers', component: () => import('../LWD-views/Dispatcher/DriverManagement.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
         { path: '/dispatcher/manifest', component: () => import('../LWD-views/Dispatcher/ManifestCenter.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+        { path: '/dispatcher/service-moves', component: () => import('../LWD-views/Dispatcher/ServiceMoves.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+        { path: '/dispatcher/order-status', component: () => import('../LWD-views/Dispatcher/OrderStatusControl.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
         { path: '/dispatcher/crisis', component: () => import('../LWD-views/Dispatcher/CrisisManagement.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
         { path: '/dispatcher/communication', component: () => import('../LWD-views/Dispatcher/Communication.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
         { path: '/dispatcher/performance', component: () => import('../LWD-views/Dispatcher/PerformanceMetrics.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
