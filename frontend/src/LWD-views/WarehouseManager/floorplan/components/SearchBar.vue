@@ -4,7 +4,14 @@
             class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
         <input :value="modelValue" @input="$emit('update:modelValue', $event.target.value); $emit('search')" type="text"
             placeholder="Search Order ID, SKU, RMA, product..."
-            class="w-full pl-10 pr-3 py-2 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+            class="w-full pl-10 pr-8 py-2 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+
+        <!-- Clear button -->
+        <button v-if="modelValue"
+            @click="$emit('update:modelValue', ''); $emit('clear')"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+            <span class="material-symbols-outlined text-[16px]">close</span>
+        </button>
 
         <!-- Results dropdown -->
         <div v-if="results.length && modelValue"
@@ -33,5 +40,5 @@ defineProps({
     results: { type: Array, default: () => [] }
 })
 
-defineEmits(['update:modelValue', 'search', 'focus-result'])
+defineEmits(['update:modelValue', 'search', 'focus-result', 'clear'])
 </script>

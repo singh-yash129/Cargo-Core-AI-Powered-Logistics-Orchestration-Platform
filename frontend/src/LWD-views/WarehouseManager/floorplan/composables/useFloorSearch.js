@@ -1,10 +1,13 @@
 import { ref, watch } from 'vue'
 
 /**
- * Token-based search index with progressive drill-down navigation.
+ * Token-based search index with animated progressive drill-down navigation.
+ *
+ * When a product is focused it animates through:
+ *   FLOOR (highlight section) → SECTION (highlight rack) → RACK (highlight cell)
  *
  * @param {Object} store - The warehouseFloorStore instance
- * @param {Object} zoom - The useZoomStateMachine instance
+ * @param {Object} zoom  - The useZoomStateMachine instance
  */
 export function useFloorSearch(store, zoom) {
     const searchQuery = ref('')
@@ -15,9 +18,10 @@ export function useFloorSearch(store, zoom) {
     const highlightedProducts = ref([])
     const searchPaths = ref([])
     const currentPathIdx = ref(0)
+    const isDrillAnimating = ref(false)
 
     let searchTimer = null
-    let highlightTimer = null
+    let drillAbort = null // AbortController for cancelling in-progress drill-down
 
     // ── Search Index ────────────────────────────────────────────
     const searchIndex = new Map() // token → Set<product>
@@ -48,10 +52,19 @@ export function useFloorSearch(store, zoom) {
     // Rebuild index when products change
     watch(() => store.products.length, buildIndex, { immediate: true })
 
+    // ── Helpers ──────────────────────────────────────────────────
+    /** Cancellable delay – rejects with 'aborted' when signal fires */
+    function delay(ms, signal) {
+        return new Promise((resolve, reject) => {
+            const id = setTimeout(resolve, ms)
+            signal?.addEventListener('abort', () => { clearTimeout(id); reject('aborted') })
+        })
+    }
+
     // ── Search Execution ────────────────────────────────────────
     function onSearch() {
         clearTimeout(searchTimer)
-        clearHighlights()
+        // Don't clear highlights while typing – only when query is empty
         if (!searchQuery.value.trim()) {
             searchResults.value = []
             return
@@ -95,76 +108,116 @@ export function useFloorSearch(store, zoom) {
     }
 
     /**
-     * Focus on a specific search result. Determines progressive drill-down level:
-     * - Multiple sections → stay FLOOR, highlight sections
-     * - Single section, multiple racks → SECTION level, highlight racks
-     * - Single rack → SECTION + RACK level, highlight cells
+     * Focus on a specific search result with animated drill-down:
+     *   Step 1 – FLOOR level, highlight the target section (pulse)
+     *   Step 2 – SECTION level, highlight the target rack
+     *   Step 3 – RACK level, highlight the target cell
      */
-    function focusSearchResult(result, activeFloorId, setFloor, containerSize) {
+    async function focusSearchResult(result, activeFloorId, setFloor, _containerSize) {
+        // Cancel any previous drill-down animation
+        if (drillAbort) drillAbort.abort()
+        drillAbort = new AbortController()
+        const signal = drillAbort.signal
+
         // Switch floor if needed
         if (result.floorId !== activeFloorId) {
             setFloor(result.floorId)
         }
 
+        // Keep search query visible & store paths for next/prev navigation
         highlightedProducts.value = searchResults.value.map(s => s.product)
         searchPaths.value = [...searchResults.value]
         currentPathIdx.value = searchResults.value.indexOf(result)
-        searchQuery.value = ''
+        // Close the dropdown but keep the query text
         searchResults.value = []
 
-        // Determine scope
-        const allOnFloor = searchPaths.value.filter(s => s.floorId === result.floorId)
-        const sectionIds = [...new Set(allOnFloor.map(s => s.sectionId))]
-        const inSection = allOnFloor.filter(s => s.sectionId === result.sectionId)
-        const rackIds = [...new Set(inSection.map(s => s.rackId))]
+        isDrillAnimating.value = true
 
-        if (sectionIds.length > 1) {
-            // Broad: highlight multiple sections at floor level
-            zoom.zoomToFloor()
-            highlightedSectionIds.value = sectionIds
-            highlightedRackIds.value = []
-        } else if (rackIds.length > 1) {
-            // Medium: zoom into section, highlight racks
-            zoom.zoomToSection(result.sectionId)
-            highlightedSectionIds.value = []
-            highlightedRackIds.value = rackIds
-        } else {
-            // Exact: zoom into section + highlight single rack
-            zoom.zoomToSection(result.sectionId)
+        try {
+            // ── Step 1: Floor level — highlight the section ──
+            await zoom.zoomToFloor()
+            clearHighlights()
+            highlightedSectionIds.value = [result.sectionId]
+            highlightedProducts.value = [result.product]
+            await delay(1200, signal)
+
+            // ── Step 2: Section level — highlight the rack ──
+            await zoom.zoomToSection(result.sectionId)
             highlightedSectionIds.value = []
             highlightedRackIds.value = [result.rackId]
-            highlightedCellKeys.value = [`${result.rackId}:${result.product.cell}`]
-        }
+            highlightedProducts.value = [result.product]
+            await delay(1200, signal)
 
-        scheduleHighlightClear()
+            // ── Step 3: Rack level — highlight the cell ──
+            await zoom.zoomToRack(result.rackId)
+            highlightedRackIds.value = []
+            highlightedCellKeys.value = [`${result.rackId}:${result.product.cell}`]
+            highlightedProducts.value = [result.product]
+
+        } catch (_) {
+            // Drill-down was aborted (user started a new search / navigation)
+        } finally {
+            isDrillAnimating.value = false
+        }
     }
 
-    /** Navigate to the next search result */
+    /** Navigate to the next search result (with drill-down animation) */
     function nextResult(activeFloorId, setFloor) {
         if (!searchPaths.value.length) return
         currentPathIdx.value = (currentPathIdx.value + 1) % searchPaths.value.length
         navigateToPath(searchPaths.value[currentPathIdx.value], activeFloorId, setFloor)
     }
 
-    /** Navigate to the previous search result */
+    /** Navigate to the previous search result (with drill-down animation) */
     function prevResult(activeFloorId, setFloor) {
         if (!searchPaths.value.length) return
         currentPathIdx.value = (currentPathIdx.value - 1 + searchPaths.value.length) % searchPaths.value.length
         navigateToPath(searchPaths.value[currentPathIdx.value], activeFloorId, setFloor)
     }
 
-    /** Navigate camera to a specific path entry */
-    function navigateToPath(entry, activeFloorId, setFloor) {
+    /** Navigate and animate to a specific path entry */
+    async function navigateToPath(entry, activeFloorId, setFloor) {
+        // Cancel any previous drill-down animation
+        if (drillAbort) drillAbort.abort()
+        drillAbort = new AbortController()
+        const signal = drillAbort.signal
+
         if (entry.floorId !== activeFloorId) setFloor(entry.floorId)
         highlightedProducts.value = [entry.product]
-        zoom.zoomToSection(entry.sectionId)
-        highlightedSectionIds.value = []
-        highlightedRackIds.value = [entry.rackId]
-        highlightedCellKeys.value = [`${entry.rackId}:${entry.product.cell}`]
-        scheduleHighlightClear()
+
+        isDrillAnimating.value = true
+
+        try {
+            // Step 1: Floor – highlight section
+            await zoom.zoomToFloor()
+            clearHighlights()
+            highlightedSectionIds.value = [entry.sectionId]
+            highlightedProducts.value = [entry.product]
+            await delay(1000, signal)
+
+            // Step 2: Section – highlight rack
+            await zoom.zoomToSection(entry.sectionId)
+            highlightedSectionIds.value = []
+            highlightedRackIds.value = [entry.rackId]
+            highlightedProducts.value = [entry.product]
+            await delay(1000, signal)
+
+            // Step 3: Rack – highlight cell
+            await zoom.zoomToRack(entry.rackId)
+            highlightedRackIds.value = []
+            highlightedCellKeys.value = [`${entry.rackId}:${entry.product.cell}`]
+            highlightedProducts.value = [entry.product]
+
+        } catch (_) {
+            // aborted
+        } finally {
+            isDrillAnimating.value = false
+        }
     }
 
     function clearSearchNav() {
+        if (drillAbort) drillAbort.abort()
+        searchQuery.value = ''
         searchPaths.value = []
         currentPathIdx.value = 0
         clearHighlights()
@@ -175,11 +228,6 @@ export function useFloorSearch(store, zoom) {
         highlightedRackIds.value = []
         highlightedCellKeys.value = []
         highlightedProducts.value = []
-    }
-
-    function scheduleHighlightClear() {
-        clearTimeout(highlightTimer)
-        highlightTimer = setTimeout(clearHighlights, 8000)
     }
 
     /** Get highlighted products for a specific section */
@@ -204,6 +252,7 @@ export function useFloorSearch(store, zoom) {
         highlightedProducts,
         searchPaths,
         currentPathIdx,
+        isDrillAnimating,
         onSearch,
         focusSearchResult,
         nextResult,

@@ -49,8 +49,8 @@
             </div>
         </div>
 
-        <!-- Search highlight tooltip -->
-        <div v-if="highlightProducts.length"
+        <!-- Search highlight tooltip (only on the highlighted rack) -->
+        <div v-if="isHighlighted && highlightProducts.length"
             class="absolute -top-16 left-1/2 -translate-x-1/2 w-52 bg-gray-900 dark:bg-black text-white p-2.5 rounded-xl shadow-2xl z-50 search-tooltip pointer-events-none border border-primary/40">
             <div class="text-[10px] font-bold text-primary mb-1">📦 {{ rack.label }}</div>
             <div v-for="p in highlightProducts" :key="p.sku" class="text-[9px] text-gray-300">

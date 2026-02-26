@@ -276,6 +276,11 @@ export const useWarehouseFloorStore = defineStore('warehouseFloor', () => {
         return true
     }
 
+    function renameFloor(floorId, newLabel) {
+        const f = floors.value.find(fl => fl.id === floorId)
+        if (f && newLabel.trim()) f.label = newLabel.trim()
+    }
+
     function addSection(floorId) {
         const id = 'c' + (_idCounter++)
         sections.value.push({
@@ -365,6 +370,7 @@ export const useWarehouseFloorStore = defineStore('warehouseFloor', () => {
         // Mutations
         addFloor,
         deleteFloor,
+        renameFloor,
         addSection,
         deleteSection,
         addRack,

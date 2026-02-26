@@ -8,15 +8,25 @@
             </div>
 
             <SearchBar v-model="search.searchQuery.value" :results="search.searchResults.value"
-                @search="search.onSearch" @focus-result="onFocusSearchResult" />
+                @search="search.onSearch" @focus-result="onFocusSearchResult"
+                @clear="search.clearSearchNav()" />
 
             <div class="flex items-center gap-2">
                 <div
                     class="bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-1 flex">
-                    <button v-for="f in store.floors" :key="f.id"
-                        class="px-3 py-1 text-sm font-bold rounded transition-colors"
-                        :class="activeFloor === f.id ? 'bg-primary text-background-dark shadow-lg' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'"
-                        @click="switchFloor(f.id)">{{ f.label }}</button>
+                    <template v-for="f in store.floors" :key="f.id">
+                        <input v-if="editingFloorId === f.id" ref="floorNameInput"
+                            :value="f.label"
+                            @blur="finishFloorRename($event, f.id)"
+                            @keydown.enter="$event.target.blur()"
+                            @keydown.escape="editingFloorId = null"
+                            class="px-3 py-1 text-sm font-bold rounded bg-primary text-background-dark shadow-lg outline-none border-b-2 border-white/50 w-24" />
+                        <button v-else
+                            class="px-3 py-1 text-sm font-bold rounded transition-colors"
+                            :class="activeFloor === f.id ? 'bg-primary text-background-dark shadow-lg' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'"
+                            @click="switchFloor(f.id)"
+                            @dblclick.stop="startFloorRename(f.id)">{{ f.label }}</button>
+                    </template>
                 </div>
                 <button @click="onAddFloor"
                     class="w-7 h-7 flex items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20">
@@ -68,43 +78,7 @@
                 <FloorBreadcrumb :level="zoom.state.level" :floor-label="currentFloorLabel"
                     :section-label="activeSection?.label" :section-color="activeSectionColor"
                     :group-name="activeSectionGroupName" :rack-label="activeRack?.label"
-                    :search-path-count="search.searchPaths.value.length" :current-idx="search.currentPathIdx.value"
-                    @navigate="onBreadcrumbNavigate" @prev-result="onPrevResult" @next-result="onNextResult"
-                    @clear-search="search.clearSearchNav()" />
-
-                <!-- ═══ Fixed level header (SECTION / RACK) ═══ -->
-                <div v-if="zoom.state.level === 'SECTION'"
-                    class="flex items-center gap-3 px-5 py-2 border-b border-gray-200 dark:border-white/5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10">
-                    <div class="w-3 h-3 rounded-full" :style="{ background: activeSectionColor }"></div>
-                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">{{ activeSection?.label }}</h3>
-                    <span class="text-[10px] px-2 py-0.5 rounded"
-                        :style="{ background: activeSectionColor + '20', color: activeSectionColor }">
-                        {{ activeSectionGroupName || 'Ungrouped' }}
-                    </span>
-                    <span class="text-[10px] text-gray-500">{{ activeRacks.length }} rack(s) · {{
-                        activeSectionProducts.length }} items</span>
-                    <div class="flex-1"></div>
-                    <button @click="handleLevelBack"
-                        class="px-3 py-1 rounded-lg bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold hover:bg-gray-300 dark:hover:bg-white/20 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[14px]">arrow_back</span> Back to Floor
-                    </button>
-                </div>
-
-                <div v-if="zoom.state.level === 'RACK' && activeRack"
-                    class="flex items-center gap-3 px-5 py-2 border-b border-gray-200 dark:border-white/5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10">
-                    <span class="material-symbols-outlined text-purple-400 text-[16px]">grid_view</span>
-                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">{{ activeRack.label }}</h3>
-                    <span class="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">
-                        {{ activeRack.rows }}×{{ activeRack.cols }} grid
-                    </span>
-                    <span class="text-[10px] text-gray-500">{{ store.productsByRack(activeRack.id).length }}/{{
-                        activeRack.rows * activeRack.cols }} cells</span>
-                    <div class="flex-1"></div>
-                    <button @click="handleLevelBack"
-                        class="px-3 py-1 rounded-lg bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold hover:bg-gray-300 dark:hover:bg-white/20 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[14px]">arrow_back</span> Back to Section
-                    </button>
-                </div>
+                    @navigate="onBreadcrumbNavigate" />
 
                 <!-- ═══ Canvas (fixed container with scrollable inner grid) ═══ -->
                 <div class="flex-1 relative canvas-grid min-h-0">
@@ -292,6 +266,27 @@
                     </div>
                 </div>
 
+                <!-- ═══ Searched Product Details ═══ -->
+                <div v-if="search.highlightedProducts.value.length" class="glass-panel rounded-xl p-4 flex flex-col gap-2 max-h-56 overflow-y-auto">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px] text-primary">search</span>
+                        Search Results
+                        <span class="text-[10px] text-gray-500 font-normal ml-auto">{{ search.highlightedProducts.value.length }} found</span>
+                    </h3>
+                    <div v-for="p in search.highlightedProducts.value" :key="p.sku + p.rackId"
+                        class="p-2.5 rounded-lg bg-primary/5 border border-primary/20 space-y-1 cursor-pointer hover:bg-primary/10 transition-colors"
+                        @click="onSidebarProductClick(p)">
+                        <div class="text-xs font-bold text-primary truncate">📦 {{ p.name }}</div>
+                        <div class="flex justify-between text-[10px]"><span class="text-gray-500">SKU</span><span class="font-bold text-gray-700 dark:text-gray-300">{{ p.sku }}</span></div>
+                        <div class="flex justify-between text-[10px]"><span class="text-gray-500">Qty</span><span class="font-bold text-gray-700 dark:text-gray-300">{{ p.qty }} {{ p.unit }}</span></div>
+                        <div class="flex justify-between text-[10px]"><span class="text-gray-500">Order</span><span class="font-bold text-gray-700 dark:text-gray-300">{{ p.orderId }}</span></div>
+                        <div v-if="p.rma" class="flex justify-between text-[10px]"><span class="text-yellow-500">⚠ RMA</span><span class="font-bold text-yellow-500">{{ p.rma }}</span></div>
+                        <div class="text-[9px] text-gray-400 mt-0.5">
+                            {{ getProductLocationLabel(p) }}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="glass-panel rounded-xl p-4 space-y-2">
                     <template v-if="zoom.state.level === 'FLOOR'">
                         <div class="flex justify-between text-xs"><span class="text-gray-500">Sections</span><span
@@ -368,6 +363,8 @@ const showGroupModal = ref(false)
 const editingGroup = ref(null)
 const toastMsg = ref('')
 const canvasRef = ref(null)
+const floorNameInput = ref(null)
+const editingFloorId = ref(null)
 const tooltipData = ref(null)
 const tooltipAnchor = ref({ x: 0, y: 0 })
 
@@ -566,8 +563,6 @@ function onFocusSearchResult(result) {
     tooltipData.value = null
     search.focusSearchResult(result, activeFloor.value, switchFloor, null)
 }
-function onNextResult() { search.nextResult(activeFloor.value, switchFloor) }
-function onPrevResult() { search.prevResult(activeFloor.value, switchFloor) }
 
 // ── Floor CRUD ──
 function switchFloor(floorId) {
@@ -600,16 +595,52 @@ function onDeleteGroup() { if (editingGroup.value) { store.deleteGroup(editingGr
 
 function showToast(m) { toastMsg.value = m; setTimeout(() => { toastMsg.value = '' }, 2500) }
 
+// ── Floor Name Editor ──
+function startFloorRename(floorId) {
+    editingFloorId.value = floorId
+    nextTick(() => {
+        const input = Array.isArray(floorNameInput.value) ? floorNameInput.value[0] : floorNameInput.value
+        input?.focus()
+        input?.select()
+    })
+}
+
+function finishFloorRename(e, floorId) {
+    const val = e.target.value.trim()
+    if (val) store.renameFloor(floorId, val)
+    editingFloorId.value = null
+}
+
+// ── Sidebar product click → drill-down to that product ──
+function onSidebarProductClick(product) {
+    const rack = store.rackMap.get(product.rackId)
+    const section = rack ? store.sectionMap.get(rack.sectionId) : null
+    if (!section) return
+    const result = {
+        product,
+        rackId: product.rackId,
+        sectionId: rack.sectionId,
+        sectionLabel: section.label,
+        rackLabel: rack.label,
+        floorId: section.floorId
+    }
+    search.focusSearchResult(result, activeFloor.value, switchFloor, null)
+}
+
+/** Get a human-readable location label for a product */
+function getProductLocationLabel(product) {
+    const rack = store.rackMap.get(product.rackId)
+    const section = rack ? store.sectionMap.get(rack.sectionId) : null
+    const floor = section ? store.floors.find(f => f.id === section.floorId) : null
+    return [floor?.label, section?.label, rack?.label].filter(Boolean).join(' › ')
+}
+
 // ── Keyboard ──
 function onKeyDown(e) {
     if (e.key === 'Escape') {
         if (tooltipData.value) tooltipData.value = null
         else if (zoom.state.level !== 'FLOOR') handleLevelBack()
         else canvas.deselect()
-    }
-    if (search.searchPaths.value.length > 0) {
-        if (e.key === 'ArrowDown') { e.preventDefault(); onNextResult() }
-        if (e.key === 'ArrowUp') { e.preventDefault(); onPrevResult() }
     }
 }
 
@@ -661,5 +692,12 @@ onUnmounted(() => { window.removeEventListener('keydown', onKeyDown) })
     50% {
         box-shadow: 0 0 0 8px rgba(68, 233, 150, 0);
     }
+}
+</style>
+
+<!-- Unscoped styles so search-highlight animation reaches child components -->
+<style>
+.search-highlight {
+    animation: pulse-hl 1s ease-in-out infinite !important;
 }
 </style>
