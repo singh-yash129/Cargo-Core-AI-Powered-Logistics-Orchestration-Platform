@@ -114,10 +114,13 @@
                         @mousemove="onCanvasMouseMove" @mouseup="onCanvasMouseUp" @mouseleave="onCanvasMouseUp">
 
                         <!-- Size wrapper (sets scrollable area) -->
-                        <div :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px', position: 'relative' }">
+                        <div :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }">
                             <!-- Scale wrapper (visually scales all content) -->
                             <div
                                 :style="{ transform: 'scale(' + canvasZoom + ')', transformOrigin: '0 0', opacity: zoom.transitionOpacity.value, width: (100 / canvasZoom) + '%', height: (100 / canvasZoom) + '%' }">
+
+                              <!-- Inner offset wrapper — creates positioned context with breathing room -->
+                              <div class="relative" style="margin-top: 100px; margin-left: 20px; width: calc(100% - 20px); height: calc(100% - 100px);">
 
                                 <!-- ══════ FLOOR LEVEL ══════ -->
                                 <template v-if="zoom.state.level === 'FLOOR'">
@@ -187,6 +190,7 @@
                                     </div>
                                 </template>
 
+                              </div><!-- end inner offset wrapper -->
                             </div><!-- end scale wrapper -->
                         </div><!-- end size wrapper -->
                     </div><!-- end scrollable area -->
@@ -201,7 +205,7 @@
                                 <span>{{ tooltipData.rackLabel }}</span><span>›</span>
                                 <span class="text-primary font-bold">R{{ tooltipData.cell.row }}C{{
                                     tooltipData.cell.col
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div class="font-bold text-primary text-sm mb-1">{{ tooltipData.product.name }}</div>
                             <div class="space-y-0.5 text-[11px]">
@@ -278,7 +282,7 @@
                             <div class="flex items-center gap-2">
                                 <div class="w-3 h-3 rounded-full" :style="{ background: g.color }"></div>
                                 <span class="text-xs font-bold text-gray-900 dark:text-white flex-1">{{ g.name
-                                }}</span>
+                                    }}</span>
                                 <span class="text-[9px] text-gray-500">{{ store.sectionsByGroup(g.id).length }}
                                     cols</span>
                             </div>
@@ -340,7 +344,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useWarehouseFloorStore } from '@/stores/warehouseFloorStore'
 import { useZoomStateMachine } from './floorplan/composables/useZoomStateMachine'
 import { useCanvasInteraction } from './floorplan/composables/useCanvasInteraction'
@@ -374,8 +378,45 @@ const isDraggingElement = ref(false)
 const canvasZoom = ref(1)
 const BASE_W = 2000
 const BASE_H = 1400
-const canvasWidth = computed(() => Math.round(BASE_W * canvasZoom.value))
-const canvasHeight = computed(() => Math.round(BASE_H * canvasZoom.value))
+const CONTENT_OFFSET_TOP = 100
+const CONTENT_OFFSET_LEFT = 20
+const CONTENT_PADDING = 150
+
+/** Dynamically compute scrollable area based on actual content extent */
+const contentExtent = computed(() => {
+    let maxRight = 0
+    let maxBottom = 0
+
+    if (zoom.state.level === 'FLOOR') {
+        for (const sec of currentSections.value) {
+            maxRight = Math.max(maxRight, sec.x + sec.w)
+            maxBottom = Math.max(maxBottom, sec.y + sec.h)
+        }
+    } else if (zoom.state.level === 'SECTION') {
+        for (const rack of activeRacks.value) {
+            maxRight = Math.max(maxRight, rack.x + rack.w)
+            maxBottom = Math.max(maxBottom, rack.y + rack.h)
+        }
+    } else if (zoom.state.level === 'RACK' && activeRack.value) {
+        const r = activeRack.value
+        maxRight = 40 + r.cols * 124 + 16
+        maxBottom = 40 + r.rows * 84 + 16
+    }
+
+    return {
+        right: maxRight + CONTENT_OFFSET_LEFT + CONTENT_PADDING,
+        bottom: maxBottom + CONTENT_OFFSET_TOP + CONTENT_PADDING
+    }
+})
+
+const canvasWidth = computed(() => {
+    const base = zoom.state.level === 'FLOOR' ? BASE_W : 600
+    return Math.round(Math.max(base, contentExtent.value.right) * canvasZoom.value)
+})
+const canvasHeight = computed(() => {
+    const base = zoom.state.level === 'FLOOR' ? BASE_H : 500
+    return Math.round(Math.max(base, contentExtent.value.bottom) * canvasZoom.value)
+})
 const canvasZoomPercent = computed(() => Math.round(canvasZoom.value * 100))
 
 function zoomCanvas(dir) {
@@ -571,6 +612,15 @@ function onKeyDown(e) {
         if (e.key === 'ArrowUp') { e.preventDefault(); onPrevResult() }
     }
 }
+
+// Reset scroll position when zoom level changes
+watch(() => zoom.state.level, () => {
+    nextTick(() => {
+        if (canvasRef.value) {
+            canvasRef.value.scrollTo({ left: 0, top: 0, behavior: 'smooth' })
+        }
+    })
+})
 
 onMounted(() => { window.addEventListener('keydown', onKeyDown) })
 onUnmounted(() => { window.removeEventListener('keydown', onKeyDown) })
