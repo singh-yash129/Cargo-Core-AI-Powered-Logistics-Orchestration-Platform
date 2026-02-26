@@ -34,7 +34,7 @@
 
                     <div class="flex items-center gap-3">
                         <!-- Weather & Clock Widget -->
-                        <HeaderWeather />
+                        <HeaderWeather hub-id="1" />
 
                         <!-- Notifications -->
                         <NotificationPopover :notifications="store.notifications"

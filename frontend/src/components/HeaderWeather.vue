@@ -10,7 +10,7 @@
         <div
             class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5 cursor-default transition-colors group-hover:bg-gray-100 dark:group-hover:bg-white/10">
             <span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-[18px]">{{ activeWeather.icon
-                }}</span>
+            }}</span>
             <div>
                 <div class="text-sm font-bold text-gray-700 dark:text-gray-200 leading-none">
                     {{ activeWeather.temp }}°C
@@ -22,7 +22,7 @@
         </div>
 
         <!-- Dropdown for "All Warehouses" view -->
-        <div v-if="store.activeWarehouse === 'all'"
+        <div v-if="!props.hubId && store.activeWarehouse === 'all'"
             class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white dark:bg-card-darker border border-gray-200 dark:border-white/10 rounded-xl shadow-xl p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
             <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">Global Weather</div>
             <div class="space-y-2">
@@ -42,6 +42,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
+
+const props = defineProps({
+    hubId: {
+        type: [String, Number],
+        default: null
+    }
+})
 
 const store = useLogisticStore()
 
@@ -75,10 +82,12 @@ const hubWeatherData = {
 const allHubsWeather = computed(() => hubWeatherData)
 
 const activeWeather = computed(() => {
-    if (store.activeWarehouse === 'all') {
+    const targetHub = props.hubId || store.activeWarehouse
+
+    if (targetHub === 'all') {
         // Average or Global representation when all hubs selected
         return { temp: 19, condition: 'Mixed', icon: 'partly_cloudy_day' }
     }
-    return hubWeatherData[store.activeWarehouse] || { temp: '--', condition: 'Unknown', icon: 'cloud_off' }
+    return hubWeatherData[targetHub] || { temp: '--', condition: 'Unknown', icon: 'cloud_off' }
 })
 </script>

@@ -18,7 +18,8 @@
             :class="isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'">
 
             <!-- Header -->
-            <div class="p-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-black/20">
+            <div
+                class="p-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-black/20">
                 <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary">video_call</span>
                     Meetings
@@ -46,16 +47,18 @@
                     <div v-for="meeting in sortedMeetings" :key="meeting.id"
                         class="p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group relative cursor-pointer select-none"
                         @click.stop="handleMeetingClick($event, meeting)" title="Triple click to edit">
-                        
+
                         <div class="flex justify-between items-start mb-1">
                             <h4 class="font-semibold text-sm text-gray-900 dark:text-white flex items-center gap-2">
                                 {{ meeting.topic }}
                                 <span v-if="isMeetingLive(meeting)" class="flex h-2 w-2 relative">
-                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span
+                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                     <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                                 </span>
                             </h4>
-                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/10 text-gray-500">
+                            <span
+                                class="text-[10px] font-medium px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300">
                                 {{ formatDate(meeting.date) }}
                             </span>
                         </div>
@@ -69,20 +72,23 @@
                             {{ meeting.description }}
                         </p>
 
-                        <div class="flex items-center justify-between">
-                            <div class="flex -space-x-2 overflow-hidden">
+                        <div class="flex items-center justify-between mt-2">
+                            <div class="flex -space-x-2 items-center p-1">
                                 <div v-for="uid in meeting.participants.slice(0, 3)" :key="uid"
-                                    class="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-600"
+                                    class="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-600 hover:z-10 hover:-translate-x-1 hover:-translate-y-1 hover:scale-110 transition-transform duration-200 cursor-pointer shadow-sm hover:shadow-md"
                                     :title="getUserName(uid)">
                                     {{ getUserInitials(uid) }}
                                 </div>
-                                <div v-if="meeting.participants.length > 3" class="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-100 flex items-center justify-center text-[8px] font-bold text-gray-500">
+                                <div v-if="meeting.participants.length > 3"
+                                    class="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-100 flex items-center justify-center text-[8px] font-bold text-gray-500 hover:z-10 hover:-translate-x-1 hover:-translate-y-1 hover:scale-110 transition-transform duration-200 cursor-pointer shadow-sm hover:shadow-md">
                                     +{{ meeting.participants.length - 3 }}
                                 </div>
                             </div>
 
                             <div class="flex items-center gap-2">
-                                <button @click.stop="deleteMeeting(meeting.id)" class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100" title="Delete Meeting">
+                                <button @click.stop="deleteMeeting(meeting.id)"
+                                    class="px-2 py-1 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Delete Meeting">
                                     <span class="material-symbols-outlined text-[18px]">delete</span>
                                 </button>
                                 <button @click.stop="joinMeeting(meeting)"
@@ -99,10 +105,10 @@
 
             <!-- EDIT/CREATE MODE: Form -->
             <div v-else class="p-4 max-h-[500px] overflow-y-auto no-scrollbar space-y-4 bg-gray-50/30 dark:bg-white/5">
-                 <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                     {{ isEditing ? 'Edit Meeting' : 'New Meeting' }}
                 </h4>
-                
+
                 <!-- 1. Meeting Details -->
                 <div class="space-y-3">
                     <div>
@@ -112,32 +118,36 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Meeting Link</label>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Meeting
+                            Link</label>
                         <input v-model="form.link" type="text" placeholder="https://meet.google.com/..."
                             class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-blue-500 dark:text-blue-400 focus:outline-none focus:border-primary/50 transition-colors">
                     </div>
 
                     <div>
-                         <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
-                         <input v-model="form.date" type="date"
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                        <input v-model="form.date" type="date"
                             class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
                     </div>
 
                     <div class="flex gap-2">
                         <div class="flex-1">
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Start Time</label>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Start
+                                Time</label>
                             <input v-model="form.startTime" type="time"
                                 class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
                         </div>
                         <div class="flex-1">
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">End Time</label>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">End
+                                Time</label>
                             <input v-model="form.endTime" type="time"
                                 class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                        <label
+                            class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
                         <textarea v-model="form.description" rows="2" placeholder="Agenda or notes..."
                             class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors resize-none"></textarea>
                     </div>
@@ -145,9 +155,11 @@
 
                 <!-- 2. Select Participants -->
                 <div class="space-y-3 pt-2 border-t border-gray-100 dark:border-white/5">
-                    <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider flex justify-between items-center">
+                    <h4
+                        class="text-xs font-bold text-gray-500 uppercase tracking-wider flex justify-between items-center">
                         Participants
-                        <span class="text-[10px] font-normal normal-case bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                        <span
+                            class="text-[10px] font-normal normal-case bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
                             {{ form.participants.length }} selected
                         </span>
                     </h4>
@@ -159,7 +171,7 @@
                             <option value="">All Hubs</option>
                             <option v-for="hub in store.hubs" :key="hub.id" :value="hub.id">{{ hub.name }}</option>
                         </select>
-                        
+
                         <select v-model="filters.role"
                             class="flex-1 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary/50">
                             <option value="">All Roles</option>
@@ -170,16 +182,18 @@
                     </div>
 
                     <!-- User List -->
-                    <div class="max-h-40 overflow-y-auto border border-gray-200 dark:border-white/10 rounded-lg bg-gray-50/50 dark:bg-black/20 divide-y divide-gray-100 dark:divide-white/5">
+                    <div
+                        class="max-h-40 overflow-y-auto border border-gray-200 dark:border-white/10 rounded-lg bg-gray-50/50 dark:bg-black/20 divide-y divide-gray-100 dark:divide-white/5">
                         <div v-if="filteredUsers.length === 0" class="p-3 text-center text-xs text-gray-500">
                             No users found matching filters.
                         </div>
-                        <label v-for="user in filteredUsers" :key="user.id" 
+                        <label v-for="user in filteredUsers" :key="user.id"
                             class="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer transition-colors">
                             <input type="checkbox" :value="user.id" v-model="form.participants"
                                 class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary">
                             <div class="flex-1 min-w-0">
-                                <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ user.name }}</div>
+                                <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ user.name }}
+                                </div>
                                 <div class="text-[10px] text-gray-500 flex items-center gap-2">
                                     <span>{{ user.role }}</span>
                                     <span class="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
@@ -385,7 +399,7 @@ const formatDate = (dateStr) => {
 
     if (d.toDateString() === today.toDateString()) return 'Today'
     if (d.toDateString() === tomorrow.toDateString()) return 'Tomorrow'
-    
+
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
