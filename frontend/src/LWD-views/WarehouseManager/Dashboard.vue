@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-6 relative">
+    <div class="space-y-6">
         <!-- Top KPI Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div class="glass-panel p-4 rounded-xl flex flex-col justify-between h-32 relative overflow-hidden group">

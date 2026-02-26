@@ -76,13 +76,17 @@
 <script setup>
 const menuItems = [
     { label: 'Overview', icon: 'grid_view', route: '/warehouse/dashboard' },
+    { label: 'New Orders', icon: 'orders', route: '/warehouse/new-orders', badge: '7' },
     { label: 'Inventory', icon: 'inventory', route: '/warehouse/inventory' },
     { label: 'Inbound', icon: 'input', route: '/warehouse/inbound', badge: '12' },
     { label: 'Floor Plan', icon: 'map', route: '/warehouse/floor-plan' },
     { label: 'Picking', icon: 'shopping_basket', route: '/warehouse/picking' },
+    { label: 'Packing Materials', icon: 'package_2', route: '/warehouse/packing-materials' },
+    { label: 'Safety Stock', icon: 'notification_important', route: '/warehouse/safety-stock' },
     { label: 'Loading Dock', icon: 'local_shipping', route: '/warehouse/dock' },
     { label: 'Returns', icon: 'assignment_return', route: '/warehouse/returns' },
     { label: 'Labor Mgmt', icon: 'groups', route: '/warehouse/labor' },
+    { label: 'Performance', icon: 'monitoring', route: '/warehouse/performance' },
     { label: 'Smart WMS', icon: 'psychology', route: '/warehouse/ai' },
 ]
 </script>

@@ -121,6 +121,10 @@ const router = createRouter({
         { path: '/warehouse/returns', component: () => import('../LWD-views/WarehouseManager/ReturnsWarehouse.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
         { path: '/warehouse/labor', component: () => import('../LWD-views/WarehouseManager/LaborManagement.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
         { path: '/warehouse/ai', component: () => import('../LWD-views/WarehouseManager/SmartWMS.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/new-orders', component: () => import('../LWD-views/WarehouseManager/NewOrders.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/packing-materials', component: () => import('../LWD-views/WarehouseManager/PackingMaterials.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/safety-stock', component: () => import('../LWD-views/WarehouseManager/SafetyStock.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/performance', component: () => import('../LWD-views/WarehouseManager/Performance.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
 
         // AI Support Module Routes
         { path: '/ai/dashboard', component: () => import('../ai-views/Dashboard.vue'), meta: { requiresAuth: true, layout: 'ai' } },
