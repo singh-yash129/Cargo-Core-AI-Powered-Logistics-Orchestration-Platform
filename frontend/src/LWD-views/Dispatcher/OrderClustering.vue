@@ -19,10 +19,11 @@
         </div>
 
         <!-- Clustering Stats -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-white">{{ totalUnbatched }}</div>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="glass-panel p-4 rounded-xl text-center cursor-pointer hover:border-white/10 border border-transparent transition-all" @click="showUnbatchedPanel = !showUnbatchedPanel">
+                <div class="text-2xl font-bold" :class="unbatchedOrders.length > 0 ? 'text-yellow-400' : 'text-white'">{{ unbatchedOrders.length }}</div>
                 <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Unbatched Orders</div>
+                <div v-if="unbatchedOrders.length" class="text-[9px] text-primary mt-1 font-bold">Click to view</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-primary">{{ clusters.length }}</div>
@@ -35,6 +36,41 @@
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-yellow-400">{{ avgEfficiency }}%</div>
                 <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Avg Cluster Efficiency</div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl text-center">
+                <div class="text-2xl font-bold" :class="confirmedCount === clusters.length ? 'text-green-400' : 'text-gray-400'">{{ confirmedCount }}/{{ clusters.length }}</div>
+                <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Confirmed</div>
+            </div>
+        </div>
+
+        <!-- Unbatched Orders Panel -->
+        <div v-if="showUnbatchedPanel" class="glass-panel rounded-xl p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-yellow-400 text-[18px]">pending_actions</span>
+                    Unbatched Orders ({{ unbatchedOrders.length }})
+                </h3>
+                <button @click="showUnbatchedPanel = false" class="text-gray-400 hover:text-white">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+            <div v-if="unbatchedOrders.length === 0" class="text-center py-6 text-gray-500 text-sm">All orders are clustered. No unbatched orders.</div>
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div v-for="order in unbatchedOrders" :key="order.id"
+                    class="p-3 bg-white/5 rounded-lg border border-white/5 hover:border-yellow-500/30 transition-all">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-mono text-white font-bold">{{ order.id }}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold" :class="getPriorityClass(order.priority)">{{ order.priority }}</span>
+                    </div>
+                    <div class="text-[10px] text-gray-400 mb-2">{{ order.weight }} kg • {{ order.zone || 'Unzoned' }}</div>
+                    <div class="flex gap-1">
+                        <button v-for="cluster in clusters" :key="cluster.id" @click="addToCluster(cluster, order)"
+                            class="flex-1 text-[9px] py-1 rounded font-bold transition-colors"
+                            :class="getClusterBtnClass(cluster)">
+                            → {{ cluster.zone.split(' ')[0] }}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -74,7 +110,7 @@
                 </div>
 
                 <!-- Route corridors (SVG lines) -->
-                <svg class="absolute inset-0 w-full h-full pointer-events-none">
+                <svg v-show="showCorridors" class="absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-300">
                     <line x1="150" y1="120" x2="350" y2="180" stroke="#1CE783" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.4" />
                     <line x1="350" y1="180" x2="500" y2="300" stroke="#1CE783" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.4" />
                     <line x1="150" y1="350" x2="350" y2="180" stroke="#3B82F6" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.4" />
@@ -99,7 +135,10 @@
                         <div class="flex items-center gap-3">
                             <span class="w-4 h-4 rounded-full" :class="cluster.colorClass"></span>
                             <div>
-                                <div class="font-bold text-white text-sm">{{ cluster.zone }}</div>
+                                <div class="font-bold text-white text-sm flex items-center gap-2">
+                                    {{ cluster.zone }}
+                                    <span v-if="cluster.confirmed" class="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[9px] font-bold">✓ CONFIRMED</span>
+                                </div>
                                 <div class="text-[10px] text-gray-400">{{ cluster.corridor }}</div>
                             </div>
                         </div>
@@ -110,8 +149,36 @@
                     </div>
 
                     <div class="p-3 space-y-2">
-                        <!-- Cluster metrics -->
-                        <div class="grid grid-cols-3 gap-2 text-center">
+                        <!-- Editable cluster metrics -->
+                        <div v-if="cluster.editing" class="space-y-2">
+                            <div>
+                                <label class="text-[10px] text-gray-500 block mb-0.5">Time Window</label>
+                                <input v-model="cluster.timeWindow" class="w-full bg-black/30 border border-primary/30 rounded px-2 py-1 text-xs text-white focus:outline-none">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] text-gray-500 block mb-0.5">Max Distance (km)</label>
+                                    <input v-model.number="cluster.totalDistance" type="number" class="w-full bg-black/30 border border-primary/30 rounded px-2 py-1 text-xs text-white focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-gray-500 block mb-0.5">Corridor</label>
+                                    <select v-model="cluster.corridor" class="w-full bg-black/30 border border-primary/30 rounded px-2 py-1 text-xs text-white focus:outline-none">
+                                        <option>I-95 South Corridor</option>
+                                        <option>Highway 9 North</option>
+                                        <option>Ring Road East</option>
+                                        <option>Urban Core Loop</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button v-for="order in cluster.orders" :key="order.id" class="px-2 py-0.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded text-[9px] font-bold transition-colors" @click="removeOrderFromCluster(cluster, order)">
+                                    ✕ {{ order.id }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Read-only cluster metrics -->
+                        <div v-else class="grid grid-cols-3 gap-2 text-center">
                             <div class="bg-black/20 rounded p-2">
                                 <div class="text-[10px] text-gray-500">Distance</div>
                                 <div class="text-xs font-bold text-white">{{ cluster.totalDistance }} km</div>
@@ -126,8 +193,8 @@
                             </div>
                         </div>
 
-                        <!-- Order list -->
-                        <div class="space-y-1">
+                        <!-- Order list (hidden in edit mode, shown in read mode) -->
+                        <div v-if="!cluster.editing" class="space-y-1">
                             <div v-for="order in cluster.orders" :key="order.id"
                                 class="flex items-center justify-between p-2 bg-white/5 rounded text-xs hover:bg-white/10 transition-colors">
                                 <span class="text-gray-400 font-mono">{{ order.id }}</span>
@@ -141,6 +208,10 @@
                         <div class="flex gap-2 pt-2">
                             <button @click="assignVehicle(cluster)" class="flex-1 text-xs bg-primary/10 hover:bg-primary/20 text-primary py-1.5 rounded font-bold transition-colors">
                                 {{ cluster.vehicleAssigned ? '✓ ' + cluster.vehicleAssigned : 'Assign Vehicle' }}
+                            </button>
+                            <button @click="toggleConfirmCluster(cluster)" class="text-xs py-1.5 px-3 rounded font-bold transition-colors"
+                                :class="cluster.confirmed ? 'bg-green-500/20 text-green-400 hover:bg-red-500/10 hover:text-red-400' : 'bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400'">
+                                {{ cluster.confirmed ? '✓ Confirmed' : 'Confirm' }}
                             </button>
                             <button @click="editCluster(cluster)" class="text-xs bg-white/5 hover:bg-white/10 text-gray-400 py-1.5 px-3 rounded font-bold transition-colors">
                                 {{ cluster.editing ? 'Save' : 'Edit' }}
@@ -175,12 +246,24 @@ const uniqueCorridors = ref(3)
 const batchConfirmed = ref(false)
 const showCorridors = ref(false)
 const suggestionApplied = ref(false)
+const showUnbatchedPanel = ref(false)
+
+const unbatchedOrders = ref([
+    { id: 'ORD-4410', weight: 280, priority: 'NORMAL', zone: 'East Side' },
+    { id: 'ORD-4411', weight: 150, priority: 'HIGH', zone: 'South Gate' },
+    { id: 'ORD-4412', weight: 520, priority: 'LOW', zone: 'Airport Rd' },
+    { id: 'ORD-4413', weight: 90, priority: 'URGENT', zone: 'Central' },
+    { id: 'ORD-4414', weight: 340, priority: 'NORMAL', zone: 'West Park' },
+])
+
+const confirmedCount = computed(() => clusters.value.filter(c => c.confirmed).length)
 
 const clusters = ref([
     {
         id: 1,
         zone: 'Downtown Core',
         corridor: 'I-95 South Corridor',
+        confirmed: false,
         colorClass: 'bg-green-500',
         borderClass: 'border-green-500',
         dotClass: 'bg-green-500',
@@ -207,6 +290,7 @@ const clusters = ref([
         id: 2,
         zone: 'North Industrial',
         corridor: 'Highway 9 North',
+        confirmed: false,
         colorClass: 'bg-blue-500',
         borderClass: 'border-blue-500',
         dotClass: 'bg-blue-500',
@@ -231,6 +315,7 @@ const clusters = ref([
         id: 3,
         zone: 'Suburban West',
         corridor: 'I-95 South Corridor',
+        confirmed: false,
         colorClass: 'bg-purple-500',
         borderClass: 'border-purple-500',
         dotClass: 'bg-purple-500',
@@ -266,12 +351,21 @@ function getPriorityClass(priority) {
 }
 
 function autoCluster() {
-    totalUnbatched.value = 0
+    // Move all unbatched into clusters round-robin
+    unbatchedOrders.value.forEach((order, i) => {
+        const target = clusters.value[i % clusters.value.length]
+        target.orders.push(order)
+        target.totalWeight += order.weight
+    })
+    unbatchedOrders.value = []
     estimatedMilesSaved.value = 32
     avgEfficiency.value = 94
 }
 
-function confirmBatches() { batchConfirmed.value = true }
+function confirmBatches() {
+    clusters.value.forEach(c => { c.confirmed = true })
+    batchConfirmed.value = true
+}
 
 const vehicles = ['Van T-15', 'Van T-20', 'Truck M', 'Truck XL']
 function assignVehicle(cluster) {
@@ -281,15 +375,46 @@ function assignVehicle(cluster) {
 }
 
 function editCluster(cluster) {
-    cluster.editing = !cluster.editing
-    if (!cluster.editing) {
+    if (cluster.editing) {
+        // Saving — recalculate weight & boost efficiency
+        cluster.totalWeight = cluster.orders.reduce((s, o) => s + o.weight, 0)
         cluster.efficiency = Math.min(99, cluster.efficiency + 2)
     }
+    cluster.editing = !cluster.editing
+}
+
+function removeOrderFromCluster(cluster, order) {
+    cluster.orders = cluster.orders.filter(o => o.id !== order.id)
+    cluster.dots = cluster.dots.slice(0, cluster.orders.length)
+    cluster.totalWeight = cluster.orders.reduce((s, o) => s + o.weight, 0)
+    unbatchedOrders.value.push({ ...order, zone: cluster.zone })
+    cluster.confirmed = false
+    batchConfirmed.value = false
+}
+
+function addToCluster(cluster, order) {
+    cluster.orders.push(order)
+    cluster.totalWeight += order.weight
+    unbatchedOrders.value = unbatchedOrders.value.filter(o => o.id !== order.id)
 }
 
 function applySuggestion() {
     suggestionApplied.value = true
     estimatedMilesSaved.value = 38
     avgEfficiency.value = 96
+}
+
+function toggleConfirmCluster(cluster) {
+    cluster.confirmed = !cluster.confirmed
+    batchConfirmed.value = clusters.value.every(c => c.confirmed)
+}
+
+function getClusterBtnClass(cluster) {
+    const map = {
+        'bg-green-500': 'bg-green-500/10 hover:bg-green-500/20 text-green-400',
+        'bg-blue-500': 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400',
+        'bg-purple-500': 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400',
+    }
+    return map[cluster.colorClass] || 'bg-white/10 hover:bg-white/20 text-gray-300'
 }
 </script>

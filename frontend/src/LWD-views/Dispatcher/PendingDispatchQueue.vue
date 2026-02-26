@@ -160,8 +160,8 @@
                                     <button @click="assignDriver(order)" class="p-1.5 hover:bg-primary/20 rounded text-primary" title="Assign Driver">
                                         <span class="material-symbols-outlined text-[16px]">person_add</span>
                                     </button>
-                                    <button @click="escalateOrder(order)" class="p-1.5 hover:bg-blue-500/20 rounded text-blue-400" title="Escalate to Manager">
-                                        <span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+                                    <button @click="escalateOrder(order)" class="p-1.5 rounded" :class="order.priority === 'URGENT' ? 'hover:bg-yellow-500/20 text-yellow-400' : 'hover:bg-blue-500/20 text-blue-400'" :title="order.priority === 'URGENT' ? 'Set Normal' : 'Escalate to Urgent'">
+                                        <span class="material-symbols-outlined text-[16px]">{{ order.priority === 'URGENT' ? 'arrow_downward' : 'arrow_upward' }}</span>
                                     </button>
                                     <button @click="holdOrder(order)" class="p-1.5 hover:bg-white/10 rounded text-gray-400" title="Hold Order">
                                         <span class="material-symbols-outlined text-[16px]">pause_circle</span>
@@ -421,7 +421,7 @@ function assignDriver(order) {
 }
 
 function escalateOrder(order) {
-    order.priority = 'URGENT'
+    order.priority = order.priority === 'URGENT' ? 'NORMAL' : 'URGENT'
 }
 
 function holdOrder(order) {

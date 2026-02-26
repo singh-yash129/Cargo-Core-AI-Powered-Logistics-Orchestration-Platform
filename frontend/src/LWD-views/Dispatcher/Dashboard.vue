@@ -3,7 +3,8 @@
     <div class="flex h-[calc(100vh-3.5rem)] overflow-hidden">
 
         <!-- Left Panel: Active Driver Roster -->
-        <div class="w-80 bg-card-dark border-r border-white/5 flex flex-col z-10 glass-panel">
+        <transition name="slide-left">
+        <div v-show="showLeftPanel" class="w-80 bg-card-dark border-r border-white/5 flex flex-col z-10 glass-panel flex-shrink-0">
             <div class="p-4 border-b border-white/5 flex justify-between items-center">
                 <h3 class="font-bold text-white text-sm">Active Drivers ({{ filteredDrivers.length }})</h3>
                 <button @click="showAllDrivers = !showAllDrivers" class="text-xs text-primary hover:underline">{{ showAllDrivers ? 'Show Active' : 'View All' }}</button>
@@ -59,6 +60,7 @@
                 </div>
             </div>
         </div>
+        </transition>
 
         <!-- Center Panel: Interactive Map -->
         <div class="flex-1 bg-gray-900 relative">
@@ -66,8 +68,20 @@
             <div class="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-60"></div>
             <div class="absolute inset-0 bg-background-dark/20 backdrop-blur-[2px]"></div>
 
+            <!-- Left Panel Toggle -->
+            <button @click="showLeftPanel = !showLeftPanel"
+                class="absolute top-4 left-4 z-20 glass-panel p-2 rounded-lg hover:bg-white/10 transition-colors group" :title="showLeftPanel ? 'Hide Drivers' : 'Show Drivers'">
+                <span class="material-symbols-outlined text-[18px]" :class="showLeftPanel ? 'text-primary' : 'text-gray-400 group-hover:text-white'">{{ showLeftPanel ? 'left_panel_close' : 'left_panel_open' }}</span>
+            </button>
+
+            <!-- Right Panel Toggle -->
+            <button @click="showRightPanel = !showRightPanel"
+                class="absolute top-4 right-4 z-20 glass-panel p-2 rounded-lg hover:bg-white/10 transition-colors group" :title="showRightPanel ? 'Hide Loads' : 'Show Loads'">
+                <span class="material-symbols-outlined text-[18px]" :class="showRightPanel ? 'text-primary' : 'text-gray-400 group-hover:text-white'">{{ showRightPanel ? 'right_panel_close' : 'right_panel_open' }}</span>
+            </button>
+
             <!-- Overlay Controls -->
-            <div class="absolute top-4 left-4 z-10 flex gap-2">
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
                 <div class="glass-panel px-4 py-2 rounded-lg flex items-center gap-4">
                     <div class="flex items-center gap-2">
                         <span
@@ -129,7 +143,8 @@
         </div>
 
         <!-- Right Panel: Pending Load Queue -->
-        <div class="w-80 bg-card-dark border-l border-white/5 flex flex-col z-10 glass-panel">
+        <transition name="slide-right">
+        <div v-show="showRightPanel" class="w-80 bg-card-dark border-l border-white/5 flex flex-col z-10 glass-panel flex-shrink-0">
             <div class="p-4 border-b border-white/5 flex justify-between items-center">
                 <h3 class="font-bold text-white text-sm">Pending Loads (8)</h3>
                 <button @click="showAssignModal = true"
@@ -184,6 +199,7 @@
                 </div>
             </div>
         </div>
+        </transition>
 
     </div>
 
@@ -242,6 +258,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 
+const showLeftPanel = ref(true)
+const showRightPanel = ref(true)
 const driverSearch = ref('')
 const showAllDrivers = ref(false)
 const selectedDriver = ref(null)
@@ -319,3 +337,22 @@ function sendDriverMsg() {
     }, 1000)
 }
 </script>
+
+<style scoped>
+.slide-left-enter-active, .slide-left-leave-active {
+    transition: width 0.3s ease, opacity 0.3s ease;
+    overflow: hidden;
+}
+.slide-left-enter-from, .slide-left-leave-to {
+    width: 0 !important;
+    opacity: 0;
+}
+.slide-right-enter-active, .slide-right-leave-active {
+    transition: width 0.3s ease, opacity 0.3s ease;
+    overflow: hidden;
+}
+.slide-right-enter-from, .slide-right-leave-to {
+    width: 0 !important;
+    opacity: 0;
+}
+</style>
