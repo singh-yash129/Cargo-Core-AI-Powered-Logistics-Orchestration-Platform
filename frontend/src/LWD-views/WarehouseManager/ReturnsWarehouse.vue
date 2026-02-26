@@ -15,24 +15,28 @@
         <!-- Stats Row -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-yellow-400">5</div>
+                <div class="text-2xl font-bold text-yellow-400">{{ processingItems.length }}</div>
                 <div class="text-xs text-gray-400">Awaiting Inspection</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-green-400">12</div>
+                <div class="text-2xl font-bold text-green-400">{{completedItems.filter(i => i.disposition ===
+                    'restock').length }}</div>
                 <div class="text-xs text-gray-400">Restocked Today</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-red-400">3</div>
+                <div class="text-2xl font-bold text-red-400">{{completedItems.filter(i => i.disposition ===
+                    'claims').length }}</div>
                 <div class="text-xs text-gray-400">Sent to Claims</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-gray-400">1</div>
-                <div class="text-xs text-gray-400">Discarded</div>
+                <div class="text-2xl font-bold text-gray-400">{{completedItems.filter(i => i.disposition === 'discard'
+                    || i.disposition === 'recycle').length }}</div>
+                <div class="text-xs text-gray-400">Discarded / Recycled</div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- ===== PROCESSING TAB ===== -->
+        <div v-if="activeTab === 'processing'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Grading Station -->
             <div class="lg:col-span-2 glass-panel p-6 rounded-xl">
                 <div class="flex justify-between items-center mb-6">
@@ -44,7 +48,7 @@
                 <div class="flex gap-6">
                     <!-- Damage Photo Capture Area -->
                     <div class="w-1/3 space-y-3">
-                        <div
+                        <div @click="capturedPhoto = !capturedPhoto"
                             class="aspect-square bg-gray-800 rounded-lg flex items-center justify-center border border-white/5 relative overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors">
                             <div v-if="!capturedPhoto" class="flex flex-col items-center gap-2">
                                 <span
@@ -70,16 +74,15 @@
                                 class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50 font-mono">
                         </div>
 
-                        <!-- Condition Recording -->
                         <div>
                             <label class="text-xs text-gray-400 mb-1 block">Item Condition</label>
                             <select v-model="itemCondition"
                                 class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50">
                                 <option value="">Select condition...</option>
-                                <option value="like-new">Like New — No visible damage</option>
-                                <option value="minor">Minor Wear — Cosmetic only</option>
-                                <option value="damaged">Damaged — Functional issue</option>
-                                <option value="broken">Broken — Non-functional</option>
+                                <option value="Like New">Like New — No visible damage</option>
+                                <option value="Minor Wear">Minor Wear — Cosmetic only</option>
+                                <option value="Damaged">Damaged — Functional issue</option>
+                                <option value="Broken">Broken — Non-functional</option>
                             </select>
                         </div>
 
@@ -131,32 +134,101 @@
                 </div>
             </div>
 
-            <!-- Recent Scans -->
+            <!-- Processing Queue -->
             <div class="glass-panel rounded-xl overflow-hidden p-6">
-                <h3 class="font-bold text-white mb-4">Recent Graded Items</h3>
-                <div class="space-y-4 max-h-[500px] overflow-y-auto">
-                    <div v-for="item in recentItems" :key="item.id"
-                        class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
-                        <div class="w-10 h-10 rounded flex items-center justify-center"
-                            :class="getDispositionBg(item.disposition)">
-                            <span class="material-symbols-outlined" :class="getDispositionColor(item.disposition)">{{
-                                getDispositionIcon(item.disposition) }}</span>
+                <h3 class="font-bold text-white mb-4">Items Awaiting Grading</h3>
+                <div class="space-y-3 max-h-[500px] overflow-y-auto">
+                    <div v-for="item in processingItems" :key="item.id"
+                        class="p-3 bg-white/5 rounded-lg border border-white/5 hover:border-yellow-500/30 transition-colors cursor-pointer"
+                        @click="rmaId = item.rma">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="text-white text-sm font-bold">{{ item.name }}</div>
+                                <div class="text-xs text-gray-500 font-mono">{{ item.rma }}</div>
+                            </div>
+                            <span
+                                class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/20">PENDING</span>
                         </div>
-                        <div class="flex-1">
-                            <div class="text-white text-sm font-bold">{{ item.name }}</div>
-                            <div class="text-xs text-gray-500">{{ item.condition }} • {{ item.dispositionLabel }}</div>
-                            <div v-if="item.hasPhoto" class="text-[10px] text-blue-400 mt-0.5">📷 Photo attached</div>
-                        </div>
-                        <div class="text-[10px] text-gray-600 font-mono">{{ item.time }}</div>
+                        <div class="text-[10px] text-gray-500 mt-1">{{ item.reason }} • Received {{ item.time }}</div>
+                    </div>
+                    <div v-if="processingItems.length === 0" class="text-center text-gray-500 py-8">
+                        <span class="material-symbols-outlined text-3xl opacity-50">check_circle</span>
+                        <div class="text-sm mt-2">All items graded!</div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- ===== COMPLETED TAB ===== -->
+        <div v-if="activeTab === 'completed'">
+            <div class="glass-panel rounded-xl overflow-hidden">
+                <div class="p-4 border-b border-white/5 flex justify-between items-center bg-black/20">
+                    <h3 class="font-bold text-white">Completed Returns Log</h3>
+                    <div class="flex gap-2">
+                        <button v-for="f in ['All', 'restock', 'claims', 'discard', 'recycle']" :key="f"
+                            @click="completedFilter = f === 'All' ? '' : f"
+                            class="px-3 py-1 rounded text-xs font-bold transition-colors"
+                            :class="(f === 'All' && !completedFilter) || completedFilter === f ? 'bg-primary/20 text-primary' : 'bg-white/5 text-gray-400 hover:text-white'">
+                            {{ f === 'All' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1) }}
+                        </button>
+                    </div>
+                </div>
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-white/5 text-gray-400 uppercase">
+                        <tr>
+                            <th class="p-4">Item</th>
+                            <th class="p-4">RMA</th>
+                            <th class="p-4">Condition</th>
+                            <th class="p-4">Disposition</th>
+                            <th class="p-4">Photo</th>
+                            <th class="p-4">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        <tr v-for="item in filteredCompleted" :key="item.id" class="hover:bg-white/5 transition-colors">
+                            <td class="p-4 text-white font-bold">{{ item.name }}</td>
+                            <td class="p-4 font-mono text-gray-400 text-xs">{{ item.rma || '--' }}</td>
+                            <td class="p-4">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold"
+                                    :class="getConditionClass(item.condition)">{{ item.condition }}</span>
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded flex items-center justify-center"
+                                        :class="getDispositionBg(item.disposition)">
+                                        <span class="material-symbols-outlined text-[14px]"
+                                            :class="getDispositionColor(item.disposition)">{{
+                                            getDispositionIcon(item.disposition) }}</span>
+                                    </div>
+                                    <span class="text-xs" :class="getDispositionColor(item.disposition)">{{
+                                        item.dispositionLabel }}</span>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <span v-if="item.hasPhoto" class="text-blue-400 text-xs">📷 Attached</span>
+                                <span v-else class="text-gray-600 text-xs">—</span>
+                            </td>
+                            <td class="p-4 text-gray-500 font-mono text-xs">{{ item.time }}</td>
+                        </tr>
+                        <tr v-if="filteredCompleted.length === 0">
+                            <td colspan="6" class="p-8 text-center text-gray-500">No completed returns found.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div v-if="toastMsg"
+            class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div class="font-bold">{{ toastMsg }}</div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const activeTab = ref('processing')
 const rmaId = ref('')
@@ -164,14 +236,38 @@ const itemCondition = ref('')
 const conditionNotes = ref('')
 const disposition = ref('')
 const capturedPhoto = ref(false)
+const toastMsg = ref('')
+const completedFilter = ref('')
 
-const recentItems = ref([
-    { id: 1, name: 'iPhone 13 Case', condition: 'Like New', disposition: 'restock', dispositionLabel: 'Restocked to A-12', hasPhoto: false, time: '11:42' },
-    { id: 2, name: 'Blender (Broken)', condition: 'Broken', disposition: 'discard', dispositionLabel: 'Disposal Bin', hasPhoto: true, time: '11:28' },
-    { id: 3, name: 'Kitchen Scale', condition: 'Minor Wear', disposition: 'restock', dispositionLabel: 'Restocked to B-04', hasPhoto: false, time: '11:15' },
-    { id: 4, name: 'Monitor Stand', condition: 'Damaged', disposition: 'claims', dispositionLabel: 'Sent to Claims', hasPhoto: true, time: '10:52' },
-    { id: 5, name: 'USB Hub', condition: 'Like New', disposition: 'restock', dispositionLabel: 'Restocked to A-14', hasPhoto: false, time: '10:30' },
+const processingItems = ref([
+    { id: 10, name: 'Bluetooth Speaker', rma: 'RMA-3321', reason: 'Not as described', time: '12:10' },
+    { id: 11, name: 'Wireless Mouse', rma: 'RMA-3322', reason: 'Defective', time: '11:55' },
+    { id: 12, name: 'Phone Charger', rma: 'RMA-3323', reason: 'Wrong item sent', time: '11:40' },
+    { id: 13, name: 'Desk Lamp', rma: 'RMA-3324', reason: 'Damaged in transit', time: '11:25' },
+    { id: 14, name: 'Keyboard Cover', rma: 'RMA-3325', reason: 'Changed mind', time: '11:10' },
 ])
+
+const completedItems = ref([
+    { id: 1, name: 'iPhone 13 Case', rma: 'RMA-3301', condition: 'Like New', disposition: 'restock', dispositionLabel: 'Restocked to A-12', hasPhoto: false, time: '11:42' },
+    { id: 2, name: 'Blender (Broken)', rma: 'RMA-3302', condition: 'Broken', disposition: 'discard', dispositionLabel: 'Disposal Bin', hasPhoto: true, time: '11:28' },
+    { id: 3, name: 'Kitchen Scale', rma: 'RMA-3303', condition: 'Minor Wear', disposition: 'restock', dispositionLabel: 'Restocked to B-04', hasPhoto: false, time: '11:15' },
+    { id: 4, name: 'Monitor Stand', rma: 'RMA-3304', condition: 'Damaged', disposition: 'claims', dispositionLabel: 'Sent to Claims', hasPhoto: true, time: '10:52' },
+    { id: 5, name: 'USB Hub', rma: 'RMA-3305', condition: 'Like New', disposition: 'restock', dispositionLabel: 'Restocked to A-14', hasPhoto: false, time: '10:30' },
+    { id: 6, name: 'Headphones', rma: 'RMA-3306', condition: 'Damaged', disposition: 'recycle', dispositionLabel: 'Recycled', hasPhoto: true, time: '10:15' },
+    { id: 7, name: 'Screen Protector', rma: 'RMA-3307', condition: 'Like New', disposition: 'restock', dispositionLabel: 'Restocked to A-03', hasPhoto: false, time: '09:50' },
+])
+
+const filteredCompleted = computed(() => {
+    if (!completedFilter.value) return completedItems.value
+    return completedItems.value.filter(i => i.disposition === completedFilter.value)
+})
+
+function getConditionClass(c) {
+    if (c === 'Like New') return 'bg-green-500/20 text-green-400'
+    if (c === 'Minor Wear') return 'bg-yellow-500/20 text-yellow-400'
+    if (c === 'Damaged') return 'bg-orange-500/20 text-orange-400'
+    return 'bg-red-500/20 text-red-400'
+}
 
 function getDispositionBg(d) {
     if (d === 'restock') return 'bg-green-500/20'
@@ -195,19 +291,27 @@ function getDispositionIcon(d) {
 }
 
 function submitReturn() {
-    recentItems.value.unshift({
+    const labels = { restock: 'Restocked', claims: 'Sent to Claims', discard: 'Discarded', recycle: 'Recycled' }
+    completedItems.value.unshift({
         id: Date.now(),
         name: `Return ${rmaId.value}`,
+        rma: rmaId.value,
         condition: itemCondition.value,
         disposition: disposition.value,
-        dispositionLabel: disposition.value === 'restock' ? 'Restocked' : disposition.value === 'claims' ? 'Sent to Claims' : disposition.value === 'discard' ? 'Discarded' : 'Recycled',
+        dispositionLabel: labels[disposition.value] || disposition.value,
         hasPhoto: capturedPhoto.value,
         time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
     })
+    // Remove from processing queue if matched by RMA
+    const idx = processingItems.value.findIndex(p => p.rma === rmaId.value)
+    if (idx !== -1) processingItems.value.splice(idx, 1)
+
+    toastMsg.value = `Return ${rmaId.value} — ${labels[disposition.value]}`
+    capturedPhoto.value = false
     rmaId.value = ''
     itemCondition.value = ''
     conditionNotes.value = ''
     disposition.value = ''
-    capturedPhoto.value = false
+    setTimeout(() => { toastMsg.value = '' }, 2500)
 }
 </script>

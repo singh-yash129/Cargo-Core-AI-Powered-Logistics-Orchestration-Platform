@@ -3,11 +3,11 @@
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-white">Inventory Management</h2>
             <div class="flex gap-2">
-                <button
+                <button @click="showScanModal = true"
                     class="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined">qr_code_scanner</span> Scan Item
                 </button>
-                <button
+                <button @click="showAddModal = true"
                     class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
                     <span class="material-symbols-outlined">add</span> Add Stock
                 </button>
@@ -17,11 +17,11 @@
         <!-- Inventory Stats -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-white">24,500</div>
+                <div class="text-2xl font-bold text-white">{{ totalItems.toLocaleString() }}</div>
                 <div class="text-xs text-gray-400">Total Items</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-yellow-400">12</div>
+                <div class="text-2xl font-bold text-yellow-400">{{ lowStockCount }}</div>
                 <div class="text-xs text-gray-400">Low Stock Alerts</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
@@ -29,7 +29,7 @@
                 <div class="text-xs text-gray-400">Inventory Accuracy</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-orange-400">8</div>
+                <div class="text-2xl font-bold text-orange-400">{{ fastMovingCount }}</div>
                 <div class="text-xs text-gray-400">Fast-Moving SKUs</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
@@ -112,11 +112,14 @@
                                 </div>
                             </td>
                             <td class="p-4 flex gap-2">
-                                <button class="text-gray-400 hover:text-white" title="Edit"><span
+                                <button @click="openEditModal(item)" class="text-gray-400 hover:text-white"
+                                    title="Edit"><span
                                         class="material-symbols-outlined text-[18px]">edit</span></button>
-                                <button class="text-gray-400 hover:text-white" title="Move"><span
+                                <button @click="openMoveModal(item)" class="text-gray-400 hover:text-white"
+                                    title="Move"><span
                                         class="material-symbols-outlined text-[18px]">move_down</span></button>
-                                <button class="text-gray-400 hover:text-white" title="Print Label"><span
+                                <button @click="printLabel(item)" class="text-gray-400 hover:text-white"
+                                    title="Print Label"><span
                                         class="material-symbols-outlined text-[18px]">print</span></button>
                             </td>
                         </tr>
@@ -124,16 +127,220 @@
                 </table>
             </div>
         </div>
+
+        <!-- Edit SKU Modal -->
+        <div v-if="showEditModal && editItem"
+            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            @click.self="showEditModal = false">
+            <div class="glass-panel rounded-2xl w-full max-w-md border border-white/10">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-white text-lg">Edit {{ editItem.sku }}</h3>
+                    <button @click="showEditModal = false" class="text-gray-500 hover:text-white"><span
+                            class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="text-xs text-gray-400 mb-1 block">Product Name</label>
+                        <input type="text" v-model="editItem.name"
+                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Stock Qty</label>
+                            <input type="number" v-model.number="editItem.stock"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Weight (kg)</label>
+                            <input type="number" step="0.1" v-model.number="editItem.weight"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 mb-1 block">Dimensions (cm)</label>
+                        <input type="text" v-model="editItem.dimensions"
+                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                    </div>
+                    <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                        <input type="checkbox" v-model="editItem.fastMoving" class="accent-primary" />
+                        Mark as Fast-Moving
+                    </label>
+                    <button @click="saveEdit"
+                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Save
+                        Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Move SKU Modal -->
+        <div v-if="showMoveModal && moveItem"
+            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            @click.self="showMoveModal = false">
+            <div class="glass-panel rounded-2xl w-full max-w-md border border-white/10">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-white text-lg">Move {{ moveItem.sku }}</h3>
+                    <button @click="showMoveModal = false" class="text-gray-500 hover:text-white"><span
+                            class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="p-3 bg-white/5 rounded-lg border border-white/5 text-center">
+                        <div class="text-xs text-gray-400">Current Location</div>
+                        <div class="font-mono text-primary font-bold">{{ moveItem.zone }}-{{ moveItem.aisle }}-{{
+                            moveItem.rack }}-{{ moveItem.shelf }}-{{ moveItem.bin }}</div>
+                    </div>
+                    <div class="text-center text-gray-500"><span class="material-symbols-outlined">arrow_downward</span>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2">
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Zone</label>
+                            <select v-model="newLocation.zone"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm">
+                                <option v-for="z in ['A', 'B', 'C', 'D']" :key="z">{{ z }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Aisle</label>
+                            <input type="text" v-model="newLocation.aisle"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Rack</label>
+                            <input type="text" v-model="newLocation.rack"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Shelf</label>
+                            <input type="text" v-model="newLocation.shelf"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 block mb-1">Bin</label>
+                            <input type="text" v-model="newLocation.bin"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+                        </div>
+                    </div>
+                    <button @click="confirmMove"
+                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Confirm
+                        Move</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scan Item Modal -->
+        <div v-if="showScanModal"
+            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            @click.self="showScanModal = false">
+            <div class="glass-panel rounded-2xl w-full max-w-md border border-white/10">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-white text-lg">Scan Item</h3>
+                    <button @click="showScanModal = false" class="text-gray-500 hover:text-white"><span
+                            class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div
+                        class="aspect-video bg-gray-800 rounded-lg flex items-center justify-center border border-white/5">
+                        <div class="flex flex-col items-center gap-2">
+                            <span class="material-symbols-outlined text-5xl text-gray-600">qr_code_scanner</span>
+                            <div class="text-xs text-gray-500">Scanner ready</div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 mb-1 block">Or enter SKU manually</label>
+                        <input type="text" v-model="scanInput" placeholder="EL-XXXX"
+                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50 font-mono" />
+                    </div>
+                    <button @click="lookupScan"
+                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Look
+                        Up</button>
+                    <div v-if="scanResult" class="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <div class="text-sm font-bold text-white">{{ scanResult.name }}</div>
+                        <div class="text-xs text-gray-400">{{ scanResult.sku }} — Stock: {{ scanResult.stock }} — Zone
+                            {{ scanResult.zone }}</div>
+                    </div>
+                    <div v-if="scanError"
+                        class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">{{ scanError
+                        }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Stock Modal -->
+        <div v-if="showAddModal"
+            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            @click.self="showAddModal = false">
+            <div class="glass-panel rounded-2xl w-full max-w-md border border-white/10">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-white text-lg">Add New Stock</h3>
+                    <button @click="showAddModal = false" class="text-gray-500 hover:text-white"><span
+                            class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">SKU</label>
+                            <input type="text" v-model="addForm.sku" placeholder="XX-XXXX"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50 font-mono" />
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Product Name</label>
+                            <input type="text" v-model="addForm.name" placeholder="Product name"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Qty</label>
+                            <input type="number" v-model.number="addForm.stock"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Weight (kg)</label>
+                            <input type="number" step="0.1" v-model.number="addForm.weight"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Zone</label>
+                            <select v-model="addForm.zone"
+                                class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white">
+                                <option v-for="z in ['A', 'B', 'C', 'D']" :key="z">{{ z }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button @click="addNewStock" :disabled="!addForm.sku || !addForm.name"
+                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Add
+                        to Inventory</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toasts -->
+        <div v-if="toastMsg"
+            class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div class="font-bold">{{ toastMsg }}</div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 
 const searchQuery = ref('')
 const categoryFilter = ref('')
 const zoneFilter = ref('')
 const showFastMoving = ref(false)
+const showEditModal = ref(false)
+const showMoveModal = ref(false)
+const showScanModal = ref(false)
+const showAddModal = ref(false)
+const editItem = ref(null)
+const moveItem = ref(null)
+const scanInput = ref('')
+const scanResult = ref(null)
+const scanError = ref('')
+const toastMsg = ref('')
+const newLocation = reactive({ zone: 'A', aisle: '01', rack: 'R1', shelf: 'S1', bin: 'B01' })
+const addForm = reactive({ sku: '', name: '', stock: 0, weight: 0, zone: 'A' })
 
 const inventory = ref([
     { sku: 'EL-9921', name: 'Wireless Headphones', category: 'Electronics', dimensions: '20×15×8', weight: 0.4, zone: 'A', aisle: '12', rack: 'R3', shelf: 'S2', bin: 'B04', stock: 145, stockPercentage: 80, fastMoving: true },
@@ -145,6 +352,10 @@ const inventory = ref([
     { sku: 'HG-4452', name: 'Garden Hose 30m', category: 'Home & Garden', dimensions: '40×40×15', weight: 3.2, zone: 'B', aisle: '08', rack: 'R4', shelf: 'S2', bin: 'B03', stock: 8, stockPercentage: 8, fastMoving: false },
     { sku: 'AP-6612', name: 'Winter Jacket (M)', category: 'Apparel', dimensions: '45×35×10', weight: 1.2, zone: 'C', aisle: '18', rack: 'R2', shelf: 'S3', bin: 'B07', stock: 55, stockPercentage: 55, fastMoving: true },
 ])
+
+const totalItems = computed(() => inventory.value.reduce((sum, i) => sum + i.stock, 0))
+const lowStockCount = computed(() => inventory.value.filter(i => i.stock < 20).length)
+const fastMovingCount = computed(() => inventory.value.filter(i => i.fastMoving).length)
 
 const filteredInventory = computed(() => {
     return inventory.value.filter(item => {
@@ -158,4 +369,78 @@ const filteredInventory = computed(() => {
         return matchesSearch && matchesCategory && matchesZone && matchesFastMoving
     })
 })
+
+function showToast(msg) {
+    toastMsg.value = msg
+    setTimeout(() => { toastMsg.value = '' }, 2500)
+}
+
+function openEditModal(item) {
+    editItem.value = item
+    showEditModal.value = true
+}
+
+function saveEdit() {
+    showEditModal.value = false
+    showToast(`${editItem.value.sku} updated`)
+}
+
+function openMoveModal(item) {
+    moveItem.value = item
+    newLocation.zone = item.zone
+    newLocation.aisle = item.aisle
+    newLocation.rack = item.rack
+    newLocation.shelf = item.shelf
+    newLocation.bin = item.bin
+    showMoveModal.value = true
+}
+
+function confirmMove() {
+    moveItem.value.zone = newLocation.zone
+    moveItem.value.aisle = newLocation.aisle
+    moveItem.value.rack = newLocation.rack
+    moveItem.value.shelf = newLocation.shelf
+    moveItem.value.bin = newLocation.bin
+    showMoveModal.value = false
+    showToast(`${moveItem.value.sku} moved to ${newLocation.zone}-${newLocation.aisle}-${newLocation.rack}-${newLocation.shelf}-${newLocation.bin}`)
+}
+
+function printLabel(item) {
+    showToast(`Label printed for ${item.sku} — ${item.name}`)
+}
+
+function lookupScan() {
+    scanResult.value = null
+    scanError.value = ''
+    const found = inventory.value.find(i => i.sku.toLowerCase() === scanInput.value.trim().toLowerCase())
+    if (found) {
+        scanResult.value = found
+    } else {
+        scanError.value = `SKU "${scanInput.value}" not found in inventory`
+    }
+}
+
+function addNewStock() {
+    inventory.value.push({
+        sku: addForm.sku,
+        name: addForm.name,
+        category: 'Uncategorized',
+        dimensions: '--',
+        weight: addForm.weight,
+        zone: addForm.zone,
+        aisle: '01',
+        rack: 'R1',
+        shelf: 'S1',
+        bin: 'B01',
+        stock: addForm.stock,
+        stockPercentage: Math.min(addForm.stock, 100),
+        fastMoving: false
+    })
+    showAddModal.value = false
+    addForm.sku = ''
+    addForm.name = ''
+    addForm.stock = 0
+    addForm.weight = 0
+    showToast('New stock item added to inventory')
+}
 </script>

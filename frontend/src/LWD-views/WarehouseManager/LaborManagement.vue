@@ -7,7 +7,7 @@
                     class="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined">link</span> Assign to Order
                 </button>
-                <button
+                <button @click="showShiftModal = true"
                     class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
                     <span class="material-symbols-outlined">group_add</span>
                     Manage Shifts
@@ -109,13 +109,13 @@
                             <td class="p-4 text-gray-400">{{ staff.task }}</td>
                             <td class="p-4">
                                 <span v-if="staff.orderId" class="font-mono text-primary text-xs">{{ staff.orderId
-                                    }}</span>
+                                }}</span>
                                 <span v-else class="text-gray-600">—</span>
                             </td>
                             <td class="p-4">
                                 <div class="text-xs space-y-0.5">
                                     <div class="text-gray-400">In: <span class="text-white font-mono">{{ staff.startTime
-                                            }}</span></div>
+                                    }}</span></div>
                                     <div v-if="staff.fieldTime" class="text-purple-400">Field: <span
                                             class="font-mono">{{ staff.fieldTime }}</span></div>
                                     <div v-if="staff.returnTime" class="text-green-400">Return: <span
@@ -142,7 +142,8 @@
                                         title="Assign to Order">
                                         <span class="material-symbols-outlined text-[14px]">link</span>
                                     </button>
-                                    <button class="text-gray-500 hover:text-white" title="More">
+                                    <button @click="openStaffDetail(staff)" class="text-gray-500 hover:text-white"
+                                        title="More">
                                         <span class="material-symbols-outlined text-[16px]">more_horiz</span>
                                     </button>
                                 </div>
@@ -201,6 +202,96 @@
                 </div>
             </div>
         </div>
+
+        <!-- Manage Shifts Modal -->
+        <div v-if="showShiftModal"
+            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            @click.self="showShiftModal = false">
+            <div class="glass-panel rounded-2xl w-full max-w-lg border border-white/10">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-white text-lg">Manage Shifts</h3>
+                    <button @click="showShiftModal = false" class="text-gray-500 hover:text-white"><span
+                            class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div v-for="shift in shifts" :key="shift.name"
+                        class="p-3 bg-white/5 border border-white/5 rounded-lg flex justify-between items-center">
+                        <div>
+                            <div class="text-sm font-bold text-white">{{ shift.name }}</div>
+                            <div class="text-xs text-gray-500">{{ shift.time }} • {{ shift.staff }} staff</div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold"
+                            :class="shift.active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'">{{
+                                shift.active ? 'Active' : 'Inactive' }}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button @click="showShiftModal = false; showToast('Morning shift extended by 1 hour')"
+                            class="bg-primary/20 hover:bg-primary/30 text-primary py-2 rounded-lg text-sm font-bold transition-colors">Extend
+                            Morning Shift</button>
+                        <button @click="showShiftModal = false; showToast('Extra staff called for evening shift')"
+                            class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 py-2 rounded-lg text-sm font-bold transition-colors">Call
+                            Extra Staff</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Staff Detail Modal -->
+        <div v-if="showStaffDetail && selectedStaff"
+            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            @click.self="showStaffDetail = false">
+            <div class="glass-panel rounded-2xl w-full max-w-md border border-white/10">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-white text-lg">Staff Details</h3>
+                    <button @click="showStaffDetail = false" class="text-gray-500 hover:text-white"><span
+                            class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="flex items-center gap-4">
+                        <img :src="selectedStaff.avatar" class="w-14 h-14 rounded-full bg-gray-700" />
+                        <div>
+                            <div class="font-bold text-white text-lg">{{ selectedStaff.name }}</div>
+                            <div class="text-sm text-gray-400">{{ selectedStaff.role }} • {{ selectedStaff.dept }}</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white/5 p-3 rounded-lg">
+                            <div class="text-xs text-gray-400">Status</div>
+                            <div class="text-white font-bold text-sm">{{ selectedStaff.status }}</div>
+                        </div>
+                        <div class="bg-white/5 p-3 rounded-lg">
+                            <div class="text-xs text-gray-400">Performance</div>
+                            <div class="text-white font-bold text-sm">{{ selectedStaff.perf }}%</div>
+                        </div>
+                        <div class="bg-white/5 p-3 rounded-lg">
+                            <div class="text-xs text-gray-400">Current Task</div>
+                            <div class="text-white font-bold text-sm">{{ selectedStaff.task }}</div>
+                        </div>
+                        <div class="bg-white/5 p-3 rounded-lg">
+                            <div class="text-xs text-gray-400">Start Time</div>
+                            <div class="text-white font-bold text-sm font-mono">{{ selectedStaff.startTime }}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button v-if="selectedStaff.status !== 'Off Duty'" @click="setOffDuty(selectedStaff)"
+                            class="flex-1 bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 py-2 rounded-lg text-sm font-bold transition-colors">Set
+                            Off Duty</button>
+                        <button v-if="selectedStaff.status === 'Off Duty'" @click="setOnDuty(selectedStaff)"
+                            class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-2 rounded-lg text-sm font-bold transition-colors">Set
+                            On Duty</button>
+                        <button @click="showStaffDetail = false"
+                            class="flex-1 bg-white/5 hover:bg-white/10 text-white py-2 rounded-lg text-sm transition-colors">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div v-if="toastMsg"
+            class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div class="font-bold">{{ toastMsg }}</div>
+        </div>
     </div>
 </template>
 
@@ -211,8 +302,18 @@ const searchQuery = ref('')
 const deptFilter = ref('')
 const statusFilter = ref('')
 const showAssignModal = ref(false)
+const showShiftModal = ref(false)
+const showStaffDetail = ref(false)
 const assignTarget = ref(null)
+const selectedStaff = ref(null)
 const assignOrderId = ref('')
+const toastMsg = ref('')
+
+const shifts = ref([
+    { name: 'Morning Shift', time: '06:00 - 14:00', staff: 8, active: true },
+    { name: 'Afternoon Shift', time: '14:00 - 22:00', staff: 6, active: true },
+    { name: 'Night Shift', time: '22:00 - 06:00', staff: 3, active: false },
+])
 
 const staffList = ref([
     { id: 1, name: 'John Doe', role: 'Picker', task: 'Wave #102', orderId: 'ORD-20258', perf: 110, status: 'Assigned to Order', statusClass: 'bg-blue-500/10 text-blue-500', avatar: 'https://i.pravatar.cc/150?u=30', startTime: '07:00', fieldTime: null, returnTime: null, dept: 'Picking' },
@@ -260,5 +361,33 @@ function assignWorker() {
         assignTarget.value.task = `Assigned: ${assignOrderId.value}`
     }
     showAssignModal.value = false
+    showToast('Worker assigned to order')
+}
+
+function showToast(msg) {
+    toastMsg.value = msg
+    setTimeout(() => { toastMsg.value = '' }, 2500)
+}
+
+function openStaffDetail(staff) {
+    selectedStaff.value = staff
+    showStaffDetail.value = true
+}
+
+function setOffDuty(staff) {
+    staff.status = 'Off Duty'
+    staff.statusClass = 'bg-gray-500/10 text-gray-500'
+    staff.task = '--'
+    staff.orderId = null
+    showStaffDetail.value = false
+    showToast(`${staff.name} set to Off Duty`)
+}
+
+function setOnDuty(staff) {
+    staff.status = 'In Warehouse'
+    staff.statusClass = 'bg-green-500/10 text-green-500'
+    staff.task = 'Available'
+    showStaffDetail.value = false
+    showToast(`${staff.name} set to On Duty`)
 }
 </script>

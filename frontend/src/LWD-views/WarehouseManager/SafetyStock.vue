@@ -34,7 +34,7 @@
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-blue-500">
                 <div class="text-xs text-gray-400 uppercase font-semibold">Pending Restocks</div>
-                <div class="text-3xl font-bold text-blue-400 mt-1">{{ pendingRestocks }}</div>
+                <div class="text-3xl font-bold text-blue-400 mt-1">{{ pendingRestockCount }}</div>
                 <div class="text-xs text-blue-400/60 mt-1">Awaiting delivery</div>
             </div>
         </div>
@@ -44,8 +44,6 @@
             <div v-for="item in stockItems" :key="item.name"
                 class="glass-panel p-5 rounded-xl relative overflow-hidden transition-all hover:scale-[1.01]"
                 :class="item.level === 'critical' ? 'border border-red-500/30' : item.level === 'warning' ? 'border border-yellow-500/30' : 'border border-white/5'">
-
-                <!-- Severity glow -->
                 <div v-if="item.level === 'critical'"
                     class="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full -mr-8 -mt-8 blur-xl"></div>
                 <div v-if="item.level === 'warning'"
@@ -93,7 +91,7 @@
                 </div>
 
                 <div class="flex gap-2">
-                    <button v-if="item.restockStatus === 'none'" @click="item.restockStatus = 'requested'"
+                    <button v-if="item.restockStatus === 'none'" @click="requestRestock(item)"
                         class="flex-1 py-2 rounded text-xs font-bold transition-colors"
                         :class="item.level === 'critical' ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400' : 'bg-primary/20 hover:bg-primary/30 text-primary'">
                         Request Restock
@@ -106,7 +104,7 @@
                         class="flex-1 py-2 rounded text-xs font-bold text-center bg-green-500/20 text-green-400 border border-green-500/20">
                         📦 Arriving in {{ item.eta }}
                     </div>
-                    <button
+                    <button @click="escalateItem(item)"
                         class="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white py-2 px-3 rounded text-xs transition-colors"
                         title="Escalate to Logistics Manager">
                         <span class="material-symbols-outlined text-[16px]">arrow_upward</span>
@@ -172,26 +170,42 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <label class="text-xs text-gray-400">Threshold:</label>
-                            <input type="number" :value="item.threshold"
+                            <input type="number" v-model.number="thresholdEdits[item.name]"
                                 class="w-20 bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm text-center focus:outline-none focus:border-primary/50" />
                         </div>
                     </div>
                 </div>
                 <div class="p-6 border-t border-white/5">
-                    <button @click="showThresholdModal = false"
+                    <button @click="saveThresholds"
                         class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Save
                         Thresholds</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Toasts -->
+        <div v-if="toastMsg"
+            class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div class="font-bold">{{ toastMsg }}</div>
+        </div>
+        <div v-if="escalateToast"
+            class="fixed bottom-6 right-6 bg-red-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+            <span class="material-symbols-outlined">arrow_upward</span>
+            <div>
+                <div class="font-bold">{{ escalateToast }} — Escalated!</div>
+                <div class="text-xs opacity-80">Sent to Logistics Manager</div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 
 const showThresholdModal = ref(false)
-const pendingRestocks = ref(3)
+const toastMsg = ref('')
+const escalateToast = ref('')
 
 const stockItems = ref([
     { name: 'Cardboard Boxes (Large)', emoji: '📦', category: 'Packing Materials', current: 18, threshold: 50, dailyUsage: 12, daysLeft: 1, unit: 'pcs', level: 'critical', restockStatus: 'none', eta: '' },
@@ -205,9 +219,13 @@ const stockItems = ref([
     { name: 'Corner Protectors', emoji: '📐', category: 'Packing Materials', current: 5, threshold: 30, dailyUsage: 15, daysLeft: 0, unit: 'sets', level: 'critical', restockStatus: 'none', eta: '' },
 ])
 
+const thresholdEdits = reactive({})
+stockItems.value.forEach(item => { thresholdEdits[item.name] = item.threshold })
+
 const criticalCount = computed(() => stockItems.value.filter(i => i.level === 'critical').length)
 const warningCount = computed(() => stockItems.value.filter(i => i.level === 'warning').length)
 const normalCount = computed(() => stockItems.value.filter(i => i.level === 'normal').length)
+const pendingRestockCount = computed(() => stockItems.value.filter(i => i.restockStatus === 'requested' || i.restockStatus === 'arriving').length)
 
 const restockHistory = ref([
     { id: 'RST-0041', item: 'Cardboard Boxes (Medium)', qty: 200, requestedOn: '2026-02-25 09:12', eta: '2026-02-27', status: 'In Transit', statusClass: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
@@ -221,11 +239,52 @@ function getLevelClass(level) {
     return 'bg-green-500/20 text-green-400 border border-green-500/30'
 }
 
+function showSuccess(msg) {
+    toastMsg.value = msg
+    setTimeout(() => { toastMsg.value = '' }, 2500)
+}
+
+function requestRestock(item) {
+    item.restockStatus = 'requested'
+    restockHistory.value.unshift({
+        id: `RST-${String(Date.now()).slice(-4)}`,
+        item: item.name,
+        qty: item.threshold * 2,
+        requestedOn: new Date().toLocaleString('en-CA', { hour12: false }).replace(',', ''),
+        eta: 'TBD',
+        status: 'Pending',
+        statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+    })
+    showSuccess(`Restock requested for ${item.name}`)
+}
+
 function submitAllRestocks() {
+    let count = 0
     stockItems.value.forEach(item => {
         if (item.level === 'critical' && item.restockStatus === 'none') {
-            item.restockStatus = 'requested'
+            requestRestock(item)
+            count++
         }
     })
+    if (count === 0) showSuccess('All critical items already have restock requests')
+}
+
+function escalateItem(item) {
+    escalateToast.value = item.name
+    setTimeout(() => { escalateToast.value = '' }, 3000)
+}
+
+function saveThresholds() {
+    stockItems.value.forEach(item => {
+        if (thresholdEdits[item.name] !== undefined) {
+            item.threshold = thresholdEdits[item.name]
+            item.daysLeft = item.dailyUsage > 0 ? Math.floor(item.current / item.dailyUsage) : 999
+            if (item.current <= item.threshold * 0.5) item.level = 'critical'
+            else if (item.current <= item.threshold) item.level = 'warning'
+            else item.level = 'normal'
+        }
+    })
+    showThresholdModal.value = false
+    showSuccess('Thresholds updated — stock levels recalculated')
 }
 </script>

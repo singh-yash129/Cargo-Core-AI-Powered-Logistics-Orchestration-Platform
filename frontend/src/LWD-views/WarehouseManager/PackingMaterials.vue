@@ -117,11 +117,16 @@
                             🔧 {{ asset.damaged }} items damaged
                         </div>
                         <div class="flex gap-2 mt-2">
-                            <button
-                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-1 rounded text-xs font-bold transition-colors">Verify
-                                Return</button>
-                            <button
-                                class="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-1 px-3 rounded text-xs font-bold transition-colors">Flag</button>
+                            <button @click="verifyReturn(asset)"
+                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-1 rounded text-xs font-bold transition-colors"
+                                :class="asset.status === 'Returned' ? 'opacity-50 cursor-not-allowed' : ''">
+                                {{ asset.status === 'Returned' ? '✓ Verified' : 'Verify Return' }}
+                            </button>
+                            <button @click="flagAsset(asset)"
+                                class="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-1 px-3 rounded text-xs font-bold transition-colors"
+                                :class="asset.flagged ? 'bg-red-500/40 border border-red-500/50' : ''">
+                                {{ asset.flagged ? '🚩 Flagged' : 'Flag' }}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -141,23 +146,25 @@
                 <div class="p-6 space-y-4">
                     <div>
                         <label class="text-xs text-gray-400 mb-1 block">Order ID</label>
-                        <input type="text" placeholder="ORD-XXXXX"
+                        <input type="text" v-model="issueForm.orderId" placeholder="ORD-XXXXX"
                             class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50 font-mono" />
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div v-for="item in packingItems" :key="item.name">
                             <label class="text-xs text-gray-400 mb-1 block">{{ item.emoji }} {{ item.name }}</label>
                             <input type="number" min="0" :placeholder="`Avail: ${item.stock}`"
+                                v-model.number="issueForm.items[item.name]"
                                 class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-primary/50" />
                         </div>
                     </div>
                     <div>
                         <label class="text-xs text-gray-400 mb-1 block">Issue To (Driver / Laborer)</label>
-                        <input type="text" placeholder="Name or ID"
+                        <input type="text" v-model="issueForm.issuedTo" placeholder="Name or ID"
                             class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
                     </div>
-                    <button @click="showIssueModal = false"
-                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">
+                    <button @click="submitIssue"
+                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors"
+                        :disabled="!issueForm.orderId || !issueForm.issuedTo">
                         Issue Materials
                     </button>
                 </div>
@@ -175,7 +182,7 @@
                             class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="p-6 space-y-4">
-                    <div v-for="item in packingItems.filter(i => i.stock <= i.threshold)" :key="item.name"
+                    <div v-for="item in lowStockItems" :key="item.name"
                         class="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                         <div class="flex items-center gap-3">
                             <span class="text-2xl">{{ item.emoji }}</span>
@@ -185,33 +192,57 @@
                                     item.threshold }}</div>
                             </div>
                         </div>
-                        <input type="number" :value="item.threshold * 2"
+                        <input type="number" v-model.number="restockForm[item.name]"
                             class="w-20 bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm text-center focus:outline-none focus:border-primary/50" />
                     </div>
-                    <div v-if="packingItems.filter(i => i.stock <= i.threshold).length === 0"
-                        class="text-center text-gray-500 py-4">
+                    <div v-if="lowStockItems.length === 0" class="text-center text-gray-500 py-4">
                         All materials are above threshold ✓
                     </div>
                     <div class="flex gap-3">
-                        <button @click="showRestockModal = false"
+                        <button @click="submitRestock"
                             class="flex-1 bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Submit
                             Restock Request</button>
-                        <button
+                        <button @click="escalateRestock"
                             class="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-3 px-5 rounded-lg font-bold transition-colors">Escalate
                             to Manager</button>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Toast -->
+        <div v-if="toastMsg"
+            class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div class="font-bold">{{ toastMsg }}</div>
+        </div>
+        <div v-if="escalateMsg"
+            class="fixed bottom-6 right-6 bg-red-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+            <span class="material-symbols-outlined">arrow_upward</span>
+            <div>
+                <div class="font-bold">Escalated to Logistics Manager!</div>
+                <div class="text-xs opacity-80">{{ escalateMsg }}</div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 
 const logTab = ref('issued')
 const showIssueModal = ref(false)
 const showRestockModal = ref(false)
+const toastMsg = ref('')
+const escalateMsg = ref('')
+
+const issueForm = reactive({
+    orderId: '',
+    issuedTo: '',
+    items: {}
+})
+
+const restockForm = reactive({})
 
 const packingItems = ref([
     { name: 'Boxes', emoji: '📦', stock: 340, max: 500, threshold: 100, unit: 'pcs', reserved: 45 },
@@ -221,6 +252,12 @@ const packingItems = ref([
     { name: 'Plastic Crates', emoji: '📥', stock: 42, max: 80, threshold: 20, unit: 'pcs', reserved: 10 },
     { name: 'Stretch Film', emoji: '🔄', stock: 18, max: 50, threshold: 15, unit: 'rolls', reserved: 5 },
 ])
+
+const lowStockItems = computed(() => {
+    const items = packingItems.value.filter(i => i.stock <= i.threshold)
+    items.forEach(i => { if (!restockForm[i.name]) restockForm[i.name] = i.threshold * 2 })
+    return items
+})
 
 const issuanceLogs = ref([
     { id: 1, orderId: 'ORD-20258', material: 'Boxes (Large)', qty: 12, issuedTo: 'Driver Ravi K.', time: '11:45 AM', status: 'Issued', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20', type: 'issued' },
@@ -233,8 +270,69 @@ const issuanceLogs = ref([
 const filteredLog = computed(() => issuanceLogs.value.filter(l => l.type === logTab.value))
 
 const returnableAssets = ref([
-    { id: 1, name: 'Padded Blankets', orderId: 'ORD-20251', driver: 'Driver Amit S.', qty: 10, returned: 8, missing: 2, damaged: 0, status: 'Partial', statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
-    { id: 2, name: 'Plastic Crates', orderId: 'ORD-20249', driver: 'Driver Ravi K.', qty: 15, returned: 15, missing: 0, damaged: 1, status: 'Returned', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20' },
-    { id: 3, name: 'Furniture Dolly', orderId: 'ORD-20253', driver: 'Driver Vikram P.', qty: 2, returned: 0, missing: 2, damaged: 0, status: 'Outstanding', statusClass: 'bg-red-500/10 text-red-400 border-red-500/20' },
+    { id: 1, name: 'Padded Blankets', orderId: 'ORD-20251', driver: 'Driver Amit S.', qty: 10, returned: 8, missing: 2, damaged: 0, status: 'Partial', statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', flagged: false },
+    { id: 2, name: 'Plastic Crates', orderId: 'ORD-20249', driver: 'Driver Ravi K.', qty: 15, returned: 15, missing: 0, damaged: 1, status: 'Returned', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20', flagged: false },
+    { id: 3, name: 'Furniture Dolly', orderId: 'ORD-20253', driver: 'Driver Vikram P.', qty: 2, returned: 0, missing: 2, damaged: 0, status: 'Outstanding', statusClass: 'bg-red-500/10 text-red-400 border-red-500/20', flagged: false },
 ])
+
+function showSuccess(msg) {
+    toastMsg.value = msg
+    setTimeout(() => { toastMsg.value = '' }, 2500)
+}
+
+function verifyReturn(asset) {
+    if (asset.status === 'Returned') return
+    asset.returned = asset.qty
+    asset.missing = 0
+    asset.status = 'Returned'
+    asset.statusClass = 'bg-green-500/10 text-green-500 border-green-500/20'
+    showSuccess(`${asset.name} return verified for ${asset.orderId}`)
+}
+
+function flagAsset(asset) {
+    asset.flagged = !asset.flagged
+    if (asset.flagged) {
+        showSuccess(`${asset.name} flagged — notified Logistics Manager`)
+    }
+}
+
+function submitIssue() {
+    const now = new Date()
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+
+    for (const item of packingItems.value) {
+        const qty = issueForm.items[item.name]
+        if (qty && qty > 0) {
+            issuanceLogs.value.unshift({
+                id: Date.now() + Math.random(),
+                orderId: issueForm.orderId,
+                material: item.name,
+                qty: qty,
+                issuedTo: issueForm.issuedTo,
+                time: timeStr,
+                status: 'Issued',
+                statusClass: 'bg-green-500/10 text-green-500 border-green-500/20',
+                type: 'issued'
+            })
+            item.stock -= qty
+        }
+    }
+
+    showIssueModal.value = false
+    issueForm.orderId = ''
+    issueForm.issuedTo = ''
+    issueForm.items = {}
+    showSuccess('Materials issued successfully')
+}
+
+function submitRestock() {
+    showRestockModal.value = false
+    showSuccess('Restock request submitted')
+}
+
+function escalateRestock() {
+    showRestockModal.value = false
+    escalateMsg.value = 'Low stock items escalated for urgent procurement'
+    setTimeout(() => { escalateMsg.value = '' }, 3000)
+}
 </script>

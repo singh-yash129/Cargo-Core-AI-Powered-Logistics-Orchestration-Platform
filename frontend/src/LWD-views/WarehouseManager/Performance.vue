@@ -11,7 +11,7 @@
                     <option value="month">This Month</option>
                     <option value="quarter">This Quarter</option>
                 </select>
-                <button
+                <button @click="exportReport"
                     class="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">
                     <span class="material-symbols-outlined text-[18px]">download</span> Export Report
                 </button>
@@ -27,9 +27,9 @@
                 <div class="flex items-center gap-1 mt-1">
                     <span class="material-symbols-outlined text-[14px]"
                         :class="kpi.trend > 0 ? 'text-green-400' : 'text-red-400'">{{ kpi.trend > 0 ? 'trending_up' :
-                        'trending_down' }}</span>
+                            'trending_down' }}</span>
                     <span class="text-xs" :class="kpi.trend > 0 ? 'text-green-400' : 'text-red-400'">{{ kpi.trendLabel
-                        }}</span>
+                    }}</span>
                 </div>
                 <div class="absolute bottom-0 left-0 right-0 h-0.5" :class="kpi.barColor"></div>
             </div>
@@ -45,12 +45,14 @@
                 </h3>
                 <div class="h-60 flex items-end gap-2 px-2">
                     <div v-for="(bar, idx) in processingTimeBars" :key="idx"
-                        class="flex-1 flex flex-col items-center gap-1">
-                        <div class="text-[10px] text-gray-500">{{ bar.value }}h</div>
-                        <div class="w-full rounded-t transition-all hover:opacity-80"
-                            :class="bar.value > 4 ? 'bg-red-500' : bar.value > 3 ? 'bg-yellow-500' : 'bg-primary'"
-                            :style="`height: ${(bar.value / 6) * 100}%`"></div>
-                        <div class="text-[10px] text-gray-500">{{ bar.day }}</div>
+                        class="flex-1 flex flex-col items-center gap-1 h-full">
+                        <div class="text-[10px] text-gray-500 shrink-0">{{ bar.value }}h</div>
+                        <div class="w-full flex-1 flex items-end">
+                            <div class="w-full rounded-t transition-all hover:opacity-80"
+                                :class="bar.value > 4 ? 'bg-red-500' : bar.value > 3 ? 'bg-yellow-500' : 'bg-primary'"
+                                :style="`height: ${(bar.value / 6) * 100}%`"></div>
+                        </div>
+                        <div class="text-[10px] text-gray-500 shrink-0">{{ bar.day }}</div>
                     </div>
                 </div>
             </div>
@@ -109,7 +111,7 @@
                             <span class="text-gray-300">{{ dept.name }}</span>
                             <span class="font-bold"
                                 :class="dept.percent >= 90 ? 'text-green-400' : dept.percent >= 70 ? 'text-yellow-400' : 'text-red-400'">{{
-                                dept.percent }}%</span>
+                                    dept.percent }}%</span>
                         </div>
                         <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
                             <div class="h-full rounded-full transition-all"
@@ -215,19 +217,28 @@
                 Daily Demand Load (Orders per Day)
             </h3>
             <div class="h-48 flex items-end gap-1 px-2">
-                <div v-for="(d, idx) in demandChart" :key="idx" class="flex-1 flex flex-col items-center gap-1">
-                    <div class="text-[9px] text-gray-500">{{ d.count }}</div>
-                    <div class="w-full rounded-t transition-all hover:opacity-80 bg-gradient-to-t from-primary/60 to-primary"
-                        :style="`height: ${(d.count / 60) * 100}%`"></div>
-                    <div class="text-[9px] text-gray-500">{{ d.day }}</div>
+                <div v-for="(d, idx) in demandChart" :key="idx" class="flex-1 flex flex-col items-center gap-1 h-full">
+                    <div class="text-[9px] text-gray-500 shrink-0">{{ d.count }}</div>
+                    <div class="w-full flex-1 flex items-end">
+                        <div class="w-full rounded-t transition-all hover:opacity-80 bg-gradient-to-t from-primary/60 to-primary"
+                            :style="`height: ${d.count > 0 ? (d.count / 60) * 100 : 0}%`"></div>
+                    </div>
+                    <div class="text-[9px] text-gray-500 shrink-0">{{ d.day }}</div>
                 </div>
             </div>
+        </div>
+
+        <!-- Toast -->
+        <div v-if="toastMsg"
+            class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div class="font-bold">{{ toastMsg }}</div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const timeRange = ref('today')
 const pickAccuracy = ref(98)
@@ -235,6 +246,33 @@ const stockDiscrepancy = ref(0.8)
 const packingError = ref(1.5)
 const demandLoad = ref(38)
 const avgDwell = ref(34)
+const toastMsg = ref('')
+
+function showToast(msg) {
+    toastMsg.value = msg
+    setTimeout(() => { toastMsg.value = '' }, 2500)
+}
+
+function exportReport() {
+    showToast(`Performance report (${timeRange.value}) exported`)
+}
+
+// Simulate data changes when time range changes
+watch(timeRange, (val) => {
+    const data = {
+        today: { accuracy: 98, discrepancy: 0.8, packing: 1.5, demand: 38, dwell: 34 },
+        week: { accuracy: 97.2, discrepancy: 1.1, packing: 1.8, demand: 42, dwell: 36 },
+        month: { accuracy: 96.8, discrepancy: 1.4, packing: 2.1, demand: 45, dwell: 38 },
+        quarter: { accuracy: 96.5, discrepancy: 1.6, packing: 2.3, demand: 40, dwell: 35 },
+    }
+    const d = data[val] || data.today
+    pickAccuracy.value = d.accuracy
+    stockDiscrepancy.value = d.discrepancy
+    packingError.value = d.packing
+    demandLoad.value = d.demand
+    avgDwell.value = d.dwell
+    showToast(`Showing ${val} data`)
+})
 
 const primaryKPIs = ref([
     { label: 'Order Processing', value: '2.8h', color: 'text-green-400', trend: 1, trendLabel: '12% faster', barColor: 'bg-green-500' },

@@ -22,7 +22,7 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="glass-panel p-4 rounded-xl">
                 <div class="text-xs text-gray-400 uppercase font-semibold tracking-wide">Today's Orders</div>
-                <div class="text-3xl font-bold text-white mt-1">{{ todayOrders }}</div>
+                <div class="text-3xl font-bold text-white mt-1">{{ orders.length }}</div>
                 <div class="text-xs mt-1" :class="capacityPercent > 90 ? 'text-red-400' : 'text-green-400'">
                     {{ capacityPercent }}% of daily capacity
                 </div>
@@ -148,7 +148,6 @@
                     </button>
                 </div>
                 <div class="p-6 space-y-6">
-                    <!-- Order Info -->
                     <div class="grid grid-cols-2 gap-4">
                         <div class="bg-white/5 p-4 rounded-lg">
                             <div class="text-xs text-gray-400 uppercase mb-1">Cargo Type</div>
@@ -169,26 +168,28 @@
                         </div>
                     </div>
 
-                    <!-- Demand Validation Checklist -->
                     <div>
                         <h4 class="text-sm font-bold text-white mb-3">Demand Validation Checklist</h4>
                         <div class="space-y-3">
-                            <div class="flex items-center gap-3 p-3 rounded-lg"
-                                :class="selectedOrder.inventoryCheck ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'">
+                            <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                                :class="selectedOrder.inventoryCheck ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
+                                @click="selectedOrder.inventoryCheck = !selectedOrder.inventoryCheck">
                                 <span class="material-symbols-outlined"
                                     :class="selectedOrder.inventoryCheck ? 'text-green-400' : 'text-red-400'">{{
                                         selectedOrder.inventoryCheck ? 'check_circle' : 'cancel' }}</span>
                                 <span class="text-sm text-white">Inventory Availability — Stock sufficient</span>
                             </div>
-                            <div class="flex items-center gap-3 p-3 rounded-lg"
-                                :class="selectedOrder.packingReady ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'">
+                            <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                                :class="selectedOrder.packingReady ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
+                                @click="selectedOrder.packingReady = !selectedOrder.packingReady">
                                 <span class="material-symbols-outlined"
                                     :class="selectedOrder.packingReady ? 'text-green-400' : 'text-red-400'">{{
                                         selectedOrder.packingReady ? 'check_circle' : 'cancel' }}</span>
                                 <span class="text-sm text-white">Packing Materials — Boxes, wrap, crates</span>
                             </div>
-                            <div class="flex items-center gap-3 p-3 rounded-lg"
-                                :class="selectedOrder.laborAvailable ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'">
+                            <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                                :class="selectedOrder.laborAvailable ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
+                                @click="selectedOrder.laborAvailable = !selectedOrder.laborAvailable">
                                 <span class="material-symbols-outlined"
                                     :class="selectedOrder.laborAvailable ? 'text-green-400' : 'text-red-400'">{{
                                         selectedOrder.laborAvailable ? 'check_circle' : 'cancel' }}</span>
@@ -203,7 +204,6 @@
                         </div>
                     </div>
 
-                    <!-- Actions -->
                     <div class="flex gap-3">
                         <button v-if="selectedOrder.status !== 'Accepted'"
                             @click="acceptOrder(selectedOrder); showDetailModal = false"
@@ -217,13 +217,32 @@
                             <span class="material-symbols-outlined text-[18px] align-middle mr-1">pause_circle</span>
                             Put On Hold
                         </button>
-                        <button
+                        <button @click="escalateOrder(selectedOrder)"
                             class="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-3 px-6 rounded-lg font-bold transition-colors">
                             <span class="material-symbols-outlined text-[18px] align-middle mr-1">arrow_upward</span>
                             Escalate
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Escalation Toast -->
+        <div v-if="escalateToast"
+            class="fixed bottom-6 right-6 bg-red-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+            <span class="material-symbols-outlined">arrow_upward</span>
+            <div>
+                <div class="font-bold">{{ escalateToast }} — Escalated!</div>
+                <div class="text-xs opacity-80">Notification sent to Logistics Manager</div>
+            </div>
+        </div>
+
+        <!-- Success Toast -->
+        <div v-if="successToast"
+            class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div>
+                <div class="font-bold">{{ successToast }}</div>
             </div>
         </div>
     </div>
@@ -236,11 +255,10 @@ const activeTab = ref('incoming')
 const searchQuery = ref('')
 const showDetailModal = ref(false)
 const selectedOrder = ref(null)
-const todayOrders = ref(38)
-const capacityPercent = ref(76)
-const pendingCount = ref(7)
 const freeDocks = ref(3)
 const freeLabor = ref(12)
+const escalateToast = ref('')
+const successToast = ref('')
 
 const orders = ref([
     { id: 'ORD-20261', cargoType: 'House Shift (3BHK)', quantity: 45, weight: 820, laborNeeded: 4, laborAvailable: true, packingReady: true, inventoryCheck: true, deadline: '2026-02-27 10:00', status: 'Pending', statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', specialInstructions: 'Fragile items — extra bubble wrap', tab: 'incoming' },
@@ -252,6 +270,9 @@ const orders = ref([
     { id: 'ORD-20265', cargoType: 'Warehouse Transfer', quantity: 500, weight: 8200, laborNeeded: 10, laborAvailable: false, packingReady: false, inventoryCheck: false, deadline: '2026-03-01 06:00', status: 'On Hold', statusClass: 'bg-orange-500/10 text-orange-500 border-orange-500/20', specialInstructions: 'Cross-dock needed', tab: 'onhold' },
 ])
 
+const capacityPercent = computed(() => Math.round((orders.value.length / 50) * 100))
+const pendingCount = computed(() => orders.value.filter(o => o.status === 'Pending').length)
+
 const filteredOrders = computed(() => {
     return orders.value.filter(o => {
         const matchesTab = o.tab === activeTab.value
@@ -260,20 +281,34 @@ const filteredOrders = computed(() => {
     })
 })
 
+function showToast(msg) {
+    successToast.value = msg
+    setTimeout(() => { successToast.value = '' }, 2500)
+}
+
 function validateOrder(order) {
     order.status = 'Validated'
     order.statusClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+    showToast(`${order.id} validated successfully`)
 }
 
 function acceptOrder(order) {
     order.status = 'Accepted'
     order.statusClass = 'bg-green-500/10 text-green-500 border-green-500/20'
     order.tab = 'accepted'
+    showToast(`${order.id} accepted for processing`)
 }
 
 function holdOrder(order) {
     order.status = 'On Hold'
     order.statusClass = 'bg-orange-500/10 text-orange-500 border-orange-500/20'
     order.tab = 'onhold'
+    showToast(`${order.id} placed on hold`)
+}
+
+function escalateOrder(order) {
+    escalateToast.value = order.id
+    showDetailModal.value = false
+    setTimeout(() => { escalateToast.value = '' }, 3000)
 }
 </script>

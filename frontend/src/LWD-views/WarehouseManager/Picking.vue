@@ -4,9 +4,10 @@
             <h2 class="text-2xl font-bold text-white">Picking & Packing</h2>
             <div class="flex gap-2">
                 <div class="px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm">
-                    Active Pickers: <span class="text-green-400 font-bold">14</span>
+                    Active Pickers: <span class="text-green-400 font-bold">{{stations.filter(s => s.active).length * 5
+                        }}</span>
                 </div>
-                <button
+                <button @click="showBatchModal = true"
                     class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg transition-colors">Assign
                     Batches</button>
             </div>
@@ -43,7 +44,6 @@
                     <h3 class="font-bold text-white">Active Pick Waves</h3>
                     <span class="text-xs text-gray-400">Auto-refreshing in 30s</span>
                 </div>
-
                 <table class="w-full text-left text-sm">
                     <thead class="bg-white/5 text-gray-400 uppercase">
                         <tr>
@@ -60,8 +60,11 @@
                             <td class="p-4 font-mono text-primary">{{ wave.id }}</td>
                             <td class="p-4 text-white">{{ wave.staff }}</td>
                             <td class="p-4 text-gray-300 w-32">
-                                <div class="w-full bg-gray-700 h-1.5 rounded-full overflow-hidden mt-1">
-                                    <div class="bg-primary h-full" :style="`width: ${wave.progress}%`"></div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-full bg-gray-700 h-1.5 rounded-full overflow-hidden">
+                                        <div class="bg-primary h-full" :style="`width: ${wave.progress}%`"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-400">{{ wave.progress }}%</span>
                                 </div>
                             </td>
                             <td class="p-4 text-gray-400">{{ wave.zone }}</td>
@@ -94,8 +97,11 @@
                                     <div class="text-gray-500 text-[10px] uppercase">Throughput</div>
                                     <div class="text-white font-bold">{{ station.rate }} / hr</div>
                                 </div>
-                                <button
-                                    class="bg-white/10 hover:bg-white/20 text-white px-2 py-1 rounded text-xs transition-colors">Monitor</button>
+                                <button @click="monitorStation(station)"
+                                    class="bg-white/10 hover:bg-white/20 text-white px-2 py-1 rounded text-xs transition-colors"
+                                    :class="station.monitoring ? 'ring-1 ring-primary bg-primary/20 text-primary' : ''">
+                                    {{ station.monitoring ? '● Live' : 'Monitor' }}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -113,45 +119,18 @@
                             <div class="flex justify-between items-center mb-2">
                                 <span class="font-mono text-primary text-xs font-bold">{{ check.orderId }}</span>
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold"
-                                    :class="check.verified ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'">{{
-                                        check.verified ? 'Verified' : 'Pending' }}</span>
+                                    :class="check.verified ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'">
+                                    {{ check.verified ? 'Verified' : 'Pending' }}
+                                </span>
                             </div>
                             <div class="space-y-1 text-xs">
-                                <div class="flex items-center gap-2">
+                                <div v-for="(field, fIdx) in checkFields" :key="fIdx"
+                                    @click="toggleCheck(check, field.key)"
+                                    class="flex items-center gap-2 cursor-pointer hover:bg-white/5 rounded p-0.5 transition-colors">
                                     <span class="material-symbols-outlined text-[14px]"
-                                        :class="check.goodsCorrect ? 'text-green-400' : 'text-gray-600'">{{
-                                            check.goodsCorrect ? 'check_circle' : 'radio_button_unchecked' }}</span>
-                                    <span class="text-gray-300">Correct goods</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[14px]"
-                                        :class="check.countCorrect ? 'text-green-400' : 'text-gray-600'">{{
-                                            check.countCorrect ? 'check_circle' : 'radio_button_unchecked' }}</span>
-                                    <span class="text-gray-300">Correct count</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[14px]"
-                                        :class="check.packagingOk ? 'text-green-400' : 'text-gray-600'">{{
-                                            check.packagingOk ? 'check_circle' : 'radio_button_unchecked' }}</span>
-                                    <span class="text-gray-300">Packaging verified</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[14px]"
-                                        :class="check.laborConfirmed ? 'text-green-400' : 'text-gray-600'">{{
-                                            check.laborConfirmed ? 'check_circle' : 'radio_button_unchecked' }}</span>
-                                    <span class="text-gray-300">Labor assigned</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[14px]"
-                                        :class="check.weightOk ? 'text-green-400' : 'text-gray-600'">{{ check.weightOk ?
-                                        'check_circle' : 'radio_button_unchecked' }}</span>
-                                    <span class="text-gray-300">Weight verified</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[14px]"
-                                        :class="check.labelAttached ? 'text-green-400' : 'text-gray-600'">{{
-                                            check.labelAttached ? 'check_circle' : 'radio_button_unchecked' }}</span>
-                                    <span class="text-gray-300">Shipping label attached</span>
+                                        :class="check[field.key] ? 'text-green-400' : 'text-gray-600'">{{
+                                            check[field.key] ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                                    <span class="text-gray-300">{{ field.label }}</span>
                                 </div>
                             </div>
                             <button v-if="check.verified" @click="triggerDispatch(check)"
@@ -168,12 +147,55 @@
             </div>
         </div>
 
-        <!-- Dispatch Confirmation Toast -->
+        <!-- Assign Batch Modal -->
+        <div v-if="showBatchModal"
+            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            @click.self="showBatchModal = false">
+            <div class="glass-panel rounded-2xl w-full max-w-md border border-white/10">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-white text-lg">Assign New Pick Batch</h3>
+                    <button @click="showBatchModal = false" class="text-gray-500 hover:text-white"><span
+                            class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="text-xs text-gray-400 mb-1 block">Assign To Team</label>
+                        <select v-model="batchForm.staff"
+                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white">
+                            <option>Team A</option>
+                            <option>Team B</option>
+                            <option>Team C</option>
+                            <option>Team D</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 mb-1 block">Zone</label>
+                        <select v-model="batchForm.zone"
+                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white">
+                            <option>Zone A (High Vel)</option>
+                            <option>Zone B (Bulk)</option>
+                            <option>Zone C</option>
+                            <option>Zone D</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 mb-1 block">Deadline</label>
+                        <input type="time" v-model="batchForm.deadline"
+                            class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-primary/50" />
+                    </div>
+                    <button @click="assignBatch"
+                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Create
+                        Pick Wave</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dispatch Toast -->
         <div v-if="dispatchToast"
             class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl shadow-green-500/30 flex items-center gap-3 z-50 animate-bounce">
             <span class="material-symbols-outlined">check_circle</span>
             <div>
-                <div class="font-bold">{{ dispatchToast }} — Ready for Dispatch!</div>
+                <div class="font-bold">{{ dispatchToast }}</div>
                 <div class="text-xs opacity-80">Notification sent to Dispatcher</div>
             </div>
         </div>
@@ -181,9 +203,20 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, computed } from 'vue'
 
 const dispatchToast = ref('')
+const showBatchModal = ref(false)
+const batchForm = reactive({ staff: 'Team C', zone: 'Zone A (High Vel)', deadline: '14:00' })
+
+const checkFields = [
+    { key: 'goodsCorrect', label: 'Correct goods' },
+    { key: 'countCorrect', label: 'Correct count' },
+    { key: 'packagingOk', label: 'Packaging verified' },
+    { key: 'laborConfirmed', label: 'Labor assigned' },
+    { key: 'weightOk', label: 'Weight verified' },
+    { key: 'labelAttached', label: 'Shipping label attached' },
+]
 
 const pipelineSteps = ref([
     { label: 'Accepted', icon: 'task_alt', active: true, count: 12 },
@@ -200,9 +233,9 @@ const waves = ref([
 ])
 
 const stations = ref([
-    { id: 1, name: 'Pack Station 1', packer: 'Sarah J.', rate: 45, active: true },
-    { id: 2, name: 'Pack Station 2', packer: 'Mike T.', rate: 42, active: true },
-    { id: 3, name: 'Pack Station 3', packer: '-- Closed --', rate: 0, active: false },
+    { id: 1, name: 'Pack Station 1', packer: 'Sarah J.', rate: 45, active: true, monitoring: false },
+    { id: 2, name: 'Pack Station 2', packer: 'Mike T.', rate: 42, active: true, monitoring: false },
+    { id: 3, name: 'Pack Station 3', packer: '-- Closed --', rate: 0, active: false, monitoring: false },
 ])
 
 const qualityChecks = ref([
@@ -210,8 +243,36 @@ const qualityChecks = ref([
     { orderId: 'ORD-20255', goodsCorrect: true, countCorrect: true, packagingOk: false, laborConfirmed: true, weightOk: false, labelAttached: false, verified: false },
 ])
 
+function toggleCheck(check, key) {
+    check[key] = !check[key]
+    check.verified = check.goodsCorrect && check.countCorrect && check.packagingOk && check.laborConfirmed && check.weightOk && check.labelAttached
+}
+
+function monitorStation(station) {
+    station.monitoring = !station.monitoring
+}
+
 function triggerDispatch(check) {
-    dispatchToast.value = check.orderId
+    pipelineSteps.value[4].count++
+    pipelineSteps.value[4].active = true
+    pipelineSteps.value[3].count = Math.max(0, pipelineSteps.value[3].count - 1)
+    dispatchToast.value = `${check.orderId} — Ready for Dispatch!`
     setTimeout(() => { dispatchToast.value = '' }, 3000)
+}
+
+function assignBatch() {
+    const waveId = `WAVE-${104 + waves.value.length}`
+    waves.value.push({
+        id: waveId,
+        staff: batchForm.staff,
+        progress: 0,
+        zone: batchForm.zone,
+        deadline: batchForm.deadline,
+        status: 'Pending',
+        statusClass: 'bg-gray-500/10 text-gray-500 border-gray-500/20'
+    })
+    showBatchModal.value = false
+    dispatchToast.value = `${waveId} assigned to ${batchForm.staff}`
+    setTimeout(() => { dispatchToast.value = '' }, 2500)
 }
 </script>

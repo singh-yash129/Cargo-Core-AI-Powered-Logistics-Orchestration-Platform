@@ -1,7 +1,7 @@
 <template>
     <div class="space-y-6">
         <!-- Top KPI Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div class="glass-panel p-4 rounded-xl flex flex-col justify-between h-32 relative overflow-hidden group">
                 <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                     <span class="material-symbols-outlined text-4xl text-teal-500">inventory_2</span>
@@ -29,7 +29,7 @@
             <div class="glass-panel p-4 rounded-xl flex flex-col justify-between h-32 group">
                 <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Ready for Dispatch</div>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold text-white">385</span>
+                    <span class="text-3xl font-bold text-white">{{ readyForDispatch }}</span>
                 </div>
                 <div class="text-xs text-blue-400 flex items-center gap-1">
                     <span class="material-symbols-outlined text-[14px]">local_shipping</span> Next Truck: 15m
@@ -39,15 +39,15 @@
             <div class="glass-panel p-4 rounded-xl flex flex-col justify-between h-32 group">
                 <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Labor Active</div>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold text-white">42</span>
-                    <span class="text-xs text-gray-500">/ 50</span>
+                    <span class="text-3xl font-bold text-white">{{ activeLabor }}</span>
+                    <span class="text-xs text-gray-500">/ {{ totalLabor }}</span>
                 </div>
                 <div class="flex -space-x-2 mt-2">
                     <div class="w-6 h-6 rounded-full bg-gray-700 border border-black"></div>
                     <div class="w-6 h-6 rounded-full bg-gray-600 border border-black"></div>
                     <div
                         class="w-6 h-6 rounded-full bg-gray-500 border border-black flex items-center justify-center text-[8px] text-white">
-                        +39</div>
+                        +{{ activeLabor - 2 }}</div>
                 </div>
             </div>
 
@@ -72,7 +72,7 @@
         </div>
 
         <!-- Charts Row -->
-        <div class="glass-panel p-5 rounded-xl h-[400px] flex flex-col">
+        <div class="glass-panel p-5 rounded-xl h-[300px] md:h-[400px] flex flex-col">
             <div class="flex justify-between items-center mb-2">
                 <h3 class="font-bold text-white flex items-center gap-2">
                     <span class="material-symbols-outlined text-teal-500">trending_up</span>
@@ -84,11 +84,11 @@
             </div>
         </div>
 
-        <!-- NEW: Secondary Charts Row (Responsive 3 Columns) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Secondary Charts Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
 
             <!-- 1. Orders VS Returns (Bar) -->
-            <div class="glass-panel p-5 rounded-xl flex flex-col transition-transform hover:scale-[1.01] h-80">
+            <div class="glass-panel p-5 rounded-xl flex flex-col transition-transform hover:scale-[1.01] h-64 md:h-80">
                 <h3 class="font-bold text-white flex items-center gap-2 mb-2 shrink-0">
                     <span class="material-symbols-outlined text-blue-400">compare_arrows</span>
                     Orders vs Returns
@@ -99,7 +99,7 @@
             </div>
 
             <!-- 2. Stock vs Packaging (Pie) -->
-            <div class="glass-panel p-5 rounded-xl flex flex-col transition-transform hover:scale-[1.01] h-80">
+            <div class="glass-panel p-5 rounded-xl flex flex-col transition-transform hover:scale-[1.01] h-64 md:h-80">
                 <h3 class="font-bold text-white flex items-center gap-2 mb-2 shrink-0">
                     <span class="material-symbols-outlined text-purple-400">inventory</span>
                     Inventory Composition
@@ -110,7 +110,8 @@
             </div>
 
             <!-- 3. Active Workers vs Drivers (Doughnut) -->
-            <div class="glass-panel p-5 rounded-xl flex flex-col transition-transform hover:scale-[1.01] h-80">
+            <div
+                class="glass-panel p-5 rounded-xl flex flex-col transition-transform hover:scale-[1.01] h-64 md:h-80 sm:col-span-2 md:col-span-1">
                 <h3 class="font-bold text-white flex items-center gap-2 mb-2 shrink-0">
                     <span class="material-symbols-outlined text-yellow-400">group</span>
                     On-Site Labor
@@ -122,7 +123,7 @@
         </div>
 
         <!-- Main Content Split -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[500px]">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             <!-- Center: Interactive Picking Queue Table -->
             <div class="lg:col-span-2 glass-panel rounded-xl flex flex-col overflow-hidden">
@@ -133,8 +134,8 @@
                     </h3>
 
                     <!-- Dynamic Search & Filters -->
-                    <div class="flex gap-3 flex-1 justify-end">
-                        <div class="relative w-48">
+                    <div class="flex gap-2 sm:gap-3 flex-1 justify-end flex-wrap">
+                        <div class="relative w-36 sm:w-48">
                             <span
                                 class="material-symbols-outlined absolute left-2 top-1.5 text-gray-500 text-[18px]">search</span>
                             <input v-model="searchQuery" type="text" placeholder="Search ID or Staff..."
@@ -332,6 +333,13 @@
             </div>
         </div>
     </div>
+
+    <!-- Toast -->
+    <div v-if="toastMsg"
+        class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+        <span class="material-symbols-outlined">check_circle</span>
+        <div class="font-bold">{{ toastMsg }}</div>
+    </div>
 </template>
 
 <script setup>
@@ -339,8 +347,17 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Line, Doughnut, Bar, Pie } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement, Filler } from 'chart.js'
 
-// Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement, Filler)
+
+const toastMsg = ref('')
+const readyForDispatch = ref(385)
+const activeLabor = ref(42)
+const totalLabor = ref(50)
+
+function showToast(msg) {
+    toastMsg.value = msg
+    setTimeout(() => { toastMsg.value = '' }, 2500)
+}
 
 // ----------------------------------------------------
 // CHART CONFIGURATIONS
@@ -546,9 +563,10 @@ const processRestock = () => {
     isProcessingRestock.value = true
     // Simulate API call delay for realism
     setTimeout(() => {
-        criticalSkus.value = [] // clear all alerts dynamically updates top KPI
+        criticalSkus.value = []
         isProcessingRestock.value = false
         showRestockModal.value = false
+        showToast('All critical SKUs restocked successfully!')
     }, 1200)
 }
 
@@ -597,6 +615,8 @@ const markComplete = (order) => {
     order.progress = 100
     order.status = 'Completed'
     activeActionMenu.value = null
+    readyForDispatch.value++
+    showToast(`${order.id} marked complete — ready for dispatch`)
 }
 
 const reassign = (order) => {
@@ -605,6 +625,7 @@ const reassign = (order) => {
     order.status = 'In Progress'
     if (order.progress === 0) order.progress = 10
     activeActionMenu.value = null
+    showToast(`${order.id} reassigned to Alex M.`)
 }
 
 // Click-outside directive logic to close menus gracefully

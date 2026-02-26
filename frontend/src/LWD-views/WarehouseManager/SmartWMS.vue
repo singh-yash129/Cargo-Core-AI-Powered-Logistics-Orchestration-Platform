@@ -59,7 +59,8 @@
                     :class="`group-hover:text-${insight.color}-400`">
                     {{ insight.title }}</h3>
                 <p class="text-sm text-gray-400 mb-4">{{ insight.description }}</p>
-                <button class="w-full py-2 rounded text-sm font-bold transition-colors"
+                <button @click="handleInsightAction(insight)"
+                    class="w-full py-2 rounded text-sm font-bold transition-colors"
                     :class="`bg-${insight.color}-500/20 hover:bg-${insight.color}-500/30 text-${insight.color}-400`">
                     {{ insight.action }}
                 </button>
@@ -95,15 +96,23 @@
                 </div>
             </div>
             <div class="mt-4 flex gap-3">
-                <button
+                <button @click="autoScheduleStaff"
                     class="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]">schedule</span> Auto-Schedule Extra Staff
                 </button>
-                <button
+                <button @click="alertLogistics"
                     class="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]">notifications</span> Alert Logistics Manager
                 </button>
             </div>
+        </div>
+
+        <!-- Toast -->
+        <div v-if="toastMsg"
+            class="fixed bottom-6 right-6 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce"
+            :class="toastClass">
+            <span class="material-symbols-outlined">{{ toastIcon }}</span>
+            <div class="font-bold">{{ toastMsg }}</div>
         </div>
     </div>
 </template>
@@ -151,6 +160,36 @@ async function sendChat() {
             if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight
         })
     }, 800)
+}
+
+const toastMsg = ref('')
+const toastClass = ref('bg-green-500/90')
+const toastIcon = ref('check_circle')
+
+function showToast(msg, type = 'success') {
+    toastMsg.value = msg
+    toastClass.value = type === 'alert' ? 'bg-purple-500/90' : type === 'warning' ? 'bg-yellow-500/90' : 'bg-green-500/90'
+    toastIcon.value = type === 'alert' ? 'notifications_active' : type === 'warning' ? 'warning' : 'check_circle'
+    setTimeout(() => { toastMsg.value = '' }, 3000)
+}
+
+function handleInsightAction(insight) {
+    chatMessages.value.push({ type: 'user', text: `Execute: ${insight.action}` })
+    setTimeout(() => {
+        chatMessages.value.push({ type: 'ai', text: `\u2705 ${insight.title} action initiated. ${insight.description} I've started processing this recommendation.` })
+        nextTick(() => {
+            if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+        })
+    }, 600)
+    showToast(`${insight.action} — initiated`, 'alert')
+}
+
+function autoScheduleStaff() {
+    showToast('10 extra staff auto-scheduled for tomorrow morning shift', 'alert')
+}
+
+function alertLogistics() {
+    showToast('Alert sent to Logistics Manager about tomorrow\'s workload spike', 'warning')
 }
 
 const aiInsights = ref([
