@@ -1,4 +1,5 @@
 <template>
+  <div>
     <div class="flex h-[calc(100vh-3.5rem)] overflow-hidden">
 
         <!-- Left Panel: Active Driver Roster -->
@@ -235,6 +236,7 @@
             </div>
         </div>
     </div>
+  </div>
 </template>
 
 <script setup>
