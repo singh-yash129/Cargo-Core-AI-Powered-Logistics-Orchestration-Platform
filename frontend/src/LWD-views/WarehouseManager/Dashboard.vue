@@ -332,13 +332,13 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Toast -->
-    <div v-if="toastMsg"
-        class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
-        <span class="material-symbols-outlined">check_circle</span>
-        <div class="font-bold">{{ toastMsg }}</div>
+        <!-- Toast -->
+        <div v-if="toastMsg"
+            class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div class="font-bold">{{ toastMsg }}</div>
+        </div>
     </div>
 </template>
 
