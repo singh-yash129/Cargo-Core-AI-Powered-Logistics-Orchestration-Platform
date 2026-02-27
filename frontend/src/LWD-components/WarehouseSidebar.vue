@@ -31,28 +31,34 @@
             </ul>
 
             <!-- Floor Map Preview (Mini) -->
-            <div class="mt-8 px-4">
-                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Zone Status</div>
+            <div class="mt-8 px-4" :class="{ 'mt-2': $route.path.includes('/warehouse/comparative-viewers') }">
+                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">
+                    {{ $route.path.includes('/warehouse/comparative-viewers') ? 'Drag Zone' : 'Zone Status' }}
+                </div>
                 <div class="grid grid-cols-2 gap-2">
-                    <div
-                        class="bg-gray-100 dark:bg-white/5 rounded p-2 text-center border border-gray-200 dark:border-white/5 hover:border-primary/50 cursor-pointer transition-colors">
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Zone A</div>
-                        <div class="text-primary font-bold">92%</div>
-                    </div>
-                    <div
-                        class="bg-gray-100 dark:bg-white/5 rounded p-2 text-center border border-gray-200 dark:border-white/5 hover:border-red-500/50 cursor-pointer transition-colors">
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Zone B</div>
-                        <div class="text-red-500 dark:text-red-400 font-bold">Full</div>
-                    </div>
-                    <div
-                        class="bg-gray-100 dark:bg-white/5 rounded p-2 text-center border border-gray-200 dark:border-white/5 hover:border-primary/50 cursor-pointer transition-colors">
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Zone C</div>
-                        <div class="text-primary font-bold">45%</div>
-                    </div>
-                    <div
-                        class="bg-gray-100 dark:bg-white/5 rounded p-2 text-center border border-gray-200 dark:border-white/5 hover:border-amber-500/50 cursor-pointer transition-colors">
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Cold Chain</div>
-                        <div class="text-amber-500 dark:text-yellow-400 font-bold">Alert</div>
+                    <div v-for="zone in availableZones" :key="zone.id"
+                        :draggable="$route.path.includes('/warehouse/comparative-viewers')"
+                        @dragstart="onDragStart($event, zone)"
+                        class="bg-gray-100 dark:bg-white/5 rounded p-2 text-center border border-gray-200 dark:border-white/5 transition-colors group"
+                        :class="[
+                            $route.path.includes('/warehouse/comparative-viewers') ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+                            zone.status === 'Alert' ? 'hover:border-amber-500/50' :
+                                zone.status === 'Full' ? 'hover:border-red-500/50' : 'hover:border-primary/50'
+                        ]">
+                        <div
+                            class="text-xs text-gray-500 dark:text-gray-400 font-medium group-hover:text-gray-900 dark:group-hover:text-white flex items-center justify-center gap-1">
+                            <span v-if="$route.path.includes('/warehouse/comparative-viewers')"
+                                class="material-symbols-outlined text-[14px] text-gray-400 group-hover:text-primary transition-colors">drag_indicator</span>
+                            {{ zone.name }}
+                        </div>
+                        <div class="font-bold flex items-center justify-center gap-1 mt-1" :class="[
+                            zone.status === 'Alert' ? 'text-amber-500 dark:text-yellow-400' :
+                                zone.status === 'Full' ? 'text-red-500 dark:text-red-400' : 'text-primary'
+                        ]">
+                            <div v-if="zone.color" class="w-2 h-2 rounded-full"
+                                :style="{ backgroundColor: zone.color }"></div>
+                            {{ zone.value }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -198,8 +204,11 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import BaseModal from '@/components/BaseModal.vue'
+import { useWarehouseFloorStore } from '@/stores/warehouseFloorStore'
+
+const store = useWarehouseFloorStore()
 
 // State for User Menu and Modals
 const isUserMenuOpen = ref(false)
@@ -236,7 +245,51 @@ const menuItems = [
     { label: 'Loading Dock', icon: 'local_shipping', route: '/warehouse/dock' },
     { label: 'Returns', icon: 'assignment_return', route: '/warehouse/returns' },
     { label: 'Labor Mgmt', icon: 'groups', route: '/warehouse/labor' },
-    { label: 'Performance', icon: 'monitoring', route: '/warehouse/performance' },
     { label: 'Smart WMS', icon: 'psychology', route: '/warehouse/ai' },
+    { label: 'Comparative Viewers', icon: 'compare_arrows', route: '/warehouse/comparative-viewers' },
 ]
+
+// Mock zone data mapped to store groups if available, otherwise static fallback
+const zones = ref([
+    { id: 'g1', name: 'Zone A', value: '92%', status: 'Normal', color: store.presetColors[0] },
+    { id: 'g2', name: 'Zone B', value: 'Full', status: 'Full', color: store.presetColors[1] },
+    { id: 'g3', name: 'Zone C', value: '45%', status: 'Normal', color: store.presetColors[2] },
+    { id: 'g4', name: 'Cold Chain', value: 'Alert', status: 'Alert', color: store.presetColors[6] }
+])
+
+// Sync with actual groups if they exist in the store
+onMounted(() => {
+    if (store.groups && store.groups.length > 0) {
+        zones.value = store.groups.slice(0, 4).map((g, index) => {
+            // Map some mock statuses based on index for the UI
+            let status = 'Normal';
+            let value = '45%';
+            if (index === 0) value = '92%';
+            if (index === 1) { status = 'Full'; value = 'Full'; }
+            if (index === 3) { status = 'Alert'; value = 'Alert'; }
+
+            return {
+                id: g.id,
+                name: g.name.substring(0, 10), // Keep name short for grid
+                value: value,
+                status: status,
+                color: g.color || store.presetColors[index]
+            }
+        })
+    }
+})
+
+const availableZones = computed(() => {
+    // Only filter out if we are on the comparative viewer page and dragging
+    if (store.comparedZones) {
+        return zones.value.filter(z => !store.comparedZones.find(cz => cz.id === z.id))
+    }
+    return zones.value
+})
+
+const onDragStart = (event, zone) => {
+    event.dataTransfer.effectAllowed = 'copy'
+    event.dataTransfer.setData('zoneId', zone.id)
+    event.dataTransfer.setData('text/plain', JSON.stringify(zone))
+}
 </script>

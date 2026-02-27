@@ -130,6 +130,7 @@ const router = createRouter({
         { path: '/warehouse/packing-materials', component: () => import('../LWD-views/WarehouseManager/PackingMaterials.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
         { path: '/warehouse/safety-stock', component: () => import('../LWD-views/WarehouseManager/SafetyStock.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
         { path: '/warehouse/performance', component: () => import('../LWD-views/WarehouseManager/Performance.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/comparative-viewers', component: () => import('../LWD-views/WarehouseManager/ComparativeViewers.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
 
         // AI Support Module Routes
         { path: '/ai/dashboard', component: () => import('../ai-views/Dashboard.vue'), meta: { requiresAuth: true, layout: 'ai' } },

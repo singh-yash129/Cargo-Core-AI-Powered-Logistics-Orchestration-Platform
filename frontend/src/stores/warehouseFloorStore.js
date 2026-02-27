@@ -128,6 +128,8 @@ export const useWarehouseFloorStore = defineStore('warehouseFloor', () => {
 
     const presetColors = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1']
 
+    const comparedZones = ref([])
+
     // ── Lookup Maps (computed, rebuilt on data change) ──────────
     const sectionMap = computed(() => {
         const m = new Map()
@@ -340,6 +342,19 @@ export const useWarehouseFloorStore = defineStore('warehouseFloor', () => {
         groups.value = groups.value.filter(g => g.id !== groupId)
     }
 
+    function addComparedZone(zoneId) {
+        if (!comparedZones.value.find(z => z.id === zoneId)) {
+            const zone = groups.value.find(g => g.id === zoneId)
+            if (zone) {
+                comparedZones.value.push(zone)
+            }
+        }
+    }
+
+    function removeComparedZone(zoneId) {
+        comparedZones.value = comparedZones.value.filter(z => z.id !== zoneId)
+    }
+
     return {
         // State
         floors,
@@ -348,6 +363,7 @@ export const useWarehouseFloorStore = defineStore('warehouseFloor', () => {
         racks,
         products,
         presetColors,
+        comparedZones,
         // Maps
         sectionMap,
         rackMap,
@@ -377,6 +393,8 @@ export const useWarehouseFloorStore = defineStore('warehouseFloor', () => {
         deleteRack,
         addGroup,
         updateGroup,
-        deleteGroup
+        deleteGroup,
+        addComparedZone,
+        removeComparedZone
     }
 })
