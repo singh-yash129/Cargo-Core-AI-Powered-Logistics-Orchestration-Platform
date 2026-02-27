@@ -73,13 +73,17 @@
 
                         <div class="hidden sm:block h-6 w-px bg-gray-200 dark:bg-white/10 mx-2"></div>
 
-                        <button
+                        <button @click="isScannerOpen = true"
                             class="hidden sm:flex w-10 h-10 rounded-full items-center justify-center bg-teal-500 text-white hover:bg-teal-600 dark:text-black dark:hover:bg-teal-400 transition-colors shadow-sm">
                             <span class="material-symbols-outlined">qr_code_scanner</span>
                         </button>
                     </div>
                 </div>
             </header>
+
+            <!-- Global Scanner/Camera Modal -->
+            <SmartScannerModal :is-open="isScannerOpen" @close="isScannerOpen = false" @scan="handleGlobalScan"
+                @camera="handleGlobalCamera" />
 
             <!-- Page Content -->
             <div class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden">
@@ -90,15 +94,41 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, provide } from 'vue'
 import WarehouseSidebar from '../LWD-components/WarehouseSidebar.vue'
 import HeaderWeather from '@/components/HeaderWeather.vue'
 import HeaderTodo from '@/components/HeaderTodo.vue'
 import HeaderMeetingScheduler from '@/components/HeaderMeetingScheduler.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import SmartScannerModal from '@/components/SmartScannerModal.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
+import { useRouter } from 'vue-router'
 
 const store = useLogisticStore()
+const router = useRouter()
 const sidebarOpen = ref(false)
+
+// Global Scanner State & Provide (so children can open it)
+const isScannerOpen = ref(false)
+const scannerActiveTab = ref('scan')
+
+provide('openScanner', (tab = 'scan') => {
+    scannerActiveTab.value = tab
+    isScannerOpen.value = true
+})
+
+// Used by children to read the last scan globally if they don't have their own modal
+const lastGlobalScan = ref(null)
+provide('lastGlobalScan', lastGlobalScan)
+
+const handleGlobalScan = (barcode) => {
+    lastGlobalScan.value = barcode
+    console.log("[Global Header Scanner] Received:", barcode)
+    // Optional: Global logic could navigate based on barcode format, for now just log/store.
+}
+
+const handleGlobalCamera = (image) => {
+    console.log("[Global Header Camera] Captured:", image)
+}
 </script>

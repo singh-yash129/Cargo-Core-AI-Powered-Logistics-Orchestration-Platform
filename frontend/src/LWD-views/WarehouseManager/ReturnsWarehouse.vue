@@ -31,7 +31,7 @@
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">{{completedItems.filter(i =>
                     i.disposition === 'discard'
-                    || i.disposition === 'recycle').length }}</div>
+                    || i.disposition === 'recycle').length}}</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">Discarded / Recycled</div>
             </div>
         </div>
@@ -49,7 +49,7 @@
                 <div class="flex gap-6">
                     <!-- Damage Photo Capture Area -->
                     <div class="w-1/3 space-y-3">
-                        <div @click="capturedPhoto = !capturedPhoto"
+                        <div @click="openScanner('camera')"
                             class="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center border border-gray-100 dark:border-white/5 relative overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors">
                             <div v-if="!capturedPhoto" class="flex flex-col items-center gap-2">
                                 <span
@@ -61,7 +61,7 @@
                                 <span class="material-symbols-outlined text-4xl text-green-400">check_circle</span>
                             </div>
                         </div>
-                        <button @click="capturedPhoto = !capturedPhoto"
+                        <button @click="openScanner('camera')"
                             class="w-full py-2 text-xs font-bold rounded transition-colors"
                             :class="capturedPhoto ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400' : 'bg-primary/20 hover:bg-primary/30 text-primary'">
                             {{ capturedPhoto ? 'Retake Photo' : 'Capture Damage Photo' }}
@@ -69,11 +69,15 @@
                     </div>
 
                     <div class="flex-1 space-y-4">
-                        <div>
+                        <div class="relative">
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">RMA ID / Tracking
                                 #</label>
                             <input type="text" v-model="rmaId" placeholder="Scan barcode..."
-                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono">
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 pr-10 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono">
+                            <button @click="openScanner('scan')"
+                                class="absolute right-2 top-8 text-gray-400 hover:text-primary">
+                                <span class="material-symbols-outlined">qr_code_scanner</span>
+                            </button>
                         </div>
 
                         <div>
@@ -234,7 +238,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, inject, watch } from 'vue'
+
+const openScanner = inject('openScanner')
+const lastGlobalScan = inject('lastGlobalScan')
 
 const activeTab = ref('processing')
 const rmaId = ref('')
@@ -244,6 +251,26 @@ const disposition = ref('')
 const capturedPhoto = ref(false)
 const toastMsg = ref('')
 const completedFilter = ref('')
+
+// Listen for global scans when on this page
+watch(lastGlobalScan, (newVal) => {
+    if (newVal) {
+        if (newVal === 'captured_image_data_mock') {
+            // It was a camera capture
+            capturedPhoto.value = true
+        } else {
+            // It was a barcode scan, auto-fill RMA
+            rmaId.value = newVal
+            // Optionally auto-lookup the RMA if we had an API
+            const found = processingItems.value.find(p => p.rma === newVal)
+            if (found) {
+                toastMsg.value = `Loaded RMA ${newVal} details.`
+                setTimeout(() => { toastMsg.value = '' }, 2500)
+            }
+        }
+        lastGlobalScan.value = null
+    }
+})
 
 const processingItems = ref([
     { id: 10, name: 'Bluetooth Speaker', rma: 'RMA-3321', reason: 'Not as described', time: '12:10' },

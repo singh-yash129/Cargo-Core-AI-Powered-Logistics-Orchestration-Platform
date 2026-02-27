@@ -3,7 +3,7 @@
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Inventory Management</h2>
             <div class="flex gap-2">
-                <button @click="showScanModal = true"
+                <button @click="openScanner('scan')"
                     class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined">qr_code_scanner</span> Scan Item
                 </button>
@@ -51,7 +51,8 @@
                     <option value="Apparel">Apparel</option>
                     <option value="Furniture">Furniture</option>
                 </select>
-                <select v-model="zoneFilter" class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white">
+                <select v-model="zoneFilter"
+                    class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white">
                     <option value="">All Zones</option>
                     <option value="A">Zone A</option>
                     <option value="B">Zone B</option>
@@ -91,14 +92,15 @@
                                 </div>
                             </td>
                             <td class="p-4 text-gray-600 dark:text-gray-400">{{ item.category }}</td>
-                            <td class="p-4 text-gray-600 dark:text-gray-400 font-mono text-xs">{{ item.dimensions }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-400 font-mono text-xs">{{ item.dimensions }}
+                            </td>
                             <td class="p-4 text-gray-600 dark:text-gray-400">{{ item.weight }} kg</td>
                             <td class="p-4">
                                 <div class="flex flex-col">
                                     <span class="font-mono text-primary text-xs">{{ item.zone }}-{{ item.aisle }}-{{
                                         item.rack }}-{{ item.shelf }}-{{ item.bin }}</span>
                                     <span class="text-[10px] text-gray-500">Zone {{ item.zone }} • Aisle {{ item.aisle
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </td>
                             <td class="p-4">
@@ -112,13 +114,16 @@
                                 </div>
                             </td>
                             <td class="p-4 flex gap-2">
-                                <button @click="openEditModal(item)" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
+                                <button @click="openEditModal(item)"
+                                    class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
                                     title="Edit"><span
                                         class="material-symbols-outlined text-[18px]">edit</span></button>
-                                <button @click="openMoveModal(item)" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
+                                <button @click="openMoveModal(item)"
+                                    class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
                                     title="Move"><span
                                         class="material-symbols-outlined text-[18px]">move_down</span></button>
-                                <button @click="printLabel(item)" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
+                                <button @click="printLabel(item)"
+                                    class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white"
                                     title="Print Label"><span
                                         class="material-symbols-outlined text-[18px]">print</span></button>
                             </td>
@@ -135,7 +140,8 @@
             <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
                 <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                     <h3 class="font-bold text-gray-900 dark:text-white text-lg">Edit {{ editItem.sku }}</h3>
-                    <button @click="showEditModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                    <button @click="showEditModal = false"
+                        class="text-gray-500 hover:text-gray-900 dark:text-white"><span
                             class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="p-6 space-y-4">
@@ -179,11 +185,13 @@
             <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
                 <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                     <h3 class="font-bold text-gray-900 dark:text-white text-lg">Move {{ moveItem.sku }}</h3>
-                    <button @click="showMoveModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                    <button @click="showMoveModal = false"
+                        class="text-gray-500 hover:text-gray-900 dark:text-white"><span
                             class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="p-6 space-y-4">
-                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-center">
+                    <div
+                        class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-center">
                         <div class="text-xs text-gray-600 dark:text-gray-400">Current Location</div>
                         <div class="font-mono text-primary font-bold">{{ moveItem.zone }}-{{ moveItem.aisle }}-{{
                             moveItem.rack }}-{{ moveItem.shelf }}-{{ moveItem.bin }}</div>
@@ -226,42 +234,43 @@
             </div>
         </div>
 
-        <!-- Scan Item Modal -->
-        <div v-if="showScanModal"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showScanModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Scan Item</h3>
-                    <button @click="showScanModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
+        <!-- Deprecated Local Scan Item Modal - Replaced by Global SmartScannerModal -->
+        <!-- Search Results (Display inline when scan happens) -->
+        <div v-if="scanResult" class="glass-panel rounded-xl p-6 border border-green-500/30 animate-fade-in relative">
+            <button @click="clearScan"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <div class="flex items-start gap-4">
+                <div
+                    class="w-12 h-12 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-2xl">check_circle</span>
                 </div>
-                <div class="p-6 space-y-4">
-                    <div
-                        class="aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center border border-gray-100 dark:border-white/5">
-                        <div class="flex flex-col items-center gap-2">
-                            <span class="material-symbols-outlined text-5xl text-gray-600">qr_code_scanner</span>
-                            <div class="text-xs text-gray-500">Scanner ready</div>
-                        </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Scan Successful</h3>
+                    <div class="text-sm font-bold text-gray-900 dark:text-white">{{ scanResult.name }}</div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <span class="font-mono text-primary mr-2">{{ scanResult.sku }}</span>
+                        Stock: <span :class="scanResult.stock < 20 ? 'text-red-500' : 'text-green-500'">{{
+                            scanResult.stock }}</span> — Zone {{ scanResult.zone }}
                     </div>
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Or enter SKU manually</label>
-                        <input type="text" v-model="scanInput" placeholder="EL-XXXX"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono" />
+                    <div class="mt-4 flex gap-2">
+                        <button @click="openEditModal(scanResult)"
+                            class="px-3 py-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 rounded text-xs font-bold transition-colors">Edit
+                            Item</button>
+                        <button @click="openMoveModal(scanResult)"
+                            class="px-3 py-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 rounded text-xs font-bold transition-colors">Move
+                            Item</button>
                     </div>
-                    <button @click="lookupScan"
-                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Look
-                        Up</button>
-                    <div v-if="scanResult" class="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                        <div class="text-sm font-bold text-gray-900 dark:text-white">{{ scanResult.name }}</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">{{ scanResult.sku }} — Stock: {{ scanResult.stock }} — Zone
-                            {{ scanResult.zone }}</div>
-                    </div>
-                    <div v-if="scanError"
-                        class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">{{ scanError
-                        }}</div>
                 </div>
             </div>
+        </div>
+        <div v-if="scanError"
+            class="glass-panel rounded-xl p-4 border border-red-500/30 animate-fade-in flex items-center gap-3">
+            <span class="material-symbols-outlined text-red-500">error</span>
+            <div class="text-red-400 text-sm flex-1">{{ scanError }}</div>
+            <button @click="clearScan" class="text-gray-400 hover:text-white"><span
+                    class="material-symbols-outlined text-[18px]">close</span></button>
         </div>
 
         <!-- Add Stock Modal -->
@@ -271,7 +280,8 @@
             <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
                 <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                     <h3 class="font-bold text-gray-900 dark:text-white text-lg">Add New Stock</h3>
-                    <button @click="showAddModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                    <button @click="showAddModal = false"
+                        class="text-gray-500 hover:text-gray-900 dark:text-white"><span
                             class="material-symbols-outlined">close</span></button>
                 </div>
                 <div class="p-6 space-y-4">
@@ -323,7 +333,10 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, inject, watch } from 'vue'
+
+const openScanner = inject('openScanner')
+const lastGlobalScan = inject('lastGlobalScan')
 
 const searchQuery = ref('')
 const categoryFilter = ref('')
@@ -331,16 +344,23 @@ const zoneFilter = ref('')
 const showFastMoving = ref(false)
 const showEditModal = ref(false)
 const showMoveModal = ref(false)
-const showScanModal = ref(false)
 const showAddModal = ref(false)
 const editItem = ref(null)
 const moveItem = ref(null)
-const scanInput = ref('')
 const scanResult = ref(null)
 const scanError = ref('')
 const toastMsg = ref('')
 const newLocation = reactive({ zone: 'A', aisle: '01', rack: 'R1', shelf: 'S1', bin: 'B01' })
 const addForm = reactive({ sku: '', name: '', stock: 0, weight: 0, zone: 'A' })
+
+// Watch for global scans and handle them here
+watch(lastGlobalScan, (newScanObj) => {
+    if (newScanObj) {
+        lookupScan(newScanObj)
+        // Reset it back to null so we can scan the same item twice if needed
+        lastGlobalScan.value = null
+    }
+})
 
 const inventory = ref([
     { sku: 'EL-9921', name: 'Wireless Headphones', category: 'Electronics', dimensions: '20×15×8', weight: 0.4, zone: 'A', aisle: '12', rack: 'R3', shelf: 'S2', bin: 'B04', stock: 145, stockPercentage: 80, fastMoving: true },
@@ -409,15 +429,24 @@ function printLabel(item) {
     showToast(`Label printed for ${item.sku} — ${item.name}`)
 }
 
-function lookupScan() {
+function lookupScan(scannedSku) {
     scanResult.value = null
     scanError.value = ''
-    const found = inventory.value.find(i => i.sku.toLowerCase() === scanInput.value.trim().toLowerCase())
+
+    // Safety check just in case
+    if (!scannedSku) return
+
+    const found = inventory.value.find(i => i.sku.toLowerCase() === scannedSku.toLowerCase())
     if (found) {
         scanResult.value = found
     } else {
-        scanError.value = `SKU "${scanInput.value}" not found in inventory`
+        scanError.value = `SKU "${scannedSku}" not found in inventory`
     }
+}
+
+function clearScan() {
+    scanResult.value = null
+    scanError.value = ''
 }
 
 function addNewStock() {
