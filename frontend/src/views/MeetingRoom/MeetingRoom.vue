@@ -1,16 +1,23 @@
 <template>
-    <div class="fixed inset-0 flex flex-col bg-surface-light dark:bg-background-dark p-6 z-[100]">
+    <div ref="roomRef" class="fixed inset-0 flex flex-col bg-surface-light dark:bg-background-dark p-6 z-[100]">
         <!-- Header -->
         <div class="mb-4 flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ meetingTitle || 'Live Meeting' }}</h1>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Connected to secure meeting room</p>
             </div>
-            <button @click="showLeaveModal = true"
-                class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2">
-                <span class="material-symbols-outlined">call_end</span>
-                Leave Room
-            </button>
+            <div class="flex items-center gap-3">
+                <button @click="toggleFullscreen"
+                    class="px-3 py-2 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-2 text-sm">
+                    <span class="material-symbols-outlined text-[18px]">{{ isFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</span>
+                    {{ isFullscreen ? 'Exit Fullscreen' : 'Fullscreen' }}
+                </button>
+                <button @click="showLeaveModal = true"
+                    class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined">call_end</span>
+                    Leave Room
+                </button>
+            </div>
         </div>
 
         <!-- Meeting Container -->
@@ -105,29 +112,61 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
 
+const roomRef = ref(null)
 const meetingUrl = ref('')
 const meetingTitle = ref('')
 const loading = ref(false)
 const showLeaveModal = ref(false)
 const hasExitedMeeting = ref(false)
+const isFullscreen = ref(false)
+
+function enterFullscreen() {
+    const el = document.documentElement
+    if (el.requestFullscreen) el.requestFullscreen()
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen()
+    else if (el.msRequestFullscreen) el.msRequestFullscreen()
+}
+
+function exitFullscreen() {
+    if (document.exitFullscreen) document.exitFullscreen()
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen()
+    else if (document.msExitFullscreen) document.msExitFullscreen()
+}
+
+function toggleFullscreen() {
+    if (document.fullscreenElement) exitFullscreen()
+    else enterFullscreen()
+}
+
+function onFullscreenChange() {
+    isFullscreen.value = !!document.fullscreenElement
+}
 
 function leaveRoom() {
     showLeaveModal.value = false
     hasExitedMeeting.value = false
+    if (document.fullscreenElement) exitFullscreen()
     router.back()
 }
 
 onMounted(() => {
-    // Expecting query params: ?url=...&title=...
     if (route.query.url) {
         meetingUrl.value = route.query.url
         meetingTitle.value = route.query.title || 'Meeting'
     }
+    // Auto-enter browser fullscreen
+    enterFullscreen()
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+})
+
+onUnmounted(() => {
+    document.removeEventListener('fullscreenchange', onFullscreenChange)
+    if (document.fullscreenElement) exitFullscreen()
 })
 </script>
