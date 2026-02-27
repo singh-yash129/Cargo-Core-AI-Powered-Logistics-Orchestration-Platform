@@ -146,7 +146,7 @@
         <!-- Order Detail Modal -->
         <Teleport to="body">
             <div v-if="showDetailModal && selectedOrder"
-                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                class="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
                 @click.self="showDetailModal = false">
                 <div
                     class="glass-panel rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-gray-200 dark:border-white/10">
