@@ -154,7 +154,7 @@
             <div v-if="showThresholdModal"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showThresholdModal = false">
-                <div class="glass-panel rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Configure Safety Thresholds</h3>
                         <button @click="showThresholdModal = false"

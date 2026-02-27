@@ -22,7 +22,7 @@
                 <div v-for="(msg, idx) in chatMessages" :key="idx" class="flex"
                     :class="msg.type === 'user' ? 'justify-end' : 'justify-start'">
                     <div class="max-w-[80%] p-3 rounded-lg text-sm"
-                        :class="msg.type === 'user' ? 'bg-primary/20 text-primary border border-primary/20' : 'bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-white/5'">
+                        :class="msg.type === 'user' ? 'bg-primary/20 text-green-800 dark:text-primary border border-primary/20' : 'bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-white/5'">
                         {{ msg.text }}
                     </div>
                 </div>

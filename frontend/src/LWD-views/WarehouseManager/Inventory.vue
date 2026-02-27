@@ -138,7 +138,7 @@
             <div v-if="showEditModal && editItem"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showEditModal = false">
-                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Edit {{ editItem.sku }}</h3>
                         <button @click="showEditModal = false"
@@ -185,7 +185,7 @@
             <div v-if="showMoveModal && moveItem"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showMoveModal = false">
-                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Move {{ moveItem.sku }}</h3>
                         <button @click="showMoveModal = false"
@@ -283,7 +283,7 @@
             <div v-if="showAddModal"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showAddModal = false">
-                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Add New Stock</h3>
                         <button @click="showAddModal = false"

@@ -142,7 +142,7 @@
             <div v-if="showIssueModal"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showIssueModal = false">
-                <div class="glass-panel rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Issue Materials to Order</h3>
                         <button @click="showIssueModal = false"
@@ -185,7 +185,7 @@
             <div v-if="showRestockModal"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showRestockModal = false">
-                <div class="glass-panel rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Request Material Restock</h3>
                         <button @click="showRestockModal = false"

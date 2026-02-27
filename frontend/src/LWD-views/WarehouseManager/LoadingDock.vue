@@ -101,7 +101,7 @@
             <div v-if="showAssignModal && assignDock"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showAssignModal = false">
-                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Assign Truck to Dock {{
                             assignDock.id }}</h3>
@@ -138,7 +138,7 @@
             <div v-if="showSettingsModal && settingsDock"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showSettingsModal = false">
-                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Dock {{ settingsDock.id }} Settings
                         </h3>
@@ -175,7 +175,7 @@
             <div v-if="showVerifyModal && verifyDock"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showVerifyModal = false">
-                <div class="glass-panel rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Dock {{ verifyDock.id }} —
                             Pre-Departure Verification</h3>
@@ -225,7 +225,7 @@
             <div v-if="showTruckDetail && selectedTruck"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showTruckDetail = false">
-                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Incoming Truck Details</h3>
                         <button @click="showTruckDetail = false"

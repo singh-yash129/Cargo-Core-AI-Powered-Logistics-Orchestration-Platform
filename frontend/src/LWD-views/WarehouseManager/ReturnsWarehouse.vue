@@ -215,7 +215,10 @@
                                 </div>
                             </td>
                             <td class="p-4">
-                                <span v-if="item.hasPhoto" class="text-blue-400 text-xs">📷 Attached</span>
+                                <button v-if="item.hasPhoto" @click="photoItem = item; showPhotoModal = true"
+                                    class="text-blue-600 dark:text-blue-400 text-xs hover:underline cursor-pointer flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[14px]">photo_camera</span> Attached
+                                </button>
                                 <span v-else class="text-gray-600 text-xs">—</span>
                             </td>
                             <td class="p-4 text-gray-500 font-mono text-xs">{{ item.time }}</td>
@@ -227,6 +230,48 @@
                 </table>
             </div>
         </div>
+
+        <!-- Photo Preview Modal -->
+        <Teleport to="body">
+            <div v-if="showPhotoModal && photoItem"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showPhotoModal = false">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Damage Photo — {{ photoItem.name }}</h3>
+                        <button @click="showPhotoModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="w-full h-56 bg-gray-100 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10 flex flex-col items-center justify-center">
+                            <span class="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500">image</span>
+                            <div class="text-sm text-gray-500 mt-2">Damage photo captured during inspection</div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">RMA</div>
+                                <div class="font-mono text-sm text-gray-900 dark:text-white font-bold">{{ photoItem.rma }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Condition</div>
+                                <div class="text-sm text-gray-900 dark:text-white font-bold">{{ photoItem.condition }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Disposition</div>
+                                <div class="text-sm text-gray-900 dark:text-white font-bold">{{ photoItem.dispositionLabel }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Processed</div>
+                                <div class="text-sm text-gray-900 dark:text-white font-bold">{{ photoItem.time }}</div>
+                            </div>
+                        </div>
+                        <button @click="showPhotoModal = false"
+                            class="w-full bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white py-3 rounded-lg text-sm font-bold transition-colors">Close</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
 
         <!-- Toast -->
         <div v-if="toastMsg"
@@ -251,6 +296,8 @@ const disposition = ref('')
 const capturedPhoto = ref(false)
 const toastMsg = ref('')
 const completedFilter = ref('')
+const showPhotoModal = ref(false)
+const photoItem = ref(null)
 
 // Listen for global scans when on this page
 watch(lastGlobalScan, (newVal) => {

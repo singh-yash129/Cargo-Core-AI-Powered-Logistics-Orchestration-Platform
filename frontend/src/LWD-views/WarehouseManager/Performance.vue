@@ -6,10 +6,10 @@
             <div class="flex gap-3 items-center">
                 <select v-model="timeRange"
                     class="bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                    <option value="today">Today</option>
-                    <option value="week">This Week</option>
-                    <option value="month">This Month</option>
-                    <option value="quarter">This Quarter</option>
+                    <option value="today" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Today</option>
+                    <option value="week" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">This Week</option>
+                    <option value="month" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">This Month</option>
+                    <option value="quarter" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">This Quarter</option>
                 </select>
                 <button @click="exportReport"
                     class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">

@@ -167,7 +167,7 @@
             <div v-if="showAssignModal"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showAssignModal = false">
-                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Assign Labor to Order</h3>
                         <button @click="showAssignModal = false"
@@ -221,7 +221,7 @@
             <div v-if="showShiftModal"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showShiftModal = false">
-                <div class="glass-panel rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Manage Shifts</h3>
                         <button @click="showShiftModal = false"
@@ -241,7 +241,7 @@
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <button @click="showShiftModal = false; showToast('Morning shift extended by 1 hour')"
-                                class="bg-primary/20 hover:bg-primary/30 text-primary py-2 rounded-lg text-sm font-bold transition-colors">Extend
+                                class="bg-primary/20 hover:bg-primary/30 text-green-700 dark:text-primary py-2 rounded-lg text-sm font-bold transition-colors">Extend
                                 Morning Shift</button>
                             <button @click="showShiftModal = false; showToast('Extra staff called for evening shift')"
                                 class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 py-2 rounded-lg text-sm font-bold transition-colors">Call
@@ -257,7 +257,7 @@
             <div v-if="showStaffDetail && selectedStaff"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showStaffDetail = false">
-                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Staff Details</h3>
                         <button @click="showStaffDetail = false"
