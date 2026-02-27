@@ -144,104 +144,114 @@
         </div>
 
         <!-- Order Detail Modal -->
-        <div v-if="showDetailModal && selectedOrder"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showDetailModal = false">
-            <div
-                class="glass-panel rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Order {{ selectedOrder.id }}</h3>
-                    <button @click="showDetailModal = false"
-                        class="text-gray-500 hover:text-gray-900 dark:text-white transition-colors">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-                <div class="p-6 space-y-6">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Cargo Type</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.cargoType }}</div>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Quantity / Weight</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.quantity }} items / {{
-                                selectedOrder.weight }} kg</div>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Delivery Deadline</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.deadline }}</div>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Special Instructions
-                            </div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.specialInstructions ||
-                                'None' }}</div>
-                        </div>
+        <Teleport to="body">
+            <div v-if="showDetailModal && selectedOrder"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showDetailModal = false">
+                <div
+                    class="glass-panel rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Order {{ selectedOrder.id }}</h3>
+                        <button @click="showDetailModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white transition-colors">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
                     </div>
-
-                    <div>
-                        <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3">Demand Validation Checklist
-                        </h4>
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                                :class="selectedOrder.inventoryCheck ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
-                                @click="selectedOrder.inventoryCheck = !selectedOrder.inventoryCheck">
-                                <span class="material-symbols-outlined"
-                                    :class="selectedOrder.inventoryCheck ? 'text-green-400' : 'text-red-400'">{{
-                                        selectedOrder.inventoryCheck ? 'check_circle' : 'cancel' }}</span>
-                                <span class="text-sm text-gray-900 dark:text-white">Inventory Availability — Stock
-                                    sufficient</span>
+                    <div class="p-6 space-y-6">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Cargo Type</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.cargoType }}</div>
                             </div>
-                            <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                                :class="selectedOrder.packingReady ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
-                                @click="selectedOrder.packingReady = !selectedOrder.packingReady">
-                                <span class="material-symbols-outlined"
-                                    :class="selectedOrder.packingReady ? 'text-green-400' : 'text-red-400'">{{
-                                        selectedOrder.packingReady ? 'check_circle' : 'cancel' }}</span>
-                                <span class="text-sm text-gray-900 dark:text-white">Packing Materials — Boxes, wrap,
-                                    crates</span>
+                            <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Quantity / Weight
+                                </div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.quantity }} items
+                                    / {{
+                                        selectedOrder.weight }} kg</div>
                             </div>
-                            <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                                :class="selectedOrder.laborAvailable ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
-                                @click="selectedOrder.laborAvailable = !selectedOrder.laborAvailable">
-                                <span class="material-symbols-outlined"
-                                    :class="selectedOrder.laborAvailable ? 'text-green-400' : 'text-red-400'">{{
-                                        selectedOrder.laborAvailable ? 'check_circle' : 'cancel' }}</span>
-                                <span class="text-sm text-gray-900 dark:text-white">Labor Availability — {{
-                                    selectedOrder.laborNeeded }}
-                                    workers required</span>
+                            <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Delivery Deadline
+                                </div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.deadline }}</div>
                             </div>
-                            <div
-                                class="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                                <span class="material-symbols-outlined text-blue-400">dock</span>
-                                <span class="text-sm text-gray-900 dark:text-white">Dock Capacity — {{ freeDocks }}
-                                    slots available</span>
+                            <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Special
+                                    Instructions
+                                </div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{
+                                    selectedOrder.specialInstructions ||
+                                    'None' }}</div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="flex gap-3">
-                        <button v-if="selectedOrder.status !== 'Accepted'"
-                            @click="acceptOrder(selectedOrder); showDetailModal = false"
-                            class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-3 rounded-lg font-bold transition-colors"
-                            :disabled="!selectedOrder.inventoryCheck || !selectedOrder.packingReady || !selectedOrder.laborAvailable">
-                            <span class="material-symbols-outlined text-[18px] align-middle mr-1">check_circle</span>
-                            Accept for Processing
-                        </button>
-                        <button @click="holdOrder(selectedOrder); showDetailModal = false"
-                            class="flex-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 py-3 rounded-lg font-bold transition-colors">
-                            <span class="material-symbols-outlined text-[18px] align-middle mr-1">pause_circle</span>
-                            Put On Hold
-                        </button>
-                        <button @click="escalateOrder(selectedOrder)"
-                            class="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-3 px-6 rounded-lg font-bold transition-colors">
-                            <span class="material-symbols-outlined text-[18px] align-middle mr-1">arrow_upward</span>
-                            Escalate
-                        </button>
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3">Demand Validation Checklist
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                                    :class="selectedOrder.inventoryCheck ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
+                                    @click="selectedOrder.inventoryCheck = !selectedOrder.inventoryCheck">
+                                    <span class="material-symbols-outlined"
+                                        :class="selectedOrder.inventoryCheck ? 'text-green-400' : 'text-red-400'">{{
+                                            selectedOrder.inventoryCheck ? 'check_circle' : 'cancel' }}</span>
+                                    <span class="text-sm text-gray-900 dark:text-white">Inventory Availability — Stock
+                                        sufficient</span>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                                    :class="selectedOrder.packingReady ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
+                                    @click="selectedOrder.packingReady = !selectedOrder.packingReady">
+                                    <span class="material-symbols-outlined"
+                                        :class="selectedOrder.packingReady ? 'text-green-400' : 'text-red-400'">{{
+                                            selectedOrder.packingReady ? 'check_circle' : 'cancel' }}</span>
+                                    <span class="text-sm text-gray-900 dark:text-white">Packing Materials — Boxes, wrap,
+                                        crates</span>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                                    :class="selectedOrder.laborAvailable ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
+                                    @click="selectedOrder.laborAvailable = !selectedOrder.laborAvailable">
+                                    <span class="material-symbols-outlined"
+                                        :class="selectedOrder.laborAvailable ? 'text-green-400' : 'text-red-400'">{{
+                                            selectedOrder.laborAvailable ? 'check_circle' : 'cancel' }}</span>
+                                    <span class="text-sm text-gray-900 dark:text-white">Labor Availability — {{
+                                        selectedOrder.laborNeeded }}
+                                        workers required</span>
+                                </div>
+                                <div
+                                    class="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                    <span class="material-symbols-outlined text-blue-400">dock</span>
+                                    <span class="text-sm text-gray-900 dark:text-white">Dock Capacity — {{ freeDocks }}
+                                        slots available</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button v-if="selectedOrder.status !== 'Accepted'"
+                                @click="acceptOrder(selectedOrder); showDetailModal = false"
+                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-3 rounded-lg font-bold transition-colors"
+                                :disabled="!selectedOrder.inventoryCheck || !selectedOrder.packingReady || !selectedOrder.laborAvailable">
+                                <span
+                                    class="material-symbols-outlined text-[18px] align-middle mr-1">check_circle</span>
+                                Accept for Processing
+                            </button>
+                            <button @click="holdOrder(selectedOrder); showDetailModal = false"
+                                class="flex-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 py-3 rounded-lg font-bold transition-colors">
+                                <span
+                                    class="material-symbols-outlined text-[18px] align-middle mr-1">pause_circle</span>
+                                Put On Hold
+                            </button>
+                            <button @click="escalateOrder(selectedOrder)"
+                                class="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-3 px-6 rounded-lg font-bold transition-colors">
+                                <span
+                                    class="material-symbols-outlined text-[18px] align-middle mr-1">arrow_upward</span>
+                                Escalate
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Escalation Toast -->
         <div v-if="escalateToast"

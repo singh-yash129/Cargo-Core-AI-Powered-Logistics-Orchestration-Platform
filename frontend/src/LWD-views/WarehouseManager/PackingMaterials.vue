@@ -40,12 +40,14 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Recent Issuance Log -->
             <div class="lg:col-span-2 glass-panel rounded-xl overflow-hidden">
-                <div class="p-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-100 dark:bg-black/20">
+                <div
+                    class="p-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-100 dark:bg-black/20">
                     <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary">inventory_2</span>
                         Material Issuance Log
                     </h3>
-                    <div class="bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-0.5 flex">
+                    <div
+                        class="bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-0.5 flex">
                         <button
                             :class="logTab === 'issued' ? 'bg-primary rounded text-background-dark text-xs font-bold px-3 py-1' : 'px-3 py-1 text-gray-600 dark:text-gray-400 text-xs'"
                             @click="logTab = 'issued'">Issued</button>
@@ -56,7 +58,8 @@
                 </div>
                 <div class="overflow-auto max-h-[400px]">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 uppercase sticky top-0">
+                        <thead
+                            class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 uppercase sticky top-0">
                             <tr>
                                 <th class="p-4">Order ID</th>
                                 <th class="p-4">Material</th>
@@ -67,7 +70,8 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                            <tr v-for="log in filteredLog" :key="log.id" class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
+                            <tr v-for="log in filteredLog" :key="log.id"
+                                class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
                                 <td class="p-4 font-mono text-primary font-bold">{{ log.orderId }}</td>
                                 <td class="p-4 text-gray-900 dark:text-white">{{ log.material }}</td>
                                 <td class="p-4 text-gray-300">{{ log.qty }}</td>
@@ -134,81 +138,90 @@
         </div>
 
         <!-- Issue to Order Modal -->
-        <div v-if="showIssueModal"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showIssueModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Issue Materials to Order</h3>
-                    <button @click="showIssueModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Order ID</label>
-                        <input type="text" v-model="issueForm.orderId" placeholder="ORD-XXXXX"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono" />
+        <Teleport to="body">
+            <div v-if="showIssueModal"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showIssueModal = false">
+                <div class="glass-panel rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Issue Materials to Order</h3>
+                        <button @click="showIssueModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div v-for="item in packingItems" :key="item.name">
-                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">{{ item.emoji }} {{ item.name }}</label>
-                            <input type="number" min="0" :placeholder="`Avail: ${item.stock}`"
-                                v-model.number="issueForm.items[item.name]"
-                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50" />
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Order ID</label>
+                            <input type="text" v-model="issueForm.orderId" placeholder="ORD-XXXXX"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono" />
                         </div>
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Issue To (Driver / Laborer)</label>
-                        <input type="text" v-model="issueForm.issuedTo" placeholder="Name or ID"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
-                    </div>
-                    <button @click="submitIssue"
-                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors"
-                        :disabled="!issueForm.orderId || !issueForm.issuedTo">
-                        Issue Materials
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Restock Modal -->
-        <div v-if="showRestockModal"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showRestockModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Request Material Restock</h3>
-                    <button @click="showRestockModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div v-for="item in lowStockItems" :key="item.name"
-                        class="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">{{ item.emoji }}</span>
-                            <div>
-                                <div class="text-sm font-bold text-gray-900 dark:text-white">{{ item.name }}</div>
-                                <div class="text-xs text-red-400">Current: {{ item.stock }} / Threshold: {{
-                                    item.threshold }}</div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div v-for="item in packingItems" :key="item.name">
+                                <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">{{ item.emoji }} {{
+                                    item.name }}</label>
+                                <input type="number" min="0" :placeholder="`Avail: ${item.stock}`"
+                                    v-model.number="issueForm.items[item.name]"
+                                    class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50" />
                             </div>
                         </div>
-                        <input type="number" v-model.number="restockForm[item.name]"
-                            class="w-20 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm text-center focus:outline-none focus:border-primary/50" />
-                    </div>
-                    <div v-if="lowStockItems.length === 0" class="text-center text-gray-500 py-4">
-                        All materials are above threshold ✓
-                    </div>
-                    <div class="flex gap-3">
-                        <button @click="submitRestock"
-                            class="flex-1 bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Submit
-                            Restock Request</button>
-                        <button @click="escalateRestock"
-                            class="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-3 px-5 rounded-lg font-bold transition-colors">Escalate
-                            to Manager</button>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Issue To (Driver /
+                                Laborer)</label>
+                            <input type="text" v-model="issueForm.issuedTo" placeholder="Name or ID"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+                        </div>
+                        <button @click="submitIssue"
+                            class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors"
+                            :disabled="!issueForm.orderId || !issueForm.issuedTo">
+                            Issue Materials
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
+
+        <!-- Restock Modal -->
+        <Teleport to="body">
+            <div v-if="showRestockModal"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showRestockModal = false">
+                <div class="glass-panel rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Request Material Restock</h3>
+                        <button @click="showRestockModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div v-for="item in lowStockItems" :key="item.name"
+                            class="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">{{ item.emoji }}</span>
+                                <div>
+                                    <div class="text-sm font-bold text-gray-900 dark:text-white">{{ item.name }}
+                                    </div>
+                                    <div class="text-xs text-red-400">Current: {{ item.stock }} / Threshold: {{
+                                        item.threshold }}</div>
+                                </div>
+                            </div>
+                            <input type="number" v-model.number="restockForm[item.name]"
+                                class="w-20 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm text-center focus:outline-none focus:border-primary/50" />
+                        </div>
+                        <div v-if="lowStockItems.length === 0" class="text-center text-gray-500 py-4">
+                            All materials are above threshold ✓
+                        </div>
+                        <div class="flex gap-3">
+                            <button @click="submitRestock"
+                                class="flex-1 bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Submit
+                                Restock Request</button>
+                            <button @click="escalateRestock"
+                                class="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-3 px-5 rounded-lg font-bold transition-colors">Escalate
+                                to Manager</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
 
         <!-- Toast -->
         <div v-if="toastMsg"

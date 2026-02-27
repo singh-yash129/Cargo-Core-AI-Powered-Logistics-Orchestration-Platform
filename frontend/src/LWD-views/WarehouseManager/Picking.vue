@@ -3,9 +3,10 @@
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Picking & Packing</h2>
             <div class="flex gap-2">
-                <div class="px-4 py-2 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white text-sm">
+                <div
+                    class="px-4 py-2 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white text-sm">
                     Active Pickers: <span class="text-green-400 font-bold">{{stations.filter(s => s.active).length * 5
-                        }}</span>
+                    }}</span>
                 </div>
                 <button @click="showBatchModal = true"
                     class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg transition-colors">Assign
@@ -15,13 +16,15 @@
 
         <!-- Order Status Flow -->
         <div class="glass-panel p-4 rounded-xl">
-            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold mb-3">Order Fulfillment Pipeline</div>
+            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold mb-3">Order Fulfillment
+                Pipeline</div>
             <div class="flex items-center justify-between gap-2">
                 <div v-for="(step, idx) in pipelineSteps" :key="step.label"
                     class="flex-1 flex flex-col items-center relative group">
                     <div class="w-full flex items-center">
                         <div class="flex-1 h-1 rounded-full"
-                            :class="idx === 0 ? 'bg-transparent' : step.active ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'"></div>
+                            :class="idx === 0 ? 'bg-transparent' : step.active ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'">
+                        </div>
                         <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all"
                             :class="step.active ? 'bg-primary text-background-dark shadow-lg shadow-primary/30' : 'bg-gray-50 dark:bg-white/5 text-gray-500 border border-gray-200 dark:border-white/10'">
                             <span class="material-symbols-outlined text-[18px]">{{ step.icon }}</span>
@@ -56,7 +59,8 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                        <tr v-for="wave in waves" :key="wave.id" class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
+                        <tr v-for="wave in waves" :key="wave.id"
+                            class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
                             <td class="p-4 font-mono text-primary">{{ wave.id }}</td>
                             <td class="p-4 text-gray-900 dark:text-white">{{ wave.staff }}</td>
                             <td class="p-4 text-gray-300 w-32">
@@ -148,47 +152,50 @@
         </div>
 
         <!-- Assign Batch Modal -->
-        <div v-if="showBatchModal"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showBatchModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Assign New Pick Batch</h3>
-                    <button @click="showBatchModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Assign To Team</label>
-                        <select v-model="batchForm.staff"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white">
-                            <option>Team A</option>
-                            <option>Team B</option>
-                            <option>Team C</option>
-                            <option>Team D</option>
-                        </select>
+        <Teleport to="body">
+            <div v-if="showBatchModal"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showBatchModal = false">
+                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Assign New Pick Batch</h3>
+                        <button @click="showBatchModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
                     </div>
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Zone</label>
-                        <select v-model="batchForm.zone"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white">
-                            <option>Zone A (High Vel)</option>
-                            <option>Zone B (Bulk)</option>
-                            <option>Zone C</option>
-                            <option>Zone D</option>
-                        </select>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Assign To Team</label>
+                            <select v-model="batchForm.staff"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white">
+                                <option>Team A</option>
+                                <option>Team B</option>
+                                <option>Team C</option>
+                                <option>Team D</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Zone</label>
+                            <select v-model="batchForm.zone"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white">
+                                <option>Zone A (High Vel)</option>
+                                <option>Zone B (Bulk)</option>
+                                <option>Zone C</option>
+                                <option>Zone D</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Deadline</label>
+                            <input type="time" v-model="batchForm.deadline"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+                        </div>
+                        <button @click="assignBatch"
+                            class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Create
+                            Pick Wave</button>
                     </div>
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Deadline</label>
-                        <input type="time" v-model="batchForm.deadline"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
-                    </div>
-                    <button @click="assignBatch"
-                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Create
-                        Pick Wave</button>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Dispatch Toast -->
         <div v-if="dispatchToast"

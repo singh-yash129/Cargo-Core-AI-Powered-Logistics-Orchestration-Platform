@@ -127,80 +127,85 @@
     </aside>
 
     <!-- Support Modal -->
-    <BaseModal :isOpen="showSupportModal" @close="showSupportModal = false">
-        <template #title>Need Support?</template>
-        <div class="space-y-4">
-            <p class="text-gray-600 dark:text-gray-300">
-                Contact our support team for assistance with any issues or questions.
-            </p>
-            <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
-                <div class="flex items-center gap-3 mb-2">
-                    <span class="material-symbols-outlined text-primary">mail</span>
-                    <span class="font-medium">Email Support</span>
+    <Teleport to="body">
+        <BaseModal :isOpen="showSupportModal" @close="showSupportModal = false">
+            <template #title>Need Support?</template>
+            <div class="space-y-4">
+                <p class="text-gray-600 dark:text-gray-300">
+                    Contact our support team for assistance with any issues or questions.
+                </p>
+                <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="material-symbols-outlined text-primary">mail</span>
+                        <span class="font-medium">Email Support</span>
+                    </div>
+                    <a :href="'mailto:' + userEmail" class="text-primary hover:underline block ml-9">{{ userEmail }}</a>
                 </div>
-                <a :href="'mailto:' + userEmail" class="text-primary hover:underline block ml-9">{{ userEmail }}</a>
-            </div>
-            <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
-                <div class="flex items-center gap-3 mb-2">
-                    <span class="material-symbols-outlined text-primary">phone</span>
-                    <span class="font-medium">Phone Support</span>
+                <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="material-symbols-outlined text-primary">phone</span>
+                        <span class="font-medium">Phone Support</span>
+                    </div>
+                    <a href="tel:+1234567890" class="text-gray-600 dark:text-gray-300 hover:text-primary block ml-9">+1
+                        (234)
+                        567-890</a>
                 </div>
-                <a href="tel:+1234567890" class="text-gray-600 dark:text-gray-300 hover:text-primary block ml-9">+1
-                    (234)
-                    567-890</a>
             </div>
-        </div>
-        <template #footer>
-            <button @click="showSupportModal = false"
-                class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
-                Close
-            </button>
-        </template>
-    </BaseModal>
+            <template #footer>
+                <button @click="showSupportModal = false"
+                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+                    Close
+                </button>
+            </template>
+        </BaseModal>
+    </Teleport>
 
     <!-- Profile Modal -->
-    <BaseModal :isOpen="showProfileModal" @close="showProfileModal = false">
-        <template #title>User Profile</template>
-        <div class="space-y-6">
-            <div class="flex items-center gap-4">
-                <div
-                    class="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-2xl font-bold text-primary border-2 border-primary/20">
-                    {{ userInitials }}
+    <Teleport to="body">
+        <BaseModal :isOpen="showProfileModal" @close="showProfileModal = false">
+            <template #title>User Profile</template>
+            <div class="space-y-6">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-2xl font-bold text-primary border-2 border-primary/20">
+                        {{ userInitials }}
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-bold text-gray-900 dark:text-white">{{ userName }}</h4>
+                        <p class="text-gray-500">{{ userRole }}</p>
+                        <div class="mt-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full inline-block">
+                            Active
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <h4 class="text-xl font-bold text-gray-900 dark:text-white">{{ userName }}</h4>
-                    <p class="text-gray-500">{{ userRole }}</p>
-                    <div class="mt-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full inline-block">Active
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Email Address</div>
+                        <div class="font-medium text-sm">{{ userEmail }}</div>
+                    </div>
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Employee ID</div>
+                        <div class="font-medium text-sm">WH-1049</div>
+                    </div>
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Department</div>
+                        <div class="font-medium text-sm">Warehouse Operations</div>
+                    </div>
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Last Login</div>
+                        <div class="font-medium text-sm">Today, 06:15 AM</div>
                     </div>
                 </div>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                    <div class="text-xs text-gray-500 mb-1">Email Address</div>
-                    <div class="font-medium text-sm">{{ userEmail }}</div>
+            <template #footer>
+                <div class="flex justify-end gap-3">
+                    <button @click="showProfileModal = false"
+                        class="px-4 py-2 text-gray-600 hover:text-gray-900">Close</button>
                 </div>
-                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                    <div class="text-xs text-gray-500 mb-1">Employee ID</div>
-                    <div class="font-medium text-sm">WH-1049</div>
-                </div>
-                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                    <div class="text-xs text-gray-500 mb-1">Department</div>
-                    <div class="font-medium text-sm">Warehouse Operations</div>
-                </div>
-                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                    <div class="text-xs text-gray-500 mb-1">Last Login</div>
-                    <div class="font-medium text-sm">Today, 06:15 AM</div>
-                </div>
-            </div>
-        </div>
-        <template #footer>
-            <div class="flex justify-end gap-3">
-                <button @click="showProfileModal = false"
-                    class="px-4 py-2 text-gray-600 hover:text-gray-900">Close</button>
-            </div>
-        </template>
-    </BaseModal>
+            </template>
+        </BaseModal>
+    </Teleport>
 </template>
 
 <script setup>

@@ -37,19 +37,22 @@
                         class="p-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-white/20 rounded-lg cursor-pointer transition-all"
                         :class="slot.status === 'Completed' ? 'opacity-50' : ''">
                         <div class="flex justify-between mb-1">
-                            <span :class="slot.status === 'Completed' ? 'text-gray-600 dark:text-gray-400' : 'text-primary'"
+                            <span
+                                :class="slot.status === 'Completed' ? 'text-gray-600 dark:text-gray-400' : 'text-primary'"
                                 class="font-bold">{{ slot.time }}</span>
                             <span class="text-xs px-1 rounded" :class="slot.statusClass">{{ slot.status }}</span>
                         </div>
                         <div class="text-gray-900 dark:text-white text-sm">Supplier: {{ slot.supplier }}</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">{{ slot.dock }} • {{ slot.pallets }} Pallets</div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400">{{ slot.dock }} • {{ slot.pallets }}
+                            Pallets</div>
                     </div>
                 </div>
             </div>
 
             <!-- Pending Receipt with Mismatch & Damage -->
             <div class="lg:col-span-2 glass-panel rounded-xl overflow-hidden">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 font-bold text-gray-900 dark:text-white flex justify-between items-center">
+                <div
+                    class="p-6 border-b border-gray-100 dark:border-white/5 font-bold text-gray-900 dark:text-white flex justify-between items-center">
                     <span>ASN Verification & Receiving</span>
                     <div class="flex gap-2">
                         <button @click="showMismatchModal = true"
@@ -76,14 +79,15 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                        <tr v-for="asn in asns" :key="asn.id" class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
+                        <tr v-for="asn in asns" :key="asn.id"
+                            class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
                             <td class="p-4 font-mono text-gray-300">{{ asn.id }}</td>
                             <td class="p-4 text-gray-900 dark:text-white">{{ asn.supplier }}</td>
                             <td class="p-4 text-gray-600 dark:text-gray-400">{{ asn.expected }}</td>
                             <td class="p-4">
                                 <span
                                     :class="asn.received !== asn.expected && asn.received > 0 ? 'text-red-400 font-bold' : 'text-gray-300'">{{
-                                    asn.received || '--' }}</span>
+                                        asn.received || '--' }}</span>
                             </td>
                             <td class="p-4 text-gray-300">{{ asn.eta }}</td>
                             <td class="p-4">
@@ -123,165 +127,186 @@
         </div>
 
         <!-- Slot Detail Modal -->
-        <div v-if="showSlotDetail && selectedSlot"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showSlotDetail = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Dock Slot Details</h3>
-                    <button @click="showSlotDetail = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="p-6 space-y-3">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400">Supplier</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedSlot.supplier }}</div>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400">Time</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedSlot.time }}</div>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400">Dock</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedSlot.dock }}</div>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400">Pallets</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedSlot.pallets }}</div>
-                        </div>
+        <Teleport to="body">
+            <div v-if="showSlotDetail && selectedSlot"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showSlotDetail = false">
+                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Dock Slot Details</h3>
+                        <button @click="showSlotDetail = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
                     </div>
-                    <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Status</div>
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold" :class="selectedSlot.statusClass">{{
-                            selectedSlot.status }}</span>
+                    <div class="p-6 space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Supplier</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedSlot.supplier }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Time</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedSlot.time }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Dock</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedSlot.dock }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Pallets</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedSlot.pallets }}</div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                            <div class="text-xs text-gray-600 dark:text-gray-400">Status</div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold" :class="selectedSlot.statusClass">{{
+                                selectedSlot.status }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Mismatch Modal -->
-        <div v-if="showMismatchModal"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showMismatchModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Flag ASN Mismatch</h3>
-                    <button @click="showMismatchModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">ASN ID</label>
-                        <select v-model="mismatchForm.asnId"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                            <option v-for="asn in asns" :key="asn.id" :value="asn.id">{{ asn.id }} — {{ asn.supplier }}
-                            </option>
-                        </select>
+        <Teleport to="body">
+            <div v-if="showMismatchModal"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showMismatchModal = false">
+                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Flag ASN Mismatch</h3>
+                        <button @click="showMismatchModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
                     </div>
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Mismatch Type</label>
-                        <select v-model="mismatchForm.type"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                            <option>Quantity difference</option>
-                            <option>Wrong SKU received</option>
-                            <option>Missing items</option>
-                            <option>Extra items</option>
-                        </select>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">ASN ID</label>
+                            <select v-model="mismatchForm.asnId"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                                <option v-for="asn in asns" :key="asn.id" :value="asn.id">{{ asn.id }} — {{
+                                    asn.supplier }}
+                                </option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Mismatch Type</label>
+                            <select v-model="mismatchForm.type"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                                <option>Quantity difference</option>
+                                <option>Wrong SKU received</option>
+                                <option>Missing items</option>
+                                <option>Extra items</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Details</label>
+                            <textarea v-model="mismatchForm.details" placeholder="Describe the mismatch..."
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm h-20 resize-none"></textarea>
+                        </div>
+                        <button @click="submitMismatch" :disabled="!mismatchForm.asnId"
+                            class="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold py-3 rounded-lg transition-colors">
+                            Submit Mismatch Report
+                        </button>
                     </div>
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Details</label>
-                        <textarea v-model="mismatchForm.details" placeholder="Describe the mismatch..."
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm h-20 resize-none"></textarea>
-                    </div>
-                    <button @click="submitMismatch" :disabled="!mismatchForm.asnId"
-                        class="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold py-3 rounded-lg transition-colors">
-                        Submit Mismatch Report
-                    </button>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Damage Modal -->
-        <div v-if="showDamageModal"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showDamageModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Report Shipment Damage</h3>
-                    <button @click="showDamageModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">ASN ID</label>
-                        <select v-model="damageForm.asnId"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                            <option v-for="asn in asns" :key="asn.id" :value="asn.id">{{ asn.id }} — {{ asn.supplier }}
-                            </option>
-                        </select>
+        <Teleport to="body">
+            <div v-if="showDamageModal"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showDamageModal = false">
+                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Report Shipment Damage</h3>
+                        <button @click="showDamageModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
                     </div>
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Damaged Items Count</label>
-                        <input type="number" v-model.number="damageForm.count" placeholder="0"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">ASN ID</label>
+                            <select v-model="damageForm.asnId"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                                <option v-for="asn in asns" :key="asn.id" :value="asn.id">{{ asn.id }} — {{
+                                    asn.supplier }}
+                                </option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Damaged Items
+                                Count</label>
+                            <input type="number" v-model.number="damageForm.count" placeholder="0"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Damage
+                                Description</label>
+                            <textarea v-model="damageForm.description" placeholder="Describe the damage..."
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm h-20 resize-none"></textarea>
+                        </div>
+                        <div @click="damageForm.hasPhoto = !damageForm.hasPhoto"
+                            class="p-3 rounded-lg border text-center cursor-pointer transition-colors"
+                            :class="damageForm.hasPhoto ? 'bg-green-500/10 border-green-500/20' : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-primary/50'">
+                            <span class="material-symbols-outlined text-3xl"
+                                :class="damageForm.hasPhoto ? 'text-green-400' : 'text-gray-500'">{{
+                                    damageForm.hasPhoto ?
+                                        'check_circle' : 'photo_camera' }}</span>
+                            <div class="text-xs mt-1" :class="damageForm.hasPhoto ? 'text-green-400' : 'text-gray-500'">
+                                {{
+                                    damageForm.hasPhoto ? '📷 Photo captured' : 'Capture damage photo' }}</div>
+                        </div>
+                        <button @click="submitDamage" :disabled="!damageForm.asnId"
+                            class="w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 font-bold py-3 rounded-lg transition-colors">
+                            Submit Damage Report
+                        </button>
                     </div>
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Damage Description</label>
-                        <textarea v-model="damageForm.description" placeholder="Describe the damage..."
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm h-20 resize-none"></textarea>
-                    </div>
-                    <div @click="damageForm.hasPhoto = !damageForm.hasPhoto"
-                        class="p-3 rounded-lg border text-center cursor-pointer transition-colors"
-                        :class="damageForm.hasPhoto ? 'bg-green-500/10 border-green-500/20' : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-primary/50'">
-                        <span class="material-symbols-outlined text-3xl"
-                            :class="damageForm.hasPhoto ? 'text-green-400' : 'text-gray-500'">{{ damageForm.hasPhoto ?
-                            'check_circle' : 'photo_camera' }}</span>
-                        <div class="text-xs mt-1" :class="damageForm.hasPhoto ? 'text-green-400' : 'text-gray-500'">{{
-                            damageForm.hasPhoto ? '📷 Photo captured' : 'Capture damage photo' }}</div>
-                    </div>
-                    <button @click="submitDamage" :disabled="!damageForm.asnId"
-                        class="w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 font-bold py-3 rounded-lg transition-colors">
-                        Submit Damage Report
-                    </button>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Schedule Modal -->
-        <div v-if="showScheduleModal"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showScheduleModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Schedule Inbound Delivery</h3>
-                    <button @click="showScheduleModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Supplier Name</label>
-                        <input type="text" v-model="scheduleForm.supplier" placeholder="Supplier name"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+        <Teleport to="body">
+            <div v-if="showScheduleModal"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showScheduleModal = false">
+                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Schedule Inbound
+                            Delivery</h3>
+                        <button @click="showScheduleModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="p-6 space-y-4">
                         <div>
-                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Expected Qty</label>
-                            <input type="number" v-model.number="scheduleForm.qty"
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Supplier
+                                Name</label>
+                            <input type="text" v-model="scheduleForm.supplier" placeholder="Supplier name"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                         </div>
-                        <div>
-                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">ETA</label>
-                            <input type="text" v-model="scheduleForm.eta" placeholder="e.g. Tomorrow 10:00"
-                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Expected
+                                    Qty</label>
+                                <input type="number" v-model.number="scheduleForm.qty"
+                                    class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">ETA</label>
+                                <input type="text" v-model="scheduleForm.eta" placeholder="e.g. Tomorrow 10:00"
+                                    class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+                            </div>
                         </div>
+                        <button @click="scheduleDelivery" :disabled="!scheduleForm.supplier"
+                            class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Schedule
+                            Delivery</button>
                     </div>
-                    <button @click="scheduleDelivery" :disabled="!scheduleForm.supplier"
-                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Schedule
-                        Delivery</button>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Toast -->
         <div v-if="toastMsg"

@@ -48,7 +48,8 @@
                 </div>
 
                 <!-- Dwell Time Tracking -->
-                <div v-if="dock.status === 'Occupied'" class="mb-4 p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
+                <div v-if="dock.status === 'Occupied'"
+                    class="mb-4 p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                     <div class="text-[10px] text-gray-600 dark:text-gray-400 uppercase font-bold mb-2">Dwell Time</div>
                     <div class="grid grid-cols-2 gap-2 text-xs">
                         <div>
@@ -96,152 +97,176 @@
         </div>
 
         <!-- Assign Truck Modal -->
-        <div v-if="showAssignModal && assignDock"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showAssignModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Assign Truck to Dock {{ assignDock.id }}</h3>
-                    <button @click="showAssignModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Truck ID</label>
-                        <input type="text" v-model="assignForm.truck" placeholder="TRK-XXXX"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono" />
+        <Teleport to="body">
+            <div v-if="showAssignModal && assignDock"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showAssignModal = false">
+                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Assign Truck to Dock {{
+                            assignDock.id }}</h3>
+                        <button @click="showAssignModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
                     </div>
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Carrier</label>
-                        <select v-model="assignForm.carrier"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                            <option>UPS Freight</option>
-                            <option>FedEx Ground</option>
-                            <option>DHL Express</option>
-                            <option>Internal Fleet</option>
-                        </select>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Truck ID</label>
+                            <input type="text" v-model="assignForm.truck" placeholder="TRK-XXXX"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono" />
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Carrier</label>
+                            <select v-model="assignForm.carrier"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                                <option>UPS Freight</option>
+                                <option>FedEx Ground</option>
+                                <option>DHL Express</option>
+                                <option>Internal Fleet</option>
+                            </select>
+                        </div>
+                        <button @click="confirmAssign" :disabled="!assignForm.truck"
+                            class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Assign
+                            to Dock</button>
                     </div>
-                    <button @click="confirmAssign" :disabled="!assignForm.truck"
-                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Assign
-                        to Dock</button>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Settings Modal -->
-        <div v-if="showSettingsModal && settingsDock"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showSettingsModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Dock {{ settingsDock.id }} Settings</h3>
-                    <button @click="showSettingsModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Dock Status</label>
-                        <select v-model="settingsForm.status"
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                            <option>Free</option>
-                            <option>Maintenance</option>
-                        </select>
+        <Teleport to="body">
+            <div v-if="showSettingsModal && settingsDock"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showSettingsModal = false">
+                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Dock {{ settingsDock.id }} Settings
+                        </h3>
+                        <button @click="showSettingsModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
                     </div>
-                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-xs text-gray-600 dark:text-gray-400">
-                        <div>Current Status: <span class="text-gray-900 dark:text-white font-bold">{{ settingsDock.status }}</span></div>
-                        <div>Truck: <span class="text-gray-900 dark:text-white">{{ settingsDock.truck || 'None' }}</span></div>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Dock Status</label>
+                            <select v-model="settingsForm.status"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                                <option>Free</option>
+                                <option>Maintenance</option>
+                            </select>
+                        </div>
+                        <div
+                            class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-xs text-gray-600 dark:text-gray-400">
+                            <div>Current Status: <span class="text-gray-900 dark:text-white font-bold">{{
+                                    settingsDock.status }}</span></div>
+                            <div>Truck: <span class="text-gray-900 dark:text-white">{{ settingsDock.truck || 'None'
+                                    }}</span></div>
+                        </div>
+                        <button @click="saveSettings"
+                            class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Save
+                            Settings</button>
                     </div>
-                    <button @click="saveSettings"
-                        class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Save
-                        Settings</button>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Crew & Manifest Verification Modal -->
-        <div v-if="showVerifyModal && verifyDock"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showVerifyModal = false">
-            <div class="glass-panel rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Dock {{ verifyDock.id }} — Pre-Departure Verification</h3>
-                    <button @click="showVerifyModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-bold mb-2">Manifest Check</div>
-                    <div class="space-y-2">
-                        <div v-for="item in verifyChecklist" :key="item.label"
-                            class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                            :class="item.checked ? 'bg-green-500/10 border border-green-500/20' : 'bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-white/20'"
-                            @click="item.checked = !item.checked">
-                            <span class="material-symbols-outlined text-[18px]"
-                                :class="item.checked ? 'text-green-400' : 'text-gray-600'">
-                                {{ item.checked ? 'check_circle' : 'radio_button_unchecked' }}
-                            </span>
-                            <span class="text-sm" :class="item.checked ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'">{{ item.label
-                                }}</span>
+        <Teleport to="body">
+            <div v-if="showVerifyModal && verifyDock"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showVerifyModal = false">
+                <div class="glass-panel rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Dock {{ verifyDock.id }} —
+                            Pre-Departure Verification</h3>
+                        <button @click="showVerifyModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-bold mb-2">Manifest Check
                         </div>
-                    </div>
-                    <div
-                        class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-400 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[16px]">warning</span>
-                        Driver must confirm receipt before departure
-                    </div>
-                    <div class="flex gap-3">
-                        <button @click="completeDock" :disabled="!allChecked"
-                            class="flex-1 py-3 rounded-lg font-bold transition-colors"
-                            :class="allChecked ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed'">
-                            <span class="material-symbols-outlined text-[18px] align-middle mr-1">check_circle</span>
-                            Confirm & Release Truck
-                        </button>
+                        <div class="space-y-2">
+                            <div v-for="item in verifyChecklist" :key="item.label"
+                                class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                                :class="item.checked ? 'bg-green-500/10 border border-green-500/20' : 'bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-white/20'"
+                                @click="item.checked = !item.checked">
+                                <span class="material-symbols-outlined text-[18px]"
+                                    :class="item.checked ? 'text-green-400' : 'text-gray-600'">
+                                    {{ item.checked ? 'check_circle' : 'radio_button_unchecked' }}
+                                </span>
+                                <span class="text-sm"
+                                    :class="item.checked ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'">{{
+                                        item.label
+                                    }}</span>
+                            </div>
+                        </div>
+                        <div
+                            class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-400 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px]">warning</span>
+                            Driver must confirm receipt before departure
+                        </div>
+                        <div class="flex gap-3">
+                            <button @click="completeDock" :disabled="!allChecked"
+                                class="flex-1 py-3 rounded-lg font-bold transition-colors"
+                                :class="allChecked ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed'">
+                                <span
+                                    class="material-symbols-outlined text-[18px] align-middle mr-1">check_circle</span>
+                                Confirm & Release Truck
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Truck Detail Modal -->
-        <div v-if="showTruckDetail && selectedTruck"
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            @click.self="showTruckDetail = false">
-            <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Incoming Truck Details</h3>
-                    <button @click="showTruckDetail = false" class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                            class="material-symbols-outlined">close</span></button>
-                </div>
-                <div class="p-6 space-y-3">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400">Carrier</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedTruck.carrier }}</div>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400">Truck ID</div>
-                            <div class="text-gray-900 dark:text-white font-bold font-mono">{{ selectedTruck.truckId }}</div>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400">ETA</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedTruck.eta }}</div>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400">Pallets</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedTruck.pallets }}</div>
-                        </div>
-                        <div v-if="selectedTruck.type" class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400">Type</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedTruck.type }}</div>
-                        </div>
-                        <div v-if="selectedTruck.destination" class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
-                            <div class="text-xs text-gray-600 dark:text-gray-400">Destination</div>
-                            <div class="text-gray-900 dark:text-white font-bold">{{ selectedTruck.destination }}</div>
-                        </div>
+        <Teleport to="body">
+            <div v-if="showTruckDetail && selectedTruck"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showTruckDetail = false">
+                <div class="glass-panel rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Incoming Truck Details</h3>
+                        <button @click="showTruckDetail = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
+                                class="material-symbols-outlined">close</span></button>
                     </div>
-                    <button @click="showTruckDetail = false"
-                        class="w-full bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm transition-colors">Close</button>
+                    <div class="p-6 space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Carrier</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedTruck.carrier }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Truck ID</div>
+                                <div class="text-gray-900 dark:text-white font-bold font-mono">{{ selectedTruck.truckId
+                                    }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">ETA</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedTruck.eta }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Pallets</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedTruck.pallets }}</div>
+                            </div>
+                            <div v-if="selectedTruck.type" class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Type</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedTruck.type }}</div>
+                            </div>
+                            <div v-if="selectedTruck.destination" class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400">Destination</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedTruck.destination }}
+                                </div>
+                            </div>
+                        </div>
+                        <button @click="showTruckDetail = false"
+                            class="w-full bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm transition-colors">Close</button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Incoming Trucks Queue -->
         <div class="glass-panel rounded-xl overflow-hidden p-6">
@@ -257,10 +282,11 @@
                         </div>
                         <div>
                             <div class="text-gray-900 dark:text-white font-bold">{{ truck.carrier }}</div>
-                            <div class="text-xs text-gray-600 dark:text-gray-400">{{ truck.truckId }} • {{ truck.pallets }} Pallets</div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400">{{ truck.truckId }} • {{ truck.pallets
+                                }} Pallets</div>
                             <div v-if="truck.type" class="text-[10px] mt-0.5"><span class="px-1.5 py-0.5 rounded"
                                     :class="truck.type === 'Inbound' ? 'bg-green-500/20 text-green-400' : truck.type === 'House Shift' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'">{{
-                                    truck.type }}</span> <span class="text-gray-500">→ {{ truck.destination }}</span>
+                                        truck.type }}</span> <span class="text-gray-500">→ {{ truck.destination }}</span>
                             </div>
                         </div>
                     </div>
