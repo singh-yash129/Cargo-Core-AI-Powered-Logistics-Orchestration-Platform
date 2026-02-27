@@ -220,11 +220,12 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useLogisticStore } from '@/stores/logisticStore'
 
 const store = useLogisticStore()
 const router = useRouter()
+const route = useRoute()
 const isOpen = ref(false)
 const popoverRef = ref(null)
 
@@ -367,9 +368,11 @@ const deleteMeeting = (id) => {
 }
 
 const joinMeeting = (meeting) => {
-    // Navigate to meeting room
+    // Navigate to meeting room using the current layout prefix
+    const currentPath = route.path
+    const prefix = currentPath.startsWith('/warehouse') ? '/warehouse' : '/logistic'
     router.push({
-        path: '/logistic/meeting-room',
+        path: `${prefix}/meeting-room`,
         query: {
             url: meeting.link,
             title: meeting.topic

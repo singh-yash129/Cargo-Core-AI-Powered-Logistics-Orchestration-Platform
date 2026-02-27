@@ -101,7 +101,7 @@ const router = createRouter({
         { path: '/logistic/comparative-viewers', component: () => import('../LWD-views/LogisticManager/ComparativeViewers.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
         { path: '/logistic/ai', component: () => import('../LWD-views/LogisticManager/AIIntelligence.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
         { path: '/logistic/communication', component: () => import('../LWD-views/LogisticManager/Communication.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
-        { path: '/logistic/meeting-room', component: () => import('../views/MeetingRoom/MeetingRoom.vue'), meta: { requiresAuth: true, layout: 'logistic' } },
+        { path: '/logistic/meeting-room', component: () => import('../views/MeetingRoom/MeetingRoom.vue'), meta: { requiresAuth: true, layout: 'blank' } },
 
         // Dispatcher Routes
         { path: '/dispatcher/pending-queue', component: () => import('../LWD-views/Dispatcher/PendingDispatchQueue.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
@@ -131,6 +131,7 @@ const router = createRouter({
         { path: '/warehouse/safety-stock', component: () => import('../LWD-views/WarehouseManager/SafetyStock.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
         { path: '/warehouse/performance', component: () => import('../LWD-views/WarehouseManager/Performance.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
         { path: '/warehouse/comparative-viewers', component: () => import('../LWD-views/WarehouseManager/ComparativeViewers.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
+        { path: '/warehouse/meeting-room', component: () => import('../views/MeetingRoom/MeetingRoom.vue'), meta: { requiresAuth: true, layout: 'blank' } },
 
         // AI Support Module Routes
         { path: '/ai/dashboard', component: () => import('../ai-views/Dashboard.vue'), meta: { requiresAuth: true, layout: 'ai' } },
