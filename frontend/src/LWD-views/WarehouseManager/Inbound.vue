@@ -11,7 +11,7 @@
         <!-- Stats -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-green-400">{{ arrivedCount }}</div>
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ arrivedCount }}</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">Arrived Today</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
@@ -19,11 +19,11 @@
                 <div class="text-xs text-gray-600 dark:text-gray-400">In Transit</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-red-400">{{ mismatchCount }}</div>
+                <div class="text-2xl font-bold text-red-600 dark:text-red-400">{{ mismatchCount }}</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">Mismatches Found</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-yellow-400">{{ damageCount }}</div>
+                <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ damageCount }}</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">Damage Reports</div>
             </div>
         </div>
@@ -56,11 +56,11 @@
                     <span>ASN Verification & Receiving</span>
                     <div class="flex gap-2">
                         <button @click="showMismatchModal = true"
-                            class="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-3 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1">
+                            class="bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 px-3 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1">
                             <span class="material-symbols-outlined text-[14px]">flag</span> Flag Mismatch
                         </button>
                         <button @click="showDamageModal = true"
-                            class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1">
+                            class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-600 dark:text-yellow-400 px-3 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1">
                             <span class="material-symbols-outlined text-[14px]">broken_image</span> Report Damage
                         </button>
                     </div>
@@ -81,15 +81,15 @@
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                         <tr v-for="asn in asns" :key="asn.id"
                             class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
-                            <td class="p-4 font-mono text-gray-300">{{ asn.id }}</td>
+                            <td class="p-4 font-mono text-gray-600 dark:text-gray-300">{{ asn.id }}</td>
                             <td class="p-4 text-gray-900 dark:text-white">{{ asn.supplier }}</td>
                             <td class="p-4 text-gray-600 dark:text-gray-400">{{ asn.expected }}</td>
                             <td class="p-4">
                                 <span
-                                    :class="asn.received !== asn.expected && asn.received > 0 ? 'text-red-400 font-bold' : 'text-gray-300'">{{
+                                :class="asn.received !== asn.expected && asn.received > 0 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-gray-600 dark:text-gray-300'">{{
                                         asn.received || '--' }}</span>
                             </td>
-                            <td class="p-4 text-gray-300">{{ asn.eta }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-300">{{ asn.eta }}</td>
                             <td class="p-4">
                                 <span class="px-2 py-1 rounded text-[10px] font-bold border" :class="asn.statusClass">
                                     {{ asn.status }}
@@ -98,9 +98,9 @@
                             <td class="p-4">
                                 <div class="flex gap-1">
                                     <span v-if="asn.mismatch"
-                                        class="px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[9px] font-bold rounded border border-red-500/20">MISMATCH</span>
+                                        class="px-1.5 py-0.5 bg-red-500/20 text-red-600 dark:text-red-400 text-[9px] font-bold rounded border border-red-500/20">MISMATCH</span>
                                     <span v-if="asn.damaged"
-                                        class="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 text-[9px] font-bold rounded border border-yellow-500/20">DAMAGED</span>
+                                        class="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-[9px] font-bold rounded border border-yellow-500/20">DAMAGED</span>
                                     <span v-if="!asn.mismatch && !asn.damaged" class="text-gray-600 text-xs">—</span>
                                 </div>
                             </td>
@@ -111,10 +111,10 @@
                                         Start Receiving
                                     </button>
                                     <button v-if="asn.status === 'Receiving'" @click="completeReceiving(asn)"
-                                        class="bg-green-500/20 hover:bg-green-500/30 text-green-400 px-3 py-1 rounded text-xs font-bold transition-colors">
+                                        class="bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 px-3 py-1 rounded text-xs font-bold transition-colors">
                                         Complete & Update Stock
                                     </button>
-                                    <span v-if="asn.status === 'Completed'" class="text-green-400 text-xs font-bold">✓
+                                    <span v-if="asn.status === 'Completed'" class="text-green-600 dark:text-green-400 text-xs font-bold">✓
                                         Done</span>
                                     <span v-if="asn.status === 'Scheduled'" class="text-gray-500 text-xs">Awaiting
                                         arrival</span>
@@ -205,7 +205,7 @@
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm h-20 resize-none"></textarea>
                         </div>
                         <button @click="submitMismatch" :disabled="!mismatchForm.asnId"
-                            class="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold py-3 rounded-lg transition-colors">
+                            class="w-full bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 font-bold py-3 rounded-lg transition-colors">
                             Submit Mismatch Report
                         </button>
                     </div>
@@ -251,15 +251,15 @@
                             class="p-3 rounded-lg border text-center cursor-pointer transition-colors"
                             :class="damageForm.hasPhoto ? 'bg-green-500/10 border-green-500/20' : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-primary/50'">
                             <span class="material-symbols-outlined text-3xl"
-                                :class="damageForm.hasPhoto ? 'text-green-400' : 'text-gray-500'">{{
+                                :class="damageForm.hasPhoto ? 'text-green-600 dark:text-green-400' : 'text-gray-500'">{{
                                     damageForm.hasPhoto ?
                                         'check_circle' : 'photo_camera' }}</span>
-                            <div class="text-xs mt-1" :class="damageForm.hasPhoto ? 'text-green-400' : 'text-gray-500'">
+                            <div class="text-xs mt-1" :class="damageForm.hasPhoto ? 'text-green-600 dark:text-green-400' : 'text-gray-500'">
                                 {{
                                     damageForm.hasPhoto ? '📷 Photo captured' : 'Capture damage photo' }}</div>
                         </div>
                         <button @click="submitDamage" :disabled="!damageForm.asnId"
-                            class="w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 font-bold py-3 rounded-lg transition-colors">
+                            class="w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-600 dark:text-yellow-400 font-bold py-3 rounded-lg transition-colors">
                             Submit Damage Report
                         </button>
                     </div>
@@ -332,7 +332,7 @@ const damageForm = reactive({ asnId: '', count: 0, description: '', hasPhoto: fa
 const scheduleForm = reactive({ supplier: '', qty: 0, eta: '' })
 
 const dockSchedule = ref([
-    { id: 1, time: '08:00 - 09:30', supplier: 'Samsung Electronics', dock: 'Dock 4', pallets: 24, status: 'On Time', statusClass: 'bg-green-500/20 text-green-400' },
+    { id: 1, time: '08:00 - 09:30', supplier: 'Samsung Electronics', dock: 'Dock 4', pallets: 24, status: 'On Time', statusClass: 'bg-green-500/20 text-green-600 dark:text-green-400' },
     { id: 2, time: '10:00 - 11:30', supplier: 'Nike Global', dock: 'Dock 2', pallets: 12, status: 'Delayed', statusClass: 'bg-yellow-500/20 text-yellow-500' },
     { id: 3, time: '13:00 - 14:00', supplier: 'IKEA', dock: 'Dock 1', pallets: 40, status: 'Scheduled', statusClass: 'bg-gray-500/20 text-gray-600 dark:text-gray-400' },
 ])

@@ -79,30 +79,30 @@
                     class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-center">
                     <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Expected Orders</div>
                     <div class="text-3xl font-bold text-gray-900 dark:text-white">48</div>
-                    <div class="text-xs text-red-400 mt-1">↑ 26% vs today</div>
+                    <div class="text-xs text-red-600 dark:text-red-400 mt-1">↑ 26% vs today</div>
                 </div>
                 <div
                     class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-center">
                     <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Staff Needed</div>
-                    <div class="text-3xl font-bold text-blue-400">52</div>
-                    <div class="text-xs text-yellow-400 mt-1">+10 extra suggested</div>
+                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">52</div>
+                    <div class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">+10 extra suggested</div>
                 </div>
                 <div
                     class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-center">
                     <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Peak Hours</div>
-                    <div class="text-3xl font-bold text-orange-400">10-2</div>
+                    <div class="text-3xl font-bold text-orange-600 dark:text-orange-400">10-2</div>
                     <div class="text-xs text-gray-500 mt-1">High volume window</div>
                 </div>
                 <div
                     class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 text-center">
                     <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Dock Need</div>
-                    <div class="text-3xl font-bold text-green-400">5/6</div>
-                    <div class="text-xs text-yellow-400 mt-1">Near capacity</div>
+                    <div class="text-3xl font-bold text-green-600 dark:text-green-400">5/6</div>
+                    <div class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">Near capacity</div>
                 </div>
             </div>
             <div class="mt-4 flex gap-3">
                 <button @click="autoScheduleStaff"
-                    class="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
+                    class="bg-purple-500/20 hover:bg-purple-500/30 text-purple-600 dark:text-purple-400 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]">schedule</span> Auto-Schedule Extra Staff
                 </button>
                 <button @click="alertLogistics"

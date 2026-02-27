@@ -27,9 +27,9 @@
                 <div class="text-2xl font-bold mt-1" :class="kpi.color">{{ kpi.value }}</div>
                 <div class="flex items-center gap-1 mt-1">
                     <span class="material-symbols-outlined text-[14px]"
-                        :class="kpi.trend > 0 ? 'text-green-400' : 'text-red-400'">{{ kpi.trend > 0 ? 'trending_up' :
+                        :class="kpi.trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{ kpi.trend > 0 ? 'trending_up' :
                             'trending_down' }}</span>
-                    <span class="text-xs" :class="kpi.trend > 0 ? 'text-green-400' : 'text-red-400'">{{ kpi.trendLabel
+                    <span class="text-xs" :class="kpi.trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{ kpi.trendLabel
                         }}</span>
                 </div>
                 <div class="absolute bottom-0 left-0 right-0 h-0.5" :class="kpi.barColor"></div>
@@ -52,7 +52,7 @@
             <!-- Pick Accuracy Gauge -->
             <div class="glass-panel p-5 rounded-xl">
                 <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-green-400">check_circle</span>
+                    <span class="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
                     Pick Accuracy Rate
                 </h3>
                 <div class="flex items-center justify-center gap-12 h-60">
@@ -78,11 +78,11 @@
                         </div>
                         <div>
                             <div class="text-sm text-gray-600 dark:text-gray-400">Correct Picks</div>
-                            <div class="text-xl font-bold text-green-400">1,223</div>
+                            <div class="text-xl font-bold text-green-600 dark:text-green-400">1,223</div>
                         </div>
                         <div>
                             <div class="text-sm text-gray-600 dark:text-gray-400">Errors</div>
-                            <div class="text-xl font-bold text-red-400">25</div>
+                            <div class="text-xl font-bold text-red-600 dark:text-red-400">25</div>
                         </div>
                     </div>
                 </div>
@@ -100,9 +100,9 @@
                 <div class="space-y-4">
                     <div v-for="dept in laborUtil" :key="dept.name">
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-300">{{ dept.name }}</span>
+                            <span class="text-gray-600 dark:text-gray-300">{{ dept.name }}</span>
                             <span class="font-bold"
-                                :class="dept.percent >= 90 ? 'text-green-400' : dept.percent >= 70 ? 'text-yellow-400' : 'text-red-400'">{{
+                                :class="dept.percent >= 90 ? 'text-green-600 dark:text-green-400' : dept.percent >= 70 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'">{{
                                     dept.percent }}%</span>
                         </div>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
@@ -119,7 +119,7 @@
             <!-- Dock Dwell Time -->
             <div class="glass-panel p-5 rounded-xl">
                 <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-yellow-400">local_shipping</span>
+                    <span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400">local_shipping</span>
                     Dock Dwell Time
                 </h3>
                 <div class="space-y-3">
@@ -128,7 +128,7 @@
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-sm font-bold text-gray-900 dark:text-white">{{ dock.dock }}</span>
                             <span class="text-sm font-mono"
-                                :class="dock.minutes > 45 ? 'text-red-400' : dock.minutes > 30 ? 'text-yellow-400' : 'text-green-400'">
+                                :class="dock.minutes > 45 ? 'text-red-600 dark:text-red-400' : dock.minutes > 30 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'">
                                 {{ dock.minutes }} min
                             </span>
                         </div>
@@ -142,7 +142,7 @@
                 </div>
                 <div class="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
                     <div class="flex justify-between">
-                        <span class="text-xs text-blue-400 font-bold">Avg. Dwell Today</span>
+                        <span class="text-xs text-blue-600 dark:text-blue-400 font-bold">Avg. Dwell Today</span>
                         <span class="text-xs text-gray-900 dark:text-white font-bold">{{ avgDwell }} min</span>
                     </div>
                 </div>
@@ -159,7 +159,7 @@
                         <div class="flex justify-between text-sm mb-1">
                             <span class="text-gray-600 dark:text-gray-400">Stock Discrepancy</span>
                             <span class="font-bold"
-                                :class="stockDiscrepancy <= 1 ? 'text-green-400' : 'text-red-400'">{{ stockDiscrepancy
+                                :class="stockDiscrepancy <= 1 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{ stockDiscrepancy
                                 }}%</span>
                         </div>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
@@ -171,7 +171,7 @@
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="flex justify-between text-sm mb-1">
                             <span class="text-gray-600 dark:text-gray-400">Packing Error Rate</span>
-                            <span class="font-bold" :class="packingError <= 2 ? 'text-green-400' : 'text-red-400'">{{
+                            <span class="font-bold" :class="packingError <= 2 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{
                                 packingError }}%</span>
                         </div>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
@@ -192,7 +192,7 @@
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="flex justify-between text-sm mb-1">
                             <span class="text-gray-600 dark:text-gray-400">Returns Processing Rate</span>
-                            <span class="font-bold text-green-400">94%</span>
+                            <span class="font-bold text-green-600 dark:text-green-400">94%</span>
                         </div>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
                             <div class="bg-green-500 h-full rounded-full" style="width: 94%"></div>
@@ -264,12 +264,12 @@ watch(timeRange, (val) => {
 })
 
 const primaryKPIs = ref([
-    { label: 'Order Processing', value: '2.8h', color: 'text-green-400', trend: 1, trendLabel: '12% faster', barColor: 'bg-green-500' },
+    { label: 'Order Processing', value: '2.8h', color: 'text-green-600 dark:text-green-400', trend: 1, trendLabel: '12% faster', barColor: 'bg-green-500' },
     { label: 'Pick Accuracy', value: '98%', color: 'text-primary', trend: 1, trendLabel: '+0.5%', barColor: 'bg-primary' },
-    { label: 'Stock Discrepancy', value: '0.8%', color: 'text-green-400', trend: 1, trendLabel: '-0.3%', barColor: 'bg-green-500' },
-    { label: 'Labor Utilization', value: '87%', color: 'text-blue-400', trend: 1, trendLabel: '+4%', barColor: 'bg-blue-500' },
-    { label: 'Dock Dwell', value: '34m', color: 'text-yellow-400', trend: -1, trendLabel: '+5 min', barColor: 'bg-yellow-500' },
-    { label: 'Packing Errors', value: '1.5%', color: 'text-green-400', trend: 1, trendLabel: '-0.4%', barColor: 'bg-green-500' },
+    { label: 'Stock Discrepancy', value: '0.8%', color: 'text-green-600 dark:text-green-400', trend: 1, trendLabel: '-0.3%', barColor: 'bg-green-500' },
+    { label: 'Labor Utilization', value: '87%', color: 'text-blue-600 dark:text-blue-400', trend: 1, trendLabel: '+4%', barColor: 'bg-blue-500' },
+    { label: 'Dock Dwell', value: '34m', color: 'text-yellow-600 dark:text-yellow-400', trend: -1, trendLabel: '+5 min', barColor: 'bg-yellow-500' },
+    { label: 'Packing Errors', value: '1.5%', color: 'text-green-600 dark:text-green-400', trend: 1, trendLabel: '-0.4%', barColor: 'bg-green-500' },
 ])
 
 const processingTimeBars = ref([

@@ -23,14 +23,14 @@
                 <div class="text-3xl mb-2">{{ item.emoji }}</div>
                 <div class="text-sm font-bold text-gray-900 dark:text-white">{{ item.name }}</div>
                 <div class="text-2xl font-bold mt-1"
-                    :class="item.stock <= item.threshold ? 'text-red-400' : 'text-primary'">{{ item.stock }}</div>
+                    :class="item.stock <= item.threshold ? 'text-red-600 dark:text-red-400' : 'text-primary'">{{ item.stock }}</div>
                 <div class="text-[10px] text-gray-500 uppercase">{{ item.unit }}</div>
                 <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 mt-2 rounded-full overflow-hidden">
                     <div class="h-full rounded-full transition-all"
                         :class="item.stock <= item.threshold ? 'bg-red-500' : 'bg-primary'"
                         :style="`width: ${Math.min((item.stock / item.max) * 100, 100)}%`"></div>
                 </div>
-                <div v-if="item.stock <= item.threshold" class="text-[10px] text-red-400 mt-1 font-bold animate-pulse">⚠
+                <div v-if="item.stock <= item.threshold" class="text-[10px] text-red-600 dark:text-red-400 mt-1 font-bold animate-pulse">⚠
                     LOW STOCK</div>
                 <div class="text-[10px] text-gray-600 mt-1">Reserved: {{ item.reserved }}</div>
             </div>
@@ -74,7 +74,7 @@
                                 class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
                                 <td class="p-4 font-mono text-primary font-bold">{{ log.orderId }}</td>
                                 <td class="p-4 text-gray-900 dark:text-white">{{ log.material }}</td>
-                                <td class="p-4 text-gray-300">{{ log.qty }}</td>
+                                <td class="p-4 text-gray-600 dark:text-gray-300">{{ log.qty }}</td>
                                 <td class="p-4 text-gray-600 dark:text-gray-400">{{ log.issuedTo }}</td>
                                 <td class="p-4 text-gray-500 text-xs font-mono">{{ log.time }}</td>
                                 <td class="p-4">
@@ -91,7 +91,7 @@
             <div class="glass-panel rounded-xl overflow-hidden">
                 <div class="p-4 border-b border-gray-100 dark:border-white/5 bg-gray-100 dark:bg-black/20">
                     <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <span class="material-symbols-outlined text-yellow-400">assignment_return</span>
+                        <span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400">assignment_return</span>
                         Returnable Assets
                     </h3>
                 </div>
@@ -114,20 +114,20 @@
                             <div class="bg-blue-500 h-full" :style="`width: ${(asset.returned / asset.qty) * 100}%`">
                             </div>
                         </div>
-                        <div v-if="asset.missing > 0" class="text-xs text-red-400 mt-1 font-bold">
+                        <div v-if="asset.missing > 0" class="text-xs text-red-600 dark:text-red-400 mt-1 font-bold">
                             ⚠ {{ asset.missing }} items missing
                         </div>
-                        <div v-if="asset.damaged > 0" class="text-xs text-yellow-400 mt-1">
+                        <div v-if="asset.damaged > 0" class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
                             🔧 {{ asset.damaged }} items damaged
                         </div>
                         <div class="flex gap-2 mt-2">
                             <button @click="verifyReturn(asset)"
-                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-1 rounded text-xs font-bold transition-colors"
+                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 py-1 rounded text-xs font-bold transition-colors"
                                 :class="asset.status === 'Returned' ? 'opacity-50 cursor-not-allowed' : ''">
                                 {{ asset.status === 'Returned' ? '✓ Verified' : 'Verify Return' }}
                             </button>
                             <button @click="flagAsset(asset)"
-                                class="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-1 px-3 rounded text-xs font-bold transition-colors"
+                                class="bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 py-1 px-3 rounded text-xs font-bold transition-colors"
                                 :class="asset.flagged ? 'bg-red-500/40 border border-red-500/50' : ''">
                                 {{ asset.flagged ? '🚩 Flagged' : 'Flag' }}
                             </button>
@@ -200,7 +200,7 @@
                                 <div>
                                     <div class="text-sm font-bold text-gray-900 dark:text-white">{{ item.name }}
                                     </div>
-                                    <div class="text-xs text-red-400">Current: {{ item.stock }} / Threshold: {{
+                                    <div class="text-xs text-red-600 dark:text-red-400">Current: {{ item.stock }} / Threshold: {{
                                         item.threshold }}</div>
                                 </div>
                             </div>
@@ -215,7 +215,7 @@
                                 class="flex-1 bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">Submit
                                 Restock Request</button>
                             <button @click="escalateRestock"
-                                class="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-3 px-5 rounded-lg font-bold transition-colors">Escalate
+                                class="bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 py-3 px-5 rounded-lg font-bold transition-colors">Escalate
                                 to Manager</button>
                         </div>
                     </div>
@@ -285,7 +285,7 @@ const filteredLog = computed(() => issuanceLogs.value.filter(l => l.type === log
 const returnableAssets = ref([
     { id: 1, name: 'Padded Blankets', orderId: 'ORD-20251', driver: 'Driver Amit S.', qty: 10, returned: 8, missing: 2, damaged: 0, status: 'Partial', statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', flagged: false },
     { id: 2, name: 'Plastic Crates', orderId: 'ORD-20249', driver: 'Driver Ravi K.', qty: 15, returned: 15, missing: 0, damaged: 1, status: 'Returned', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20', flagged: false },
-    { id: 3, name: 'Furniture Dolly', orderId: 'ORD-20253', driver: 'Driver Vikram P.', qty: 2, returned: 0, missing: 2, damaged: 0, status: 'Outstanding', statusClass: 'bg-red-500/10 text-red-400 border-red-500/20', flagged: false },
+    { id: 3, name: 'Furniture Dolly', orderId: 'ORD-20253', driver: 'Driver Vikram P.', qty: 2, returned: 0, missing: 2, damaged: 0, status: 'Outstanding', statusClass: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20', flagged: false },
 ])
 
 function showSuccess(msg) {

@@ -45,7 +45,7 @@
         <div class="flex-1 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-wrap content-start items-start justify-start p-4 gap-4 overflow-y-auto min-h-[500px]"
             @dragover.prevent @drop="onDrop">
             <div v-if="!store.comparedZones || store.comparedZones.length === 0"
-                class="m-auto w-full text-center text-gray-400 mt-20">
+                class="m-auto w-full text-center text-gray-500 dark:text-gray-400 mt-20">
                 <span class="material-symbols-outlined text-6xl mb-2 opacity-50">move_item</span>
                 <p class="text-lg font-medium">Drag zones here to compare</p>
                 <p class="text-sm">Select zones from the sidebar list</p>
@@ -74,7 +74,7 @@
                         </div>
                     </div>
                     <button @click="removeZone(zone.id)"
-                        class="text-gray-400 hover:text-red-500 p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors"
+                        class="text-gray-500 dark:text-gray-400 hover:text-red-500 p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors"
                         title="Remove">
                         <span class="material-symbols-outlined">close</span>
                     </button>
@@ -101,7 +101,7 @@
                                     Accuracy</div>
                                 <div class="text-xl font-black text-green-500">{{ Math.min(100, getDynamicValue(zone.id,
                                     90, 100)) }}%</div>
-                                <div class="text-[10px] text-gray-400 dark:text-gray-500 font-bold">Target: 98%</div>
+                                <div class="text-[10px] text-gray-500 dark:text-gray-400 font-bold">Target: 98%</div>
                             </div>
                         </div>
 
@@ -127,7 +127,7 @@
 
                         <!-- System Health Chart (New) -->
                         <div class="h-32 mt-2">
-                            <h4 class="text-[10px] font-bold text-gray-400 uppercase mb-2">Throughput Load</h4>
+                            <h4 class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Throughput Load</h4>
                             <Line :data="getLineChartData(zone.id, 'Throughput')" :options="miniChartOptions" />
                         </div>
                     </div>
@@ -165,7 +165,7 @@
                         </div>
                         <!-- Stock Trend Chart (New) -->
                         <div class="h-32">
-                            <h4 class="text-[10px] font-bold text-gray-400 uppercase mb-2">Stock Trend (30 Days)</h4>
+                            <h4 class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Stock Trend (30 Days)</h4>
                             <Line :data="getLineChartData(zone.id, 'Stock', 'purple')" :options="miniChartOptions" />
                         </div>
                     </div>
@@ -188,7 +188,7 @@
                             </div>
                             <div class="text-right">
                                 <div class="text-xs text-green-500 font-bold">Optimal</div>
-                                <div class="text-[10px] text-gray-400 dark:text-gray-500">Staffing</div>
+                                <div class="text-[10px] text-gray-500 dark:text-gray-400">Staffing</div>
                             </div>
                         </div>
 

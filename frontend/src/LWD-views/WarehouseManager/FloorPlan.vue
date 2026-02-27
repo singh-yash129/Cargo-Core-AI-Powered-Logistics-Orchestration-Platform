@@ -248,7 +248,7 @@
 
                 <div class="glass-panel rounded-xl p-4 flex-1 overflow-hidden flex flex-col gap-2">
                     <h3 class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[16px] text-yellow-400">folder</span>Groups
+                        <span class="material-symbols-outlined text-[16px] text-yellow-600 dark:text-yellow-400">folder</span>Groups
                     </h3>
                     <div class="flex-1 overflow-y-auto space-y-2">
                         <div v-for="g in currentGroups" :key="g.id" @click="editingGroup = g"
@@ -281,7 +281,7 @@
                         <div class="flex justify-between text-[10px]"><span class="text-gray-500">Qty</span><span class="font-bold text-gray-700 dark:text-gray-300">{{ p.qty }} {{ p.unit }}</span></div>
                         <div class="flex justify-between text-[10px]"><span class="text-gray-500">Order</span><span class="font-bold text-gray-700 dark:text-gray-300">{{ p.orderId }}</span></div>
                         <div v-if="p.rma" class="flex justify-between text-[10px]"><span class="text-yellow-500">⚠ RMA</span><span class="font-bold text-yellow-500">{{ p.rma }}</span></div>
-                        <div class="text-[9px] text-gray-400 mt-0.5">
+                        <div class="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5">
                             {{ getProductLocationLabel(p) }}
                         </div>
                     </div>
@@ -530,8 +530,8 @@ function getRackCellClasses(cell) {
     const isHighlighted = search.highlightedCellKeys.value.includes(`${activeRack.value?.id}:${cell.index}`)
     if (isSelected) return 'border-primary bg-primary/20 text-primary ring-2 ring-primary/40 shadow-lg shadow-primary/10'
     if (isHighlighted) return 'border-primary bg-primary/15 text-primary animate-pulse'
-    if (cell.product) return 'border-purple-400/50 bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 hover:border-purple-400 hover:shadow-md'
-    return 'border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/3 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'
+    if (cell.product) return 'border-purple-400/50 bg-purple-500/15 text-purple-600 dark:text-purple-300 hover:bg-purple-500/25 hover:border-purple-400 hover:shadow-md'
+    return 'border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/3 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'
 }
 
 function onElementDragStart(event, element) {

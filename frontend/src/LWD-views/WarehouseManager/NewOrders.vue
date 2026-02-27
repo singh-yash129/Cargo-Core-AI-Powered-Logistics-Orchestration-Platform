@@ -25,7 +25,7 @@
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Today's
                     Orders</div>
                 <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">{{ orders.length }}</div>
-                <div class="text-xs mt-1" :class="capacityPercent > 90 ? 'text-red-400' : 'text-green-400'">
+                <div class="text-xs mt-1" :class="capacityPercent > 90 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'">
                     {{ capacityPercent }}% of daily capacity
                 </div>
                 <div class="w-full bg-gray-200 dark:bg-gray-700 h-1.5 mt-2 rounded-full overflow-hidden">
@@ -37,7 +37,7 @@
             <div class="glass-panel p-4 rounded-xl">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Pending
                     Validation</div>
-                <div class="text-3xl font-bold text-yellow-400 mt-1">{{ pendingCount }}</div>
+                <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{{ pendingCount }}</div>
                 <div class="text-xs text-gray-500 mt-1">Awaiting stock/labor check</div>
             </div>
             <div class="glass-panel p-4 rounded-xl">
@@ -49,7 +49,7 @@
             <div class="glass-panel p-4 rounded-xl">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Labor
                     Available</div>
-                <div class="text-3xl font-bold text-blue-400 mt-1">{{ freeLabor }}</div>
+                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ freeLabor }}</div>
                 <div class="text-xs text-gray-500 mt-1">Ready to assign</div>
             </div>
         </div>
@@ -67,7 +67,7 @@
                     <span
                         class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-[18px]">search</span>
                     <input v-model="searchQuery" type="text" placeholder="Search orders..."
-                        class="w-full bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+                        class="w-full bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                 </div>
             </div>
 
@@ -96,7 +96,7 @@
                             </td>
                             <td class="p-4">
                                 <span class="flex items-center gap-1"
-                                    :class="order.laborAvailable ? 'text-green-400' : 'text-red-400'">
+                                    :class="order.laborAvailable ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
                                     <span class="material-symbols-outlined text-[16px]">{{ order.laborAvailable ?
                                         'check_circle' : 'cancel' }}</span>
                                     {{ order.laborNeeded }} workers
@@ -104,7 +104,7 @@
                             </td>
                             <td class="p-4">
                                 <span class="flex items-center gap-1"
-                                    :class="order.packingReady ? 'text-green-400' : 'text-red-400'">
+                                    :class="order.packingReady ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
                                     <span class="material-symbols-outlined text-[16px]">{{ order.packingReady ?
                                         'check_circle' : 'cancel' }}</span>
                                     {{ order.packingReady ? 'Ready' : 'Short' }}
@@ -119,16 +119,16 @@
                             <td class="p-4">
                                 <div class="flex gap-2">
                                     <button v-if="order.status === 'Pending'" @click="validateOrder(order)"
-                                        class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-3 py-1 rounded text-xs font-bold transition-colors">
+                                        class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded text-xs font-bold transition-colors">
                                         Validate
                                     </button>
                                     <button v-if="order.status === 'Validated'" @click="acceptOrder(order)"
-                                        class="bg-green-500/20 hover:bg-green-500/30 text-green-400 px-3 py-1 rounded text-xs font-bold transition-colors">
+                                        class="bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 px-3 py-1 rounded text-xs font-bold transition-colors">
                                         Accept
                                     </button>
                                     <button v-if="order.status !== 'Accepted' && order.status !== 'On Hold'"
                                         @click="holdOrder(order)"
-                                        class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-3 py-1 rounded text-xs font-bold transition-colors">
+                                        class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-600 dark:text-yellow-400 px-3 py-1 rounded text-xs font-bold transition-colors">
                                         Hold
                                     </button>
                                     <button @click="selectedOrder = order; showDetailModal = true"
@@ -193,7 +193,7 @@
                                     :class="selectedOrder.inventoryCheck ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
                                     @click="selectedOrder.inventoryCheck = !selectedOrder.inventoryCheck">
                                     <span class="material-symbols-outlined"
-                                        :class="selectedOrder.inventoryCheck ? 'text-green-400' : 'text-red-400'">{{
+                                        :class="selectedOrder.inventoryCheck ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{
                                             selectedOrder.inventoryCheck ? 'check_circle' : 'cancel' }}</span>
                                     <span class="text-sm text-gray-900 dark:text-white">Inventory Availability — Stock
                                         sufficient</span>
@@ -202,7 +202,7 @@
                                     :class="selectedOrder.packingReady ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
                                     @click="selectedOrder.packingReady = !selectedOrder.packingReady">
                                     <span class="material-symbols-outlined"
-                                        :class="selectedOrder.packingReady ? 'text-green-400' : 'text-red-400'">{{
+                                        :class="selectedOrder.packingReady ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{
                                             selectedOrder.packingReady ? 'check_circle' : 'cancel' }}</span>
                                     <span class="text-sm text-gray-900 dark:text-white">Packing Materials — Boxes, wrap,
                                         crates</span>
@@ -211,7 +211,7 @@
                                     :class="selectedOrder.laborAvailable ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
                                     @click="selectedOrder.laborAvailable = !selectedOrder.laborAvailable">
                                     <span class="material-symbols-outlined"
-                                        :class="selectedOrder.laborAvailable ? 'text-green-400' : 'text-red-400'">{{
+                                        :class="selectedOrder.laborAvailable ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{
                                             selectedOrder.laborAvailable ? 'check_circle' : 'cancel' }}</span>
                                     <span class="text-sm text-gray-900 dark:text-white">Labor Availability — {{
                                         selectedOrder.laborNeeded }}
@@ -219,7 +219,7 @@
                                 </div>
                                 <div
                                     class="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                                    <span class="material-symbols-outlined text-blue-400">dock</span>
+                                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">dock</span>
                                     <span class="text-sm text-gray-900 dark:text-white">Dock Capacity — {{ freeDocks }}
                                         slots available</span>
                                 </div>
@@ -229,20 +229,20 @@
                         <div class="flex gap-3">
                             <button v-if="selectedOrder.status !== 'Accepted'"
                                 @click="acceptOrder(selectedOrder); showDetailModal = false"
-                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-3 rounded-lg font-bold transition-colors"
+                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 py-3 rounded-lg font-bold transition-colors"
                                 :disabled="!selectedOrder.inventoryCheck || !selectedOrder.packingReady || !selectedOrder.laborAvailable">
                                 <span
                                     class="material-symbols-outlined text-[18px] align-middle mr-1">check_circle</span>
                                 Accept for Processing
                             </button>
                             <button @click="holdOrder(selectedOrder); showDetailModal = false"
-                                class="flex-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 py-3 rounded-lg font-bold transition-colors">
+                                class="flex-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-600 dark:text-yellow-400 py-3 rounded-lg font-bold transition-colors">
                                 <span
                                     class="material-symbols-outlined text-[18px] align-middle mr-1">pause_circle</span>
                                 Put On Hold
                             </button>
                             <button @click="escalateOrder(selectedOrder)"
-                                class="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-3 px-6 rounded-lg font-bold transition-colors">
+                                class="bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 py-3 px-6 rounded-lg font-bold transition-colors">
                                 <span
                                     class="material-symbols-outlined text-[18px] align-middle mr-1">arrow_upward</span>
                                 Escalate

@@ -10,7 +10,7 @@
                     Inventory Value</div>
                 <div class="flex items-baseline gap-1">
                     <span class="text-2xl font-bold text-gray-900 dark:text-white">$4.2M</span>
-                    <span class="text-xs text-green-400">+12%</span>
+                    <span class="text-xs text-green-600 dark:text-green-400">+12%</span>
                 </div>
                 <div class="w-full bg-gray-100 dark:bg-gray-800 h-1 mt-2 rounded-full overflow-hidden">
                     <div class="bg-teal-500 h-full w-[85%]"></div>
@@ -57,21 +57,21 @@
 
             <!-- Dynamic Restock KPI Card -->
             <div class="glass-panel p-4 rounded-xl flex flex-col justify-between h-32 group transition-colors"
-                :class="criticalSkus.length > 0 ? 'bg-red-900/10 border-red-500/20' : 'bg-green-900/10 border-green-500/20'">
+                :class="criticalSkus.length > 0 ? 'bg-red-50 dark:bg-red-900/10 border-red-500/20' : 'bg-green-50 dark:bg-green-900/10 border-green-500/20'">
                 <div class="text-xs font-semibold uppercase tracking-wide"
-                    :class="criticalSkus.length > 0 ? 'text-red-300' : 'text-green-300'">
+                    :class="criticalSkus.length > 0 ? 'text-red-600 dark:text-red-300' : 'text-green-600 dark:text-green-300'">
                     Safety Stock Alerts
                 </div>
                 <div class="flex items-baseline gap-1">
                     <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ criticalSkus.length }}</span>
-                    <span v-if="criticalSkus.length > 0" class="text-xs text-red-400">SKUs Warning</span>
-                    <span v-else class="text-xs text-green-400">All Good</span>
+                    <span v-if="criticalSkus.length > 0" class="text-xs text-red-600 dark:text-red-400">SKUs Warning</span>
+                    <span v-else class="text-xs text-green-600 dark:text-green-400">All Good</span>
                 </div>
                 <button v-if="criticalSkus.length > 0" @click="showRestockModal = true"
-                    class="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-300 py-1 px-2 rounded transition-colors w-fit shadow-sm">
+                    class="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-300 py-1 px-2 rounded transition-colors w-fit shadow-sm">
                     Restock Now
                 </button>
-                <div v-else class="text-xs text-green-500/70 py-1 font-medium">Fully Stocked</div>
+                <div v-else class="text-xs text-green-600 dark:text-green-500/70 py-1 font-medium">Fully Stocked</div>
             </div>
         </div>
 
@@ -144,10 +144,10 @@
                             <span
                                 class="material-symbols-outlined absolute left-2 top-1.5 text-gray-500 text-[18px]">search</span>
                             <input v-model="searchQuery" type="text" placeholder="Search ID or Staff..."
-                                class="w-full bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg pl-8 pr-3 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors">
+                                class="w-full bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg pl-8 pr-3 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors">
                         </div>
                         <select v-model="statusFilter"
-                            class="bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1 text-sm text-gray-300 focus:outline-none focus:border-teal-500/50 transition-colors">
+                            class="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1 text-sm text-gray-600 dark:text-gray-300 focus:outline-none focus:border-teal-500/50 transition-colors">
                             <option value="">All Statuses</option>
                             <option value="Pending">Pending</option>
                             <option value="In Progress">In Progress</option>
@@ -174,13 +174,13 @@
                             <tr v-for="order in filteredQueue" :key="order.id"
                                 class="hover:bg-gray-50 dark:bg-white/5 transition-colors group">
                                 <td class="p-3 font-mono text-teal-400">{{ order.id }}</td>
-                                <td class="p-3 text-gray-300">{{ order.items }} items</td>
-                                <td class="p-3 text-gray-300">
-                                    <span class="px-2 py-0.5 bg-gray-700/50 rounded text-xs">{{ order.zone }}</span>
+                                <td class="p-3 text-gray-600 dark:text-gray-300">{{ order.items }} items</td>
+                                <td class="p-3 text-gray-600 dark:text-gray-300">
+                                    <span class="px-2 py-0.5 bg-gray-200 dark:bg-gray-700/50 rounded text-xs">{{ order.zone }}</span>
                                 </td>
                                 <td class="p-3">
                                     <span v-if="order.priority === 'High'"
-                                        class="text-red-400 text-xs font-bold bg-red-500/10 px-2 py-0.5 rounded flex items-center gap-1 w-fit">
+                                        class="text-red-600 dark:text-red-400 text-xs font-bold bg-red-500/10 px-2 py-0.5 rounded flex items-center gap-1 w-fit">
                                         <span class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span> HIGH
                                     </span>
                                     <span v-else class="text-gray-600 dark:text-gray-400 text-xs">Normal</span>
@@ -188,9 +188,9 @@
                                 <td class="p-3">
                                     <div class="flex items-center gap-2" v-if="order.assigned">
                                         <div
-                                            class="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center text-[10px] shadow-sm">
+                                            class="w-6 h-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-[10px] shadow-sm">
                                             {{ order.assignedInitials }}</div>
-                                        <span class="text-gray-300">{{ order.assigned }}</span>
+                                        <span class="text-gray-600 dark:text-gray-300">{{ order.assigned }}</span>
                                     </div>
                                     <span v-else class="text-gray-500 italic">-- Unassigned --</span>
                                 </td>
@@ -216,12 +216,12 @@
                                     <div v-if="activeActionMenu === order.id"
                                         class="absolute right-8 mt-1 w-36 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 z-20 text-left">
                                         <button @click="markComplete(order)"
-                                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:bg-white/5 text-green-400 flex items-center gap-2">
+                                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:bg-white/5 text-green-600 dark:text-green-400 flex items-center gap-2">
                                             <span class="material-symbols-outlined text-[14px]">check_circle</span> Mark
                                             Complete
                                         </button>
                                         <button @click="reassign(order)"
-                                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:bg-white/5 text-blue-400 flex items-center gap-2">
+                                            class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:bg-white/5 text-blue-600 dark:text-blue-400 flex items-center gap-2">
                                             <span class="material-symbols-outlined text-[14px]">person_add</span>
                                             Reassign
                                         </button>
@@ -257,30 +257,30 @@
                         class="mt-4 p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                         <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">Efficiency Insight</div>
                         <div class="text-sm text-gray-900 dark:text-white">Picking rate dropped by <span
-                                class="text-red-400 font-bold">4%</span> in Zone B due to spill hazard.</div>
+                                class="text-red-600 dark:text-red-400 font-bold">4%</span> in Zone B due to spill hazard.</div>
                     </div>
                 </div>
 
                 <!-- Return Processing Queue (Small) -->
-                <div class="glass-panel p-4 rounded-xl space-y-2 bg-gray-800/20">
+                <div class="glass-panel p-4 rounded-xl space-y-2 bg-gray-100 dark:bg-gray-800/20">
                     <div class="flex justify-between items-center mb-1">
                         <h3 class="font-bold text-gray-900 dark:text-white text-sm">Recent Returns</h3>
                         <span class="text-xs text-gray-500">Today</span>
                     </div>
                     <div
-                        class="flex items-center justify-between p-2 rounded bg-gray-100 dark:bg-black/20 text-xs text-gray-300">
+                        class="flex items-center justify-between p-2 rounded bg-gray-100 dark:bg-black/20 text-xs text-gray-600 dark:text-gray-300">
                         <span>Damaged Item #992</span>
-                        <span class="text-red-400 font-medium">Scrap</span>
+                        <span class="text-red-600 dark:text-red-400 font-medium">Scrap</span>
                     </div>
                     <div
-                        class="flex items-center justify-between p-2 rounded bg-gray-100 dark:bg-black/20 text-xs text-gray-300">
+                        class="flex items-center justify-between p-2 rounded bg-gray-100 dark:bg-black/20 text-xs text-gray-600 dark:text-gray-300">
                         <span>Wrong Color #221</span>
-                        <span class="text-green-400 font-medium">Restock</span>
+                        <span class="text-green-600 dark:text-green-400 font-medium">Restock</span>
                     </div>
                     <div
-                        class="flex items-center justify-between p-2 rounded bg-gray-100 dark:bg-black/20 text-xs text-gray-300">
+                        class="flex items-center justify-between p-2 rounded bg-gray-100 dark:bg-black/20 text-xs text-gray-600 dark:text-gray-300">
                         <span>Size Mismatch #110</span>
-                        <span class="text-green-400 font-medium">Restock</span>
+                        <span class="text-green-600 dark:text-green-400 font-medium">Restock</span>
                     </div>
                 </div>
             </div>
@@ -291,12 +291,12 @@
             <div v-if="showRestockModal"
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
                 <div
-                    class="bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl transform transition-all">
+                    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl transform transition-all">
                     <!-- Header -->
                     <div
                         class="p-5 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-gradient-to-r from-red-500/20 to-transparent">
                         <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-lg">
-                            <span class="material-symbols-outlined text-red-400">warning</span>
+                            <span class="material-symbols-outlined text-red-600 dark:text-red-400">warning</span>
                             Critical Restock Required
                         </h3>
                         <button @click="showRestockModal = false"
@@ -319,7 +319,7 @@
                                         }}</div>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-sm text-red-400 font-bold flex items-center gap-1 justify-end">
+                                    <div class="text-sm text-red-600 dark:text-red-400 font-bold flex items-center gap-1 justify-end">
                                         {{ sku.current }} left
                                         <span class="material-symbols-outlined text-[14px]">arrow_downward</span>
                                     </div>
@@ -333,7 +333,7 @@
                     <div
                         class="p-4 border-t border-gray-200 dark:border-white/10 flex gap-3 bg-gray-100 dark:bg-black/20">
                         <button @click="showRestockModal = false"
-                            class="flex-1 py-2.5 text-sm font-bold text-gray-300 bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors">
+                            class="flex-1 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors">
                             Review Later
                         </button>
                         <button @click="processRestock"

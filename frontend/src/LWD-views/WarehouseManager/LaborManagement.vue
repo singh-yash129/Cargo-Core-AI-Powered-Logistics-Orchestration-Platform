@@ -21,25 +21,25 @@
                 @click="statusFilter = statusFilter === 'In Warehouse' ? '' : 'In Warehouse'">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">In Warehouse
                 </div>
-                <div class="text-3xl font-bold text-green-400 mt-1">{{ statusCounts.inWarehouse }}</div>
+                <div class="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">{{ statusCounts.inWarehouse }}</div>
                 <div class="flex items-center gap-1 mt-1">
                     <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    <span class="text-xs text-green-400/70">Active on floor</span>
+                    <span class="text-xs text-green-600/70 dark:text-green-400/70">Active on floor</span>
                 </div>
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-blue-500 cursor-pointer hover:bg-gray-50 dark:bg-white/5 transition-colors"
                 @click="statusFilter = statusFilter === 'Assigned to Order' ? '' : 'Assigned to Order'">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Assigned to
                     Order</div>
-                <div class="text-3xl font-bold text-blue-400 mt-1">{{ statusCounts.assigned }}</div>
-                <div class="text-xs text-blue-400/70 mt-1">Working on orders</div>
+                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ statusCounts.assigned }}</div>
+                <div class="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">Working on orders</div>
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-purple-500 cursor-pointer hover:bg-gray-50 dark:bg-white/5 transition-colors"
                 @click="statusFilter = statusFilter === 'On Field' ? '' : 'On Field'">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">On Field
                     with Driver</div>
-                <div class="text-3xl font-bold text-purple-400 mt-1">{{ statusCounts.onField }}</div>
-                <div class="text-xs text-purple-400/70 mt-1">Out for delivery/move</div>
+                <div class="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-1">{{ statusCounts.onField }}</div>
+                <div class="text-xs text-purple-600/70 dark:text-purple-400/70 mt-1">Out for delivery/move</div>
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-gray-500 cursor-pointer hover:bg-gray-50 dark:bg-white/5 transition-colors"
                 @click="statusFilter = statusFilter === 'Off Duty' ? '' : 'Off Duty'">
@@ -55,7 +55,7 @@
             <div class="glass-panel p-6 rounded-xl">
                 <div class="text-gray-600 dark:text-gray-400 text-sm font-medium">Active Staff</div>
                 <div class="text-4xl font-bold text-gray-900 dark:text-white mt-2">{{ staffList.length }}</div>
-                <div class="text-green-400 text-xs mt-1">Full Roster</div>
+                <div class="text-green-600 dark:text-green-400 text-xs mt-1">Full Roster</div>
             </div>
             <div class="glass-panel p-6 rounded-xl">
                 <div class="text-gray-600 dark:text-gray-400 text-sm font-medium">Avg. Productivity</div>
@@ -64,7 +64,7 @@
             </div>
             <div class="glass-panel p-6 rounded-xl">
                 <div class="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Hours Logged</div>
-                <div class="text-4xl font-bold text-yellow-400 mt-2">{{ totalHours }}h</div>
+                <div class="text-4xl font-bold text-yellow-600 dark:text-yellow-400 mt-2">{{ totalHours }}h</div>
                 <div class="text-gray-500 text-xs mt-1">Today</div>
             </div>
         </div>
@@ -112,7 +112,7 @@
                                 <img :src="staff.avatar" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700">
                                 <span class="font-bold text-gray-900 dark:text-white">{{ staff.name }}</span>
                             </td>
-                            <td class="p-4 text-gray-300">{{ staff.role }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-300">{{ staff.role }}</td>
                             <td class="p-4 text-gray-600 dark:text-gray-400">{{ staff.task }}</td>
                             <td class="p-4">
                                 <span v-if="staff.orderId" class="font-mono text-primary text-xs">{{ staff.orderId
@@ -124,9 +124,9 @@
                                     <div class="text-gray-600 dark:text-gray-400">In: <span
                                             class="text-gray-900 dark:text-white font-mono">{{ staff.startTime
                                             }}</span></div>
-                                    <div v-if="staff.fieldTime" class="text-purple-400">Field: <span
+                                    <div v-if="staff.fieldTime" class="text-purple-600 dark:text-purple-400">Field: <span
                                             class="font-mono">{{ staff.fieldTime }}</span></div>
-                                    <div v-if="staff.returnTime" class="text-green-400">Return: <span
+                                    <div v-if="staff.returnTime" class="text-green-600 dark:text-green-400">Return: <span
                                             class="font-mono">{{ staff.returnTime }}</span></div>
                                 </div>
                             </td>
@@ -203,7 +203,7 @@
                             </select>
                         </div>
                         <div
-                            class="flex items-center gap-2 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 text-xs text-blue-400">
+                            class="flex items-center gap-2 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400">
                             <span class="material-symbols-outlined text-[16px]">info</span>
                             Seat compatibility will be verified by Dispatcher before dispatch.
                         </div>
@@ -236,7 +236,7 @@
                                 <div class="text-xs text-gray-500">{{ shift.time }} • {{ shift.staff }} staff</div>
                             </div>
                             <span class="px-2 py-0.5 rounded text-[10px] font-bold"
-                                :class="shift.active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'">{{
+                                :class="shift.active ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'">{{
                                     shift.active ? 'Active' : 'Inactive' }}</span>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
@@ -244,7 +244,7 @@
                                 class="bg-primary/20 hover:bg-primary/30 text-primary py-2 rounded-lg text-sm font-bold transition-colors">Extend
                                 Morning Shift</button>
                             <button @click="showShiftModal = false; showToast('Extra staff called for evening shift')"
-                                class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 py-2 rounded-lg text-sm font-bold transition-colors">Call
+                                class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 py-2 rounded-lg text-sm font-bold transition-colors">Call
                                 Extra Staff</button>
                         </div>
                     </div>
@@ -302,7 +302,7 @@
                                 class="flex-1 bg-gray-500/20 hover:bg-gray-500/30 text-gray-600 dark:text-gray-400 py-2 rounded-lg text-sm font-bold transition-colors">Set
                                 Off Duty</button>
                             <button v-if="selectedStaff.status === 'Off Duty'" @click="setOnDuty(selectedStaff)"
-                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-2 rounded-lg text-sm font-bold transition-colors">Set
+                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 py-2 rounded-lg text-sm font-bold transition-colors">Set
                                 On Duty</button>
                             <button @click="showStaffDetail = false"
                                 class="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm transition-colors">Close</button>

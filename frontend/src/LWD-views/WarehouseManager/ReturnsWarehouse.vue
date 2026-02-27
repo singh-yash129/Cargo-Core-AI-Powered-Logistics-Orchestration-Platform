@@ -15,16 +15,16 @@
         <!-- Stats Row -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-yellow-400">{{ processingItems.length }}</div>
+                <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ processingItems.length }}</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">Awaiting Inspection</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-green-400">{{completedItems.filter(i => i.disposition ===
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{completedItems.filter(i => i.disposition ===
                     'restock').length}}</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">Restocked Today</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-red-400">{{completedItems.filter(i => i.disposition ===
+                <div class="text-2xl font-bold text-red-600 dark:text-red-400">{{completedItems.filter(i => i.disposition ===
                     'claims').length}}</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">Sent to Claims</div>
             </div>
@@ -43,7 +43,7 @@
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="font-bold text-gray-900 dark:text-white">Item Grading Station 1</h3>
                     <span
-                        class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/30 animate-pulse">Active</span>
+                        class="px-2 py-1 bg-green-500/20 text-green-600 dark:text-green-400 text-xs rounded border border-green-500/30 animate-pulse">Active</span>
                 </div>
 
                 <div class="flex gap-6">
@@ -58,7 +58,7 @@
                             </div>
                             <div v-else
                                 class="w-full h-full bg-gradient-to-br from-red-900/30 to-transparent flex items-center justify-center">
-                                <span class="material-symbols-outlined text-4xl text-green-400">check_circle</span>
+                                <span class="material-symbols-outlined text-4xl text-green-600 dark:text-green-400">check_circle</span>
                             </div>
                         </div>
                         <button @click="openScanner('camera')"
@@ -75,7 +75,7 @@
                             <input type="text" v-model="rmaId" placeholder="Scan barcode..."
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 pr-10 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono">
                             <button @click="openScanner('scan')"
-                                class="absolute right-2 top-8 text-gray-400 hover:text-primary">
+                                class="absolute right-2 top-8 text-gray-500 dark:text-gray-400 hover:text-primary">
                                 <span class="material-symbols-outlined">qr_code_scanner</span>
                             </button>
                         </div>
@@ -105,29 +105,29 @@
                             <div class="grid grid-cols-2 gap-3">
                                 <button @click="disposition = 'restock'"
                                     class="p-3 rounded-lg font-bold transition-all flex flex-col items-center gap-1 text-sm"
-                                    :class="disposition === 'restock' ? 'bg-green-500/30 border-2 border-green-500 text-green-400' : 'bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 text-green-400'">
+                                    :class="disposition === 'restock' ? 'bg-green-500/30 border-2 border-green-500 text-green-600 dark:text-green-400' : 'bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 text-green-600 dark:text-green-400'">
                                     <span class="material-symbols-outlined">check_circle</span> Restock
                                 </button>
                                 <button @click="disposition = 'claims'"
                                     class="p-3 rounded-lg font-bold transition-all flex flex-col items-center gap-1 text-sm"
-                                    :class="disposition === 'claims' ? 'bg-blue-500/30 border-2 border-blue-500 text-blue-400' : 'bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-400'">
+                                    :class="disposition === 'claims' ? 'bg-blue-500/30 border-2 border-blue-500 text-blue-600 dark:text-blue-400' : 'bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400'">
                                     <span class="material-symbols-outlined">gavel</span> Send to Claims
                                 </button>
                                 <button @click="disposition = 'discard'"
                                     class="p-3 rounded-lg font-bold transition-all flex flex-col items-center gap-1 text-sm"
-                                    :class="disposition === 'discard' ? 'bg-red-500/30 border-2 border-red-500 text-red-400' : 'bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400'">
+                                    :class="disposition === 'discard' ? 'bg-red-500/30 border-2 border-red-500 text-red-600 dark:text-red-400' : 'bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-600 dark:text-red-400'">
                                     <span class="material-symbols-outlined">delete</span> Discard
                                 </button>
                                 <button @click="disposition = 'recycle'"
                                     class="p-3 rounded-lg font-bold transition-all flex flex-col items-center gap-1 text-sm"
-                                    :class="disposition === 'recycle' ? 'bg-purple-500/30 border-2 border-purple-500 text-purple-400' : 'bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 text-purple-400'">
+                                    :class="disposition === 'recycle' ? 'bg-purple-500/30 border-2 border-purple-500 text-purple-600 dark:text-purple-400' : 'bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400'">
                                     <span class="material-symbols-outlined">recycling</span> Recycle
                                 </button>
                             </div>
                         </div>
 
                         <div v-if="disposition === 'claims' || disposition === 'discard'"
-                            class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-400 flex items-center gap-2">
+                            class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
                             <span class="material-symbols-outlined text-[16px]">info</span>
                             Requires Logistics Manager approval
                         </div>
@@ -154,7 +154,7 @@
                                 <div class="text-xs text-gray-500 font-mono">{{ item.rma }}</div>
                             </div>
                             <span
-                                class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/20">PENDING</span>
+                                class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20">PENDING</span>
                         </div>
                         <div class="text-[10px] text-gray-500 mt-1">{{ item.reason }} • Received {{ item.time }}</div>
                     </div>
@@ -296,10 +296,10 @@ const filteredCompleted = computed(() => {
 })
 
 function getConditionClass(c) {
-    if (c === 'Like New') return 'bg-green-500/20 text-green-400'
-    if (c === 'Minor Wear') return 'bg-yellow-500/20 text-yellow-400'
-    if (c === 'Damaged') return 'bg-orange-500/20 text-orange-400'
-    return 'bg-red-500/20 text-red-400'
+    if (c === 'Like New') return 'bg-green-500/20 text-green-600 dark:text-green-400'
+    if (c === 'Minor Wear') return 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+    if (c === 'Damaged') return 'bg-orange-500/20 text-orange-600 dark:text-orange-400'
+    return 'bg-red-500/20 text-red-600 dark:text-red-400'
 }
 
 function getDispositionBg(d) {

@@ -292,6 +292,7 @@ const menuItems = [
     { label: 'Loading Dock', icon: 'local_shipping', route: '/warehouse/dock' },
     { label: 'Returns', icon: 'assignment_return', route: '/warehouse/returns' },
     { label: 'Labor Mgmt', icon: 'groups', route: '/warehouse/labor' },
+    { label: 'Performance', icon: 'bar_chart', route: '/warehouse/performance' },
     { label: 'Smart WMS', icon: 'psychology', route: '/warehouse/ai' },
     { label: 'Comparative Viewers', icon: 'compare_arrows', route: '/warehouse/comparative-viewers' },
 ]

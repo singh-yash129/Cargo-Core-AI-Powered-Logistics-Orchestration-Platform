@@ -19,23 +19,23 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="glass-panel p-4 rounded-xl border-l-4 border-red-500">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Critical Alerts</div>
-                <div class="text-3xl font-bold text-red-400 mt-1">{{ criticalCount }}</div>
-                <div class="text-xs text-red-400/60 mt-1">Needs immediate restock</div>
+                <div class="text-3xl font-bold text-red-600 dark:text-red-400 mt-1">{{ criticalCount }}</div>
+                <div class="text-xs text-red-600/60 dark:text-red-400/60 mt-1">Needs immediate restock</div>
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-yellow-500">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Warnings</div>
-                <div class="text-3xl font-bold text-yellow-400 mt-1">{{ warningCount }}</div>
-                <div class="text-xs text-yellow-400/60 mt-1">Approaching threshold</div>
+                <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{{ warningCount }}</div>
+                <div class="text-xs text-yellow-600/60 dark:text-yellow-400/60 mt-1">Approaching threshold</div>
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-green-500">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Normal Stock</div>
-                <div class="text-3xl font-bold text-green-400 mt-1">{{ normalCount }}</div>
-                <div class="text-xs text-green-400/60 mt-1">Above safety level</div>
+                <div class="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">{{ normalCount }}</div>
+                <div class="text-xs text-green-600/60 dark:text-green-400/60 mt-1">Above safety level</div>
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-blue-500">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Pending Restocks</div>
-                <div class="text-3xl font-bold text-blue-400 mt-1">{{ pendingRestockCount }}</div>
-                <div class="text-xs text-blue-400/60 mt-1">Awaiting delivery</div>
+                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ pendingRestockCount }}</div>
+                <div class="text-xs text-blue-600/60 dark:text-blue-400/60 mt-1">Awaiting delivery</div>
             </div>
         </div>
 
@@ -65,21 +65,21 @@
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-600 dark:text-gray-400">Current Stock</span>
                         <span class="font-bold"
-                            :class="item.level === 'critical' ? 'text-red-400' : item.level === 'warning' ? 'text-yellow-400' : 'text-gray-900 dark:text-white'">{{
+                            :class="item.level === 'critical' ? 'text-red-600 dark:text-red-400' : item.level === 'warning' ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-900 dark:text-white'">{{
                                 item.current }} {{ item.unit }}</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-600 dark:text-gray-400">Safety Threshold</span>
-                        <span class="text-gray-300">{{ item.threshold }} {{ item.unit }}</span>
+                        <span class="text-gray-600 dark:text-gray-300">{{ item.threshold }} {{ item.unit }}</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-600 dark:text-gray-400">Avg. Daily Usage</span>
-                        <span class="text-gray-300">{{ item.dailyUsage }} {{ item.unit }}/day</span>
+                        <span class="text-gray-600 dark:text-gray-300">{{ item.dailyUsage }} {{ item.unit }}/day</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-600 dark:text-gray-400">Days Until Empty</span>
                         <span class="font-bold"
-                            :class="item.daysLeft <= 2 ? 'text-red-400' : item.daysLeft <= 5 ? 'text-yellow-400' : 'text-green-400'">{{
+                            :class="item.daysLeft <= 2 ? 'text-red-600 dark:text-red-400' : item.daysLeft <= 5 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'">{{
                                 item.daysLeft }} days</span>
                     </div>
                 </div>
@@ -93,15 +93,15 @@
                 <div class="flex gap-2">
                     <button v-if="item.restockStatus === 'none'" @click="requestRestock(item)"
                         class="flex-1 py-2 rounded text-xs font-bold transition-colors"
-                        :class="item.level === 'critical' ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400' : 'bg-primary/20 hover:bg-primary/30 text-primary'">
+                        :class="item.level === 'critical' ? 'bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400' : 'bg-primary/20 hover:bg-primary/30 text-primary'">
                         Request Restock
                     </button>
                     <div v-else-if="item.restockStatus === 'requested'"
-                        class="flex-1 py-2 rounded text-xs font-bold text-center bg-blue-500/20 text-blue-400 border border-blue-500/20">
+                        class="flex-1 py-2 rounded text-xs font-bold text-center bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                         ✓ Restock Requested
                     </div>
                     <div v-else
-                        class="flex-1 py-2 rounded text-xs font-bold text-center bg-green-500/20 text-green-400 border border-green-500/20">
+                        class="flex-1 py-2 rounded text-xs font-bold text-center bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/20">
                         📦 Arriving in {{ item.eta }}
                     </div>
                     <button @click="escalateItem(item)"
@@ -135,11 +135,11 @@
                 <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                     <tr v-for="req in restockHistory" :key="req.id"
                         class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
-                        <td class="p-4 font-mono text-gray-300">{{ req.id }}</td>
+                        <td class="p-4 font-mono text-gray-600 dark:text-gray-300">{{ req.id }}</td>
                         <td class="p-4 text-gray-900 dark:text-white">{{ req.item }}</td>
-                        <td class="p-4 text-gray-300">{{ req.qty }}</td>
+                        <td class="p-4 text-gray-600 dark:text-gray-300">{{ req.qty }}</td>
                         <td class="p-4 text-gray-500 text-xs font-mono">{{ req.requestedOn }}</td>
-                        <td class="p-4 text-gray-300">{{ req.eta }}</td>
+                        <td class="p-4 text-gray-600 dark:text-gray-300">{{ req.eta }}</td>
                         <td class="p-4">
                             <span class="px-2 py-1 rounded text-[10px] font-bold border" :class="req.statusClass">{{
                                 req.status }}</span>
@@ -238,9 +238,9 @@ const restockHistory = ref([
 ])
 
 function getLevelClass(level) {
-    if (level === 'critical') return 'bg-red-500/20 text-red-400 border border-red-500/30'
-    if (level === 'warning') return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-    return 'bg-green-500/20 text-green-400 border border-green-500/30'
+    if (level === 'critical') return 'bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30'
+    if (level === 'warning') return 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30'
+    return 'bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30'
 }
 
 function showSuccess(msg) {

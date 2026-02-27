@@ -21,19 +21,19 @@
                 <div class="text-xs text-gray-600 dark:text-gray-400">Total Items</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-yellow-400">{{ lowStockCount }}</div>
+                <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ lowStockCount }}</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">Low Stock Alerts</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-green-400">98%</div>
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">98%</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">Inventory Accuracy</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-orange-400">{{ fastMovingCount }}</div>
+                <div class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ fastMovingCount }}</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">Fast-Moving SKUs</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-blue-400">$1.2M</div>
+                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">$1.2M</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">Total Value</div>
             </div>
         </div>
@@ -82,7 +82,7 @@
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                         <tr v-for="item in filteredInventory" :key="item.sku"
                             class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
-                            <td class="p-4 font-mono text-gray-300">{{ item.sku }}</td>
+                            <td class="p-4 font-mono text-gray-600 dark:text-gray-300">{{ item.sku }}</td>
                             <td class="p-4">
                                 <div class="flex items-center gap-2">
                                     <span class="font-bold text-gray-900 dark:text-white">{{ item.name }}</span>
@@ -109,7 +109,7 @@
                                         <div class="h-full" :class="item.stock < 20 ? 'bg-red-500' : 'bg-green-500'"
                                             :style="`width: ${item.stockPercentage}%`"></div>
                                     </div>
-                                    <span :class="item.stock < 20 ? 'text-red-400 font-bold' : 'text-gray-300'">{{
+                                    <span :class="item.stock < 20 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-gray-600 dark:text-gray-300'">{{
                                         item.stock }}</span>
                                 </div>
                             </td>
@@ -168,7 +168,7 @@
                             <input type="text" v-model="editItem.dimensions"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                         </div>
-                        <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                        <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
                             <input type="checkbox" v-model="editItem.fastMoving" class="accent-primary" />
                             Mark as Fast-Moving
                         </label>
@@ -273,8 +273,8 @@
         <div v-if="scanError"
             class="glass-panel rounded-xl p-4 border border-red-500/30 animate-fade-in flex items-center gap-3">
             <span class="material-symbols-outlined text-red-500">error</span>
-            <div class="text-red-400 text-sm flex-1">{{ scanError }}</div>
-            <button @click="clearScan" class="text-gray-400 hover:text-white"><span
+            <div class="text-red-600 dark:text-red-400 text-sm flex-1">{{ scanError }}</div>
+            <button @click="clearScan" class="text-gray-400 hover:text-gray-900 dark:hover:text-white"><span
                     class="material-symbols-outlined text-[18px]">close</span></button>
         </div>
 

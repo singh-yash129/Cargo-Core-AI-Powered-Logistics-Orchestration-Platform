@@ -6,17 +6,17 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="glass-panel p-4 rounded-xl border-l-4 border-blue-500">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Avg. Dwell Time</div>
-                <div class="text-3xl font-bold text-blue-400 mt-1">{{ avgDwell }} min</div>
-                <div class="text-xs text-yellow-400 mt-1">↑ 5 min from yesterday</div>
+                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ avgDwell }} min</div>
+                <div class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">↑ 5 min from yesterday</div>
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-green-500">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Trucks Loaded Today</div>
-                <div class="text-3xl font-bold text-green-400 mt-1">{{ trucksLoaded }}</div>
+                <div class="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">{{ trucksLoaded }}</div>
                 <div class="text-xs text-gray-500 mt-1">Target: 12</div>
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-yellow-500">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Loading Delays</div>
-                <div class="text-3xl font-bold text-yellow-400 mt-1">{{docks.filter(d => d.dwellMinutes > 45).length}}
+                <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{{docks.filter(d => d.dwellMinutes > 45).length}}
                 </div>
                 <div class="text-xs text-gray-500 mt-1">Internal cause</div>
             </div>
@@ -63,7 +63,7 @@
                         <div>
                             <div class="text-gray-500">Elapsed</div>
                             <div class="font-mono font-bold"
-                                :class="dock.dwellMinutes > 45 ? 'text-red-400' : dock.dwellMinutes > 30 ? 'text-yellow-400' : 'text-green-400'">
+                                :class="dock.dwellMinutes > 45 ? 'text-red-600 dark:text-red-400' : dock.dwellMinutes > 30 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'">
                                 {{ dock.dwellMinutes }} min</div>
                         </div>
                         <div>
@@ -80,14 +80,14 @@
 
                 <div class="flex gap-2">
                     <button v-if="dock.status === 'Occupied'" @click="openVerifyModal(dock)"
-                        class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-2 rounded text-xs font-bold transition-colors">
+                        class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 py-2 rounded text-xs font-bold transition-colors">
                         Verify & Release
                     </button>
                     <button v-if="dock.status === 'Free'" @click="openAssignModal(dock)"
                         class="flex-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 text-gray-900 dark:text-white py-2 rounded text-xs font-bold transition-colors">Assign
                         Truck</button>
                     <button v-if="dock.status === 'Maintenance'" @click="clearMaintenance(dock)"
-                        class="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 py-2 rounded text-xs font-bold transition-colors">Clear
+                        class="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 py-2 rounded text-xs font-bold transition-colors">Clear
                         Maintenance</button>
                     <button @click="openSettingsModal(dock)"
                         class="px-3 py-2 bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-colors"><span
@@ -192,7 +192,7 @@
                                 :class="item.checked ? 'bg-green-500/10 border border-green-500/20' : 'bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-white/20'"
                                 @click="item.checked = !item.checked">
                                 <span class="material-symbols-outlined text-[18px]"
-                                    :class="item.checked ? 'text-green-400' : 'text-gray-600'">
+                                    :class="item.checked ? 'text-green-600 dark:text-green-400' : 'text-gray-600'">
                                     {{ item.checked ? 'check_circle' : 'radio_button_unchecked' }}
                                 </span>
                                 <span class="text-sm"
@@ -202,14 +202,14 @@
                             </div>
                         </div>
                         <div
-                            class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-400 flex items-center gap-2">
+                            class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
                             <span class="material-symbols-outlined text-[16px]">warning</span>
                             Driver must confirm receipt before departure
                         </div>
                         <div class="flex gap-3">
                             <button @click="completeDock" :disabled="!allChecked"
                                 class="flex-1 py-3 rounded-lg font-bold transition-colors"
-                                :class="allChecked ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed'">
+                                :class="allChecked ? 'bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed'">
                                 <span
                                     class="material-symbols-outlined text-[18px] align-middle mr-1">check_circle</span>
                                 Confirm & Release Truck
@@ -285,7 +285,7 @@
                             <div class="text-xs text-gray-600 dark:text-gray-400">{{ truck.truckId }} • {{ truck.pallets
                                 }} Pallets</div>
                             <div v-if="truck.type" class="text-[10px] mt-0.5"><span class="px-1.5 py-0.5 rounded"
-                                    :class="truck.type === 'Inbound' ? 'bg-green-500/20 text-green-400' : truck.type === 'House Shift' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'">{{
+                                    :class="truck.type === 'Inbound' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : truck.type === 'House Shift' ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-blue-500/20 text-blue-600 dark:text-blue-400'">{{ 
                                         truck.type }}</span> <span class="text-gray-500">→ {{ truck.destination }}</span>
                             </div>
                         </div>
