@@ -85,6 +85,13 @@
                             Profile
                         </button>
 
+                        <!-- ID Card Option -->
+                        <button @click="showIdCardModal = true"
+                            class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3">
+                            <span class="material-symbols-outlined text-[20px]">badge</span>
+                            ID Card
+                        </button>
+
                         <!-- Need Support Option -->
                         <div class="relative group/support">
                             <button @click="showSupportModal = true"
@@ -206,11 +213,28 @@
             </template>
         </BaseModal>
     </Teleport>
+
+    <!-- ID Card Modal -->
+    <Teleport to="body">
+        <BaseModal :isOpen="showIdCardModal" @close="showIdCardModal = false">
+            <template #title>Employee ID Card</template>
+            <div class="flex justify-center w-full">
+                <IdCard :employee="employeeData" />
+            </div>
+            <template #footer>
+                <button @click="showIdCardModal = false"
+                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+                    Close
+                </button>
+            </template>
+        </BaseModal>
+    </Teleport>
 </template>
 
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import BaseModal from '@/components/BaseModal.vue'
+import IdCard from '@/components/IdCard.vue'
 import { useWarehouseFloorStore } from '@/stores/warehouseFloorStore'
 
 const store = useWarehouseFloorStore()
@@ -219,6 +243,7 @@ const store = useWarehouseFloorStore()
 const isUserMenuOpen = ref(false)
 const showSupportModal = ref(false)
 const showProfileModal = ref(false)
+const showIdCardModal = ref(false)
 
 // User Data
 const userName = ref('Alex Chen')
@@ -232,6 +257,23 @@ const userInitials = computed(() => {
         .toUpperCase()
         .substring(0, 2)
 })
+
+const employeeData = {
+    name: 'Alex Chen',
+    id: 'WH-1049',
+    designation: 'Warehouse Manager',
+    department: 'Warehouse Operations',
+    address: '123, MG Road, Bangalore - 560001',
+    phone: '+91 98765 43210',
+    email: 'alex.chen@quadcore.dev',
+    joinDate: '15 January 2024',
+    validUntil: '31 December 2026',
+    emergencyContact: {
+        name: 'Jane Doe',
+        relation: 'Spouse',
+        phone: '+91 98765 43211'
+    }
+}
 
 const handleLogout = () => {
     console.log('Logging out...')
