@@ -77,7 +77,7 @@
 
                         <!-- New Service Button -->
                         <button @click="showNewMove = true"
-                            class="hidden sm:flex h-10 rounded-lg items-center justify-center gap-2 bg-primary text-white hover:bg-primary-dark dark:text-black dark:hover:bg-primary-dark transition-colors shadow-sm px-4 text-xs font-bold">
+                            class="hidden sm:flex h-10 rounded-lg items-center justify-center gap-2 bg-primary text-black hover:bg-primary/90 transition-colors shadow-md px-4 text-xs font-bold">
                             <span class="material-symbols-outlined text-[16px]">add</span>
                             New Service
                         </button>
