@@ -6,12 +6,14 @@
                     class="w-10 h-10 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center shadow-lg shadow-green-500/30">
                     <span class="material-symbols-outlined text-black">health_and_safety</span>
                 </div>
-                <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+                <h2
+                    class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
                     Smart Dispatch Assistant</h2>
             </div>
             <div class="flex items-center gap-3">
                 <button @click="showChat = !showChat"
-                    class="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold">
+                    :class="showChat ? 'bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-800 dark:text-white border-gray-300 dark:border-white/20' : 'bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20'"
+                    class="border py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold">
                     <span class="material-symbols-outlined text-[18px]">smart_toy</span>
                     {{ showChat ? 'Hide' : 'AI' }} Chat
                 </button>
@@ -29,71 +31,82 @@
                     class="flex-1 bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm placeholder-gray-500 focus:border-primary/50 focus:outline-none"
                     placeholder='Type a command e.g. "Assign all downtown parcels to the smallest van" or "Re-route Zone B drivers around highway closure"'
                     @keyup.enter="executeNLCommand" />
-                <button @click="executeNLCommand"
-                    :disabled="nlProcessing"
+                <button @click="executeNLCommand" :disabled="nlProcessing"
                     class="bg-primary hover:bg-primary-dark text-black font-bold px-4 py-3 rounded-lg text-sm transition-colors flex items-center gap-1 disabled:opacity-50">
-                    <span v-if="nlProcessing" class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
-                    <span v-else class="material-symbols-outlined text-[18px]">send</span> {{ nlProcessing ? 'Processing...' : 'Execute' }}
+                    <span v-if="nlProcessing"
+                        class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                    <span v-else class="material-symbols-outlined text-[18px]">send</span> {{ nlProcessing ?
+                        'Processing...' : 'Execute' }}
                 </button>
             </div>
             <div v-if="nlResponse" class="mt-3 p-3 bg-green-50 dark:bg-primary/5 border border-primary/20 rounded-lg">
                 <div class="text-[10px] text-primary uppercase font-bold tracking-wider mb-1">AI Response</div>
                 <div class="text-sm text-gray-700 dark:text-gray-300">{{ nlResponse }}</div>
             </div>
-            <div class="mt-2 flex gap-2 flex-wrap">
+            <div class="mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1 max-w-full" @wheel.prevent="handleChipsScroll"
+                style="width: 75vw;">
                 <button v-for="q in quickCommands" :key="q" @click="nlCommand = q; executeNLCommand()"
-                    class="text-[10px] bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-900 dark:text-white px-2 py-1 rounded transition-colors">{{ q }}</button>
+                    class="whitespace-nowrap flex-shrink-0 text-[11px] font-medium bg-white dark:bg-black/30 border border-gray-200 dark:border-white/10 hover:border-primary/50 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-1.5 rounded-full shadow-sm transition-all">{{
+                        q }}</button>
             </div>
         </div>
 
         <div class="grid gap-6" :class="showChat ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'">
             <!-- AI Recommendations -->
-            <div class="glass-panel p-6 rounded-xl">
+            <div class="glass-panel p-6 rounded-xl flex flex-col h-[540px]">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary">lightbulb</span>
                     Live Optimization Suggestions
                 </h3>
-                <div class="space-y-4">
+                <div class="space-y-4 flex-1 overflow-y-auto no-scrollbar pr-2">
                     <div v-for="suggestion in suggestions" :key="suggestion.id"
-                        :class="suggestion.applied ? 'opacity-50' : ''"
-                        class="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl hover:border-primary/30 transition-all cursor-pointer group">
+                        class="p-4 bg-gray-50 dark:bg-white/5 border rounded-xl transition-all cursor-pointer group"
+                        :class="suggestion.applied ? 'border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10' : 'border-gray-200 dark:border-white/5 hover:border-primary/30'">
                         <div class="flex justify-between items-start mb-2">
                             <div :class="suggestion.color" class="font-bold text-sm">
                                 {{ suggestion.applied ? '✓ ' : '' }}{{ suggestion.title }}
                             </div>
-                            <div class="text-xs text-gray-500">
-                                Confidence: <span :class="suggestion.confidence >= 90 ? 'text-green-400' : 'text-yellow-400'" class="font-bold">{{ suggestion.confidence }}%</span>
+                            <div class="text-xs text-gray-600 dark:text-gray-400">
+                                Confidence: <span
+                                    :class="suggestion.confidence >= 90 ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'"
+                                    class="font-bold">{{ suggestion.confidence }}%</span>
                             </div>
                         </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300 mb-2" v-html="suggestion.message"></div>
-                        <div v-if="suggestion.explanation" class="mb-2 p-2 bg-blue-500/5 border border-blue-500/10 rounded text-[11px] text-blue-300">
+                        <div class="text-sm text-gray-700 dark:text-gray-300 mb-2" v-html="suggestion.message"></div>
+                        <div v-if="suggestion.explanation"
+                            class="mb-2 p-2 bg-blue-500/10 dark:bg-blue-500/5 border border-blue-500/30 dark:border-blue-500/10 rounded text-[11px] text-blue-700 dark:text-blue-300">
                             <span class="font-bold">Why:</span> {{ suggestion.explanation }}
                         </div>
                         <div v-if="!suggestion.applied" class="flex gap-2">
                             <button v-for="action in suggestion.actions" :key="action.label"
-                                @click="applySuggestion(suggestion, action.label)"
-                                :class="action.class"
-                                class="px-3 py-1 rounded text-xs font-bold transition-colors">{{ action.label }}</button>
+                                @click="applySuggestion(suggestion, action.label)" :class="action.class"
+                                class="px-3 py-1 rounded text-xs font-bold transition-colors">{{ action.label
+                                }}</button>
                         </div>
-                        <div v-else class="text-[10px] text-green-400 font-bold">Applied successfully</div>
+                        <div v-else
+                            class="text-[10px] text-green-600 dark:text-green-400 font-bold flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                            Applied successfully
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Predictive Load + Peak Demand -->
-            <div class="space-y-6">
-                <div class="glass-panel p-6 rounded-xl">
+            <div class="space-y-6 flex flex-col h-[540px] overflow-y-auto no-scrollbar pr-2">
+                <div class="glass-panel p-6 rounded-xl flex-1">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-4">Demand Prediction (Next 4 Hours)</h3>
                     <div class="h-48">
                         <Bar :data="demandChartData" :options="demandChartOptions" />
                     </div>
                     <div class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                        Peak expected at <span class="text-gray-900 dark:text-white font-bold">14:00</span>. Prepare 3 extra drivers.
+                        Peak expected at <span class="text-gray-900 dark:text-white font-bold">14:00</span>. Prepare 3
+                        extra drivers.
                     </div>
                 </div>
 
                 <!-- Peak Demand Prioritization Controls -->
-                <div class="glass-panel p-6 rounded-xl">
+                <div class="glass-panel p-6 rounded-xl flex-[0_0_auto]">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-red-400">priority_high</span>
                         Peak Demand Prioritization
@@ -101,8 +114,10 @@
                     <div class="space-y-3">
                         <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div>
-                                <div class="text-sm text-gray-900 dark:text-white font-medium">Dynamic Queue Reallocation</div>
-                                <div class="text-[10px] text-gray-500">Auto-reprioritize orders during peak demand surges</div>
+                                <div class="text-sm text-gray-900 dark:text-white font-medium">Dynamic Queue
+                                    Reallocation</div>
+                                <div class="text-[10px] text-gray-500">Auto-reprioritize orders during peak demand
+                                    surges</div>
                             </div>
                             <button @click="togglePeak('reallocation')"
                                 :class="peakReallocation ? 'bg-primary' : 'bg-gray-600'"
@@ -113,11 +128,12 @@
                         </div>
                         <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div>
-                                <div class="text-sm text-gray-900 dark:text-white font-medium">Shift Extension Mode</div>
-                                <div class="text-[10px] text-gray-500">Allow voluntary driver shift extensions during peaks</div>
+                                <div class="text-sm text-gray-900 dark:text-white font-medium">Shift Extension Mode
+                                </div>
+                                <div class="text-[10px] text-gray-500">Allow voluntary driver shift extensions during
+                                    peaks</div>
                             </div>
-                            <button @click="togglePeak('shift')"
-                                :class="shiftExtension ? 'bg-primary' : 'bg-gray-600'"
+                            <button @click="togglePeak('shift')" :class="shiftExtension ? 'bg-primary' : 'bg-gray-600'"
                                 class="w-10 h-5 rounded-full relative transition-colors">
                                 <span class="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all"
                                     :class="shiftExtension ? 'left-5' : 'left-0.5'"></span>
@@ -125,17 +141,19 @@
                         </div>
                         <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div>
-                                <div class="text-sm text-gray-900 dark:text-white font-medium">VIP Orders Priority Lock</div>
-                                <div class="text-[10px] text-gray-500">Guarantee on-time delivery for VIP during peak</div>
+                                <div class="text-sm text-gray-900 dark:text-white font-medium">VIP Orders Priority Lock
+                                </div>
+                                <div class="text-[10px] text-gray-500">Guarantee on-time delivery for VIP during peak
+                                </div>
                             </div>
-                            <button @click="togglePeak('vip')"
-                                :class="vipLock ? 'bg-primary' : 'bg-gray-600'"
+                            <button @click="togglePeak('vip')" :class="vipLock ? 'bg-primary' : 'bg-gray-600'"
                                 class="w-10 h-5 rounded-full relative transition-colors">
                                 <span class="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all"
                                     :class="vipLock ? 'left-5' : 'left-0.5'"></span>
                             </button>
                         </div>
-                        <div v-if="peakToast" class="p-2 bg-primary/10 border border-primary/20 rounded text-xs text-primary text-center transition-all">
+                        <div v-if="peakToast"
+                            class="p-2 bg-primary/10 border border-primary/20 rounded text-xs text-primary text-center transition-all">
                             {{ peakToast }}
                         </div>
                     </div>
@@ -144,8 +162,10 @@
 
             <!-- AI Chat Interface -->
             <div v-if="showChat" class="glass-panel rounded-xl flex flex-col h-[540px]">
-                <div class="p-4 border-b border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-black/20 flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center">
+                <div
+                    class="p-4 border-b border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-black/20 flex items-center gap-2">
+                    <div
+                        class="w-8 h-8 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center">
                         <span class="material-symbols-outlined text-black text-[16px]">smart_toy</span>
                     </div>
                     <div>
@@ -158,41 +178,50 @@
                     <div v-for="msg in chatMessages" :key="msg.id"
                         :class="msg.sender === 'ai' ? 'flex gap-2' : 'flex gap-2 flex-row-reverse'">
                         <div v-if="msg.sender === 'ai'"
-                            class="w-7 h-7 flex-shrink-0 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center">
+                            class="w-7 h-7 flex-shrink-0 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center shadow-sm">
                             <span class="material-symbols-outlined text-black text-[14px]">smart_toy</span>
                         </div>
                         <div v-else
-                            class="w-7 h-7 flex-shrink-0 rounded-full bg-primary flex items-center justify-center text-[9px] text-black font-bold">
+                            class="w-7 h-7 flex-shrink-0 rounded-full bg-primary flex items-center justify-center text-[9px] text-black font-bold shadow-sm">
                             YOU
                         </div>
-                        <div class="max-w-[85%] p-3 rounded-xl text-sm"
-                            :class="msg.sender === 'ai' ? 'bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 rounded-tl-none' : 'bg-primary/20 border border-primary/30 text-gray-900 dark:text-white rounded-tr-none'">
+                        <div class="max-w-[85%] p-3 rounded-xl text-sm shadow-sm font-medium"
+                            :class="msg.sender === 'ai' ? 'bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-gray-800 dark:text-gray-100 rounded-tl-none' : 'bg-primary/30 border border-primary/40 text-black dark:text-white rounded-tr-none'">
                             {{ msg.text }}
                         </div>
                     </div>
                     <div v-if="chatTyping" class="flex gap-2">
-                        <div class="w-7 h-7 flex-shrink-0 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center">
+                        <div
+                            class="w-7 h-7 flex-shrink-0 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center">
                             <span class="material-symbols-outlined text-black text-[14px]">smart_toy</span>
                         </div>
-                        <div class="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 p-3 rounded-xl rounded-tl-none text-gray-400 text-sm">
-                            <span class="inline-flex gap-1"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.15s"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.3s"></span></span>
+                        <div
+                            class="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 p-3 rounded-xl rounded-tl-none text-gray-500 text-sm shadow-sm">
+                            <span class="inline-flex gap-1"><span
+                                    class="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"></span><span
+                                    class="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"
+                                    style="animation-delay:0.15s"></span><span
+                                    class="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"
+                                    style="animation-delay:0.3s"></span></span>
                         </div>
                     </div>
                 </div>
 
-                <div class="p-3 border-t border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-black/20">
-                    <div class="flex gap-2">
+                <div class="p-4 border-t border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-black/40">
+                    <div class="flex items-center gap-2 relative">
                         <input v-model="chatInput" type="text" placeholder="Ask the AI agent..."
-                            class="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full py-2 pl-4 pr-4 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50"
+                            class="flex-1 bg-white dark:bg-white/5 border border-gray-300 dark:border-white/20 shadow-sm rounded-full py-2.5 pl-4 pr-12 text-gray-900 dark:text-white text-sm font-medium focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                             @keyup.enter="sendChat" />
                         <button @click="sendChat"
-                            class="p-2 bg-primary rounded-full text-black hover:scale-105 transition-transform">
+                            class="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 bg-primary rounded-full text-black hover:scale-105 transition-transform flex items-center justify-center shadow-md">
                             <span class="material-symbols-outlined text-[18px]">send</span>
                         </button>
                     </div>
-                    <div class="flex gap-1 mt-2 flex-wrap">
+                    <div class="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-1 max-w-full"
+                        @wheel.prevent="handleChipsScroll" style="max-width: 75vw;">
                         <button v-for="chip in chatChips" :key="chip" @click="chatInput = chip; sendChat()"
-                            class="text-[9px] bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-500 hover:text-gray-900 dark:text-white px-2 py-0.5 rounded-full transition-colors">{{ chip }}</button>
+                            class="whitespace-nowrap flex-shrink-0 text-[11px] font-medium bg-white dark:bg-black/30 border border-gray-200 dark:border-white/10 hover:border-primary/50 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-1 rounded-full shadow-sm transition-all">{{
+                                chip }}</button>
                     </div>
                 </div>
             </div>
@@ -204,9 +233,8 @@
                 <span class="material-symbols-outlined text-yellow-400">schedule</span>
                 AI Delay Prediction Engine
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div v-for="pred in delayPredictions" :key="pred.route"
-                    class="p-4 rounded-xl border"
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div v-for="pred in delayPredictions" :key="pred.route" class="p-4 rounded-xl border"
                     :class="pred.risk === 'High' ? 'bg-red-500/5 border-red-500/20' : pred.risk === 'Medium' ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-green-500/5 border-green-500/20'">
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-gray-900 dark:text-white font-bold text-sm">{{ pred.route }}</span>
@@ -264,7 +292,10 @@ const quickCommands = [
     'Re-route Zone B around highway closure',
     'Show idle drivers near Warehouse 3',
     'Balance load across all active drivers',
-    'Prioritize VIP orders for next 2 hours'
+    'Prioritize VIP orders for next 2 hours',
+    'Find closest vehicle to Warehouse 4',
+    'Delay Route 7 due to weather alerts',
+    'Simulate 20% traffic increase in downtown'
 ]
 
 const chatChips = ['Driver status?', 'Overloaded routes?', 'Idle drivers?', 'SLA risk?']
@@ -296,7 +327,16 @@ function togglePeak(type) {
 }
 
 function applySuggestion(suggestion, actionLabel) {
-    if (actionLabel === 'Ignore' || actionLabel === 'Review') return
+    if (actionLabel === 'Ignore') {
+        const index = suggestions.value.findIndex(s => s.id === suggestion.id)
+        if (index !== -1) suggestions.value.splice(index, 1)
+        return
+    }
+    if (actionLabel === 'Review') {
+        // Mark as reviewed/dismissed
+        suggestion.applied = true
+        return
+    }
     suggestion.applied = true
 }
 
@@ -361,32 +401,40 @@ function scrollChat() {
     })
 }
 
+function handleChipsScroll(e) {
+    if (e.deltaX !== 0) {
+        e.currentTarget.scrollLeft += e.deltaX;
+    } else if (e.deltaY !== 0) {
+        e.currentTarget.scrollLeft += e.deltaY;
+    }
+}
+
 const suggestions = ref([
     {
         id: 1, title: 'Fuel Saving Opportunity', color: 'text-primary', applied: false,
         message: 'Driver <strong>Mike Ross</strong> is near Hub 2. Assigning <strong>Order #9921</strong> for pickup will save 12km detours later.',
         explanation: 'Mike\'s current route passes within 0.8km of Hub 2. Adding this pickup creates a 94% efficient loop vs. 67% if assigned to another driver.',
         confidence: 94,
-        actions: [{ label: 'Apply Change', class: 'bg-primary/20 hover:bg-primary/30 text-primary' }]
+        actions: [{ label: 'Apply Change', class: 'bg-primary/30 hover:bg-primary/40 text-primary-900 dark:text-primary border border-primary/40 dark:border-primary/20' }]
     },
     {
-        id: 2, title: 'Delay Prediction', color: 'text-yellow-400', applied: false,
+        id: 2, title: 'Delay Prediction', color: 'text-yellow-600 dark:text-yellow-400', applied: false,
         message: 'Traffic building up on Route 4. <strong>3 Drivers</strong> likely to miss 5pm window. Suggest rerouting to Route 7 (adds 5km but saves 20 mins).',
         explanation: 'Historical data shows Route 4 congestion peaks at 4:15 PM on weekdays. Route 7 alternative has 92% on-time rate for this time slot.',
         confidence: 88,
         actions: [
-            { label: 'Reroute All', class: 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400' },
-            { label: 'Ignore', class: 'bg-white/10 hover:bg-white/20 text-gray-900 dark:text-white' }
+            { label: 'Reroute All', class: 'bg-yellow-500/30 hover:bg-yellow-500/40 text-yellow-800 dark:text-yellow-400 border border-yellow-500/40 dark:border-yellow-500/20' },
+            { label: 'Ignore', class: 'bg-gray-300 hover:bg-gray-400 dark:bg-white/10 dark:hover:bg-white/20 text-gray-800 dark:text-gray-300 border border-gray-400 dark:border-white/10' }
         ]
     },
     {
-        id: 3, title: 'Load Imbalance Detected', color: 'text-orange-400', applied: false,
+        id: 3, title: 'Load Imbalance Detected', color: 'text-orange-600 dark:text-orange-400', applied: false,
         message: 'Driver <strong>Rahul K.</strong> is at 95% capacity while <strong>Priya S.</strong> (same zone) is at 40%. Transfer 2 orders to balance.',
         explanation: 'Transferring ORD-4412 and ORD-4418 reduces Rahul\'s load to 72% and increases Priya\'s to 63%, equalizing ETAs.',
         confidence: 91,
         actions: [
-            { label: 'Auto-Balance', class: 'bg-orange-500/20 hover:bg-orange-500/30 text-orange-400' },
-            { label: 'Review', class: 'bg-white/10 hover:bg-white/20 text-gray-900 dark:text-white' }
+            { label: 'Auto-Balance', class: 'bg-orange-500/30 hover:bg-orange-500/40 text-orange-800 dark:text-orange-400 border border-orange-500/40 dark:border-orange-500/20' },
+            { label: 'Review', class: 'bg-gray-300 hover:bg-gray-400 dark:bg-white/10 dark:hover:bg-white/20 text-gray-800 dark:text-gray-300 border border-gray-400 dark:border-white/10' }
         ]
     }
 ])
