@@ -112,7 +112,7 @@
 
                 <!-- Manual Override Panel -->
                 <div v-if="showManualOverride"
-                    class="absolute top-4 right-4 z-10 bg-black/90 backdrop-blur border border-yellow-500/30 rounded-xl p-4 w-72">
+                    class="absolute top-4 right-4 z-10 bg-white/90 dark:bg-black/90 backdrop-blur border border-yellow-500/30 rounded-xl p-4 w-72">
                     <div class="flex items-center gap-2 mb-3">
                         <span class="material-symbols-outlined text-yellow-400 text-[18px]">pan_tool</span>
                         <span class="font-bold text-yellow-400 text-sm">Manual Override Mode</span>
@@ -145,7 +145,7 @@
                 </div>
 
                 <!-- ETA Generation Panel -->
-                <div class="absolute top-4 left-4 z-10 bg-black/80 backdrop-blur border border-gray-200 dark:border-white/10 rounded-xl p-4 w-64">
+                <div class="absolute top-4 left-4 z-10 bg-white/90 dark:bg-black/80 backdrop-blur border border-gray-200 dark:border-white/10 rounded-xl p-4 w-64">
                     <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-2">ETA Generation</div>
                     <div class="space-y-2 text-xs">
                         <div class="flex justify-between"><span class="text-gray-400">Stop 1 ETA</span><span class="text-gray-900 dark:text-white font-mono">9:45 AM</span></div>
@@ -166,14 +166,14 @@
 
                 <!-- Results Summary Overlay -->
                 <div
-                    class="absolute bottom-6 left-6 right-6 bg-black/80 backdrop-blur-md rounded-lg p-4 border border-gray-200 dark:border-white/10 flex justify-between items-center">
+                    class="absolute bottom-6 left-6 right-6 bg-white/90 dark:bg-black/80 backdrop-blur-md rounded-lg p-4 border border-gray-200 dark:border-white/10 flex justify-between items-center">
                     <div>
                         <div class="text-xs text-gray-400">Proposed Solution</div>
                         <div class="text-gray-900 dark:text-white font-bold">{{ routeStats.routes }} Routes • {{ routeStats.distance }} km Total • {{ routeStats.efficiency }}% Efficiency</div>
                     </div>
                     <div class="flex gap-2">
                         <button @click="adjustRoutes"
-                            class="px-4 py-2 rounded bg-white/10 hover:bg-white/20 text-gray-900 dark:text-white text-sm transition-colors">Adjust</button>
+                            class="px-4 py-2 rounded bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white text-sm transition-colors">Adjust</button>
                         <button @click="applyRoutes" :disabled="routesApplied"
                             class="px-4 py-2 rounded bg-primary text-black font-bold text-sm hover:bg-primary-dark transition-colors disabled:opacity-50">
                             {{ routesApplied ? '✓ Applied' : 'Apply Routes' }}

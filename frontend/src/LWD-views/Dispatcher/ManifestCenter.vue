@@ -42,7 +42,7 @@
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Route ID (Auto-generated)</label>
                         <input type="text" :value="generatedRouteId" readonly
-                            class="w-full bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-500 text-sm">
+                            class="w-full bg-gray-200 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-500 text-sm">
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Labor Crew (if applicable)</label>

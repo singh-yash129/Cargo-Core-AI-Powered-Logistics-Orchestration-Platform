@@ -42,7 +42,7 @@
         </div>
 
         <!-- Drop Zone / Comparison Area -->
-        <div class="flex-1 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-wrap content-start items-start justify-start p-4 gap-4 overflow-y-auto min-h-[500px]"
+        <div class="flex-1 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-wrap content-start items-start justify-start p-4 gap-4 overflow-x-auto min-h-[500px]"
             @dragover.prevent @drop="onDrop">
             <div v-if="!store.comparedZones || store.comparedZones.length === 0"
                 class="m-auto w-full text-center text-gray-500 dark:text-gray-400 mt-20">

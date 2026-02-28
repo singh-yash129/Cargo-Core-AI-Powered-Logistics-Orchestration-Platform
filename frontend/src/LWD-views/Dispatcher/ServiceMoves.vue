@@ -130,20 +130,20 @@
                         <div class="flex items-center gap-1 text-[10px] text-yellow-400 font-bold mb-1">
                             <span class="material-symbols-outlined text-[12px]">info</span> Special Notes
                         </div>
-                        <div class="text-xs text-yellow-200">{{ move.notes }}</div>
+                        <div class="text-xs text-yellow-600 dark:text-yellow-200">{{ move.notes }}</div>
                     </div>
 
                     <!-- Actions -->
                     <div class="flex gap-2 pt-2">
-                        <button @click="trackMove(move)" class="flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1" :class="move.tracking ? 'bg-green-500/20 text-green-400' : 'bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-white'">
+                        <button @click="trackMove(move)" class="flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1" :class="move.tracking ? 'bg-green-500/20 text-green-400' : 'bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white'">
                             <span class="material-symbols-outlined text-[14px]">{{ move.tracking ? 'gps_fixed' : 'visibility' }}</span> {{ move.tracking ? 'Tracking Live' : 'Track' }}
                         </button>
                         <button @click="contactCrew(move)" class="flex-1 bg-primary/10 hover:bg-primary/20 text-primary py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1">
                             <span class="material-symbols-outlined text-[14px]">chat</span> Contact Crew
                         </button>
-                        <button @click="toggleMoveMenu(move)" class="bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-400 py-2 px-3 rounded-lg text-xs font-bold transition-colors relative">
+                        <button @click="toggleMoveMenu(move)" class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 py-2 px-3 rounded-lg text-xs font-bold transition-colors relative">
                             <span class="material-symbols-outlined text-[14px]">more_vert</span>
-                            <div v-if="moveMenu === move.id" class="absolute bottom-full right-0 mb-1 bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-40">
+                            <div v-if="moveMenu === move.id" class="absolute bottom-full right-0 mb-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-40">
                                 <button @click.stop="cancelMove(move)" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-gray-100 dark:hover:bg-white/5">Cancel Move</button>
                                 <button @click.stop="completeMove(move)" class="w-full text-left px-3 py-2 text-xs text-green-400 hover:bg-gray-100 dark:hover:bg-white/5">Mark Complete</button>
                             </div>
@@ -201,7 +201,7 @@
                 <div class="flex gap-2 mt-4">
                     <button @click="createServiceMove" :disabled="!newMove.title || !newMove.pickup"
                         class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-50">Create Move</button>
-                    <button @click="showNewMove = false" class="flex-1 bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm">Cancel</button>
+                    <button @click="showNewMove = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
                 </div>
             </div>
         </div>

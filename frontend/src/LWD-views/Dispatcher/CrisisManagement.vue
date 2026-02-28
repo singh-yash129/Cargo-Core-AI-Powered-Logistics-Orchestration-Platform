@@ -32,7 +32,7 @@
                 </div>
                 <div class="flex gap-2">
                     <button @click="autoReroute(d)" class="text-xs px-3 py-1.5 rounded font-bold transition-colors"
-                        :class="d.rerouted ? 'bg-green-500/20 text-green-400' : 'bg-white/10 hover:bg-white/20 text-white'">
+                        :class="d.rerouted ? 'bg-green-500/20 text-green-400' : 'bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-white'">
                         {{ d.rerouted ? '✓ Rerouted' : 'Auto-Reroute' }}
                     </button>
                     <button @click="updateETAs(d)" class="text-xs px-3 py-1.5 rounded font-bold transition-colors"
@@ -58,7 +58,7 @@
                     </div>
                     <div class="text-xs text-gray-400">{{ crisis.timeAgo }}</div>
                 </div>
-                <div class="text-gray-200 text-sm mb-3">{{ crisis.description }}</div>
+                <div class="text-gray-600 dark:text-gray-200 text-sm mb-3">{{ crisis.description }}</div>
 
                 <!-- Affected Orders / Reassignment -->
                 <div v-if="crisis.affectedOrders?.length" class="mb-3 p-3 bg-gray-100 dark:bg-black/30 rounded-lg">
@@ -98,7 +98,7 @@
             <div class="lg:col-span-2 glass-panel rounded-xl h-[400px] relative overflow-hidden">
                 <div class="absolute inset-0 bg-gray-200 dark:bg-gray-800 bg-gradient-to-br from-gray-200 dark:from-gray-800 to-gray-100 dark:to-gray-900 opacity-50"></div>
                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div class="bg-black/80 backdrop-blur border border-red-500/30 px-6 py-4 rounded-xl text-center">
+                    <div class="bg-white/90 dark:bg-black/80 backdrop-blur border border-red-500/30 px-6 py-4 rounded-xl text-center">
                         <div class="text-red-400 font-bold text-lg mb-1">Live Crisis Map</div>
                         <div class="text-gray-400 text-xs">Showing {{ activeCrises.length }} active incidents</div>
                     </div>
@@ -109,7 +109,7 @@
                 <div class="absolute bottom-1/3 right-1/3 w-4 h-4 rounded-full bg-yellow-500 animate-ping"></div>
                 <div class="absolute bottom-1/3 right-1/3 w-4 h-4 rounded-full bg-yellow-500 border-2 border-white"></div>
                 <!-- Weather overlay indicator -->
-                <div class="absolute top-4 right-4 bg-black/80 backdrop-blur border border-gray-200 dark:border-white/10 rounded-lg p-3">
+                <div class="absolute top-4 right-4 bg-white/90 dark:bg-black/80 backdrop-blur border border-gray-200 dark:border-white/10 rounded-lg p-3">
                     <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Weather Disruptions</div>
                     <div class="flex items-center gap-2 text-xs text-yellow-400">
                         <span class="material-symbols-outlined text-[16px]">thunderstorm</span> Heavy rain – Zone C
@@ -187,7 +187,7 @@
                     class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none mb-3"></textarea>
                 <div class="flex gap-2">
                     <button @click="sendBroadcast" :disabled="!broadcastMsg" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded-lg text-sm disabled:opacity-50">Broadcast Now</button>
-                    <button @click="showBroadcast = false" class="flex-1 bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm">Cancel</button>
+                    <button @click="showBroadcast = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
                 </div>
                 <div v-if="broadcastSent" class="mt-2 text-center text-xs text-green-400 font-bold">✓ Alert broadcast to all active drivers</div>
             </div>
@@ -221,7 +221,7 @@ const activeCrises = ref([
         ],
         actions: [
             { label: 'Dispatch Recovery', class: 'bg-red-500 hover:bg-red-600 text-white' },
-            { label: 'Contact Driver', class: 'bg-white/10 hover:bg-white/20 text-gray-900 dark:text-white' }
+            { label: 'Contact Driver', class: 'bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white' }
         ]
     },
     {
@@ -233,7 +233,7 @@ const activeCrises = ref([
         ],
         actions: [
             { label: 'Reroute All', class: 'bg-yellow-500 hover:bg-yellow-600 text-black' },
-            { label: 'Ignore', class: 'bg-white/10 hover:bg-white/20 text-gray-900 dark:text-white' }
+            { label: 'Ignore', class: 'bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white' }
         ]
     }
 ])

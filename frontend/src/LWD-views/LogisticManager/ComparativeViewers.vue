@@ -40,7 +40,7 @@
 
         <!-- Drop Zone / Comparison Area -->
         <div 
-            class="flex-1 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex items-start justify-start p-4 gap-4 overflow-x-auto min-h-[500px]"
+            class="flex-1 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-wrap content-start items-start justify-start p-4 gap-4 overflow-x-auto min-h-[500px]"
             @dragover.prevent
             @drop="onDrop"
         >

@@ -12,7 +12,7 @@
                 <div class="relative">
                     <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-500">search</span>
                     <input type="text" v-model="searchQuery" placeholder="Find contact..."
-                        class="w-full bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-10 pr-4 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50">
+                        class="w-full bg-gray-100 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-10 pr-4 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50">
                 </div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar">
@@ -26,7 +26,7 @@
                             <span class="material-symbols-outlined text-blue-400 text-[18px]">warehouse</span>
                         </div>
                         <img v-else :src="contact.avatar" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700">
-                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-black"
+                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-white dark:border-black"
                             :class="contact.online ? 'bg-green-500' : 'bg-gray-500'"></span>
                     </div>
                     <div class="flex-1 min-w-0">
@@ -67,13 +67,13 @@
                         title="Urgent Instruction">
                         <span class="material-symbols-outlined">priority_high</span>
                     </button>
-                    <button @click="togglePTT" class="p-2 hover:bg-white/10 rounded-full transition-colors"
+                    <button @click="togglePTT" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-colors"
                         :class="pttActive ? 'text-red-400 bg-red-500/20 animate-pulse' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'"
                         title="Push to Talk"><span class="material-symbols-outlined">mic</span></button>
-                    <button @click="toggleCall" class="p-2 hover:bg-white/10 rounded-full transition-colors"
+                    <button @click="toggleCall" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-colors"
                         :class="callActive ? 'text-green-400 bg-green-500/20 animate-pulse' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'"><span
                             class="material-symbols-outlined">{{ callActive ? 'call_end' : 'call' }}</span></button>
-                    <button @click="showLog = !showLog" class="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-gray-900 dark:text-white"
+                    <button @click="showLog = !showLog" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-white"
                         title="Communication Log"><span class="material-symbols-outlined">history</span></button>
                 </div>
             </div>
@@ -88,7 +88,7 @@
                 Urgent instruction sent – awaiting acknowledgment
             </div>
 
-            <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-black/10" ref="chatAreaRef">
+            <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-black/10" ref="chatAreaRef">
                 <!-- Messages -->
                 <div v-for="msg in currentMessages" :key="msg.id" :class="msg.from === 'dispatch' ? 'flex gap-3 flex-row-reverse' : 'flex gap-3'">
                     <template v-if="msg.type === 'system'">

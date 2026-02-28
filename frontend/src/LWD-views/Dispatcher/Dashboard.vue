@@ -28,7 +28,7 @@
                     <div class="flex items-center gap-3 mb-2">
                         <div class="relative">
                             <img :src="driver.avatar" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 object-cover">
-                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-card-dark"
+                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-card-dark"
                                 :class="driver.statusColor"></span>
                         </div>
                         <div>
@@ -63,20 +63,20 @@
         </transition>
 
         <!-- Center Panel: Interactive Map -->
-        <div class="flex-1 bg-gray-900 relative">
+        <div class="flex-1 bg-gray-200 dark:bg-gray-900 relative">
             <!-- Map Placeholder -->
             <div class="absolute inset-0 bg-gradient-to-br from-gray-200 dark:from-gray-800 to-gray-100 dark:to-gray-900 opacity-60"></div>
-            <div class="absolute inset-0 bg-background-dark/20 backdrop-blur-[2px]"></div>
+            <div class="absolute inset-0 bg-gray-100/20 dark:bg-background-dark/20 backdrop-blur-[2px]"></div>
 
             <!-- Left Panel Toggle -->
             <button @click="showLeftPanel = !showLeftPanel"
-                class="absolute top-4 left-4 z-20 glass-panel p-2 rounded-lg hover:bg-white/10 transition-colors group" :title="showLeftPanel ? 'Hide Drivers' : 'Show Drivers'">
+                class="absolute top-4 left-4 z-20 glass-panel p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 transition-colors group" :title="showLeftPanel ? 'Hide Drivers' : 'Show Drivers'">
                 <span class="material-symbols-outlined text-[18px]" :class="showLeftPanel ? 'text-primary' : 'text-gray-400 group-hover:text-gray-900 dark:text-white'">{{ showLeftPanel ? 'left_panel_close' : 'left_panel_open' }}</span>
             </button>
 
             <!-- Right Panel Toggle -->
             <button @click="showRightPanel = !showRightPanel"
-                class="absolute top-4 right-4 z-20 glass-panel p-2 rounded-lg hover:bg-white/10 transition-colors group" :title="showRightPanel ? 'Hide Loads' : 'Show Loads'">
+                class="absolute top-4 right-4 z-20 glass-panel p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 transition-colors group" :title="showRightPanel ? 'Hide Loads' : 'Show Loads'">
                 <span class="material-symbols-outlined text-[18px]" :class="showRightPanel ? 'text-primary' : 'text-gray-400 group-hover:text-gray-900 dark:text-white'">{{ showRightPanel ? 'right_panel_close' : 'right_panel_open' }}</span>
             </button>
 
@@ -105,11 +105,11 @@
                 <div class="relative group cursor-pointer" style="left: -100px; top: -50px;">
                     <div class="w-16 h-16 bg-primary/10 rounded-full animate-ping absolute inset-0"></div>
                     <div
-                        class="w-8 h-8 bg-background-dark rounded-full border-2 border-primary flex items-center justify-center relative z-10 shadow-lg">
+                        class="w-8 h-8 bg-white dark:bg-background-dark rounded-full border-2 border-primary flex items-center justify-center relative z-10 shadow-lg">
                         <span class="material-symbols-outlined text-primary text-[14px]">local_shipping</span>
                     </div>
                     <div
-                        class="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-background-dark/90 rounded text-[10px] text-gray-900 dark:text-white whitespace-nowrap border border-gray-200 dark:border-white/10 hidden group-hover:block z-20">
+                        class="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-white/90 dark:bg-background-dark/90 rounded text-[10px] text-gray-900 dark:text-white whitespace-nowrap border border-gray-200 dark:border-white/10 hidden group-hover:block z-20">
                         Driver: J. Doe
                     </div>
                 </div>
@@ -130,14 +130,14 @@
 
             <!-- Bottom Map Toolbar -->
             <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 glass-panel p-2 rounded-xl flex gap-1">
-                <button @click="toggleMapLayer('layers')" :class="mapLayers.layers ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Layers"><span
+                <button @click="toggleMapLayer('layers')" :class="mapLayers.layers ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors" title="Layers"><span
                         class="material-symbols-outlined">layers</span></button>
-                <button @click="toggleMapLayer('traffic')" :class="mapLayers.traffic ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Traffic"><span
+                <button @click="toggleMapLayer('traffic')" :class="mapLayers.traffic ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors" title="Traffic"><span
                         class="material-symbols-outlined">traffic</span></button>
-                <button @click="toggleMapLayer('heatmap')" :class="mapLayers.heatmap ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Heatmap"><span
+                <button @click="toggleMapLayer('heatmap')" :class="mapLayers.heatmap ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors" title="Heatmap"><span
                         class="material-symbols-outlined">blur_on</span></button>
-                <div class="w-[1px] h-8 bg-white/10 mx-1"></div>
-                <button @click="toggleMapLayer('history')" :class="mapLayers.history ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Route Replay"><span
+                <div class="w-[1px] h-8 bg-gray-200 dark:bg-white/10 mx-1"></div>
+                <button @click="toggleMapLayer('history')" :class="mapLayers.history ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors" title="Route Replay"><span
                         class="material-symbols-outlined">history</span></button>
             </div>
         </div>
@@ -225,7 +225,7 @@
             <div class="flex gap-2">
                 <button @click="confirmAssign" :disabled="!assignOrderId || !assignDriverId"
                     class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark transition-colors">Assign</button>
-                <button @click="showAssignModal = false" class="flex-1 bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-white/20 transition-colors">Cancel</button>
+                <button @click="showAssignModal = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
             </div>
             <div v-if="assignSuccess" class="mt-3 text-center text-xs text-green-400 font-bold">✓ Order assigned successfully!</div>
         </div>
@@ -245,7 +245,7 @@
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar p-4 space-y-2">
                 <div v-for="msg in driverChatMessages" :key="msg.id" :class="msg.from === 'dispatch' ? 'flex justify-end' : 'flex justify-start'">
-                    <div class="max-w-[80%] p-2 rounded-xl text-xs" :class="msg.from === 'dispatch' ? 'bg-primary/20 text-gray-900 dark:text-white' : 'bg-white/10 text-gray-600 dark:text-gray-300'">{{ msg.text }}</div>
+                    <div class="max-w-[80%] p-2 rounded-xl text-xs" :class="msg.from === 'dispatch' ? 'bg-primary/20 text-gray-900 dark:text-white' : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300'">{{ msg.text }}</div>
                 </div>
             </div>
             <div class="p-3 border-t border-gray-200 dark:border-white/5 flex gap-2">

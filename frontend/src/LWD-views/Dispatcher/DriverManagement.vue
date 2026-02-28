@@ -207,7 +207,7 @@
                     class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none mb-3"></textarea>
                 <div class="flex gap-2">
                     <button @click="sendBroadcast" class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm">Send to All</button>
-                    <button @click="showBroadcast = false" class="flex-1 bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm">Cancel</button>
+                    <button @click="showBroadcast = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
                 </div>
                 <div v-if="broadcastSent" class="mt-2 text-center text-xs text-green-400 font-bold">✓ Broadcast sent to {{ filteredDrivers.length }} drivers</div>
             </div>
@@ -229,7 +229,7 @@
                 </div>
                 <div class="flex gap-2 mt-4">
                     <button @click="onboardDriver" :disabled="!newDriver.name" class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-50">Onboard</button>
-                    <button @click="showOnboard = false" class="flex-1 bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm">Cancel</button>
+                    <button @click="showOnboard = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
                 </div>
             </div>
         </div>

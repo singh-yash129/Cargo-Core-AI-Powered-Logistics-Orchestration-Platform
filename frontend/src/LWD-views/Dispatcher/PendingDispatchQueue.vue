@@ -132,7 +132,7 @@
                             </td>
                             <td class="p-4">
                                 <div v-if="order.specialInstructions" class="max-w-[150px]">
-                                    <span class="text-xs text-yellow-300 truncate block" :title="order.specialInstructions">
+                                    <span class="text-xs text-yellow-600 dark:text-yellow-300 truncate block" :title="order.specialInstructions">
                                         {{ order.specialInstructions }}
                                     </span>
                                 </div>
@@ -288,7 +288,7 @@
                         Approve & Assign
                     </button>
                     <button @click="holdFeasOrder"
-                        class="flex-1 bg-white/10 hover:bg-white/20 text-gray-900 dark:text-white font-bold py-2.5 rounded-lg transition-colors">
+                        class="flex-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white font-bold py-2.5 rounded-lg transition-colors">
                         Hold Order
                     </button>
                     <button @click="escalateFeasOrder"

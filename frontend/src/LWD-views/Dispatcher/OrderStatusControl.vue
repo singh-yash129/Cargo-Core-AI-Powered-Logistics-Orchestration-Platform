@@ -181,9 +181,9 @@
                                         class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-[10px] font-bold">
                                         View PoD
                                     </button>
-                                    <button @click="toggleOrderMenu(order)" class="p-1 hover:bg-white/10 rounded text-gray-400 relative">
+                                    <button @click="toggleOrderMenu(order)" class="p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded text-gray-400 relative">
                                         <span class="material-symbols-outlined text-[14px]">more_vert</span>
-                                        <div v-if="orderMenu === order.id" class="absolute bottom-full right-0 mb-1 bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-36">
+                                        <div v-if="orderMenu === order.id" class="absolute bottom-full right-0 mb-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-36">
                                             <button @click.stop="cancelOrder(order)" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-gray-100 dark:hover:bg-white/5">Cancel Order</button>
                                             <button @click.stop="escalateOrder(order)" class="w-full text-left px-3 py-2 text-xs text-yellow-400 hover:bg-gray-100 dark:hover:bg-white/5">Escalate</button>
                                         </div>
@@ -254,7 +254,7 @@
                         <span class="text-gray-400">Condition</span><span class="text-gray-900 dark:text-white">Good — No damage reported</span>
                     </div>
                 </div>
-                <button @click="showPoD = false" class="mt-4 w-full bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm font-bold">Close</button>
+                <button @click="showPoD = false" class="mt-4 w-full bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm font-bold hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Close</button>
             </div>
         </div>
         </Teleport>
