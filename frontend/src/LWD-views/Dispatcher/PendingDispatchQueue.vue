@@ -8,11 +8,11 @@
             </div>
             <div class="flex gap-2">
                 <button @click="runGlobalFeasibilityCheck"
-                    class="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold">
+                    class="bg-yellow-100 dark:bg-yellow-500/15 hover:bg-yellow-200 dark:hover:bg-yellow-500/25 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-500/30 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold">
                     <span class="material-symbols-outlined text-[18px]">verified</span> Feasibility Check
                 </button>
                 <button @click="batchAssign" :disabled="selectedOrders.length === 0"
-                    class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm disabled:opacity-50">
+                    class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm disabled:opacity-40 disabled:cursor-not-allowed">
                     <span class="material-symbols-outlined text-[18px]">assignment_turned_in</span> Batch Assign ({{ selectedOrders.length }})
                 </button>
             </div>
@@ -50,24 +50,24 @@
                     class="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-10 pr-4 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50">
             </div>
             <select v-model="filterPriority"
-                class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm">
-                <option value="">All Priorities</option>
-                <option value="URGENT">Urgent</option>
-                <option value="HIGH">High</option>
-                <option value="NORMAL">Normal</option>
-                <option value="LOW">Low</option>
+                class="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50">
+                <option value="" class="bg-white dark:bg-gray-800">All Priorities</option>
+                <option value="URGENT" class="bg-white dark:bg-gray-800">Urgent</option>
+                <option value="HIGH" class="bg-white dark:bg-gray-800">High</option>
+                <option value="NORMAL" class="bg-white dark:bg-gray-800">Normal</option>
+                <option value="LOW" class="bg-white dark:bg-gray-800">Low</option>
             </select>
             <select v-model="filterWarehouse"
-                class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm">
-                <option value="">All Warehouses</option>
-                <option v-for="wh in warehouses" :key="wh" :value="wh">{{ wh }}</option>
+                class="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50">
+                <option value="" class="bg-white dark:bg-gray-800">All Warehouses</option>
+                <option v-for="wh in warehouses" :key="wh" :value="wh" class="bg-white dark:bg-gray-800">{{ wh }}</option>
             </select>
             <select v-model="filterFeasibility"
-                class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm">
-                <option value="">All Status</option>
-                <option value="feasible">Feasible</option>
-                <option value="infeasible">Not Feasible</option>
-                <option value="unchecked">Unchecked</option>
+                class="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50">
+                <option value="" class="bg-white dark:bg-gray-800">All Status</option>
+                <option value="feasible" class="bg-white dark:bg-gray-800">Feasible</option>
+                <option value="infeasible" class="bg-white dark:bg-gray-800">Not Feasible</option>
+                <option value="unchecked" class="bg-white dark:bg-gray-800">Unchecked</option>
             </select>
         </div>
 
@@ -154,16 +154,16 @@
                             <td class="p-4">
                                 <div class="flex gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
                                     <button @click="runFeasibilityCheck(order)"
-                                        class="p-1.5 hover:bg-yellow-500/20 rounded text-yellow-400" title="Run Feasibility Check">
+                                        class="p-1.5 bg-yellow-100 dark:bg-yellow-500/10 hover:bg-yellow-200 dark:hover:bg-yellow-500/20 rounded text-yellow-700 dark:text-yellow-400 transition-colors" title="Run Feasibility Check">
                                         <span class="material-symbols-outlined text-[16px]">verified</span>
                                     </button>
-                                    <button @click="assignDriver(order)" class="p-1.5 hover:bg-primary/20 rounded text-primary" title="Assign Driver">
+                                    <button @click="assignDriver(order)" class="p-1.5 bg-green-100 dark:bg-primary/10 hover:bg-green-200 dark:hover:bg-primary/20 rounded text-green-700 dark:text-primary transition-colors" title="Assign Driver">
                                         <span class="material-symbols-outlined text-[16px]">person_add</span>
                                     </button>
-                                    <button @click="escalateOrder(order)" class="p-1.5 rounded" :class="order.priority === 'URGENT' ? 'hover:bg-yellow-500/20 text-yellow-400' : 'hover:bg-blue-500/20 text-blue-400'" :title="order.priority === 'URGENT' ? 'Set Normal' : 'Escalate to Urgent'">
+                                    <button @click="escalateOrder(order)" class="p-1.5 rounded transition-colors" :class="order.priority === 'URGENT' ? 'bg-yellow-100 dark:bg-yellow-500/10 hover:bg-yellow-200 dark:hover:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' : 'bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400'" :title="order.priority === 'URGENT' ? 'Set Normal' : 'Escalate to Urgent'">
                                         <span class="material-symbols-outlined text-[16px]">{{ order.priority === 'URGENT' ? 'arrow_downward' : 'arrow_upward' }}</span>
                                     </button>
-                                    <button @click="holdOrder(order)" class="p-1.5 hover:bg-white/10 rounded text-gray-400" title="Hold Order">
+                                    <button @click="holdOrder(order)" class="p-1.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/15 rounded text-gray-600 dark:text-gray-400 transition-colors" title="Hold Order">
                                         <span class="material-symbols-outlined text-[16px]">pause_circle</span>
                                     </button>
                                 </div>
@@ -284,15 +284,15 @@
 
                 <div class="flex gap-3 mt-6">
                     <button @click="approveAndAssign"
-                        class="flex-1 bg-primary hover:bg-primary-dark text-background-dark font-bold py-2.5 rounded-lg transition-colors">
+                        class="flex-1 bg-primary hover:bg-primary-dark text-black font-bold py-2.5 rounded-lg transition-colors">
                         Approve & Assign
                     </button>
                     <button @click="holdFeasOrder"
-                        class="flex-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white font-bold py-2.5 rounded-lg transition-colors">
+                        class="flex-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 text-gray-900 dark:text-white font-bold py-2.5 rounded-lg transition-colors">
                         Hold Order
                     </button>
                     <button @click="escalateFeasOrder"
-                        class="bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold py-2.5 px-4 rounded-lg transition-colors">
+                        class="bg-red-500/10 dark:bg-red-500/20 hover:bg-red-500/20 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 font-bold py-2.5 px-4 rounded-lg transition-colors">
                         Escalate
                     </button>
                 </div>
@@ -306,7 +306,7 @@
     <!-- Assign Confirm Modal -->
     <Teleport to="body">
     <div v-if="showAssignConfirm" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showAssignConfirm = false">
-        <div class="glass-panel rounded-2xl p-6 w-full max-w-sm m-4 border border-gray-200 dark:border-white/10">
+        <div class="bg-white dark:bg-card-dark rounded-2xl p-6 w-full max-w-sm m-4 border border-gray-200 dark:border-white/10 shadow-2xl">
             <h3 class="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">assignment_turned_in</span> Confirm Assignment
             </h3>
@@ -314,8 +314,8 @@
                 Assign <strong>{{ assignConfirmOrder?.id }}</strong> ({{ assignConfirmOrder?.weight }}kg, {{ assignConfirmOrder?.priority }}) to next available driver?
             </p>
             <div class="flex gap-2">
-                <button @click="confirmAssign" class="flex-1 bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 rounded-lg text-sm transition-colors">Assign</button>
-                <button @click="showAssignConfirm = false" class="flex-1 bg-gray-50 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm">Cancel</button>
+                <button @click="confirmAssign" class="flex-1 bg-primary hover:bg-primary-dark text-black font-bold py-2 rounded-lg text-sm transition-colors">Assign</button>
+                <button @click="showAssignConfirm = false" class="flex-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white py-2 rounded-lg text-sm transition-colors">Cancel</button>
             </div>
         </div>
     </div>
@@ -324,7 +324,7 @@
     <!-- Batch Assign Confirm Modal -->
     <Teleport to="body">
     <div v-if="showBatchConfirm" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showBatchConfirm = false">
-        <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10">
+        <div class="bg-white dark:bg-card-dark rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10 shadow-2xl">
             <h3 class="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">assignment_turned_in</span> Confirm Batch Assignment
             </h3>
@@ -338,9 +338,10 @@
                 </div>
             </div>
             <div class="flex gap-2">
-                <button @click="confirmBatchAssign" class="flex-1 bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 rounded-lg text-sm transition-colors">Dispatch All</button>
-                <button @click="showBatchConfirm = false" class="flex-1 bg-gray-50 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm">Cancel</button>
+                <button @click="confirmBatchAssign" class="flex-1 bg-primary hover:bg-primary-dark text-black font-bold py-2 rounded-lg text-sm transition-colors">Dispatch All</button>
+                <button @click="showBatchConfirm = false" class="flex-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white py-2 rounded-lg text-sm transition-colors">Cancel</button>
             </div>
+            <div v-if="batchToast" class="mt-3 text-center text-xs text-green-500 font-bold">{{ batchToast }}</div>
         </div>
     </div>
     </Teleport>
@@ -361,6 +362,7 @@ const feasibilityToast = ref('')
 const showAssignConfirm = ref(false)
 const assignConfirmOrder = ref(null)
 const showBatchConfirm = ref(false)
+const batchToast = ref('')
 
 const warehouses = ['North-East Hub', 'South Hub', 'West DC', 'Central Depot', 'Airport Hub']
 
@@ -489,9 +491,13 @@ function batchAssign() {
 }
 
 function confirmBatchAssign() {
+    const count = selectedOrders.value.length
     const ids = selectedOrders.value.map(o => o.id)
-    pendingOrders.value = pendingOrders.value.filter(o => !ids.includes(o.id))
-    selectAll.value = false
-    showBatchConfirm.value = false
+    batchToast.value = `✓ ${count} order${count > 1 ? 's' : ''} dispatched successfully`
+    setTimeout(() => {
+        pendingOrders.value = pendingOrders.value.filter(o => !ids.includes(o.id))
+        selectAll.value = false
+        setTimeout(() => { showBatchConfirm.value = false; batchToast.value = '' }, 300)
+    }, 1200)
 }
 </script>

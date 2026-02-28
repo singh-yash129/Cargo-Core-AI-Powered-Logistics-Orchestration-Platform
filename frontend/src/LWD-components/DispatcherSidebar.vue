@@ -37,7 +37,7 @@
 
             <!-- Zone Status -->
             <div class="mt-8 px-4">
-                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Zone Status</div>
+                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Dispatch Metrics</div>
                 <div class="grid grid-cols-2 gap-2">
                     <div v-for="zone in zones" :key="zone.id"
                         class="bg-gray-100 dark:bg-white/5 rounded p-2 text-center border border-gray-200 dark:border-white/5 transition-colors cursor-pointer"

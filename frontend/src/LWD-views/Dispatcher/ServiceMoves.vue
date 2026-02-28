@@ -6,7 +6,7 @@
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Service Move & Time Blocking</h2>
                 <p class="text-sm text-gray-400 mt-1">Manage house shifts, office relocations — crew manifest, extended time blocks, dwell time</p>
             </div>
-            <button @click="showNewMove = true" class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm">
+            <button @click="showNewMove = true" class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm">
                 <span class="material-symbols-outlined text-[18px]">add</span> New Service Move
             </button>
         </div>
@@ -15,23 +15,23 @@
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ serviceMoves.length }}</div>
-                <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Active Moves</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Active Moves</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-blue-400">{{ totalCrewCount }}</div>
-                <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Crew Deployed</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Crew Deployed</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-purple-400">{{ blockedHours }}h</div>
-                <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Time Blocked</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Time Blocked</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-yellow-400">{{ vehiclesReserved }}</div>
-                <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Vehicles Reserved</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Vehicles Reserved</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-primary">{{ completedToday }}</div>
-                <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Completed Today</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Completed Today</div>
             </div>
         </div>
 
@@ -135,17 +135,17 @@
 
                     <!-- Actions -->
                     <div class="flex gap-2 pt-2">
-                        <button @click="trackMove(move)" class="flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1" :class="move.tracking ? 'bg-green-500/20 text-green-400' : 'bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white'">
+                        <button @click="trackMove(move)" class="flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 border" :class="move.tracking ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-300 dark:border-green-500/30' : 'bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white border-gray-200 dark:border-white/10'">
                             <span class="material-symbols-outlined text-[14px]">{{ move.tracking ? 'gps_fixed' : 'visibility' }}</span> {{ move.tracking ? 'Tracking Live' : 'Track' }}
                         </button>
-                        <button @click="contactCrew(move)" class="flex-1 bg-primary/10 hover:bg-primary/20 text-primary py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1">
+                        <button @click="contactCrew(move)" class="flex-1 bg-emerald-100 dark:bg-primary/10 hover:bg-emerald-200 dark:hover:bg-primary/20 text-emerald-700 dark:text-primary py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 border border-emerald-300 dark:border-primary/30">
                             <span class="material-symbols-outlined text-[14px]">chat</span> Contact Crew
                         </button>
-                        <button @click="toggleMoveMenu(move)" class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 py-2 px-3 rounded-lg text-xs font-bold transition-colors relative">
-                            <span class="material-symbols-outlined text-[14px]">more_vert</span>
+                        <button @click="toggleMoveMenu(move)" class="bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 py-2 px-3 rounded-lg text-xs font-bold transition-colors relative border border-gray-200 dark:border-white/10">
+                            <span class="material-symbols-outlined text-[16px]">more_vert</span>
                             <div v-if="moveMenu === move.id" class="absolute bottom-full right-0 mb-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-40">
-                                <button @click.stop="cancelMove(move)" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-gray-100 dark:hover:bg-white/5">Cancel Move</button>
-                                <button @click.stop="completeMove(move)" class="w-full text-left px-3 py-2 text-xs text-green-400 hover:bg-gray-100 dark:hover:bg-white/5">Mark Complete</button>
+                                <button @click.stop="cancelMove(move)" class="w-full text-left px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-white/5">Cancel Move</button>
+                                <button @click.stop="completeMove(move)" class="w-full text-left px-3 py-2 text-xs text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-white/5">Mark Complete</button>
                             </div>
                         </button>
                     </div>
@@ -160,19 +160,19 @@
                 <h3 class="font-bold text-gray-900 dark:text-white">Scheduling Conflicts & Overbooking Prevention</h3>
             </div>
             <div class="space-y-3">
-                <div class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center justify-between">
+                <div class="p-3 bg-yellow-100 dark:bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-yellow-400 text-[18px]">warning</span>
+                        <span class="material-symbols-outlined text-yellow-500 dark:text-yellow-400 text-[18px]">warning</span>
                         <div>
-                            <div class="text-sm text-yellow-300 font-bold">DRV-001 Mike Ross — Time Overlap</div>
-                            <div class="text-xs text-gray-400">Current service move (SM-003) blocks until 16:00. Pending dispatch ORD-7712 requires 15:30 start.</div>
+                            <div class="text-sm text-yellow-700 dark:text-yellow-300 font-bold">DRV-001 Mike Ross — Time Overlap</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Current service move (SM-003) blocks until 16:00. Pending dispatch ORD-7712 requires 15:30 start.</div>
                         </div>
                     </div>
                     <button @click="resolveConflict" class="text-xs px-3 py-1.5 rounded font-bold transition-colors" :class="conflictResolved ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400'">{{ conflictResolved ? '✓ Resolved' : 'Resolve' }}</button>
                 </div>
-                <div class="p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-3">
-                    <span class="material-symbols-outlined text-green-400 text-[18px]">check_circle</span>
-                    <div class="text-xs text-green-300">All other drivers have clear time blocks. No overbooking detected.</div>
+                <div class="p-3 bg-green-100 dark:bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-3">
+                    <span class="material-symbols-outlined text-green-500 dark:text-green-400 text-[18px]">check_circle</span>
+                    <div class="text-xs text-green-700 dark:text-green-300">All other drivers have clear time blocks. No overbooking detected.</div>
                 </div>
             </div>
         </div>
@@ -180,27 +180,27 @@
         <!-- New Service Move Modal -->
         <Teleport to="body">
         <div v-if="showNewMove" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showNewMove = false">
-            <div class="glass-panel rounded-2xl p-6 w-full max-w-lg m-4 border border-gray-200 dark:border-white/10">
+            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-lg m-4">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4">Create New Service Move</h3>
                 <div class="space-y-3">
                     <input v-model="newMove.title" type="text" placeholder="Move Title (e.g., Johnson Family House Shift)"
                         class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                    <select v-model="newMove.type" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                        <option>House Shift</option><option>Office Shift</option><option>Warehouse Transfer</option>
+                    <select v-model="newMove.type" class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
+                        <option class="bg-white dark:bg-gray-800">House Shift</option><option class="bg-white dark:bg-gray-800">Office Shift</option><option class="bg-white dark:bg-gray-800">Warehouse Transfer</option>
                     </select>
                     <div class="grid grid-cols-2 gap-3">
                         <input v-model="newMove.pickup" type="text" placeholder="Pickup Address" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
                         <input v-model="newMove.delivery" type="text" placeholder="Delivery Address" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
                     </div>
-                    <select v-model="newMove.vehicle" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                        <option>Van T-15</option><option>Van T-20</option><option>Truck XL</option>
+                    <select v-model="newMove.vehicle" class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
+                        <option class="bg-white dark:bg-gray-800">Van T-15</option><option class="bg-white dark:bg-gray-800">Van T-20</option><option class="bg-white dark:bg-gray-800">Truck XL</option>
                     </select>
                     <textarea v-model="newMove.notes" rows="2" placeholder="Special notes..."
                         class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none"></textarea>
                 </div>
                 <div class="flex gap-2 mt-4">
                     <button @click="createServiceMove" :disabled="!newMove.title || !newMove.pickup"
-                        class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-50">Create Move</button>
+                        class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-40 disabled:cursor-not-allowed">Create Move</button>
                     <button @click="showNewMove = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
                 </div>
             </div>
@@ -210,7 +210,7 @@
         <!-- Contact Crew Modal -->
         <Teleport to="body">
         <div v-if="showCrewChat" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showCrewChat = false">
-            <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10">
+            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-md m-4">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-3">Contact Crew — {{ crewChatMove?.title }}</h3>
                 <div class="space-y-2 mb-3 max-h-40 overflow-y-auto">
                     <div v-for="msg in crewMessages" :key="msg.id" class="p-2 rounded-lg text-xs" :class="msg.from === 'dispatch' ? 'bg-primary/10 text-primary ml-8' : 'bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 mr-8'">

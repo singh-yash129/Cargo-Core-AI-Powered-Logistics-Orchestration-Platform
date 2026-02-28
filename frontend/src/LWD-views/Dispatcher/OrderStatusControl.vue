@@ -7,14 +7,14 @@
                 <p class="text-sm text-gray-400 mt-1">Track and control order lifecycle — Ready → Dispatched → In Transit (Completion by Driver PoD)</p>
             </div>
             <div class="flex gap-2">
-                <select v-model="statusFilter" class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm">
-                    <option value="">All Statuses</option>
-                    <option value="ready">Ready for Dispatch</option>
-                    <option value="dispatched">Dispatched</option>
-                    <option value="in-transit">In Transit</option>
-                    <option value="delivered">Delivered (PoD)</option>
+                <select v-model="statusFilter" class="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm">
+                    <option class="bg-white dark:bg-gray-800" value="">All Statuses</option>
+                    <option class="bg-white dark:bg-gray-800" value="ready">Ready for Dispatch</option>
+                    <option class="bg-white dark:bg-gray-800" value="dispatched">Dispatched</option>
+                    <option class="bg-white dark:bg-gray-800" value="in-transit">In Transit</option>
+                    <option class="bg-white dark:bg-gray-800" value="delivered">Delivered (PoD)</option>
                 </select>
-                <button @click="syncStatus" class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm">
+                <button @click="syncStatus" class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm">
                     <span class="material-symbols-outlined text-[18px]" :class="{ 'animate-spin': syncing }">refresh</span> {{ syncing ? 'Syncing...' : syncDone ? '✓ Synced' : 'Sync Status' }}
                 </button>
             </div>
@@ -30,9 +30,9 @@
             <div class="flex items-center gap-0">
                 <!-- Ready -->
                 <div class="flex-1 relative">
-                    <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-l-xl p-4 text-center">
-                        <div class="text-3xl font-bold text-yellow-400 mb-1">{{ readyCount }}</div>
-                        <div class="text-xs text-yellow-300 font-bold">READY</div>
+                    <div class="bg-yellow-100 dark:bg-yellow-500/10 border border-yellow-500/20 rounded-l-xl p-4 text-center">
+                        <div class="text-3xl font-bold text-yellow-500 dark:text-yellow-400 mb-1">{{ readyCount }}</div>
+                        <div class="text-xs text-yellow-600 dark:text-yellow-300 font-bold">READY</div>
                         <div class="text-[10px] text-gray-500 mt-1">Awaiting dispatch</div>
                     </div>
                 </div>
@@ -40,9 +40,9 @@
 
                 <!-- Dispatched -->
                 <div class="flex-1 relative">
-                    <div class="bg-blue-500/10 border border-blue-500/20 p-4 text-center">
-                        <div class="text-3xl font-bold text-blue-400 mb-1">{{ dispatchedCount }}</div>
-                        <div class="text-xs text-blue-300 font-bold">DISPATCHED</div>
+                    <div class="bg-blue-100 dark:bg-blue-500/10 border border-blue-500/20 p-4 text-center">
+                        <div class="text-3xl font-bold text-blue-500 dark:text-blue-400 mb-1">{{ dispatchedCount }}</div>
+                        <div class="text-xs text-blue-600 dark:text-blue-300 font-bold">DISPATCHED</div>
                         <div class="text-[10px] text-gray-500 mt-1">Assigned to driver</div>
                     </div>
                 </div>
@@ -50,9 +50,9 @@
 
                 <!-- In Transit -->
                 <div class="flex-1 relative">
-                    <div class="bg-purple-500/10 border border-purple-500/20 p-4 text-center">
-                        <div class="text-3xl font-bold text-purple-400 mb-1">{{ inTransitCount }}</div>
-                        <div class="text-xs text-purple-300 font-bold">IN TRANSIT</div>
+                    <div class="bg-purple-100 dark:bg-purple-500/10 border border-purple-500/20 p-4 text-center">
+                        <div class="text-3xl font-bold text-purple-500 dark:text-purple-400 mb-1">{{ inTransitCount }}</div>
+                        <div class="text-xs text-purple-600 dark:text-purple-300 font-bold">IN TRANSIT</div>
                         <div class="text-[10px] text-gray-500 mt-1">On the road</div>
                     </div>
                 </div>
@@ -60,9 +60,9 @@
 
                 <!-- Delivered -->
                 <div class="flex-1 relative">
-                    <div class="bg-green-500/10 border border-green-500/20 rounded-r-xl p-4 text-center">
-                        <div class="text-3xl font-bold text-green-400 mb-1">{{ deliveredCount }}</div>
-                        <div class="text-xs text-green-300 font-bold">DELIVERED</div>
+                    <div class="bg-green-100 dark:bg-green-500/10 border border-green-500/20 rounded-r-xl p-4 text-center">
+                        <div class="text-3xl font-bold text-green-500 dark:text-green-400 mb-1">{{ deliveredCount }}</div>
+                        <div class="text-xs text-green-600 dark:text-green-300 font-bold">DELIVERED</div>
                         <div class="text-[10px] text-gray-500 mt-1">PoD confirmed</div>
                     </div>
                 </div>
@@ -73,7 +73,7 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="glass-panel p-4 rounded-xl">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-gray-400">Ready → Assigned Time</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Ready → Assigned Time</span>
                     <span class="material-symbols-outlined text-[16px] text-yellow-400">timer</span>
                 </div>
                 <div class="text-xl font-bold text-gray-900 dark:text-white">8.2 min</div>
@@ -81,7 +81,7 @@
             </div>
             <div class="glass-panel p-4 rounded-xl">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-gray-400">On-Time Pickup %</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">On-Time Pickup %</span>
                     <span class="material-symbols-outlined text-[16px] text-blue-400">local_shipping</span>
                 </div>
                 <div class="text-xl font-bold text-gray-900 dark:text-white">96.2%</div>
@@ -89,7 +89,7 @@
             </div>
             <div class="glass-panel p-4 rounded-xl">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-gray-400">On-Time Dispatch %</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">On-Time Dispatch %</span>
                     <span class="material-symbols-outlined text-[16px] text-purple-400">send</span>
                 </div>
                 <div class="text-xl font-bold text-gray-900 dark:text-white">94.8%</div>
@@ -97,7 +97,7 @@
             </div>
             <div class="glass-panel p-4 rounded-xl">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-gray-400">Missed Window</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Missed Window</span>
                     <span class="material-symbols-outlined text-[16px] text-red-400">report</span>
                 </div>
                 <div class="text-xl font-bold text-red-400">3</div>
@@ -161,31 +161,31 @@
                             </td>
                             <td class="p-4 text-gray-500 text-xs">{{ order.lastUpdated }}</td>
                             <td class="p-4">
-                                <div class="flex gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                                <div class="flex gap-1.5">
                                     <button v-if="order.status === 'ready'"
                                         @click="updateStatus(order, 'dispatched')"
-                                        class="px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-[10px] font-bold transition-colors">
+                                        class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg text-xs font-bold transition-all hover:scale-105 shadow-md border border-blue-700 dark:border-blue-400">
                                         Dispatch
                                     </button>
                                     <button v-if="order.status === 'dispatched'"
                                         @click="updateStatus(order, 'in-transit')"
-                                        class="px-2 py-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded text-[10px] font-bold transition-colors">
+                                        class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white rounded-lg text-xs font-bold transition-all hover:scale-105 shadow-md border border-purple-700 dark:border-purple-400">
                                         Mark In Transit
                                     </button>
                                     <button v-if="order.status === 'in-transit'"
-                                        class="px-2 py-1 bg-gray-500/20 text-gray-500 rounded text-[10px] font-bold cursor-not-allowed" disabled>
+                                        class="px-3 py-1.5 bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg text-xs font-bold cursor-not-allowed border border-gray-400 dark:border-gray-600" disabled>
                                         Awaiting PoD
                                     </button>
                                     <button v-if="order.status === 'delivered'"
                                         @click="viewPoD(order)"
-                                        class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-[10px] font-bold">
+                                        class="px-3 py-1.5 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded-lg text-xs font-bold transition-all hover:scale-105 shadow-md border border-green-700 dark:border-green-400">
                                         View PoD
                                     </button>
-                                    <button @click="toggleOrderMenu(order)" class="p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded text-gray-400 relative">
-                                        <span class="material-symbols-outlined text-[14px]">more_vert</span>
-                                        <div v-if="orderMenu === order.id" class="absolute bottom-full right-0 mb-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-36">
-                                            <button @click.stop="cancelOrder(order)" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-gray-100 dark:hover:bg-white/5">Cancel Order</button>
-                                            <button @click.stop="escalateOrder(order)" class="w-full text-left px-3 py-2 text-xs text-yellow-400 hover:bg-gray-100 dark:hover:bg-white/5">Escalate</button>
+                                    <button @click="toggleOrderMenu(order)" class="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white relative transition-colors">
+                                        <span class="material-symbols-outlined text-[16px]">more_vert</span>
+                                        <div v-if="orderMenu === order.id" class="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-40">
+                                        <button @click.stop="cancelOrder(order)" class="w-full text-left px-3 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors rounded-t-lg">Cancel Order</button>
+                                        <button @click.stop="escalateOrder(order)" class="w-full text-left px-3 py-2 text-sm font-semibold text-yellow-600 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors rounded-b-lg">Escalate</button>
                                         </div>
                                     </button>
                                 </div>
@@ -203,29 +203,29 @@
                 SLA Violation Alerts
             </h3>
             <div class="space-y-3">
-                <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center justify-between">
+                <div class="p-3 bg-red-100 dark:bg-red-500/10 border border-red-500/20 rounded-lg flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-red-400">error</span>
+                        <span class="material-symbols-outlined text-red-500 dark:text-red-400">error</span>
                         <div>
-                            <div class="text-sm text-red-300 font-bold">ORD-3321 — Dispatch Window Missed</div>
-                            <div class="text-xs text-gray-400">Was ready at 10:15 AM, still not dispatched. SLA requires dispatch within 15 min.</div>
+                            <div class="text-sm text-red-700 dark:text-red-300 font-bold">ORD-3321 — Dispatch Window Missed</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Was ready at 10:15 AM, still not dispatched. SLA requires dispatch within 15 min.</div>
                         </div>
                     </div>
-                    <button @click="resolveAlert('ORD-3321')" class="text-xs px-3 py-1.5 rounded font-bold transition-colors"
-                        :class="alertResolved['ORD-3321'] ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'">
+                    <button @click="resolveAlert('ORD-3321')" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-colors border"
+                        :class="alertResolved['ORD-3321'] ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-300 dark:border-green-500/30' : 'bg-red-100 dark:bg-red-500/20 hover:bg-red-200 dark:hover:bg-red-500/30 text-red-700 dark:text-red-400 border-red-300 dark:border-red-500/30'">
                         {{ alertResolved['ORD-3321'] ? '✓ Resolved' : 'Resolve Now' }}
                     </button>
                 </div>
-                <div class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center justify-between">
+                <div class="p-3 bg-yellow-100 dark:bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-yellow-400">schedule</span>
+                        <span class="material-symbols-outlined text-yellow-500 dark:text-yellow-400">schedule</span>
                         <div>
-                            <div class="text-sm text-yellow-300 font-bold">ORD-7712 — ETA Slipping</div>
-                            <div class="text-xs text-gray-400">Current ETA 17:15, delivery deadline 16:30. 45 min overdue risk.</div>
+                            <div class="text-sm text-yellow-700 dark:text-yellow-300 font-bold">ORD-7712 — ETA Slipping</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Current ETA 17:15, delivery deadline 16:30. 45 min overdue risk.</div>
                         </div>
                     </div>
-                    <button @click="rerouteAlert('ORD-7712')" class="text-xs px-3 py-1.5 rounded font-bold transition-colors"
-                        :class="alertRerouted['ORD-7712'] ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400'">
+                    <button @click="rerouteAlert('ORD-7712')" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-colors border"
+                        :class="alertRerouted['ORD-7712'] ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-300 dark:border-green-500/30' : 'bg-yellow-100 dark:bg-yellow-500/20 hover:bg-yellow-200 dark:hover:bg-yellow-500/30 text-yellow-700 dark:text-yellow-400 border-yellow-300 dark:border-yellow-500/30'">
                         {{ alertRerouted['ORD-7712'] ? '✓ Rerouted' : 'Reroute' }}
                     </button>
                 </div>
@@ -235,7 +235,7 @@
         <!-- PoD Modal -->
         <Teleport to="body">
         <div v-if="showPoD" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showPoD = false">
-            <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10">
+            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-md m-4">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4">Proof of Delivery — {{ podOrder?.id }}</h3>
                 <div class="space-y-3">
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg flex justify-between text-xs">

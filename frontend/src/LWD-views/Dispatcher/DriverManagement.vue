@@ -4,11 +4,11 @@
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Driver Management</h2>
             <div class="flex gap-2">
                 <button @click="showBroadcast = true"
-                    class="bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
+                    class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined">message</span> Broadcast
                 </button>
                 <button @click="showOnboard = true"
-                    class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
+                    class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
                     <span class="material-symbols-outlined">add</span> Onboard Driver
                 </button>
             </div>
@@ -18,38 +18,59 @@
         <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-gray-900 dark:text-white">42</div>
-                <div class="text-xs text-gray-400">Total Drivers</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Total Drivers</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-green-400">38</div>
-                <div class="text-xs text-gray-400">Active Now</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Active Now</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-yellow-500">2</div>
-                <div class="text-xs text-gray-400">On Break</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">On Break</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-red-500">2</div>
-                <div class="text-xs text-gray-400">Maintenance/Off</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Maintenance/Off</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-orange-400">1</div>
-                <div class="text-xs text-gray-400">HOS Warning</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">HOS Warning</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-cyan-400">40</div>
-                <div class="text-xs text-gray-400">Authorized</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Authorized</div>
             </div>
         </div>
 
         <!-- HOS Compliance Alert -->
-        <div class="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center gap-3">
-            <span class="material-symbols-outlined text-orange-400 animate-pulse">warning</span>
+        <div class="p-4 bg-orange-100 dark:bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center gap-3">
+            <span class="material-symbols-outlined text-orange-500 dark:text-orange-400 animate-pulse">warning</span>
             <div class="flex-1">
-                <div class="text-sm font-bold text-orange-400">Hours-of-Service Compliance Alert</div>
-                <div class="text-xs text-orange-300">Rachel Zane has logged 6.8h of 8h max continuous driving. Break required within 1.2 hours. System will block new assignments at limit.</div>
+                <div class="text-sm font-bold text-orange-600 dark:text-orange-400">Hours-of-Service Compliance Alert</div>
+                <div class="text-xs text-orange-700 dark:text-orange-300">Rachel Zane has logged 6.8h of 8h max continuous driving. Break required within 1.2 hours. System will block new assignments at limit.</div>
             </div>
-            <button @click="showHOS = !showHOS" class="text-xs bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 px-3 py-1.5 rounded font-bold transition-colors whitespace-nowrap">{{ showHOS ? 'Hide HOS' : 'View HOS' }}</button>
+            <button @click="showHOS = !showHOS" class="text-xs bg-orange-100 dark:bg-orange-500/20 hover:bg-orange-200 dark:hover:bg-orange-500/30 text-orange-700 dark:text-orange-400 px-3 py-1.5 rounded-lg font-bold transition-colors whitespace-nowrap border border-orange-300 dark:border-orange-500/30 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">{{ showHOS ? 'visibility_off' : 'visibility' }}</span>
+                {{ showHOS ? 'Hide HOS' : 'View HOS' }}
+            </button>
+        </div>
+        <div v-if="showHOS" class="glass-panel p-6 rounded-xl">
+            <h3 class="font-bold text-gray-900 dark:text-white mb-4 text-lg">HOS Compliance Overview</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-2">
+                <div v-for="d in drivers" :key="d.id" class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
+                    <div class="text-sm font-bold text-gray-900 dark:text-white mb-2">{{ d.name }}</div>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full" :class="getHOSBarClass(d.hours, d.maxHours)" :style="{ width: (d.hours / d.maxHours) * 100 + '%' }"></div>
+                            </div>
+                            <span class="text-xs font-mono font-bold" :class="getHOSTextClass(d.hours, d.maxHours)">{{ d.hours }}h</span>
+                        </div>
+                        <div class="text-xs font-semibold" :class="getHOSStatusClass(d.hours, d.maxHours)">{{ getHOSStatus(d.hours, d.maxHours) }}</div>
+                        <div class="text-[10px] text-gray-500 dark:text-gray-400 pt-1">Max: {{ d.maxHours }}h | Stops: {{ d.stops }}</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Drivers List -->
@@ -57,17 +78,17 @@
             <div class="p-4 border-b border-gray-200 dark:border-white/5 flex gap-4">
                 <input v-model="driverSearch" type="text" placeholder="Search driver by name, ID, or vehicle..."
                     class="flex-1 bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-4 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                <select v-model="statusFilter" class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 text-gray-900 dark:text-white">
-                    <option value="">All Statuses</option>
-                    <option value="On Route">Active</option>
-                    <option value="Offline">Inactive</option>
-                    <option value="HOS">HOS Warning</option>
+                <select v-model="statusFilter" class="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-4 text-gray-900 dark:text-white">
+                    <option class="bg-white dark:bg-gray-800" value="">All Statuses</option>
+                    <option class="bg-white dark:bg-gray-800" value="On Route">Active</option>
+                    <option class="bg-white dark:bg-gray-800" value="Offline">Inactive</option>
+                    <option class="bg-white dark:bg-gray-800" value="HOS">HOS Warning</option>
                 </select>
-                <select v-model="authFilter" class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 text-gray-900 dark:text-white">
-                    <option value="">All Auth Status</option>
-                    <option value="authorized">Authorized</option>
-                    <option value="suspended">Suspended</option>
-                    <option value="expired">License Expired</option>
+                <select v-model="authFilter" class="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-4 text-gray-900 dark:text-white">
+                    <option class="bg-white dark:bg-gray-800" value="">All Auth Status</option>
+                    <option class="bg-white dark:bg-gray-800" value="authorized">Authorized</option>
+                    <option class="bg-white dark:bg-gray-800" value="suspended">Suspended</option>
+                    <option class="bg-white dark:bg-gray-800" value="expired">License Expired</option>
                 </select>
             </div>
 
@@ -163,15 +184,15 @@
                         </td>
                         <td class="p-4">
                             <div class="flex gap-1">
-                                <button @click="chatDriver(driver)" class="text-gray-500 hover:text-primary p-1" title="Chat"><span
+                                <button @click="chatDriver(driver)" class="text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 p-1.5 rounded-lg transition-colors" title="Chat"><span
                                         class="material-symbols-outlined text-[18px]">chat</span></button>
-                                <button @click="assignToDriver(driver)" class="text-gray-500 hover:text-primary p-1" title="Assign"><span
+                                <button @click="assignToDriver(driver)" class="text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 p-1.5 rounded-lg transition-colors" title="Assign"><span
                                         class="material-symbols-outlined text-[18px]">person_add</span></button>
-                                <button @click="toggleMoreMenu(driver)" class="text-gray-500 hover:text-gray-900 dark:text-white p-1 relative" title="More">
+                                <button @click="toggleMoreMenu(driver)" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 p-1.5 rounded-lg transition-colors relative" title="More">
                                     <span class="material-symbols-outlined text-[18px]">more_vert</span>
-                                    <div v-if="moreMenuDriver === driver.id" class="absolute right-0 top-8 bg-white dark:bg-card-dark border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-36 py-1">
-                                        <button @click.stop="suspendDriver(driver)" class="block w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-gray-100 dark:hover:bg-white/5">{{ driver.suspended ? 'Unsuspend' : 'Suspend' }}</button>
-                                        <button @click.stop="viewDriverProfile(driver)" class="block w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5">View Profile</button>
+                                    <div v-if="moreMenuDriver === driver.id" class="absolute right-0 top-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-40 py-1">
+                                        <button @click.stop="suspendDriver(driver)" class="block w-full text-left px-3 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">{{ driver.suspended ? 'Unsuspend' : 'Suspend' }}</button>
+                                        <button @click.stop="viewDriverProfile(driver)" class="block w-full text-left px-3 py-2 text-sm font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">View Profile</button>
                                     </div>
                                 </button>
                             </div>
@@ -182,26 +203,11 @@
         </div>
 
         <!-- HOS Detail -->
-        <div v-if="showHOS" class="glass-panel p-4 rounded-xl">
-            <h3 class="font-bold text-gray-900 dark:text-white mb-3">HOS Compliance Overview</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div v-for="d in drivers" :key="d.id" class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                    <div class="text-sm font-bold text-gray-900 dark:text-white mb-1">{{ d.name }}</div>
-                    <div class="flex items-center gap-2 mb-1">
-                        <div class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full" :class="getHOSBarClass(d.hours, d.maxHours)" :style="{ width: (d.hours / d.maxHours) * 100 + '%' }"></div>
-                        </div>
-                        <span class="text-xs font-mono" :class="getHOSTextClass(d.hours, d.maxHours)">{{ d.hours }}h</span>
-                    </div>
-                    <div class="text-[10px]" :class="getHOSStatusClass(d.hours, d.maxHours)">{{ getHOSStatus(d.hours, d.maxHours) }}</div>
-                </div>
-            </div>
-        </div>
 
         <!-- Broadcast Modal -->
         <Teleport to="body">
         <div v-if="showBroadcast" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showBroadcast = false">
-            <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10">
+            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-md m-4">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4">Broadcast Message</h3>
                 <textarea v-model="broadcastMsg" rows="3" placeholder="Type message for all drivers..."
                     class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none mb-3"></textarea>
@@ -217,18 +223,18 @@
         <!-- Onboard Modal -->
         <Teleport to="body">
         <div v-if="showOnboard" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showOnboard = false">
-            <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10">
+            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-md m-4">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4">Onboard New Driver</h3>
                 <div class="space-y-3">
                     <input v-model="newDriver.name" type="text" placeholder="Full Name" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
                     <input v-model="newDriver.phone" type="text" placeholder="Phone Number" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                    <select v-model="newDriver.vehicle" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                        <option value="">Assign Vehicle</option>
-                        <option>Van T-15</option><option>Van T-20</option><option>Truck M</option><option>Truck XL</option>
+                    <select v-model="newDriver.vehicle" class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
+                        <option class="bg-white dark:bg-gray-800" value="">Assign Vehicle</option>
+                        <option class="bg-white dark:bg-gray-800">Van T-15</option><option class="bg-white dark:bg-gray-800">Van T-20</option><option class="bg-white dark:bg-gray-800">Truck M</option><option class="bg-white dark:bg-gray-800">Truck XL</option>
                     </select>
                 </div>
                 <div class="flex gap-2 mt-4">
-                    <button @click="onboardDriver" :disabled="!newDriver.name" class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-50">Onboard</button>
+                    <button @click="onboardDriver" :disabled="!newDriver.name" class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-40 disabled:cursor-not-allowed">Onboard</button>
                     <button @click="showOnboard = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
                 </div>
             </div>
@@ -238,7 +244,7 @@
         <!-- Driver Chat Modal -->
         <Teleport to="body">
         <div v-if="showDriverChat" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showDriverChat = false">
-            <div class="glass-panel rounded-2xl w-full max-w-sm m-4 border border-gray-200 dark:border-white/10 flex flex-col h-[400px]">
+            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl w-full max-w-sm m-4 flex flex-col h-[400px]">
                 <div class="p-4 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <img :src="chatTargetDriver?.avatar" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700">
@@ -273,7 +279,7 @@
         <!-- Driver Profile Modal -->
         <Teleport to="body">
         <div v-if="showDriverProfile" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showDriverProfile = false">
-            <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10">
+            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-md m-4">
                 <div class="flex items-center gap-4 mb-6">
                     <img :src="profileTargetDriver?.avatar" class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 ring-2 ring-primary/20">
                     <div>

@@ -6,19 +6,19 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="glass-panel p-6 rounded-xl text-center">
                 <div class="text-4xl font-bold text-primary">94%</div>
-                <div class="text-sm text-gray-400 mt-2">On-Time Delivery Rate</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400 mt-2">On-Time Delivery Rate</div>
             </div>
             <div class="glass-panel p-6 rounded-xl text-center">
                 <div class="text-4xl font-bold text-gray-900 dark:text-white">12.5m</div>
-                <div class="text-sm text-gray-400 mt-2">Avg. Turnaround Time</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400 mt-2">Avg. Turnaround Time</div>
             </div>
             <div class="glass-panel p-6 rounded-xl text-center">
                 <div class="text-4xl font-bold text-gray-900 dark:text-white">4.8</div>
-                <div class="text-sm text-gray-400 mt-2">Driver Satisfaction</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400 mt-2">Driver Satisfaction</div>
             </div>
             <div class="glass-panel p-6 rounded-xl text-center">
                 <div class="text-4xl font-bold text-red-400">2%</div>
-                <div class="text-sm text-gray-400 mt-2">Failed Deliveries</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400 mt-2">Failed Deliveries</div>
             </div>
         </div>
 
@@ -26,32 +26,32 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-red-400">15%</div>
-                <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">Empty Miles %</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Empty Miles %</div>
                 <div class="text-[9px] text-green-400 mt-1">-3% vs last week</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-green-400">96.2%</div>
-                <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">On-Time Dispatch</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">On-Time Dispatch</div>
                 <div class="text-[9px] text-green-400 mt-1">+1.2% above SLA</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-blue-400">94.8%</div>
-                <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">SLA Compliance</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">SLA Compliance</div>
                 <div class="text-[9px] text-yellow-400 mt-1">-0.2% below target</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-yellow-400">4.2%</div>
-                <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">Route Deviation</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Route Deviation</div>
                 <div class="text-[9px] text-green-400 mt-1">-1.1% improved</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-purple-400">7.8</div>
-                <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">km/L Fuel Eff.</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">km/L Fuel Eff.</div>
                 <div class="text-[9px] text-green-400 mt-1">+0.3 vs target</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-cyan-400">72%</div>
-                <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">Load Balance</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Load Balance</div>
                 <div class="text-[9px] text-yellow-400 mt-1">Needs improvement</div>
             </div>
         </div>
@@ -156,9 +156,9 @@
         </div>
 
         <!-- Note: Visible to Logistics Manager -->
-        <div class="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center gap-3">
-            <span class="material-symbols-outlined text-blue-400">visibility</span>
-            <span class="text-xs text-blue-300">These performance metrics are visible to the Logistics Manager for dispatcher accountability review.</span>
+        <div class="p-3 bg-blue-100 dark:bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center gap-3">
+            <span class="material-symbols-outlined text-blue-500 dark:text-blue-400">visibility</span>
+            <span class="text-xs text-blue-700 dark:text-blue-300">These performance metrics are visible to the Logistics Manager for dispatcher accountability review.</span>
         </div>
     </div>
 </template>
@@ -184,8 +184,8 @@ const hourlyChartData = computed(() => ({
     datasets: [{
         label: 'Deliveries',
         data: hourlyVolumes,
-        backgroundColor: hourlyVolumes.map(v => v >= 30 ? 'rgba(239,68,68,0.5)' : v >= 20 ? 'rgba(59,130,246,0.5)' : 'rgba(59,130,246,0.25)'),
-        borderColor: 'rgba(59,130,246,0.6)',
+        backgroundColor: hourlyVolumes.map(v => v >= 30 ? 'rgba(239,68,68,0.8)' : v >= 20 ? 'rgba(59,130,246,0.65)' : 'rgba(59,130,246,0.5)'),
+        borderColor: 'rgba(59,130,246,0.8)',
         borderWidth: 1,
         borderRadius: 3,
     }]
@@ -195,7 +195,7 @@ const hourlyChartOptions = {
     plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111', titleColor: '#fff', bodyColor: '#ccc' } },
     scales: {
         x: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 8 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
-        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', font: { size: 9 } }, beginAtZero: true }
+        y: { grid: { color: 'rgba(156,163,175,0.2)' }, ticks: { color: '#6b7280', font: { size: 9 } }, beginAtZero: true }
     }
 }
 
@@ -205,7 +205,7 @@ const zoneChartData = computed(() => ({
     datasets: [{
         label: 'Performance %',
         data: zones.value.map(z => z.perf),
-        backgroundColor: ['rgba(28,231,131,0.5)', 'rgba(59,130,246,0.5)', 'rgba(168,85,247,0.5)', 'rgba(234,179,8,0.5)'],
+        backgroundColor: ['rgba(28,231,131,0.75)', 'rgba(59,130,246,0.75)', 'rgba(168,85,247,0.75)', 'rgba(234,179,8,0.75)'],
         borderColor: ['rgba(28,231,131,0.8)', 'rgba(59,130,246,0.8)', 'rgba(168,85,247,0.8)', 'rgba(234,179,8,0.8)'],
         borderWidth: 1,
         borderRadius: 6,
@@ -215,8 +215,8 @@ const zoneChartOptions = {
     indexAxis: 'y', responsive: true, maintainAspectRatio: false,
     plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111', titleColor: '#fff', bodyColor: '#ccc' } },
     scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', font: { size: 9 } }, min: 80, max: 100 },
-        y: { grid: { display: false }, ticks: { color: '#d1d5db', font: { size: 10 } } }
+        x: { grid: { color: 'rgba(156,163,175,0.2)' }, ticks: { color: '#6b7280', font: { size: 9 } }, min: 80, max: 100 },
+        y: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 10 } } }
     }
 }
 

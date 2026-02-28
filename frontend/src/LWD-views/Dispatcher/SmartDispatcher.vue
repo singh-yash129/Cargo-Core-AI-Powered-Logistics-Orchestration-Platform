@@ -36,9 +36,9 @@
                     <span v-else class="material-symbols-outlined text-[18px]">send</span> {{ nlProcessing ? 'Processing...' : 'Execute' }}
                 </button>
             </div>
-            <div v-if="nlResponse" class="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <div v-if="nlResponse" class="mt-3 p-3 bg-green-50 dark:bg-primary/5 border border-primary/20 rounded-lg">
                 <div class="text-[10px] text-primary uppercase font-bold tracking-wider mb-1">AI Response</div>
-                <div class="text-sm text-gray-600 dark:text-gray-300">{{ nlResponse }}</div>
+                <div class="text-sm text-gray-700 dark:text-gray-300">{{ nlResponse }}</div>
             </div>
             <div class="mt-2 flex gap-2 flex-wrap">
                 <button v-for="q in quickCommands" :key="q" @click="nlCommand = q; executeNLCommand()"
@@ -87,7 +87,7 @@
                     <div class="h-48">
                         <Bar :data="demandChartData" :options="demandChartOptions" />
                     </div>
-                    <div class="mt-4 text-center text-sm text-gray-400">
+                    <div class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
                         Peak expected at <span class="text-gray-900 dark:text-white font-bold">14:00</span>. Prepare 3 extra drivers.
                     </div>
                 </div>
@@ -215,7 +215,7 @@
                             {{ pred.risk }} Risk
                         </span>
                     </div>
-                    <div class="text-xs text-gray-400 mb-1">{{ pred.reason }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ pred.reason }}</div>
                     <div class="flex items-center gap-2 mt-2">
                         <div class="flex-1 h-2 bg-gray-100 dark:bg-black/30 rounded-full overflow-hidden">
                             <div class="h-full rounded-full transition-all"
@@ -307,10 +307,10 @@ const demandChartData = computed(() => ({
         label: 'Predicted Orders',
         data: [12, 18, 28, 22, 16, 10],
         backgroundColor: [
-            'rgba(59,130,246,0.3)', 'rgba(59,130,246,0.4)', 'rgba(239,68,68,0.5)',
-            'rgba(59,130,246,0.5)', 'rgba(59,130,246,0.35)', 'rgba(59,130,246,0.2)'
+            'rgba(59,130,246,0.5)', 'rgba(59,130,246,0.6)', 'rgba(239,68,68,0.75)',
+            'rgba(59,130,246,0.7)', 'rgba(59,130,246,0.55)', 'rgba(59,130,246,0.4)'
         ],
-        borderColor: 'rgba(59,130,246,0.6)',
+        borderColor: 'rgba(59,130,246,0.8)',
         borderWidth: 1,
         borderRadius: 6,
     }]
@@ -322,7 +322,7 @@ const demandChartOptions = {
     plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111', titleColor: '#fff', bodyColor: '#ccc', padding: 10 } },
     scales: {
         x: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 10 } } },
-        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', font: { size: 10 } }, beginAtZero: true }
+        y: { grid: { color: 'rgba(156,163,175,0.2)' }, ticks: { color: '#6b7280', font: { size: 10 } }, beginAtZero: true }
     }
 }
 

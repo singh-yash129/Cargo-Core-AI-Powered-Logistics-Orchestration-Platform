@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+    <div class="flex h-[calc(94vh-3.5rem)] overflow-hidden">
 
         <!-- Left Panel: Active Driver Roster -->
         <transition name="slide-left">
@@ -19,12 +19,15 @@
                 </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto no-scrollbar p-2 space-y-2">
+            <div class="flex-1 overflow-y-auto no-scrollbar p-2 space-y-2"
+                @dragover.prevent="onDriverPanelDragOver" @drop="onDropOnDriverPanel">
                 <!-- Driver Card -->
                 <div v-for="driver in filteredDrivers" :key="driver.id"
                     @click="selectDriver(driver)"
-                    :class="selectedDriver?.id === driver.id ? 'border-primary/50 bg-primary/5' : 'border-transparent'"
-                    class="p-3 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-white/10 border hover:border-gray-200 dark:border-white/10 cursor-pointer transition-all group">
+                    :class="[selectedDriver?.id === driver.id ? 'border-primary/50 bg-primary/5' : 'border-gray-200/60 dark:border-transparent', dragOverDriver === driver.id ? 'ring-2 ring-primary/50 scale-[1.02]' : '']"
+                    class="p-3 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 border hover:border-gray-300 dark:hover:border-white/10 cursor-pointer transition-all group"
+                    @dragover.prevent="dragOverDriver = driver.id" @dragleave="dragOverDriver = null"
+                    @drop.stop="onDropOnDriver($event, driver)">
                     <div class="flex items-center gap-3 mb-2">
                         <div class="relative">
                             <img :src="driver.avatar" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 object-cover">
@@ -32,7 +35,7 @@
                                 :class="driver.statusColor"></span>
                         </div>
                         <div>
-                            <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ driver.name }}</div>
+                            <button @click.stop="viewDriverDetail(driver)" class="text-sm font-semibold text-gray-900 dark:text-white hover:text-primary transition-colors text-left">{{ driver.name }}</button>
                             <div class="text-[10px] text-gray-400">{{ driver.vehicle }} • {{ driver.id }}</div>
                         </div>
                     </div>
@@ -70,14 +73,14 @@
 
             <!-- Left Panel Toggle -->
             <button @click="showLeftPanel = !showLeftPanel"
-                class="absolute top-4 left-4 z-20 glass-panel p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 transition-colors group" :title="showLeftPanel ? 'Hide Drivers' : 'Show Drivers'">
-                <span class="material-symbols-outlined text-[18px]" :class="showLeftPanel ? 'text-primary' : 'text-gray-400 group-hover:text-gray-900 dark:text-white'">{{ showLeftPanel ? 'left_panel_close' : 'left_panel_open' }}</span>
+                class="absolute top-4 left-4 z-20 bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 shadow-md backdrop-blur-xl p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group" :title="showLeftPanel ? 'Hide Drivers' : 'Show Drivers'">
+                <span class="material-symbols-outlined text-[18px]" :class="showLeftPanel ? 'text-primary' : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'">{{ showLeftPanel ? 'left_panel_close' : 'left_panel_open' }}</span>
             </button>
 
             <!-- Right Panel Toggle -->
             <button @click="showRightPanel = !showRightPanel"
-                class="absolute top-4 right-4 z-20 glass-panel p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 transition-colors group" :title="showRightPanel ? 'Hide Loads' : 'Show Loads'">
-                <span class="material-symbols-outlined text-[18px]" :class="showRightPanel ? 'text-primary' : 'text-gray-400 group-hover:text-gray-900 dark:text-white'">{{ showRightPanel ? 'right_panel_close' : 'right_panel_open' }}</span>
+                class="absolute top-4 right-4 z-20 bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 shadow-md backdrop-blur-xl p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group" :title="showRightPanel ? 'Hide Loads' : 'Show Loads'">
+                <span class="material-symbols-outlined text-[18px]" :class="showRightPanel ? 'text-primary' : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'">{{ showRightPanel ? 'right_panel_close' : 'right_panel_open' }}</span>
             </button>
 
             <!-- Overlay Controls -->
@@ -85,15 +88,15 @@
                 <div class="glass-panel px-4 py-2 rounded-lg flex items-center gap-4">
                     <div class="flex items-center gap-2">
                         <span
-                            class="w-3 h-3 rounded-full bg-primary border-2 border-white/20 shadow-[0_0_10px_rgba(28,231,131,0.5)]"></span>
+                            class="w-3 h-3 rounded-full bg-primary border-2 border-gray-300 dark:border-white/20 shadow-[0_0_10px_rgba(28,231,131,0.5)]"></span>
                         <span class="text-xs font-medium text-gray-900 dark:text-white">Available</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded-full bg-yellow-500 border-2 border-white/20"></span>
+                        <span class="w-3 h-3 rounded-full bg-yellow-500 border-2 border-gray-300 dark:border-white/20"></span>
                         <span class="text-xs font-medium text-gray-900 dark:text-white">Busy</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded-full bg-gray-500 border-2 border-white/20"></span>
+                        <span class="w-3 h-3 rounded-full bg-gray-500 border-2 border-gray-300 dark:border-white/20"></span>
                         <span class="text-xs font-medium text-gray-900 dark:text-white">Offline</span>
                     </div>
                 </div>
@@ -129,15 +132,15 @@
             </div>
 
             <!-- Bottom Map Toolbar -->
-            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 glass-panel p-2 rounded-xl flex gap-1">
-                <button @click="toggleMapLayer('layers')" :class="mapLayers.layers ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors" title="Layers"><span
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 shadow-lg backdrop-blur-xl p-2 rounded-xl flex gap-1">
+                <button @click="toggleMapLayer('layers')" :class="mapLayers.layers ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'" class="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors" title="Layers"><span
                         class="material-symbols-outlined">layers</span></button>
-                <button @click="toggleMapLayer('traffic')" :class="mapLayers.traffic ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors" title="Traffic"><span
+                <button @click="toggleMapLayer('traffic')" :class="mapLayers.traffic ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'" class="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors" title="Traffic"><span
                         class="material-symbols-outlined">traffic</span></button>
-                <button @click="toggleMapLayer('heatmap')" :class="mapLayers.heatmap ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors" title="Heatmap"><span
+                <button @click="toggleMapLayer('heatmap')" :class="mapLayers.heatmap ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'" class="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors" title="Heatmap"><span
                         class="material-symbols-outlined">blur_on</span></button>
-                <div class="w-[1px] h-8 bg-gray-200 dark:bg-white/10 mx-1"></div>
-                <button @click="toggleMapLayer('history')" :class="mapLayers.history ? 'bg-primary/20 text-primary' : 'text-gray-900 dark:text-white'" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors" title="Route Replay"><span
+                <div class="w-[1px] h-8 bg-gray-300 dark:bg-white/10 mx-1"></div>
+                <button @click="toggleMapLayer('history')" :class="mapLayers.history ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'" class="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors" title="Route Replay"><span
                         class="material-symbols-outlined">history</span></button>
             </div>
         </div>
@@ -148,18 +151,28 @@
             <div class="p-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center">
                 <h3 class="font-bold text-gray-900 dark:text-white text-sm">Pending Loads (8)</h3>
                 <button @click="showAssignModal = true"
-                    class="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary/20 transition-colors">
+                    class="flex items-center gap-1 text-xs bg-primary text-black font-semibold px-2.5 py-1 rounded-md hover:bg-primary-dark transition-colors shadow-sm">
                     <span class="material-symbols-outlined text-[14px]">add</span> Assign
                 </button>
             </div>
 
             <div class="flex-1 overflow-y-auto no-scrollbar p-2 space-y-3">
+                <!-- Drag hint -->
+                <div v-if="pendingLoads.length" class="flex items-center gap-1.5 px-2 py-1 text-[10px] text-gray-400">
+                    <span class="material-symbols-outlined text-[12px]">drag_indicator</span>
+                    Drag load to a driver on the left to assign
+                </div>
                 <div v-for="load in pendingLoads" :key="load.id"
-                    class="p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-transparent hover:border-primary/30 transition-all select-none cursor-grab active:cursor-grabbing">
+                    draggable="true" @dragstart="onDragStart($event, load)" @dragend="onDragEnd"
+                    :class="[draggingLoad?.id === load.id ? 'opacity-50 scale-95 border-primary/40' : 'border-gray-200/60 dark:border-transparent hover:border-primary/30']"
+                    class="p-3 rounded-lg bg-gray-50 dark:bg-white/5 border transition-all select-none cursor-grab active:cursor-grabbing">
                     <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs font-mono text-gray-400">#{{ load.id }}</span>
-                        <span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[10px] font-bold">{{
-                            load.priority }}</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-gray-400 text-[14px] cursor-grab">drag_indicator</span>
+                            <span class="text-xs font-mono text-gray-500 dark:text-gray-400">#{{ load.id }}</span>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                            :class="load.priority === 'URGENT' ? 'bg-red-500/20 text-red-400' : load.priority === 'HIGH' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'">{{ load.priority }}</span>
                     </div>
 
                     <div class="space-y-2 mb-3">
@@ -167,22 +180,37 @@
                             <span class="material-symbols-outlined text-gray-500 text-[14px]">inventory_2</span>
                             <span class="text-sm font-medium text-gray-900 dark:text-white">{{ load.type }}</span>
                         </div>
-                        <div class="flex justify-between text-[11px] text-gray-400">
+                        <div class="flex justify-between text-[11px] text-gray-500 dark:text-gray-400">
                             <span>{{ load.weight }} kg</span>
                             <span>{{ load.volume }} m³</span>
                         </div>
                     </div>
 
                     <div class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-white/5">
-                        <div class="text-[10px] text-gray-400">Hub: <span class="text-gray-600 dark:text-gray-300">{{ load.hub }}</span>
+                        <div class="text-[10px] text-gray-500 dark:text-gray-400">Hub: <span class="text-gray-700 dark:text-gray-300 font-medium">{{ load.hub }}</span>
                         </div>
-                        <button @click="toggleLoadDetail(load)" class="text-xs text-primary hover:text-gray-900 dark:text-white transition-colors">{{ expandedLoad?.id === load.id ? 'Close' : 'Details' }}</button>
+                        <button @click.stop="toggleLoadDetail(load)" class="text-xs font-bold px-2 py-0.5 rounded transition-colors"
+                            :class="expandedLoad?.id === load.id ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10'">{{ expandedLoad?.id === load.id ? 'Close' : 'Details' }}</button>
                     </div>
-                    <div v-if="expandedLoad?.id === load.id" class="mt-2 pt-2 border-t border-gray-200 dark:border-white/5 text-[10px] text-gray-400 space-y-1">
-                        <div>Origin: {{ load.hub }} Warehouse</div>
-                        <div>Window: Today 14:00 - 18:00</div>
-                        <div>Assignment: Unassigned</div>
-                        <button @click="assignLoad(load)" class="mt-1 w-full text-center bg-primary/10 text-primary py-1 rounded hover:bg-primary/20 text-xs font-bold">Quick Assign</button>
+                    <div v-if="expandedLoad?.id === load.id" class="mt-2 pt-2 border-t border-gray-200 dark:border-white/5 space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="p-1.5 bg-gray-100 dark:bg-black/20 rounded text-[10px]">
+                                <span class="text-gray-500 block">Origin</span>
+                                <span class="text-gray-900 dark:text-white font-medium">{{ load.hub }} Warehouse</span>
+                            </div>
+                            <div class="p-1.5 bg-gray-100 dark:bg-black/20 rounded text-[10px]">
+                                <span class="text-gray-500 block">Window (Today)</span>
+                                <span class="text-gray-900 dark:text-white font-medium">14:00 – 18:00</span>
+                            </div>
+                        </div>
+                        <div class="p-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded text-[10px] flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-yellow-400 text-[12px]">schedule</span>
+                            <span class="text-yellow-600 dark:text-yellow-300 font-medium">Unassigned — Awaiting dispatch</span>
+                        </div>
+                        <button @click.stop="assignLoad(load)" class="w-full text-center bg-primary hover:bg-primary-dark text-black font-bold py-1.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">assignment_turned_in</span>
+                            Quick Assign
+                        </button>
                     </div>
                 </div>
             </div>
@@ -206,8 +234,10 @@
     <!-- Assign Modal -->
     <Teleport to="body">
     <div v-if="showAssignModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showAssignModal = false">
-        <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10">
-            <h3 class="font-bold text-gray-900 dark:text-white mb-4">Quick Assign Load</h3>
+        <div class="bg-white dark:bg-card-dark rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10 shadow-2xl">
+            <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">assignment_turned_in</span> Quick Assign Load
+            </h3>
             <div class="mb-3">
                 <label class="text-xs text-gray-400 mb-1 block">Select Order</label>
                 <select v-model="assignOrderId" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
@@ -232,10 +262,67 @@
     </div>
     </Teleport>
 
+    <!-- Driver Detail Modal -->
+    <Teleport to="body">
+    <div v-if="showDriverDetailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showDriverDetailModal = false">
+        <div class="bg-white dark:bg-card-dark rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10 shadow-2xl">
+            <div class="flex items-center gap-4 mb-5">
+                <img :src="detailDriver?.avatar" class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 ring-2 ring-primary/30 object-cover">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ detailDriver?.name }}</h3>
+                    <p class="text-sm text-gray-500">{{ detailDriver?.vehicle }} • {{ detailDriver?.id }}</p>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="w-2 h-2 rounded-full" :class="detailDriver?.statusColor"></span>
+                        <span class="text-xs" :class="detailDriver?.statusColor === 'bg-green-500' ? 'text-green-500' : detailDriver?.statusColor === 'bg-yellow-500' ? 'text-yellow-500' : 'text-gray-500'">{{ detailDriver?.statusColor === 'bg-green-500' ? 'Active' : detailDriver?.statusColor === 'bg-yellow-500' ? 'Busy' : 'Offline' }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 mb-5">
+                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg text-center">
+                    <div class="text-xs text-gray-500 mb-1">Load</div>
+                    <div class="text-lg font-bold text-gray-900 dark:text-white">{{ detailDriver?.load }}%</div>
+                    <div class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full mt-1 overflow-hidden">
+                        <div class="h-full rounded-full" :class="detailDriver?.load > 80 ? 'bg-red-500' : 'bg-primary'" :style="{ width: detailDriver?.load + '%' }"></div>
+                    </div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg text-center">
+                    <div class="text-xs text-gray-500 mb-1">Hours Left</div>
+                    <div class="text-lg font-bold text-gray-900 dark:text-white">{{ detailDriver?.hours }}h</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg text-center">
+                    <div class="text-xs text-gray-500 mb-1">Location</div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ detailDriver?.location }}</div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button @click="chatWithDriver(detailDriver); showDriverDetailModal = false" class="flex-1 bg-primary hover:bg-primary-dark text-black font-bold py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">chat</span> Chat
+                </button>
+                <button @click="assignToDriverFromDetail" class="flex-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white font-bold py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">add_circle</span> Assign Load
+                </button>
+                <button @click="showDriverDetailModal = false" class="px-4 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-400 py-2 rounded-lg text-sm transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">close</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    </Teleport>
+
+    <!-- Drag Assign Toast -->
+    <Teleport to="body">
+    <transition name="fade">
+    <div v-if="dragAssignToast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9999] bg-green-500 text-black font-bold px-6 py-3 rounded-xl shadow-xl flex items-center gap-2 text-sm">
+        <span class="material-symbols-outlined text-[18px]">check_circle</span>
+        {{ dragAssignToast }}
+    </div>
+    </transition>
+    </Teleport>
+
     <!-- Chat Modal -->
     <Teleport to="body">
     <div v-if="showChatModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showChatModal = false">
-        <div class="glass-panel rounded-2xl w-full max-w-sm m-4 border border-gray-200 dark:border-white/10 flex flex-col h-[400px]">
+        <div class="bg-white dark:bg-card-dark rounded-2xl w-full max-w-sm m-4 border border-gray-200 dark:border-white/10 shadow-2xl flex flex-col h-[400px]">
             <div class="p-4 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <img :src="chatDriver?.avatar" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700">
@@ -276,6 +363,11 @@ const showChatModal = ref(false)
 const chatDriver = ref(null)
 const chatMsg = ref('')
 const mapLayers = ref({ layers: false, traffic: false, heatmap: false, history: false })
+const showDriverDetailModal = ref(false)
+const detailDriver = ref(null)
+const draggingLoad = ref(null)
+const dragOverDriver = ref(null)
+const dragAssignToast = ref('')
 
 const drivers = ref([
     { id: 'DRV-001', name: 'Mike Ross', vehicle: 'Van T-20', location: 'Sector 4', statusColor: 'bg-green-500', load: 85, hours: 4.5, avatar: 'https://i.pravatar.cc/150?u=1' },
@@ -340,6 +432,54 @@ function sendDriverMsg() {
         driverChatMessages.value.push({ id: chatMsgId++, from: 'driver', text: msg.includes('?') ? 'Yes, copy that. I\'ll check and confirm.' : 'Roger, acknowledged.' })
     }, 1000)
 }
+
+// Driver Detail Modal
+function viewDriverDetail(driver) {
+    detailDriver.value = driver
+    showDriverDetailModal.value = true
+}
+
+function assignToDriverFromDetail() {
+    showDriverDetailModal.value = false
+    assignDriverId.value = detailDriver.value?.id || ''
+    showAssignModal.value = true
+}
+
+// Drag and Drop
+function onDragStart(event, load) {
+    draggingLoad.value = load
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', load.id)
+}
+
+function onDragEnd() {
+    draggingLoad.value = null
+    dragOverDriver.value = null
+}
+
+function onDriverPanelDragOver(event) {
+    event.dataTransfer.dropEffect = 'move'
+}
+
+function onDropOnDriverPanel(event) {
+    dragOverDriver.value = null
+}
+
+function onDropOnDriver(event, driver) {
+    event.preventDefault()
+    dragOverDriver.value = null
+    if (!draggingLoad.value) return
+
+    // Assign the load to the driver
+    const loadIdx = pendingLoads.value.findIndex(l => l.id === draggingLoad.value.id)
+    if (loadIdx > -1) {
+        pendingLoads.value.splice(loadIdx, 1)
+        driver.load = Math.min(100, driver.load + 15)
+        dragAssignToast.value = `${draggingLoad.value.id} assigned to ${driver.name}`
+        setTimeout(() => { dragAssignToast.value = '' }, 2500)
+    }
+    draggingLoad.value = null
+}
 </script>
 
 <style scoped>
@@ -357,6 +497,12 @@ function sendDriverMsg() {
 }
 .slide-right-enter-from, .slide-right-leave-to {
     width: 0 !important;
+    opacity: 0;
+}
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
     opacity: 0;
 }
 </style>
