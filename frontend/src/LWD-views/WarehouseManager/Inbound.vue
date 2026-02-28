@@ -36,11 +36,11 @@
                     <div v-for="slot in dockSchedule" :key="slot.id" @click="selectedSlot = slot; showSlotDetail = true"
                         class="p-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-white/20 rounded-lg cursor-pointer transition-all"
                         :class="slot.status === 'Completed' ? 'opacity-50' : ''">
-                        <div class="flex justify-between mb-1">
+                        <div class="flex justify-between items-center mb-1">
                             <span
                                 :class="slot.status === 'Completed' ? 'text-gray-600 dark:text-gray-400' : 'text-primary'"
                                 class="font-bold">{{ slot.time }}</span>
-                            <span class="text-xs px-1 rounded" :class="slot.statusClass">{{ slot.status }}</span>
+                            <span class="text-xs px-2 py-0.5 rounded font-bold" :class="slot.statusClass">{{ slot.status }}</span>
                         </div>
                         <div class="text-gray-900 dark:text-white text-sm">Supplier: {{ slot.supplier }}</div>
                         <div class="text-xs text-gray-600 dark:text-gray-400">{{ slot.dock }} • {{ slot.pallets }}
@@ -247,16 +247,31 @@
                             <textarea v-model="damageForm.description" placeholder="Describe the damage..."
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm h-20 resize-none"></textarea>
                         </div>
-                        <div @click="damageForm.hasPhoto = !damageForm.hasPhoto"
-                            class="p-3 rounded-lg border text-center cursor-pointer transition-colors"
-                            :class="damageForm.hasPhoto ? 'bg-green-500/10 border-green-500/20' : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-primary/50'">
-                            <span class="material-symbols-outlined text-3xl"
-                                :class="damageForm.hasPhoto ? 'text-green-600 dark:text-green-400' : 'text-gray-500'">{{
-                                    damageForm.hasPhoto ?
-                                        'check_circle' : 'photo_camera' }}</span>
-                            <div class="text-xs mt-1" :class="damageForm.hasPhoto ? 'text-green-600 dark:text-green-400' : 'text-gray-500'">
-                                {{
-                                    damageForm.hasPhoto ? '📷 Photo captured' : 'Capture damage photo' }}</div>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Damage Photo</label>
+                            <div v-if="!damagePhoto" @click="openDamageCamera"
+                                class="p-6 rounded-lg border-2 border-dashed text-center cursor-pointer transition-colors bg-gray-50 dark:bg-white/5 border-gray-300 dark:border-white/10 hover:border-primary/50 hover:bg-gray-100 dark:hover:bg-white/10">
+                                <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">photo_camera</span>
+                                <div class="text-sm mt-2 text-gray-600 dark:text-gray-400 font-medium">Click to capture damage photo</div>
+                            </div>
+                            <div v-else class="relative rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
+                                <img :src="damagePhoto" class="w-full h-48 object-cover cursor-pointer" @click="viewImage(damagePhoto)" />
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none"></div>
+                                <div class="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
+                                    <div class="flex items-center gap-2 text-white text-xs font-bold">
+                                        <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                                        Photo captured
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button @click.stop="viewImage(damagePhoto)" class="px-3 py-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded text-xs font-bold transition-colors">
+                                            View
+                                        </button>
+                                        <button @click.stop="retakeDamagePhoto" class="px-3 py-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded text-xs font-bold transition-colors">
+                                            Retake
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <button @click="submitDamage" :disabled="!damageForm.asnId"
                             class="w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-600 dark:text-yellow-400 font-bold py-3 rounded-lg transition-colors">
@@ -314,11 +329,27 @@
             <span class="material-symbols-outlined">check_circle</span>
             <div class="font-bold">{{ toastMsg }}</div>
         </div>
+
+        <!-- Smart Scanner Modal for Camera -->
+        <SmartScannerModal :is-open="isCameraOpen" :default-tab="'camera'" @close="isCameraOpen = false" @camera="handlePhotoCapture" />
+
+        <!-- Image Viewer Modal -->
+        <Teleport to="body">
+            <div v-if="viewerImage" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[999] flex items-center justify-center p-4" @click="viewerImage = null">
+                <button @click="viewerImage = null" class="absolute top-4 right-4 text-white hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-[32px]">close</span>
+                </button>
+                <div class="max-w-4xl max-h-[90vh] w-full" @click.stop>
+                    <img :src="viewerImage" class="w-full h-full object-contain rounded-lg" />
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
 <script setup>
 import { ref, computed, reactive } from 'vue'
+import SmartScannerModal from '@/components/SmartScannerModal.vue'
 
 const showMismatchModal = ref(false)
 const showDamageModal = ref(false)
@@ -326,6 +357,9 @@ const showScheduleModal = ref(false)
 const showSlotDetail = ref(false)
 const selectedSlot = ref(null)
 const toastMsg = ref('')
+const isCameraOpen = ref(false)
+const damagePhoto = ref(null)
+const viewerImage = ref(null)
 
 const mismatchForm = reactive({ asnId: '', type: 'Quantity difference', details: '' })
 const damageForm = reactive({ asnId: '', count: 0, description: '', hasPhoto: false })
@@ -333,7 +367,7 @@ const scheduleForm = reactive({ supplier: '', qty: 0, eta: '' })
 
 const dockSchedule = ref([
     { id: 1, time: '08:00 - 09:30', supplier: 'Samsung Electronics', dock: 'Dock 4', pallets: 24, status: 'On Time', statusClass: 'bg-green-500/20 text-green-600 dark:text-green-400' },
-    { id: 2, time: '10:00 - 11:30', supplier: 'Nike Global', dock: 'Dock 2', pallets: 12, status: 'Delayed', statusClass: 'bg-yellow-500/20 text-yellow-500' },
+    { id: 2, time: '10:00 - 11:30', supplier: 'Nike Global', dock: 'Dock 2', pallets: 12, status: 'Delayed', statusClass: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' },
     { id: 3, time: '13:00 - 14:00', supplier: 'IKEA', dock: 'Dock 1', pallets: 40, status: 'Scheduled', statusClass: 'bg-gray-500/20 text-gray-600 dark:text-gray-400' },
 ])
 
@@ -382,7 +416,27 @@ function submitDamage() {
     damageForm.description = ''
     damageForm.count = 0
     damageForm.hasPhoto = false
+    damagePhoto.value = null
     showToast(`Damage report submitted for ${damageForm.asnId}`)
+}
+
+function openDamageCamera() {
+    isCameraOpen.value = true
+}
+
+function handlePhotoCapture(photoData) {
+    damagePhoto.value = photoData
+    damageForm.hasPhoto = true
+}
+
+function retakeDamagePhoto() {
+    damagePhoto.value = null
+    damageForm.hasPhoto = false
+    isCameraOpen.value = true
+}
+
+function viewImage(imageSrc) {
+    viewerImage.value = imageSrc
 }
 
 function scheduleDelivery() {
