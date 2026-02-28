@@ -26,7 +26,7 @@
             <div class="flex items-center gap-3">
                 <span class="material-symbols-outlined text-primary">terminal</span>
                 <input v-model="nlCommand" type="text"
-                    class="flex-1 bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-sm placeholder-gray-500 focus:border-primary/50 focus:outline-none"
+                    class="flex-1 bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm placeholder-gray-500 focus:border-primary/50 focus:outline-none"
                     placeholder='Type a command e.g. "Assign all downtown parcels to the smallest van" or "Re-route Zone B drivers around highway closure"'
                     @keyup.enter="executeNLCommand" />
                 <button @click="executeNLCommand"
@@ -38,25 +38,25 @@
             </div>
             <div v-if="nlResponse" class="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
                 <div class="text-[10px] text-primary uppercase font-bold tracking-wider mb-1">AI Response</div>
-                <div class="text-sm text-gray-300">{{ nlResponse }}</div>
+                <div class="text-sm text-gray-600 dark:text-gray-300">{{ nlResponse }}</div>
             </div>
             <div class="mt-2 flex gap-2 flex-wrap">
                 <button v-for="q in quickCommands" :key="q" @click="nlCommand = q; executeNLCommand()"
-                    class="text-[10px] bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-2 py-1 rounded transition-colors">{{ q }}</button>
+                    class="text-[10px] bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-900 dark:text-white px-2 py-1 rounded transition-colors">{{ q }}</button>
             </div>
         </div>
 
         <div class="grid gap-6" :class="showChat ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'">
             <!-- AI Recommendations -->
             <div class="glass-panel p-6 rounded-xl">
-                <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary">lightbulb</span>
                     Live Optimization Suggestions
                 </h3>
                 <div class="space-y-4">
                     <div v-for="suggestion in suggestions" :key="suggestion.id"
                         :class="suggestion.applied ? 'opacity-50' : ''"
-                        class="p-4 bg-white/5 border border-white/5 rounded-xl hover:border-primary/30 transition-all cursor-pointer group">
+                        class="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl hover:border-primary/30 transition-all cursor-pointer group">
                         <div class="flex justify-between items-start mb-2">
                             <div :class="suggestion.color" class="font-bold text-sm">
                                 {{ suggestion.applied ? '✓ ' : '' }}{{ suggestion.title }}
@@ -65,7 +65,7 @@
                                 Confidence: <span :class="suggestion.confidence >= 90 ? 'text-green-400' : 'text-yellow-400'" class="font-bold">{{ suggestion.confidence }}%</span>
                             </div>
                         </div>
-                        <div class="text-sm text-gray-300 mb-2" v-html="suggestion.message"></div>
+                        <div class="text-sm text-gray-600 dark:text-gray-300 mb-2" v-html="suggestion.message"></div>
                         <div v-if="suggestion.explanation" class="mb-2 p-2 bg-blue-500/5 border border-blue-500/10 rounded text-[11px] text-blue-300">
                             <span class="font-bold">Why:</span> {{ suggestion.explanation }}
                         </div>
@@ -83,25 +83,25 @@
             <!-- Predictive Load + Peak Demand -->
             <div class="space-y-6">
                 <div class="glass-panel p-6 rounded-xl">
-                    <h3 class="font-bold text-white mb-4">Demand Prediction (Next 4 Hours)</h3>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Demand Prediction (Next 4 Hours)</h3>
                     <div class="h-48">
                         <Bar :data="demandChartData" :options="demandChartOptions" />
                     </div>
                     <div class="mt-4 text-center text-sm text-gray-400">
-                        Peak expected at <span class="text-white font-bold">14:00</span>. Prepare 3 extra drivers.
+                        Peak expected at <span class="text-gray-900 dark:text-white font-bold">14:00</span>. Prepare 3 extra drivers.
                     </div>
                 </div>
 
                 <!-- Peak Demand Prioritization Controls -->
                 <div class="glass-panel p-6 rounded-xl">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-red-400">priority_high</span>
                         Peak Demand Prioritization
                     </h3>
                     <div class="space-y-3">
-                        <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div>
-                                <div class="text-sm text-white font-medium">Dynamic Queue Reallocation</div>
+                                <div class="text-sm text-gray-900 dark:text-white font-medium">Dynamic Queue Reallocation</div>
                                 <div class="text-[10px] text-gray-500">Auto-reprioritize orders during peak demand surges</div>
                             </div>
                             <button @click="togglePeak('reallocation')"
@@ -111,9 +111,9 @@
                                     :class="peakReallocation ? 'left-5' : 'left-0.5'"></span>
                             </button>
                         </div>
-                        <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div>
-                                <div class="text-sm text-white font-medium">Shift Extension Mode</div>
+                                <div class="text-sm text-gray-900 dark:text-white font-medium">Shift Extension Mode</div>
                                 <div class="text-[10px] text-gray-500">Allow voluntary driver shift extensions during peaks</div>
                             </div>
                             <button @click="togglePeak('shift')"
@@ -123,9 +123,9 @@
                                     :class="shiftExtension ? 'left-5' : 'left-0.5'"></span>
                             </button>
                         </div>
-                        <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div>
-                                <div class="text-sm text-white font-medium">VIP Orders Priority Lock</div>
+                                <div class="text-sm text-gray-900 dark:text-white font-medium">VIP Orders Priority Lock</div>
                                 <div class="text-[10px] text-gray-500">Guarantee on-time delivery for VIP during peak</div>
                             </div>
                             <button @click="togglePeak('vip')"
@@ -144,12 +144,12 @@
 
             <!-- AI Chat Interface -->
             <div v-if="showChat" class="glass-panel rounded-xl flex flex-col h-[540px]">
-                <div class="p-4 border-b border-white/5 bg-black/20 flex items-center gap-2">
+                <div class="p-4 border-b border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-black/20 flex items-center gap-2">
                     <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center">
                         <span class="material-symbols-outlined text-black text-[16px]">smart_toy</span>
                     </div>
                     <div>
-                        <div class="text-sm font-bold text-white">AI Dispatch Agent</div>
+                        <div class="text-sm font-bold text-gray-900 dark:text-white">AI Dispatch Agent</div>
                         <div class="text-[10px] text-green-400">Online • Reasoning</div>
                     </div>
                 </div>
@@ -166,7 +166,7 @@
                             YOU
                         </div>
                         <div class="max-w-[85%] p-3 rounded-xl text-sm"
-                            :class="msg.sender === 'ai' ? 'bg-white/5 border border-white/10 text-gray-300 rounded-tl-none' : 'bg-primary/20 border border-primary/30 text-white rounded-tr-none'">
+                            :class="msg.sender === 'ai' ? 'bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 rounded-tl-none' : 'bg-primary/20 border border-primary/30 text-gray-900 dark:text-white rounded-tr-none'">
                             {{ msg.text }}
                         </div>
                     </div>
@@ -174,16 +174,16 @@
                         <div class="w-7 h-7 flex-shrink-0 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center">
                             <span class="material-symbols-outlined text-black text-[14px]">smart_toy</span>
                         </div>
-                        <div class="bg-white/5 border border-white/10 p-3 rounded-xl rounded-tl-none text-gray-400 text-sm">
+                        <div class="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 p-3 rounded-xl rounded-tl-none text-gray-400 text-sm">
                             <span class="inline-flex gap-1"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.15s"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.3s"></span></span>
                         </div>
                     </div>
                 </div>
 
-                <div class="p-3 border-t border-white/5 bg-black/20">
+                <div class="p-3 border-t border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-black/20">
                     <div class="flex gap-2">
                         <input v-model="chatInput" type="text" placeholder="Ask the AI agent..."
-                            class="flex-1 bg-white/5 border border-white/10 rounded-full py-2 pl-4 pr-4 text-white text-sm focus:outline-none focus:border-primary/50"
+                            class="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full py-2 pl-4 pr-4 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50"
                             @keyup.enter="sendChat" />
                         <button @click="sendChat"
                             class="p-2 bg-primary rounded-full text-black hover:scale-105 transition-transform">
@@ -192,7 +192,7 @@
                     </div>
                     <div class="flex gap-1 mt-2 flex-wrap">
                         <button v-for="chip in chatChips" :key="chip" @click="chatInput = chip; sendChat()"
-                            class="text-[9px] bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white px-2 py-0.5 rounded-full transition-colors">{{ chip }}</button>
+                            class="text-[9px] bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-500 hover:text-gray-900 dark:text-white px-2 py-0.5 rounded-full transition-colors">{{ chip }}</button>
                     </div>
                 </div>
             </div>
@@ -200,7 +200,7 @@
 
         <!-- AI Delay Prediction Panel -->
         <div class="glass-panel p-6 rounded-xl">
-            <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+            <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-yellow-400">schedule</span>
                 AI Delay Prediction Engine
             </h3>
@@ -209,7 +209,7 @@
                     class="p-4 rounded-xl border"
                     :class="pred.risk === 'High' ? 'bg-red-500/5 border-red-500/20' : pred.risk === 'Medium' ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-green-500/5 border-green-500/20'">
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-white font-bold text-sm">{{ pred.route }}</span>
+                        <span class="text-gray-900 dark:text-white font-bold text-sm">{{ pred.route }}</span>
                         <span class="text-[10px] px-2 py-0.5 rounded-full font-bold"
                             :class="pred.risk === 'High' ? 'bg-red-500/20 text-red-400' : pred.risk === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'">
                             {{ pred.risk }} Risk
@@ -217,7 +217,7 @@
                     </div>
                     <div class="text-xs text-gray-400 mb-1">{{ pred.reason }}</div>
                     <div class="flex items-center gap-2 mt-2">
-                        <div class="flex-1 h-2 bg-black/30 rounded-full overflow-hidden">
+                        <div class="flex-1 h-2 bg-gray-100 dark:bg-black/30 rounded-full overflow-hidden">
                             <div class="h-full rounded-full transition-all"
                                 :class="pred.risk === 'High' ? 'bg-red-500' : pred.risk === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'"
                                 :style="{ width: pred.probability + '%' }"></div>
@@ -230,7 +230,7 @@
                     <div class="flex items-center justify-between mt-2">
                         <div class="text-[10px] text-gray-500">Est. delay: {{ pred.delay }}</div>
                         <button @click="mitigateDelay(pred)" class="text-[10px] font-bold transition-colors"
-                            :class="pred.mitigated ? 'text-green-400' : 'text-blue-400 hover:text-white'">
+                            :class="pred.mitigated ? 'text-green-400' : 'text-blue-400 hover:text-gray-900 dark:text-white'">
                             {{ pred.mitigated ? '✓ Mitigated' : 'Mitigate' }}
                         </button>
                     </div>
@@ -376,7 +376,7 @@ const suggestions = ref([
         confidence: 88,
         actions: [
             { label: 'Reroute All', class: 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400' },
-            { label: 'Ignore', class: 'bg-white/10 hover:bg-white/20 text-white' }
+            { label: 'Ignore', class: 'bg-white/10 hover:bg-white/20 text-gray-900 dark:text-white' }
         ]
     },
     {
@@ -386,7 +386,7 @@ const suggestions = ref([
         confidence: 91,
         actions: [
             { label: 'Auto-Balance', class: 'bg-orange-500/20 hover:bg-orange-500/30 text-orange-400' },
-            { label: 'Review', class: 'bg-white/10 hover:bg-white/20 text-white' }
+            { label: 'Review', class: 'bg-white/10 hover:bg-white/20 text-gray-900 dark:text-white' }
         ]
     }
 ])

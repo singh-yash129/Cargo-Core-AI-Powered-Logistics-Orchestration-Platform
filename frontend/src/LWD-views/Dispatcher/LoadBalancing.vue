@@ -3,7 +3,7 @@
         <!-- Header -->
         <div class="flex justify-between items-center">
             <div>
-                <h2 class="text-2xl font-bold text-white">Load Balancing Engine</h2>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Load Balancing Engine</h2>
                 <p class="text-sm text-gray-400 mt-1">Monitor and balance workload across drivers — prevent overload, eliminate idle capacity</p>
             </div>
             <div class="flex gap-2">
@@ -21,7 +21,7 @@
         <!-- Balance Overview -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-white">{{ activeDrivers.length }}</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ activeDrivers.length }}</div>
                 <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Active Drivers</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
@@ -55,13 +55,13 @@
             <!-- Driver Workload Cards -->
             <div class="lg:col-span-2 space-y-4">
                 <div class="glass-panel rounded-xl p-4">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-gray-400 text-[20px]">groups</span>
                         Driver Workload Distribution
                     </h3>
 
                     <!-- Visual Balance Bar - Chart.js -->
-                    <div class="mb-6 p-4 bg-black/20 rounded-xl">
+                    <div class="mb-6 p-4 bg-gray-100 dark:bg-black/20 rounded-xl">
                         <div class="h-40">
                             <Bar :data="balanceChartData" :options="balanceChartOptions" />
                         </div>
@@ -77,7 +77,7 @@
                     <!-- Driver Detail Table -->
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
-                            <thead class="bg-white/5 text-gray-400 uppercase text-[10px] tracking-wider">
+                            <thead class="bg-gray-50 dark:bg-white/5 text-gray-400 uppercase text-[10px] tracking-wider">
                                 <tr>
                                     <th class="p-3">Driver</th>
                                     <th class="p-3">Vehicle</th>
@@ -89,25 +89,25 @@
                                     <th class="p-3">Status</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-white/5">
-                                <tr v-for="driver in activeDrivers" :key="driver.id" class="hover:bg-white/5 transition-colors">
+                            <tbody class="divide-y divide-gray-200 dark:divide-white/5">
+                                <tr v-for="driver in activeDrivers" :key="driver.id" class="hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
                                     <td class="p-3">
                                         <div class="flex items-center gap-2">
-                                            <img :src="driver.avatar" class="w-8 h-8 rounded-full bg-gray-700">
+                                            <img :src="driver.avatar" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700">
                                             <div>
-                                                <div class="font-bold text-white text-xs">{{ driver.name }}</div>
+                                                <div class="font-bold text-gray-900 dark:text-white text-xs">{{ driver.name }}</div>
                                                 <div class="text-[10px] text-gray-500">{{ driver.id }}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="p-3 text-gray-300 text-xs">{{ driver.vehicle }}</td>
+                                    <td class="p-3 text-gray-600 dark:text-gray-300 text-xs">{{ driver.vehicle }}</td>
                                     <td class="p-3 text-xs">
-                                        <span class="text-white font-mono">{{ driver.currentLoad }}</span>
+                                        <span class="text-gray-900 dark:text-white font-mono">{{ driver.currentLoad }}</span>
                                         <span class="text-gray-500"> / {{ driver.maxCapacity }}</span>
                                     </td>
                                     <td class="p-3">
                                         <div class="flex items-center gap-2">
-                                            <div class="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                                            <div class="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                                 <div class="h-full rounded-full" :class="getLoadBarClass(driver.loadPercent)"
                                                     :style="{ width: driver.loadPercent + '%' }"></div>
                                             </div>
@@ -115,12 +115,12 @@
                                         </div>
                                     </td>
                                     <td class="p-3">
-                                        <span class="text-xs font-mono" :class="driver.hoursLeft <= 2 ? 'text-red-400' : 'text-white'">
+                                        <span class="text-xs font-mono" :class="driver.hoursLeft <= 2 ? 'text-red-400' : 'text-gray-900 dark:text-white'">
                                             {{ driver.hoursLeft }}h
                                         </span>
                                     </td>
-                                    <td class="p-3 text-xs text-gray-300">{{ driver.routeDistance }} km</td>
-                                    <td class="p-3 text-xs text-gray-300">{{ driver.stops }}</td>
+                                    <td class="p-3 text-xs text-gray-600 dark:text-gray-300">{{ driver.routeDistance }} km</td>
+                                    <td class="p-3 text-xs text-gray-600 dark:text-gray-300">{{ driver.stops }}</td>
                                     <td class="p-3">
                                         <span class="px-2 py-0.5 rounded text-[9px] font-bold" :class="getBalanceStatusClass(driver.loadPercent)">
                                             {{ getBalanceStatus(driver.loadPercent) }}
@@ -137,7 +137,7 @@
             <div class="space-y-4">
                 <!-- Empty Miles Tracker -->
                 <div class="glass-panel p-5 rounded-xl">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-red-400 text-[20px]">route</span>
                         Empty Miles Tracker
                     </h3>
@@ -150,7 +150,7 @@
                         <div class="space-y-2">
                             <div class="flex justify-between text-xs">
                                 <span class="text-gray-400">Total Miles Today</span>
-                                <span class="text-white font-mono">2,840 km</span>
+                                <span class="text-gray-900 dark:text-white font-mono">2,840 km</span>
                             </div>
                             <div class="flex justify-between text-xs">
                                 <span class="text-gray-400">Loaded Miles</span>
@@ -160,7 +160,7 @@
                                 <span class="text-gray-400">Empty Miles</span>
                                 <span class="text-red-400 font-mono">426 km</span>
                             </div>
-                            <div class="flex justify-between text-xs pt-2 border-t border-white/5">
+                            <div class="flex justify-between text-xs pt-2 border-t border-gray-200 dark:border-white/5">
                                 <span class="text-gray-400">Predicted Empty %</span>
                                 <span class="text-yellow-400 font-mono">{{ emptyMilesPercent }}%</span>
                             </div>
@@ -174,18 +174,18 @@
 
                 <!-- AI Suggestions -->
                 <div class="glass-panel p-5 rounded-xl">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-purple-400 text-[20px]">auto_fix_high</span>
                         Balance Suggestions
                     </h3>
                     <div class="space-y-3">
                         <div v-for="(sug, idx) in balanceSuggestions" :key="idx"
-                            class="p-3 bg-white/5 rounded-lg border border-white/5 hover:border-purple-500/30 transition-all cursor-pointer">
+                            class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/5 hover:border-purple-500/30 transition-all cursor-pointer">
                             <div class="text-xs font-bold mb-1" :class="sug.color">{{ sug.title }}</div>
                             <div class="text-[10px] text-gray-400">{{ sug.desc }}</div>
                             <button @click="applySuggestion(idx)"
                                 class="mt-2 text-[10px] font-bold transition-colors"
-                                :class="sug.applied ? 'text-green-400' : sug.color + ' hover:text-white'">
+                                :class="sug.applied ? 'text-green-400' : sug.color + ' hover:text-gray-900 dark:text-white'">
                                 {{ sug.applied ? '✓ Applied' : 'Apply' }}
                             </button>
                         </div>
@@ -194,6 +194,31 @@
             </div>
         </div>
     </div>
+
+    <!-- Auto-Balance Confirm Modal -->
+    <Teleport to="body">
+    <div v-if="showAutoBalanceConfirm" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showAutoBalanceConfirm = false">
+        <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10">
+            <h3 class="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-purple-400">balance</span> Confirm Auto-Balance
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                This will redistribute loads across <strong>{{ activeDrivers.length }}</strong> drivers to achieve optimal balance.
+                Overloaded drivers will have orders transferred to underutilized ones.
+            </p>
+            <div class="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg mb-4 text-xs text-purple-400">
+                <div class="font-bold mb-1">Estimated Impact:</div>
+                <div>• Balance Score: {{ balanceScore }}% → 88%</div>
+                <div>• Empty Miles: {{ emptyMilesPercent }}% → 9%</div>
+                <div>• {{ overloadedCount }} overloaded driver(s) will be rebalanced</div>
+            </div>
+            <div class="flex gap-2">
+                <button @click="confirmAutoBalance" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 rounded-lg text-sm transition-colors">Confirm Balance</button>
+                <button @click="showAutoBalanceConfirm = false" class="flex-1 bg-gray-50 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm">Cancel</button>
+            </div>
+        </div>
+    </div>
+    </Teleport>
 </template>
 
 <script setup>
@@ -206,6 +231,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip)
 const balanceScore = ref(68)
 const emptyMilesPercent = ref(15)
 const changesSaved = ref(false)
+const showAutoBalanceConfirm = ref(false)
 
 const activeDrivers = ref([
     { id: 'DRV-001', name: 'Mike Ross', vehicle: 'Van T-20', currentLoad: 1900, maxCapacity: 2000, loadPercent: 95, hoursLeft: 2.1, routeDistance: 145, stops: 18, avatar: 'https://i.pravatar.cc/150?u=1' },
@@ -312,11 +338,16 @@ function getBalanceStatusClass(percent) {
 }
 
 function autoBalance() {
+    showAutoBalanceConfirm.value = true
+}
+
+function confirmAutoBalance() {
     balanceScore.value = 88
     activeDrivers.value[0].loadPercent = 72; activeDrivers.value[0].currentLoad = 1440
     activeDrivers.value[2].loadPercent = 55; activeDrivers.value[2].currentLoad = 825
     activeDrivers.value[3].loadPercent = 40; activeDrivers.value[3].currentLoad = 800
     activeDrivers.value[4].loadPercent = 68; activeDrivers.value[4].currentLoad = 2040
     emptyMilesPercent.value = 9
+    showAutoBalanceConfirm.value = false
 }
 </script>

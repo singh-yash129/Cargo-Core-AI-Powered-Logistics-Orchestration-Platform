@@ -2,36 +2,36 @@
     <div class="h-[calc(100vh-8rem)] flex gap-6">
         <!-- Contact List Sidebar -->
         <div class="w-80 glass-panel rounded-xl flex flex-col overflow-hidden">
-            <div class="p-4 border-b border-white/5 bg-black/20">
+            <div class="p-4 border-b border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-black/20">
                 <!-- Contact Type Tabs -->
                 <div class="flex gap-1 mb-3">
                     <button v-for="tab in contactTabs" :key="tab.key" @click="contactType = tab.key"
-                        :class="contactType === tab.key ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white/5 text-gray-400 border-transparent'"
+                        :class="contactType === tab.key ? 'bg-primary/20 text-primary border-primary/30' : 'bg-gray-50 dark:bg-white/5 text-gray-400 border-transparent'"
                         class="flex-1 text-[10px] font-bold py-1.5 rounded border transition-colors">{{ tab.label }}</button>
                 </div>
                 <div class="relative">
                     <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-500">search</span>
                     <input type="text" v-model="searchQuery" placeholder="Find contact..."
-                        class="w-full bg-black/40 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-white text-sm focus:outline-none focus:border-primary/50">
+                        class="w-full bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-10 pr-4 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50">
                 </div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar">
                 <div v-for="contact in filteredContacts" :key="contact.id"
-                    class="p-4 border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors flex items-center gap-3"
-                    :class="activeChat === contact.id ? 'bg-white/5 border-l-2 border-l-primary' : ''"
+                    class="p-4 border-b border-gray-200 dark:border-white/5 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer transition-colors flex items-center gap-3"
+                    :class="activeChat === contact.id ? 'bg-gray-50 dark:bg-white/5 border-l-2 border-l-primary' : ''"
                     @click="activeChat = contact.id">
                     <div class="relative">
                         <div v-if="contact.type === 'warehouse'"
                             class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
                             <span class="material-symbols-outlined text-blue-400 text-[18px]">warehouse</span>
                         </div>
-                        <img v-else :src="contact.avatar" class="w-10 h-10 rounded-full bg-gray-700">
+                        <img v-else :src="contact.avatar" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700">
                         <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-black"
                             :class="contact.online ? 'bg-green-500' : 'bg-gray-500'"></span>
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex justify-between">
-                            <div class="font-bold text-white text-sm truncate">{{ contact.name }}</div>
+                            <div class="font-bold text-gray-900 dark:text-white text-sm truncate">{{ contact.name }}</div>
                             <span v-if="contact.unread" class="w-4 h-4 bg-primary rounded-full text-[9px] text-black font-bold flex items-center justify-center">{{ contact.unread }}</span>
                         </div>
                         <div class="text-[10px] text-gray-500 truncate">{{ contact.lastMessage }}</div>
@@ -45,14 +45,14 @@
 
         <!-- Active Chat Area -->
         <div class="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden">
-            <div class="p-4 border-b border-white/5 flex justify-between items-center bg-black/20">
+            <div class="p-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-gray-100 dark:bg-black/20">
                 <div class="flex items-center gap-3">
                     <div v-if="activeContact?.type === 'warehouse'" class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
                         <span class="material-symbols-outlined text-blue-400 text-[18px]">warehouse</span>
                     </div>
-                    <img v-else :src="activeContact?.avatar" class="w-10 h-10 rounded-full bg-gray-700">
+                    <img v-else :src="activeContact?.avatar" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700">
                     <div>
-                        <div class="font-bold text-white">{{ activeContact?.name || 'Select a contact' }}</div>
+                        <div class="font-bold text-gray-900 dark:text-white">{{ activeContact?.name || 'Select a contact' }}</div>
                         <div class="text-xs text-green-400">{{ activeContact?.status || '' }}</div>
                     </div>
                 </div>
@@ -67,11 +67,13 @@
                         title="Urgent Instruction">
                         <span class="material-symbols-outlined">priority_high</span>
                     </button>
-                    <button class="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white"
+                    <button @click="togglePTT" class="p-2 hover:bg-white/10 rounded-full transition-colors"
+                        :class="pttActive ? 'text-red-400 bg-red-500/20 animate-pulse' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'"
                         title="Push to Talk"><span class="material-symbols-outlined">mic</span></button>
-                    <button class="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white"><span
-                            class="material-symbols-outlined">call</span></button>
-                    <button @click="showLog = !showLog" class="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white"
+                    <button @click="toggleCall" class="p-2 hover:bg-white/10 rounded-full transition-colors"
+                        :class="callActive ? 'text-green-400 bg-green-500/20 animate-pulse' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'"><span
+                            class="material-symbols-outlined">{{ callActive ? 'call_end' : 'call' }}</span></button>
+                    <button @click="showLog = !showLog" class="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-gray-900 dark:text-white"
                         title="Communication Log"><span class="material-symbols-outlined">history</span></button>
                 </div>
             </div>
@@ -99,7 +101,7 @@
                     <template v-else-if="msg.from === 'dispatch'">
                         <div class="w-8 h-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-[10px] text-black font-bold">DISP</div>
                         <div>
-                            <div class="bg-primary/20 border border-primary/30 p-3 rounded-xl rounded-tr-none text-white text-sm max-w-[70%]">{{ msg.text }}</div>
+                            <div class="bg-primary/20 border border-primary/30 p-3 rounded-xl rounded-tr-none text-gray-900 dark:text-white text-sm max-w-[70%]">{{ msg.text }}</div>
                             <div class="text-[9px] text-gray-600 mt-1 text-right">{{ msg.time }}</div>
                         </div>
                     </template>
@@ -107,19 +109,19 @@
                         <div v-if="activeContact?.type === 'warehouse'" class="w-8 h-8 rounded-full bg-blue-500/20 flex-shrink-0 flex items-center justify-center">
                             <span class="material-symbols-outlined text-blue-400 text-[14px]">warehouse</span>
                         </div>
-                        <img v-else :src="activeContact?.avatar" class="w-8 h-8 rounded-full bg-gray-700">
+                        <img v-else :src="activeContact?.avatar" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700">
                         <div>
-                            <div class="bg-white/5 border border-white/10 p-3 rounded-xl rounded-tl-none text-gray-300 text-sm max-w-[70%]">{{ msg.text }}</div>
+                            <div class="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 p-3 rounded-xl rounded-tl-none text-gray-600 dark:text-gray-300 text-sm max-w-[70%]">{{ msg.text }}</div>
                             <div class="text-[9px] text-gray-600 mt-1">{{ msg.time }}</div>
                         </div>
                     </template>
                 </div>
             </div>
 
-            <div class="p-4 bg-black/20 border-t border-white/5">
+            <div class="p-4 bg-gray-100 dark:bg-black/20 border-t border-gray-200 dark:border-white/5">
                 <div class="relative flex gap-2">
                     <input v-model="newMessage" type="text" :placeholder="'Message ' + (activeContact?.name || 'Mike') + '...'"
-                        class="flex-1 bg-white/5 border border-white/10 rounded-full py-3 pl-4 pr-4 text-white focus:outline-none focus:border-primary/50"
+                        class="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full py-3 pl-4 pr-4 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50"
                         @keyup.enter="sendMessage">
                     <button @click="sendMessage"
                         class="p-3 bg-primary rounded-full text-black hover:scale-105 transition-transform">
@@ -131,16 +133,16 @@
 
         <!-- Communication Log Panel -->
         <div v-if="showLog" class="w-72 glass-panel rounded-xl flex flex-col overflow-hidden">
-            <div class="p-4 border-b border-white/5 bg-black/20">
+            <div class="p-4 border-b border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-black/20">
                 <div class="text-xs font-bold text-gray-400 uppercase">Communication Log</div>
                 <div class="text-[10px] text-gray-600 mt-1">All interactions archived</div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-2">
                 <div v-for="log in commLog" :key="log.id"
-                    class="p-2 rounded-lg text-[10px] border border-white/5"
-                    :class="log.type === 'urgent' ? 'bg-red-500/5 border-red-500/10' : log.type === 'route' ? 'bg-blue-500/5 border-blue-500/10' : 'bg-white/5'">
+                    class="p-2 rounded-lg text-[10px] border border-gray-200 dark:border-white/5"
+                    :class="log.type === 'urgent' ? 'bg-red-500/5 border-red-500/10' : log.type === 'route' ? 'bg-blue-500/5 border-blue-500/10' : 'bg-gray-50 dark:bg-white/5'">
                     <div class="flex justify-between">
-                        <span class="font-bold" :class="log.type === 'urgent' ? 'text-red-400' : log.type === 'route' ? 'text-blue-400' : 'text-gray-300'">{{ log.action }}</span>
+                        <span class="font-bold" :class="log.type === 'urgent' ? 'text-red-400' : log.type === 'route' ? 'text-blue-400' : 'text-gray-600 dark:text-gray-300'">{{ log.action }}</span>
                         <span class="text-gray-600">{{ log.time }}</span>
                     </div>
                     <div class="text-gray-500 mt-0.5">{{ log.contact }} – {{ log.detail }}</div>
@@ -161,6 +163,8 @@ const showLog = ref(false)
 const routeUpdateSent = ref(false)
 const urgentSent = ref(false)
 const chatAreaRef = ref(null)
+const pttActive = ref(false)
+const callActive = ref(false)
 
 const contactTabs = [
     { key: 'all', label: 'All' },
@@ -226,6 +230,29 @@ const commLog = ref([
     { id: 5, action: 'Route Update Pushed', type: 'route', contact: 'Mike Ross', detail: 'Original route restored', time: '8:50 AM' },
     { id: 6, action: 'Broadcast Sent', type: 'urgent', contact: 'All Drivers', detail: 'Weather alert: heavy rain Zone C', time: '8:30 AM' },
 ])
+
+function togglePTT() {
+    pttActive.value = !pttActive.value
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    if (pttActive.value) {
+        addSystemMessage(`PTT active — broadcasting to ${activeContact.value?.name}`)
+        commLog.value.unshift({ id: Date.now(), action: 'PTT Started', type: 'message', contact: activeContact.value?.name, detail: 'Voice channel open', time: now })
+    } else {
+        addSystemMessage(`PTT ended with ${activeContact.value?.name}`)
+    }
+}
+
+function toggleCall() {
+    callActive.value = !callActive.value
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    if (callActive.value) {
+        addSystemMessage(`Call started with ${activeContact.value?.name}`)
+        commLog.value.unshift({ id: Date.now(), action: 'Call Connected', type: 'message', contact: activeContact.value?.name, detail: 'Voice call active', time: now })
+    } else {
+        addSystemMessage(`Call ended with ${activeContact.value?.name}`)
+        commLog.value.unshift({ id: Date.now(), action: 'Call Ended', type: 'message', contact: activeContact.value?.name, detail: 'Call disconnected', time: now })
+    }
+}
 
 function pushRouteUpdate() {
     routeUpdateSent.value = true

@@ -1,6 +1,6 @@
 <template>
     <div class="space-y-6">
-        <h2 class="text-2xl font-bold text-white">Dispatcher Performance Metrics</h2>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Dispatcher Performance Metrics</h2>
 
         <!-- KPI Cards - Row 1 -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -9,11 +9,11 @@
                 <div class="text-sm text-gray-400 mt-2">On-Time Delivery Rate</div>
             </div>
             <div class="glass-panel p-6 rounded-xl text-center">
-                <div class="text-4xl font-bold text-white">12.5m</div>
+                <div class="text-4xl font-bold text-gray-900 dark:text-white">12.5m</div>
                 <div class="text-sm text-gray-400 mt-2">Avg. Turnaround Time</div>
             </div>
             <div class="glass-panel p-6 rounded-xl text-center">
-                <div class="text-4xl font-bold text-white">4.8</div>
+                <div class="text-4xl font-bold text-gray-900 dark:text-white">4.8</div>
                 <div class="text-sm text-gray-400 mt-2">Driver Satisfaction</div>
             </div>
             <div class="glass-panel p-6 rounded-xl text-center">
@@ -59,14 +59,14 @@
         <!-- Charts Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="glass-panel p-6 rounded-xl relative">
-                <h3 class="font-bold text-white mb-6">Delivery Volume (Hourly)</h3>
+                <h3 class="font-bold text-gray-900 dark:text-white mb-6">Delivery Volume (Hourly)</h3>
                 <div class="h-64">
                     <Bar :data="hourlyChartData" :options="hourlyChartOptions" />
                 </div>
             </div>
 
             <div class="glass-panel p-6 rounded-xl">
-                <h3 class="font-bold text-white mb-6">Top Performing Zones</h3>
+                <h3 class="font-bold text-gray-900 dark:text-white mb-6">Top Performing Zones</h3>
                 <div class="h-64">
                     <Bar :data="zoneChartData" :options="zoneChartOptions" />
                 </div>
@@ -76,14 +76,14 @@
         <!-- Route Quality & Planning Accountability -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="glass-panel p-6 rounded-xl">
-                <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-yellow-400 text-[20px]">route</span>
                     Route Quality Metrics
                 </h3>
                 <div class="space-y-4">
-                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div>
-                            <div class="text-sm text-white font-bold">Route Deviation Rate</div>
+                            <div class="text-sm text-gray-900 dark:text-white font-bold">Route Deviation Rate</div>
                             <div class="text-[10px] text-gray-500">Drivers ignoring planned route</div>
                         </div>
                         <div class="text-right">
@@ -91,29 +91,29 @@
                             <div class="text-[10px] text-green-400">Target: &lt;5%</div>
                         </div>
                     </div>
-                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div>
-                            <div class="text-sm text-white font-bold">Avg. Delivery Delay</div>
+                            <div class="text-sm text-gray-900 dark:text-white font-bold">Avg. Delivery Delay</div>
                             <div class="text-[10px] text-gray-500">Minutes past scheduled ETA</div>
                         </div>
                         <div class="text-right">
-                            <div class="text-lg font-bold text-white">8.5 min</div>
+                            <div class="text-lg font-bold text-gray-900 dark:text-white">8.5 min</div>
                             <div class="text-[10px] text-yellow-400">Target: &lt;5 min</div>
                         </div>
                     </div>
-                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div>
-                            <div class="text-sm text-white font-bold">Reassignment Frequency</div>
+                            <div class="text-sm text-gray-900 dark:text-white font-bold">Reassignment Frequency</div>
                             <div class="text-[10px] text-gray-500">Mid-route reassignments today</div>
                         </div>
                         <div class="text-right">
-                            <div class="text-lg font-bold text-white">6</div>
+                            <div class="text-lg font-bold text-gray-900 dark:text-white">6</div>
                             <div class="text-[10px] text-green-400">Normal range</div>
                         </div>
                     </div>
-                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div>
-                            <div class="text-sm text-white font-bold">Fuel Cost Impact</div>
+                            <div class="text-sm text-gray-900 dark:text-white font-bold">Fuel Cost Impact</div>
                             <div class="text-[10px] text-gray-500">Routing efficiency on fuel spend</div>
                         </div>
                         <div class="text-right">
@@ -125,7 +125,7 @@
             </div>
 
             <div class="glass-panel p-6 rounded-xl">
-                <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-red-400 text-[20px]">speed</span>
                     Empty Miles Analysis
                 </h3>
@@ -135,19 +135,19 @@
                     </div>
                 </div>
                 <div class="space-y-2">
-                    <div class="flex justify-between text-xs p-2 bg-white/5 rounded">
+                    <div class="flex justify-between text-xs p-2 bg-gray-50 dark:bg-white/5 rounded">
                         <span class="text-gray-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> Loaded Miles</span>
-                        <span class="text-white font-mono">2,414 km</span>
+                        <span class="text-gray-900 dark:text-white font-mono">2,414 km</span>
                     </div>
-                    <div class="flex justify-between text-xs p-2 bg-white/5 rounded">
+                    <div class="flex justify-between text-xs p-2 bg-gray-50 dark:bg-white/5 rounded">
                         <span class="text-gray-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> Empty Miles</span>
-                        <span class="text-white font-mono">426 km</span>
+                        <span class="text-gray-900 dark:text-white font-mono">426 km</span>
                     </div>
-                    <div class="flex justify-between text-xs p-2 bg-white/5 rounded">
+                    <div class="flex justify-between text-xs p-2 bg-gray-50 dark:bg-white/5 rounded">
                         <span class="text-gray-400">Weekly Trend</span>
                         <span class="text-green-400 font-mono">-3.1% improved</span>
                     </div>
-                    <div class="flex justify-between text-xs p-2 bg-white/5 rounded">
+                    <div class="flex justify-between text-xs p-2 bg-gray-50 dark:bg-white/5 rounded">
                         <span class="text-gray-400">Potential Savings</span>
                         <span class="text-primary font-mono">$218/day</span>
                     </div>

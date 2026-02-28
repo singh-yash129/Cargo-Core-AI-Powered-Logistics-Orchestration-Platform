@@ -1,9 +1,9 @@
 <template>
     <div class="space-y-6">
         <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-white">Manifest Center</h2>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Manifest Center</h2>
             <button @click="showManifestDetail = !showManifestDetail"
-                class="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">
+                class="bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">
                 <span class="material-symbols-outlined text-[18px]">{{ showManifestDetail ? 'table_view' : 'view_agenda' }}</span>
                 {{ showManifestDetail ? 'Table View' : 'Detail View' }}
             </button>
@@ -12,18 +12,18 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- New Manifest Form -->
             <div class="glass-panel p-6 rounded-xl">
-                <h3 class="font-bold text-white mb-4">Create Manifest</h3>
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Create Manifest</h3>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Select Hub</label>
-                        <select v-model="newManifest.hub" class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm">
+                        <select v-model="newManifest.hub" class="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm">
                             <option>North-East Hub</option>
                             <option>South Hub</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Select Driver</label>
-                        <select v-model="newManifest.driver" class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm">
+                        <select v-model="newManifest.driver" class="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm">
                             <option value="">Choose Driver...</option>
                             <option>Mike Ross</option>
                             <option>Harvey Specter</option>
@@ -32,7 +32,7 @@
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Select Vehicle</label>
-                        <select v-model="newManifest.vehicle" class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm">
+                        <select v-model="newManifest.vehicle" class="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm">
                             <option>Auto-assign best fit</option>
                             <option>Van T-15 (1500kg)</option>
                             <option>Van T-20 (2000kg)</option>
@@ -42,11 +42,11 @@
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Route ID (Auto-generated)</label>
                         <input type="text" :value="generatedRouteId" readonly
-                            class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-gray-500 text-sm">
+                            class="w-full bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-500 text-sm">
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Labor Crew (if applicable)</label>
-                        <select v-model="newManifest.crew" class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm">
+                        <select v-model="newManifest.crew" class="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm">
                             <option>No crew needed</option>
                             <option>2 loaders</option>
                             <option>3 loaders + 1 helper</option>
@@ -64,8 +64,8 @@
 
             <!-- Recent Manifests -->
             <div class="lg:col-span-2 glass-panel rounded-xl overflow-hidden">
-                <div class="p-6 border-b border-white/5 flex justify-between">
-                    <h3 class="font-bold text-white">Today's Manifests</h3>
+                <div class="p-6 border-b border-gray-200 dark:border-white/5 flex justify-between">
+                    <h3 class="font-bold text-gray-900 dark:text-white">Today's Manifests</h3>
                     <div class="flex gap-2 text-xs">
                         <span class="px-2 py-1 bg-green-500/10 text-green-500 rounded">12 Dispatched</span>
                         <span class="px-2 py-1 bg-yellow-500/10 text-yellow-500 rounded">4 Pending</span>
@@ -73,7 +73,7 @@
                 </div>
 
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-white/5 text-gray-400 uppercase text-[10px] tracking-wider">
+                    <thead class="bg-gray-50 dark:bg-white/5 text-gray-400 uppercase text-[10px] tracking-wider">
                         <tr>
                             <th class="p-4">Manifest ID</th>
                             <th class="p-4">Driver</th>
@@ -85,15 +85,15 @@
                             <th class="p-4">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-white/5">
-                        <tr v-for="manifest in manifests" :key="manifest.id" class="hover:bg-white/5 transition-colors cursor-pointer"
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5">
+                        <tr v-for="manifest in manifests" :key="manifest.id" class="hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                             @click="selectedManifest = manifest; showManifestDetail = true">
-                            <td class="p-4 font-mono text-white">{{ manifest.id }}</td>
-                            <td class="p-4 text-gray-300">{{ manifest.driver }}</td>
-                            <td class="p-4 text-gray-300">{{ manifest.orders }}</td>
-                            <td class="p-4 text-gray-300">{{ manifest.weight }} kg</td>
-                            <td class="p-4 text-gray-300">{{ manifest.totalDistance }} km</td>
-                            <td class="p-4 text-gray-300">{{ manifest.stopCount }}</td>
+                            <td class="p-4 font-mono text-gray-900 dark:text-white">{{ manifest.id }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-300">{{ manifest.driver }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-300">{{ manifest.orders }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-300">{{ manifest.weight }} kg</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-300">{{ manifest.totalDistance }} km</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-300">{{ manifest.stopCount }}</td>
                             <td class="p-4">
                                 <span class="px-2 py-1 rounded text-[10px] font-bold border"
                                     :class="manifest.statusClass">
@@ -102,8 +102,8 @@
                             </td>
                             <td class="p-4 flex gap-2">
                                 <button @click.stop="selectedManifest = manifest; showManifestDetail = true" class="text-primary hover:underline text-xs">View</button>
-                                <button @click.stop="printManifest(manifest)" class="text-gray-400 hover:text-white text-xs">{{ manifest.printed ? '✓ Printed' : 'Print' }}</button>
-                                <button @click.stop="pushToDriver(manifest)" class="text-xs" :class="manifest.pushed ? 'text-green-400' : 'text-blue-400 hover:text-white'">{{ manifest.pushed ? '✓ Pushed' : 'Push to Driver' }}</button>
+                                <button @click.stop="printManifest(manifest)" class="text-gray-400 hover:text-gray-900 dark:text-white text-xs">{{ manifest.printed ? '✓ Printed' : 'Print' }}</button>
+                                <button @click.stop="pushToDriver(manifest)" class="text-xs" :class="manifest.pushed ? 'text-green-400' : 'text-blue-400 hover:text-gray-900 dark:text-white'">{{ manifest.pushed ? '✓ Pushed' : 'Push to Driver' }}</button>
                             </td>
                         </tr>
                     </tbody>
@@ -114,12 +114,12 @@
         <!-- Manifest Detail View (Digital Manifest) -->
         <div v-if="showManifestDetail && selectedManifest" class="glass-panel rounded-xl p-6">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="font-bold text-white text-lg flex items-center gap-2">
+                <h3 class="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary">description</span>
                     Digital Manifest: {{ selectedManifest.id }}
                 </h3>
                 <div class="flex gap-2">
-                    <button @click="printManifest(selectedManifest)" class="bg-white/5 hover:bg-white/10 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
+                    <button @click="printManifest(selectedManifest)" class="bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-900 dark:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
                         <span class="material-symbols-outlined text-[14px]">print</span> {{ selectedManifest.printed ? '✓ Printed' : 'Print' }}
                     </button>
                     <button @click="pushToDriver(selectedManifest)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1" :class="selectedManifest.pushed ? 'bg-green-500/20 text-green-400' : 'bg-primary/10 hover:bg-primary/20 text-primary'">
@@ -130,29 +130,29 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <!-- Manifest Summary -->
-                <div class="p-4 bg-white/5 rounded-xl space-y-3">
+                <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-xl space-y-3">
                     <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Manifest Summary</div>
                     <div class="space-y-2 text-xs">
-                        <div class="flex justify-between"><span class="text-gray-400">Driver</span><span class="text-white font-bold">{{ selectedManifest.driver }}</span></div>
-                        <div class="flex justify-between"><span class="text-gray-400">Vehicle</span><span class="text-white">{{ selectedManifest.vehicle }}</span></div>
-                        <div class="flex justify-between"><span class="text-gray-400">Total Weight</span><span class="text-white">{{ selectedManifest.weight }} kg</span></div>
-                        <div class="flex justify-between"><span class="text-gray-400">Total Distance</span><span class="text-white">{{ selectedManifest.totalDistance }} km</span></div>
-                        <div class="flex justify-between"><span class="text-gray-400">Total Stops</span><span class="text-white">{{ selectedManifest.stopCount }}</span></div>
-                        <div class="flex justify-between"><span class="text-gray-400">Est. Trip Duration</span><span class="text-white">{{ selectedManifest.estDuration }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Driver</span><span class="text-gray-900 dark:text-white font-bold">{{ selectedManifest.driver }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Vehicle</span><span class="text-gray-900 dark:text-white">{{ selectedManifest.vehicle }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Total Weight</span><span class="text-gray-900 dark:text-white">{{ selectedManifest.weight }} kg</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Total Distance</span><span class="text-gray-900 dark:text-white">{{ selectedManifest.totalDistance }} km</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Total Stops</span><span class="text-gray-900 dark:text-white">{{ selectedManifest.stopCount }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Est. Trip Duration</span><span class="text-gray-900 dark:text-white">{{ selectedManifest.estDuration }}</span></div>
                     </div>
                 </div>
 
                 <!-- Labor Crew List -->
-                <div class="p-4 bg-white/5 rounded-xl">
+                <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-xl">
                     <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-3">Labor / Crew List</div>
                     <div v-if="selectedManifest.crew && selectedManifest.crew.length > 0" class="space-y-2">
                         <div v-for="member in selectedManifest.crew" :key="member.name"
-                            class="flex items-center justify-between p-2 bg-black/20 rounded text-xs">
+                            class="flex items-center justify-between p-2 bg-gray-100 dark:bg-black/20 rounded text-xs">
                             <div class="flex items-center gap-2">
                                 <span class="material-symbols-outlined text-[14px]" :class="member.role === 'Driver' ? 'text-primary' : 'text-blue-400'">
                                     {{ member.role === 'Driver' ? 'local_shipping' : 'person' }}
                                 </span>
-                                <span class="text-white">{{ member.name }}</span>
+                                <span class="text-gray-900 dark:text-white">{{ member.name }}</span>
                             </div>
                             <span class="text-gray-400">{{ member.role }}</span>
                         </div>
@@ -161,11 +161,11 @@
                 </div>
 
                 <!-- Load Summary -->
-                <div class="p-4 bg-white/5 rounded-xl">
+                <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-xl">
                     <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-3">Load Details</div>
                     <div class="space-y-2 text-xs">
-                        <div class="flex justify-between"><span class="text-gray-400">Total Parcels</span><span class="text-white">{{ selectedManifest.orders }}</span></div>
-                        <div class="flex justify-between"><span class="text-gray-400">Total Volume</span><span class="text-white">{{ selectedManifest.totalVolume }} m³</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Total Parcels</span><span class="text-gray-900 dark:text-white">{{ selectedManifest.orders }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Total Volume</span><span class="text-gray-900 dark:text-white">{{ selectedManifest.totalVolume }} m³</span></div>
                         <div class="flex justify-between"><span class="text-gray-400">Fragile Items</span><span class="text-yellow-400">{{ selectedManifest.fragileCount }}</span></div>
                         <div class="flex justify-between"><span class="text-gray-400">Perishable</span><span class="text-blue-400">{{ selectedManifest.perishableCount }}</span></div>
                         <div class="flex justify-between"><span class="text-gray-400">COD Orders</span><span class="text-green-400">{{ selectedManifest.codCount }}</span></div>
@@ -177,7 +177,7 @@
             <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-3">Stop Sequence & Estimated Arrival</div>
             <div class="space-y-2">
                 <div v-for="(stop, index) in selectedManifest.stops" :key="stop.id"
-                    class="flex items-center gap-4 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                    class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
                     <!-- Stop Number -->
                     <div class="flex flex-col items-center">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
@@ -190,7 +190,7 @@
                     <!-- Stop Details -->
                     <div class="flex-1">
                         <div class="flex items-center gap-2">
-                            <span class="text-white text-sm font-bold">{{ stop.location }}</span>
+                            <span class="text-gray-900 dark:text-white text-sm font-bold">{{ stop.location }}</span>
                             <span v-if="stop.type === 'pickup'" class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[9px] font-bold">PICKUP</span>
                             <span v-else class="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[9px] font-bold">DELIVERY</span>
                         </div>
@@ -199,7 +199,7 @@
 
                     <!-- ETA -->
                     <div class="text-right">
-                        <div class="text-sm font-mono font-bold" :class="stop.completed ? 'text-green-400' : 'text-white'">
+                        <div class="text-sm font-mono font-bold" :class="stop.completed ? 'text-green-400' : 'text-gray-900 dark:text-white'">
                             {{ stop.completed ? stop.actualTime : stop.eta }}
                         </div>
                         <div class="text-[10px]" :class="stop.completed ? 'text-green-400' : stop.delayRisk ? 'text-yellow-400' : 'text-gray-500'">

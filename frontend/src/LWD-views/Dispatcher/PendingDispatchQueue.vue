@@ -3,7 +3,7 @@
         <!-- Header -->
         <div class="flex justify-between items-center">
             <div>
-                <h2 class="text-2xl font-bold text-white">Pending Dispatch Queue</h2>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Pending Dispatch Queue</h2>
                 <p class="text-sm text-gray-400 mt-1">Orders marked "Ready for Dispatch" by Warehouse Manager</p>
             </div>
             <div class="flex gap-2">
@@ -33,7 +33,7 @@
                 <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">High Priority</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-white">{{ totalWeight.toLocaleString() }} kg</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ totalWeight.toLocaleString() }} kg</div>
                 <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Total Weight</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
@@ -47,10 +47,10 @@
             <div class="relative flex-1 min-w-[200px]">
                 <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-500 text-[18px]">search</span>
                 <input v-model="searchQuery" type="text" placeholder="Search by Order ID, warehouse, type..."
-                    class="w-full bg-black/20 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-white text-sm focus:outline-none focus:border-primary/50">
+                    class="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-10 pr-4 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50">
             </div>
             <select v-model="filterPriority"
-                class="bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white text-sm">
+                class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm">
                 <option value="">All Priorities</option>
                 <option value="URGENT">Urgent</option>
                 <option value="HIGH">High</option>
@@ -58,12 +58,12 @@
                 <option value="LOW">Low</option>
             </select>
             <select v-model="filterWarehouse"
-                class="bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white text-sm">
+                class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm">
                 <option value="">All Warehouses</option>
                 <option v-for="wh in warehouses" :key="wh" :value="wh">{{ wh }}</option>
             </select>
             <select v-model="filterFeasibility"
-                class="bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white text-sm">
+                class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm">
                 <option value="">All Status</option>
                 <option value="feasible">Feasible</option>
                 <option value="infeasible">Not Feasible</option>
@@ -75,11 +75,11 @@
         <div class="glass-panel rounded-xl overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-white/5 text-gray-400 uppercase text-[10px] tracking-wider">
+                    <thead class="bg-gray-50 dark:bg-white/5 text-gray-400 uppercase text-[10px] tracking-wider">
                         <tr>
                             <th class="p-4">
                                 <input type="checkbox" v-model="selectAll"
-                                    class="rounded border-gray-600 bg-black/20 text-primary focus:ring-primary">
+                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
                             </th>
                             <th class="p-4">Order ID</th>
                             <th class="p-4">Pickup Warehouse</th>
@@ -92,23 +92,23 @@
                             <th class="p-4">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-white/5">
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5">
                         <tr v-for="order in filteredOrders" :key="order.id"
-                            class="hover:bg-white/5 transition-colors group">
+                            class="hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group">
                             <td class="p-4">
                                 <input type="checkbox" v-model="order.selected"
-                                    class="rounded border-gray-600 bg-black/20 text-primary focus:ring-primary">
+                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
                             </td>
-                            <td class="p-4 font-mono text-white font-bold">{{ order.id }}</td>
+                            <td class="p-4 font-mono text-gray-900 dark:text-white font-bold">{{ order.id }}</td>
                             <td class="p-4">
                                 <div class="flex items-center gap-2">
                                     <span
                                         class="material-symbols-outlined text-gray-500 text-[16px]">warehouse</span>
-                                    <span class="text-gray-300">{{ order.warehouse }}</span>
+                                    <span class="text-gray-600 dark:text-gray-300">{{ order.warehouse }}</span>
                                 </div>
                             </td>
                             <td class="p-4">
-                                <div class="text-white">{{ order.weight }} kg</div>
+                                <div class="text-gray-900 dark:text-white">{{ order.weight }} kg</div>
                                 <div class="text-[10px] text-gray-500">{{ order.volume }} m³</div>
                             </td>
                             <td class="p-4">
@@ -125,7 +125,7 @@
                                 </span>
                             </td>
                             <td class="p-4">
-                                <div class="text-white text-xs">{{ order.deadline }}</div>
+                                <div class="text-gray-900 dark:text-white text-xs">{{ order.deadline }}</div>
                                 <div class="text-[10px]" :class="isDeadlineCritical(order.deadline) ? 'text-red-400' : 'text-gray-500'">
                                     {{ getTimeRemaining(order.deadline) }}
                                 </div>
@@ -175,24 +175,25 @@
         </div>
 
         <!-- Feasibility Check Modal -->
+        <Teleport to="body">
         <div v-if="showFeasibilityModal"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div class="bg-card-dark border border-white/10 rounded-2xl p-6 w-full max-w-2xl shadow-2xl">
+            class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div class="bg-white dark:bg-card-dark border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-2xl shadow-2xl">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <span class="material-symbols-outlined text-yellow-400">verified</span>
                         Dispatch Feasibility Validator
                     </h3>
-                    <button @click="showFeasibilityModal = false" class="text-gray-400 hover:text-white">
+                    <button @click="showFeasibilityModal = false" class="text-gray-400 hover:text-gray-900 dark:text-white">
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
 
                 <div class="space-y-4">
                     <!-- Vehicle Capacity Check -->
-                    <div class="p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="font-bold text-white text-sm flex items-center gap-2">
+                            <span class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                                 <span class="material-symbols-outlined text-blue-400 text-[18px]">local_shipping</span>
                                 Vehicle Capacity Check
                             </span>
@@ -203,22 +204,22 @@
                         <div class="grid grid-cols-3 gap-3 text-xs">
                             <div>
                                 <span class="text-gray-500 block">Weight</span>
-                                <span class="text-white">{{ feasCheckOrder?.weight }} / 2000 kg</span>
-                                <div class="w-full h-1 bg-gray-700 rounded mt-1">
+                                <span class="text-gray-900 dark:text-white">{{ feasCheckOrder?.weight }} / 2000 kg</span>
+                                <div class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded mt-1">
                                     <div class="h-full rounded" :class="(feasCheckOrder?.weight / 2000 * 100) > 70 ? 'bg-yellow-500' : 'bg-green-500'" :style="{ width: Math.min(100, (feasCheckOrder?.weight / 2000) * 100) + '%' }"></div>
                                 </div>
                             </div>
                             <div>
                                 <span class="text-gray-500 block">Volume</span>
-                                <span class="text-white">{{ feasCheckOrder?.volume }} / 12 m³</span>
-                                <div class="w-full h-1 bg-gray-700 rounded mt-1">
+                                <span class="text-gray-900 dark:text-white">{{ feasCheckOrder?.volume }} / 12 m³</span>
+                                <div class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded mt-1">
                                     <div class="h-full bg-green-500 rounded" :style="{ width: Math.min(100, (feasCheckOrder?.volume / 12) * 100) + '%' }"></div>
                                 </div>
                             </div>
                             <div>
                                 <span class="text-gray-500 block">Labor</span>
-                                <span class="text-white">{{ feasCheckOrder?.laborCount || 0 }} crew needed</span>
-                                <div class="w-full h-1 bg-gray-700 rounded mt-1">
+                                <span class="text-gray-900 dark:text-white">{{ feasCheckOrder?.laborCount || 0 }} crew needed</span>
+                                <div class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded mt-1">
                                     <div class="h-full rounded" :class="feasCheckOrder?.laborCount > 2 ? 'bg-yellow-500' : 'bg-green-500'" :style="{ width: Math.min(100, ((feasCheckOrder?.laborCount || 0) / 5) * 100) + '%' }"></div>
                                 </div>
                             </div>
@@ -226,9 +227,9 @@
                     </div>
 
                     <!-- Driver Availability -->
-                    <div class="p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="font-bold text-white text-sm flex items-center gap-2">
+                            <span class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                                 <span class="material-symbols-outlined text-purple-400 text-[18px]">badge</span>
                                 Driver Availability
                             </span>
@@ -241,7 +242,7 @@
                             </div>
                             <div>
                                 <span class="text-gray-500 block">Working Hours</span>
-                                <span class="text-white">4.2h / 10h max</span>
+                                <span class="text-gray-900 dark:text-white">4.2h / 10h max</span>
                             </div>
                             <div>
                                 <span class="text-gray-500 block">HOS Compliance</span>
@@ -253,9 +254,9 @@
                     </div>
 
                     <!-- Delivery Window -->
-                    <div class="p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="font-bold text-white text-sm flex items-center gap-2">
+                            <span class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                                 <span class="material-symbols-outlined text-orange-400 text-[18px]">schedule</span>
                                 Delivery Window Check
                             </span>
@@ -267,15 +268,15 @@
                         <div class="grid grid-cols-3 gap-3 text-xs">
                             <div>
                                 <span class="text-gray-500 block">Deadline</span>
-                                <span class="text-white">{{ feasCheckOrder?.deadline }}</span>
+                                <span class="text-gray-900 dark:text-white">{{ feasCheckOrder?.deadline }}</span>
                             </div>
                             <div>
                                 <span class="text-gray-500 block">Remaining</span>
-                                <span :class="isDeadlineCritical(feasCheckOrder?.deadline) ? 'text-red-400' : 'text-white'">{{ getTimeRemaining(feasCheckOrder?.deadline) }}</span>
+                                <span :class="isDeadlineCritical(feasCheckOrder?.deadline) ? 'text-red-400' : 'text-gray-900 dark:text-white'">{{ getTimeRemaining(feasCheckOrder?.deadline) }}</span>
                             </div>
                             <div>
                                 <span class="text-gray-500 block">Priority</span>
-                                <span class="text-white">{{ feasCheckOrder?.priority }}</span>
+                                <span class="text-gray-900 dark:text-white">{{ feasCheckOrder?.priority }}</span>
                             </div>
                         </div>
                     </div>
@@ -287,7 +288,7 @@
                         Approve & Assign
                     </button>
                     <button @click="holdFeasOrder"
-                        class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-2.5 rounded-lg transition-colors">
+                        class="flex-1 bg-white/10 hover:bg-white/20 text-gray-900 dark:text-white font-bold py-2.5 rounded-lg transition-colors">
                         Hold Order
                     </button>
                     <button @click="escalateFeasOrder"
@@ -300,6 +301,49 @@
                 </div>
             </div>
         </div>
+        </Teleport>
+
+    <!-- Assign Confirm Modal -->
+    <Teleport to="body">
+    <div v-if="showAssignConfirm" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showAssignConfirm = false">
+        <div class="glass-panel rounded-2xl p-6 w-full max-w-sm m-4 border border-gray-200 dark:border-white/10">
+            <h3 class="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">assignment_turned_in</span> Confirm Assignment
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Assign <strong>{{ assignConfirmOrder?.id }}</strong> ({{ assignConfirmOrder?.weight }}kg, {{ assignConfirmOrder?.priority }}) to next available driver?
+            </p>
+            <div class="flex gap-2">
+                <button @click="confirmAssign" class="flex-1 bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 rounded-lg text-sm transition-colors">Assign</button>
+                <button @click="showAssignConfirm = false" class="flex-1 bg-gray-50 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm">Cancel</button>
+            </div>
+        </div>
+    </div>
+    </Teleport>
+
+    <!-- Batch Assign Confirm Modal -->
+    <Teleport to="body">
+    <div v-if="showBatchConfirm" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showBatchConfirm = false">
+        <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10">
+            <h3 class="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">assignment_turned_in</span> Confirm Batch Assignment
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                Dispatch <strong>{{ selectedOrders.length }}</strong> selected orders to available drivers?
+            </p>
+            <div class="max-h-32 overflow-y-auto space-y-1 mb-4">
+                <div v-for="order in selectedOrders" :key="order.id" class="text-xs p-2 bg-gray-50 dark:bg-white/5 rounded-lg flex justify-between">
+                    <span class="text-gray-900 dark:text-white font-bold">{{ order.id }}</span>
+                    <span class="text-gray-500">{{ order.weight }}kg • {{ order.priority }}</span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button @click="confirmBatchAssign" class="flex-1 bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 rounded-lg text-sm transition-colors">Dispatch All</button>
+                <button @click="showBatchConfirm = false" class="flex-1 bg-gray-50 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm">Cancel</button>
+            </div>
+        </div>
+    </div>
+    </Teleport>
     </div>
 </template>
 
@@ -314,6 +358,9 @@ const selectAll = ref(false)
 const showFeasibilityModal = ref(false)
 const feasCheckOrder = ref(null)
 const feasibilityToast = ref('')
+const showAssignConfirm = ref(false)
+const assignConfirmOrder = ref(null)
+const showBatchConfirm = ref(false)
 
 const warehouses = ['North-East Hub', 'South Hub', 'West DC', 'Central Depot', 'Airport Hub']
 
@@ -414,10 +461,18 @@ function escalateFeasOrder() {
 }
 
 function assignDriver(order) {
-    order.feasibility = 'feasible'
-    order.failReason = ''
-    const idx = pendingOrders.value.findIndex(o => o.id === order.id)
-    if (idx > -1) pendingOrders.value.splice(idx, 1)
+    assignConfirmOrder.value = order
+    showAssignConfirm.value = true
+}
+
+function confirmAssign() {
+    if (assignConfirmOrder.value) {
+        assignConfirmOrder.value.feasibility = 'feasible'
+        assignConfirmOrder.value.failReason = ''
+        const idx = pendingOrders.value.findIndex(o => o.id === assignConfirmOrder.value.id)
+        if (idx > -1) pendingOrders.value.splice(idx, 1)
+        showAssignConfirm.value = false
+    }
 }
 
 function escalateOrder(order) {
@@ -430,8 +485,13 @@ function holdOrder(order) {
 }
 
 function batchAssign() {
+    showBatchConfirm.value = true
+}
+
+function confirmBatchAssign() {
     const ids = selectedOrders.value.map(o => o.id)
     pendingOrders.value = pendingOrders.value.filter(o => !ids.includes(o.id))
     selectAll.value = false
+    showBatchConfirm.value = false
 }
 </script>

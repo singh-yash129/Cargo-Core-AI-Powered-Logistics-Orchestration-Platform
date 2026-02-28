@@ -1,7 +1,7 @@
 <template>
     <div class="space-y-6">
         <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-white">Route Optimization</h2>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Route Optimization</h2>
             <div class="flex gap-2">
                 <button @click="showManualOverride = !showManualOverride"
                     class="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold">
@@ -20,12 +20,12 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
             <!-- Configuration Panel -->
             <div class="glass-panel p-6 rounded-xl overflow-y-auto no-scrollbar">
-                <h3 class="font-bold text-white mb-4">Optimization Settings</h3>
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Optimization Settings</h3>
 
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Optimization Goal</label>
-                        <select class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm">
+                        <select v-model="optimizationGoal" class="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm">
                             <option>Minimize Distance</option>
                             <option>Minimize Time</option>
                             <option>Balance Workload</option>
@@ -36,41 +36,41 @@
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Constraints</label>
                         <div class="space-y-2">
-                            <label class="flex items-center gap-2 text-sm text-gray-300">
-                                <input type="checkbox" checked
-                                    class="rounded border-gray-600 bg-black/20 text-primary focus:ring-primary">
+                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                <input type="checkbox" v-model="constraints.avoidTolls"
+                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
                                 <span>Avoid Toll Roads</span>
                             </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-300">
-                                <input type="checkbox" checked
-                                    class="rounded border-gray-600 bg-black/20 text-primary focus:ring-primary">
+                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                <input type="checkbox" v-model="constraints.prioritizeVIP"
+                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
                                 <span>Prioritize VIP Orders</span>
                             </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-300">
-                                <input type="checkbox"
-                                    class="rounded border-gray-600 bg-black/20 text-primary focus:ring-primary">
+                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                <input type="checkbox" v-model="constraints.evRouting"
+                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
                                 <span>Electric Vehicle Routing</span>
                             </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-300">
-                                <input type="checkbox" checked
-                                    class="rounded border-gray-600 bg-black/20 text-primary focus:ring-primary">
+                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                <input type="checkbox" v-model="constraints.respectNoGo"
+                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
                                 <span>Respect No-Go Zones</span>
                             </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-300">
-                                <input type="checkbox" checked
-                                    class="rounded border-gray-600 bg-black/20 text-primary focus:ring-primary">
+                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                <input type="checkbox" v-model="constraints.hosCompliance"
+                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
                                 <span>HOS Compliance Check</span>
                             </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-300">
-                                <input type="checkbox" checked
-                                    class="rounded border-gray-600 bg-black/20 text-primary focus:ring-primary">
+                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                <input type="checkbox" v-model="constraints.vehicleSize"
+                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
                                 <span>Vehicle Size Restrictions</span>
                             </label>
                         </div>
                     </div>
 
                     <!-- Data Sources -->
-                    <div class="pt-2 border-t border-white/5">
+                    <div class="pt-2 border-t border-gray-200 dark:border-white/5">
                         <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-2">Routing Intelligence Sources</div>
                         <div class="space-y-1 text-xs">
                             <div class="flex items-center gap-2 text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Traffic data (live)</div>
@@ -81,13 +81,13 @@
                         </div>
                     </div>
 
-                    <div class="pt-4 border-t border-white/5">
-                        <h4 class="text-sm font-bold text-white mb-2">Unassigned Orders (42)</h4>
-                        <div class="bg-black/20 rounded p-2 text-xs text-gray-400 h-32 overflow-y-auto no-scrollbar">
-                            <div class="flex justify-between py-1 border-b border-white/5"><span>ORD-9912 (Zone A)</span><span class="text-yellow-400">High</span></div>
-                            <div class="flex justify-between py-1 border-b border-white/5"><span>ORD-8821 (Zone B)</span><span class="text-gray-500">Normal</span></div>
-                            <div class="flex justify-between py-1 border-b border-white/5"><span>ORD-7712 (Zone A)</span><span class="text-gray-500">Normal</span></div>
-                            <div class="flex justify-between py-1 border-b border-white/5"><span>ORD-1120 (Zone C)</span><span class="text-red-400">Critical</span></div>
+                    <div class="pt-4 border-t border-gray-200 dark:border-white/5">
+                        <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-2">Unassigned Orders (42)</h4>
+                        <div class="bg-gray-100 dark:bg-black/20 rounded p-2 text-xs text-gray-400 h-32 overflow-y-auto no-scrollbar">
+                            <div class="flex justify-between py-1 border-b border-gray-200 dark:border-white/5"><span>ORD-9912 (Zone A)</span><span class="text-yellow-400">High</span></div>
+                            <div class="flex justify-between py-1 border-b border-gray-200 dark:border-white/5"><span>ORD-8821 (Zone B)</span><span class="text-gray-500">Normal</span></div>
+                            <div class="flex justify-between py-1 border-b border-gray-200 dark:border-white/5"><span>ORD-7712 (Zone A)</span><span class="text-gray-500">Normal</span></div>
+                            <div class="flex justify-between py-1 border-b border-gray-200 dark:border-white/5"><span>ORD-1120 (Zone C)</span><span class="text-red-400">Critical</span></div>
                         </div>
                     </div>
                 </div>
@@ -99,7 +99,7 @@
 
             <!-- Map Result Visualization -->
             <div class="lg:col-span-2 glass-panel rounded-xl relative overflow-hidden flex flex-col">
-                <div class="absolute inset-0 bg-gray-800 bg-gradient-to-br from-gray-800 to-gray-900 opacity-70"></div>
+                <div class="absolute inset-0 bg-gray-200 dark:bg-gray-800 bg-gradient-to-br from-gray-200 dark:from-gray-800 to-gray-100 dark:to-gray-900 opacity-70"></div>
 
                 <!-- Simulated Route Lines -->
                 <svg class="absolute inset-0 w-full h-full pointer-events-none">
@@ -120,17 +120,17 @@
                     <div class="space-y-3">
                         <div class="text-[10px] text-gray-400">Drag & drop orders between drivers. All overrides are logged in audit trail.</div>
                         <div class="space-y-2">
-                            <div class="p-2 bg-white/5 rounded-lg text-xs text-gray-300 cursor-grab active:cursor-grabbing border border-transparent hover:border-yellow-500/30">
+                            <div class="p-2 bg-gray-50 dark:bg-white/5 rounded-lg text-xs text-gray-600 dark:text-gray-300 cursor-grab active:cursor-grabbing border border-transparent hover:border-yellow-500/30">
                                 <div class="flex justify-between"><span>ORD-9912</span><span class="text-yellow-400">Drag to reassign</span></div>
                             </div>
-                            <div class="p-2 bg-white/5 rounded-lg text-xs text-gray-300 cursor-grab active:cursor-grabbing border border-transparent hover:border-yellow-500/30">
+                            <div class="p-2 bg-gray-50 dark:bg-white/5 rounded-lg text-xs text-gray-600 dark:text-gray-300 cursor-grab active:cursor-grabbing border border-transparent hover:border-yellow-500/30">
                                 <div class="flex justify-between"><span>ORD-8821</span><span class="text-yellow-400">Drag to reassign</span></div>
                             </div>
-                            <div class="p-2 bg-white/5 rounded-lg text-xs text-gray-300 cursor-grab active:cursor-grabbing border border-transparent hover:border-yellow-500/30">
+                            <div class="p-2 bg-gray-50 dark:bg-white/5 rounded-lg text-xs text-gray-600 dark:text-gray-300 cursor-grab active:cursor-grabbing border border-transparent hover:border-yellow-500/30">
                                 <div class="flex justify-between"><span>ORD-7712</span><span class="text-yellow-400">Drag to reassign</span></div>
                             </div>
                         </div>
-                        <div class="pt-2 border-t border-white/5 space-y-2">
+                        <div class="pt-2 border-t border-gray-200 dark:border-white/5 space-y-2">
                             <button @click="setEmergencyPriority" class="w-full text-xs py-1.5 rounded font-bold transition-colors"
                                 :class="emergencySet ? 'bg-red-500/30 text-red-300' : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'">
                                 {{ emergencySet ? '✓ Emergency Priority Set' : 'Set Emergency Priority' }}
@@ -145,14 +145,14 @@
                 </div>
 
                 <!-- ETA Generation Panel -->
-                <div class="absolute top-4 left-4 z-10 bg-black/80 backdrop-blur border border-white/10 rounded-xl p-4 w-64">
+                <div class="absolute top-4 left-4 z-10 bg-black/80 backdrop-blur border border-gray-200 dark:border-white/10 rounded-xl p-4 w-64">
                     <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-2">ETA Generation</div>
                     <div class="space-y-2 text-xs">
-                        <div class="flex justify-between"><span class="text-gray-400">Stop 1 ETA</span><span class="text-white font-mono">9:45 AM</span></div>
-                        <div class="flex justify-between"><span class="text-gray-400">Stop 2 ETA</span><span class="text-white font-mono">10:15 AM</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Stop 1 ETA</span><span class="text-gray-900 dark:text-white font-mono">9:45 AM</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Stop 2 ETA</span><span class="text-gray-900 dark:text-white font-mono">10:15 AM</span></div>
                         <div class="flex justify-between"><span class="text-gray-400">Stop 3 ETA</span><span class="text-yellow-400 font-mono">11:00 AM ⚠</span></div>
-                        <div class="flex justify-between"><span class="text-gray-400">Stop 4 ETA</span><span class="text-white font-mono">12:30 PM</span></div>
-                        <div class="pt-1 border-t border-white/10 flex justify-between">
+                        <div class="flex justify-between"><span class="text-gray-400">Stop 4 ETA</span><span class="text-gray-900 dark:text-white font-mono">12:30 PM</span></div>
+                        <div class="pt-1 border-t border-gray-200 dark:border-white/10 flex justify-between">
                             <span class="text-gray-400">Total Duration</span>
                             <span class="text-primary font-bold font-mono">6h 30m</span>
                         </div>
@@ -166,14 +166,14 @@
 
                 <!-- Results Summary Overlay -->
                 <div
-                    class="absolute bottom-6 left-6 right-6 bg-black/80 backdrop-blur-md rounded-lg p-4 border border-white/10 flex justify-between items-center">
+                    class="absolute bottom-6 left-6 right-6 bg-black/80 backdrop-blur-md rounded-lg p-4 border border-gray-200 dark:border-white/10 flex justify-between items-center">
                     <div>
                         <div class="text-xs text-gray-400">Proposed Solution</div>
-                        <div class="text-white font-bold">{{ routeStats.routes }} Routes • {{ routeStats.distance }} km Total • {{ routeStats.efficiency }}% Efficiency</div>
+                        <div class="text-gray-900 dark:text-white font-bold">{{ routeStats.routes }} Routes • {{ routeStats.distance }} km Total • {{ routeStats.efficiency }}% Efficiency</div>
                     </div>
                     <div class="flex gap-2">
                         <button @click="adjustRoutes"
-                            class="px-4 py-2 rounded bg-white/10 hover:bg-white/20 text-white text-sm transition-colors">Adjust</button>
+                            class="px-4 py-2 rounded bg-white/10 hover:bg-white/20 text-gray-900 dark:text-white text-sm transition-colors">Adjust</button>
                         <button @click="applyRoutes" :disabled="routesApplied"
                             class="px-4 py-2 rounded bg-primary text-black font-bold text-sm hover:bg-primary-dark transition-colors disabled:opacity-50">
                             {{ routesApplied ? '✓ Applied' : 'Apply Routes' }}
@@ -193,6 +193,15 @@ const optimizing = ref(false)
 const routesApplied = ref(false)
 const emergencySet = ref(false)
 const stopsReordered = ref(false)
+const optimizationGoal = ref('Minimize Distance')
+const constraints = reactive({
+    avoidTolls: true,
+    prioritizeVIP: true,
+    evRouting: false,
+    respectNoGo: true,
+    hosCompliance: true,
+    vehicleSize: true
+})
 
 const routeStats = reactive({ routes: 14, distance: 842, efficiency: 96 })
 

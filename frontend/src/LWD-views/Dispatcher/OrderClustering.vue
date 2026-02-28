@@ -3,7 +3,7 @@
         <!-- Header -->
         <div class="flex justify-between items-center">
             <div>
-                <h2 class="text-2xl font-bold text-white">Geographic Order Clustering</h2>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Geographic Order Clustering</h2>
                 <p class="text-sm text-gray-400 mt-1">Batch orders by geographic area, delivery window & route corridor to reduce empty miles</p>
             </div>
             <div class="flex gap-2">
@@ -20,8 +20,8 @@
 
         <!-- Clustering Stats -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div class="glass-panel p-4 rounded-xl text-center cursor-pointer hover:border-white/10 border border-transparent transition-all" @click="showUnbatchedPanel = !showUnbatchedPanel">
-                <div class="text-2xl font-bold" :class="unbatchedOrders.length > 0 ? 'text-yellow-400' : 'text-white'">{{ unbatchedOrders.length }}</div>
+            <div class="glass-panel p-4 rounded-xl text-center cursor-pointer hover:border-gray-200 dark:border-white/10 border border-transparent transition-all" @click="showUnbatchedPanel = !showUnbatchedPanel">
+                <div class="text-2xl font-bold" :class="unbatchedOrders.length > 0 ? 'text-yellow-400' : 'text-gray-900 dark:text-white'">{{ unbatchedOrders.length }}</div>
                 <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Unbatched Orders</div>
                 <div v-if="unbatchedOrders.length" class="text-[9px] text-primary mt-1 font-bold">Click to view</div>
             </div>
@@ -46,20 +46,20 @@
         <!-- Unbatched Orders Panel -->
         <div v-if="showUnbatchedPanel" class="glass-panel rounded-xl p-5">
             <div class="flex items-center justify-between mb-3">
-                <h3 class="font-bold text-white flex items-center gap-2">
+                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <span class="material-symbols-outlined text-yellow-400 text-[18px]">pending_actions</span>
                     Unbatched Orders ({{ unbatchedOrders.length }})
                 </h3>
-                <button @click="showUnbatchedPanel = false" class="text-gray-400 hover:text-white">
+                <button @click="showUnbatchedPanel = false" class="text-gray-400 hover:text-gray-900 dark:text-white">
                     <span class="material-symbols-outlined text-[18px]">close</span>
                 </button>
             </div>
             <div v-if="unbatchedOrders.length === 0" class="text-center py-6 text-gray-500 text-sm">All orders are clustered. No unbatched orders.</div>
             <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div v-for="order in unbatchedOrders" :key="order.id"
-                    class="p-3 bg-white/5 rounded-lg border border-white/5 hover:border-yellow-500/30 transition-all">
+                    class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/5 hover:border-yellow-500/30 transition-all">
                     <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs font-mono text-white font-bold">{{ order.id }}</span>
+                        <span class="text-xs font-mono text-gray-900 dark:text-white font-bold">{{ order.id }}</span>
                         <span class="px-1.5 py-0.5 rounded text-[9px] font-bold" :class="getPriorityClass(order.priority)">{{ order.priority }}</span>
                     </div>
                     <div class="text-[10px] text-gray-400 mb-2">{{ order.weight }} kg • {{ order.zone || 'Unzoned' }}</div>
@@ -77,15 +77,15 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Left: Map Visualization -->
             <div class="lg:col-span-2 glass-panel rounded-xl relative overflow-hidden h-[500px]">
-                <div class="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-60"></div>
+                <div class="absolute inset-0 bg-gradient-to-br from-gray-200 dark:from-gray-800 to-gray-100 dark:to-gray-900 opacity-60"></div>
 
                 <!-- Zone labels -->
                 <div class="absolute top-4 left-4 z-10 glass-panel px-3 py-2 rounded-lg">
-                    <div class="text-xs font-bold text-white mb-2">DELIVERY ZONES</div>
+                    <div class="text-xs font-bold text-gray-900 dark:text-white mb-2">DELIVERY ZONES</div>
                     <div class="space-y-1">
                         <div v-for="cluster in clusters" :key="cluster.id" class="flex items-center gap-2 text-xs">
                             <span class="w-3 h-3 rounded-full" :class="cluster.colorClass"></span>
-                            <span class="text-gray-300">{{ cluster.zone }} ({{ cluster.orders.length }} orders)</span>
+                            <span class="text-gray-600 dark:text-gray-300">{{ cluster.zone }} ({{ cluster.orders.length }} orders)</span>
                         </div>
                     </div>
                 </div>
@@ -99,7 +99,7 @@
                     </div>
                     <!-- Order dots inside cluster -->
                     <div v-for="(dot, di) in cluster.dots" :key="di"
-                        class="absolute w-3 h-3 rounded-full border border-white/50 cursor-pointer hover:scale-150 transition-transform"
+                        class="absolute w-3 h-3 rounded-full border border-gray-200 dark:border-white/50 cursor-pointer hover:scale-150 transition-transform"
                         :class="cluster.dotClass" :style="dot.style" :title="`Order ${dot.orderId}`">
                     </div>
                     <!-- Cluster label -->
@@ -117,25 +117,25 @@
                 </svg>
 
                 <!-- Bottom info bar -->
-                <div class="absolute bottom-4 left-4 right-4 bg-black/80 backdrop-blur rounded-lg p-3 flex justify-between items-center border border-white/10">
+                <div class="absolute bottom-4 left-4 right-4 bg-black/80 backdrop-blur rounded-lg p-3 flex justify-between items-center border border-gray-200 dark:border-white/10">
                     <div class="text-xs text-gray-400">
-                        <span class="text-white font-bold">{{ totalOrdersInClusters }}</span> orders grouped into
+                        <span class="text-gray-900 dark:text-white font-bold">{{ totalOrdersInClusters }}</span> orders grouped into
                         <span class="text-primary font-bold">{{ clusters.length }}</span> clusters across
                         <span class="text-blue-400 font-bold">{{ uniqueCorridors }}</span> route corridors
                     </div>
-                    <button @click="showCorridors = !showCorridors" class="text-xs text-primary hover:text-white transition-colors font-bold">{{ showCorridors ? 'Hide' : 'View' }} Route Corridors</button>
+                    <button @click="showCorridors = !showCorridors" class="text-xs text-primary hover:text-gray-900 dark:text-white transition-colors font-bold">{{ showCorridors ? 'Hide' : 'View' }} Route Corridors</button>
                 </div>
             </div>
 
             <!-- Right: Cluster Details -->
             <div class="space-y-4 overflow-y-auto max-h-[500px] no-scrollbar">
                 <div v-for="cluster in clusters" :key="cluster.id"
-                    class="glass-panel rounded-xl overflow-hidden border border-transparent hover:border-white/10 transition-all">
+                    class="glass-panel rounded-xl overflow-hidden border border-transparent hover:border-gray-200 dark:border-white/10 transition-all">
                     <div class="p-4 flex items-center justify-between" :class="cluster.headerBg">
                         <div class="flex items-center gap-3">
                             <span class="w-4 h-4 rounded-full" :class="cluster.colorClass"></span>
                             <div>
-                                <div class="font-bold text-white text-sm flex items-center gap-2">
+                                <div class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                                     {{ cluster.zone }}
                                     <span v-if="cluster.confirmed" class="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[9px] font-bold">✓ CONFIRMED</span>
                                 </div>
@@ -143,7 +143,7 @@
                             </div>
                         </div>
                         <div class="text-right">
-                            <div class="text-sm font-bold text-white">{{ cluster.orders.length }} orders</div>
+                            <div class="text-sm font-bold text-gray-900 dark:text-white">{{ cluster.orders.length }} orders</div>
                             <div class="text-[10px] text-gray-400">{{ cluster.totalWeight }} kg</div>
                         </div>
                     </div>
@@ -153,16 +153,16 @@
                         <div v-if="cluster.editing" class="space-y-2">
                             <div>
                                 <label class="text-[10px] text-gray-500 block mb-0.5">Time Window</label>
-                                <input v-model="cluster.timeWindow" class="w-full bg-black/30 border border-primary/30 rounded px-2 py-1 text-xs text-white focus:outline-none">
+                                <input v-model="cluster.timeWindow" class="w-full bg-gray-100 dark:bg-black/30 border border-primary/30 rounded px-2 py-1 text-xs text-gray-900 dark:text-white focus:outline-none">
                             </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
                                     <label class="text-[10px] text-gray-500 block mb-0.5">Max Distance (km)</label>
-                                    <input v-model.number="cluster.totalDistance" type="number" class="w-full bg-black/30 border border-primary/30 rounded px-2 py-1 text-xs text-white focus:outline-none">
+                                    <input v-model.number="cluster.totalDistance" type="number" class="w-full bg-gray-100 dark:bg-black/30 border border-primary/30 rounded px-2 py-1 text-xs text-gray-900 dark:text-white focus:outline-none">
                                 </div>
                                 <div>
                                     <label class="text-[10px] text-gray-500 block mb-0.5">Corridor</label>
-                                    <select v-model="cluster.corridor" class="w-full bg-black/30 border border-primary/30 rounded px-2 py-1 text-xs text-white focus:outline-none">
+                                    <select v-model="cluster.corridor" class="w-full bg-gray-100 dark:bg-black/30 border border-primary/30 rounded px-2 py-1 text-xs text-gray-900 dark:text-white focus:outline-none">
                                         <option>I-95 South Corridor</option>
                                         <option>Highway 9 North</option>
                                         <option>Ring Road East</option>
@@ -179,15 +179,15 @@
 
                         <!-- Read-only cluster metrics -->
                         <div v-else class="grid grid-cols-3 gap-2 text-center">
-                            <div class="bg-black/20 rounded p-2">
+                            <div class="bg-gray-100 dark:bg-black/20 rounded p-2">
                                 <div class="text-[10px] text-gray-500">Distance</div>
-                                <div class="text-xs font-bold text-white">{{ cluster.totalDistance }} km</div>
+                                <div class="text-xs font-bold text-gray-900 dark:text-white">{{ cluster.totalDistance }} km</div>
                             </div>
-                            <div class="bg-black/20 rounded p-2">
+                            <div class="bg-gray-100 dark:bg-black/20 rounded p-2">
                                 <div class="text-[10px] text-gray-500">Window</div>
-                                <div class="text-xs font-bold text-white">{{ cluster.timeWindow }}</div>
+                                <div class="text-xs font-bold text-gray-900 dark:text-white">{{ cluster.timeWindow }}</div>
                             </div>
-                            <div class="bg-black/20 rounded p-2">
+                            <div class="bg-gray-100 dark:bg-black/20 rounded p-2">
                                 <div class="text-[10px] text-gray-500">Efficiency</div>
                                 <div class="text-xs font-bold text-primary">{{ cluster.efficiency }}%</div>
                             </div>
@@ -196,9 +196,9 @@
                         <!-- Order list (hidden in edit mode, shown in read mode) -->
                         <div v-if="!cluster.editing" class="space-y-1">
                             <div v-for="order in cluster.orders" :key="order.id"
-                                class="flex items-center justify-between p-2 bg-white/5 rounded text-xs hover:bg-white/10 transition-colors">
+                                class="flex items-center justify-between p-2 bg-gray-50 dark:bg-white/5 rounded text-xs hover:bg-white/10 transition-colors">
                                 <span class="text-gray-400 font-mono">{{ order.id }}</span>
-                                <span class="text-white">{{ order.weight }} kg</span>
+                                <span class="text-gray-900 dark:text-white">{{ order.weight }} kg</span>
                                 <span class="px-1.5 py-0.5 rounded text-[9px] font-bold" :class="getPriorityClass(order.priority)">
                                     {{ order.priority }}
                                 </span>
@@ -213,7 +213,7 @@
                                 :class="cluster.confirmed ? 'bg-green-500/20 text-green-400 hover:bg-red-500/10 hover:text-red-400' : 'bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400'">
                                 {{ cluster.confirmed ? '✓ Confirmed' : 'Confirm' }}
                             </button>
-                            <button @click="editCluster(cluster)" class="text-xs bg-white/5 hover:bg-white/10 text-gray-400 py-1.5 px-3 rounded font-bold transition-colors">
+                            <button @click="editCluster(cluster)" class="text-xs bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-400 py-1.5 px-3 rounded font-bold transition-colors">
                                 {{ cluster.editing ? 'Save' : 'Edit' }}
                             </button>
                         </div>
@@ -227,19 +227,49 @@
                         <span class="text-sm font-bold text-blue-400">AI Clustering Insight</span>
                     </div>
                     <p class="text-xs text-blue-200">Merging <strong>Downtown</strong> and <strong>Midtown</strong> clusters could reduce total route distance by 18%. Both share the I-95 corridor and have overlapping delivery windows.</p>
-                    <button @click="applySuggestion" class="mt-2 text-xs font-bold transition-colors" :class="suggestionApplied ? 'text-green-400' : 'text-blue-400 hover:text-white'">
+                    <button @click="applySuggestion" class="mt-2 text-xs font-bold transition-colors" :class="suggestionApplied ? 'text-green-400' : 'text-blue-400 hover:text-gray-900 dark:text-white'">
                         {{ suggestionApplied ? '✓ Applied' : 'Apply Suggestion' }}
                     </button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Vehicle Picker Modal -->
+    <Teleport to="body">
+    <div v-if="showVehiclePicker" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showVehiclePicker = false">
+        <div class="glass-panel rounded-2xl p-6 w-full max-w-sm m-4 border border-gray-200 dark:border-white/10">
+            <h3 class="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-400">local_shipping</span> Assign Vehicle
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Select a vehicle for <strong>{{ vehiclePickerCluster?.zone }}</strong> cluster ({{ vehiclePickerCluster?.orders?.length }} orders, {{ vehiclePickerCluster?.totalWeight }}kg)
+            </p>
+            <div class="space-y-2 mb-4">
+                <button v-for="v in vehicles" :key="v" @click="selectedVehicle = v"
+                    class="w-full p-3 rounded-lg border text-sm font-medium text-left flex items-center gap-3 transition-colors"
+                    :class="selectedVehicle === v ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'">
+                    <span class="material-symbols-outlined text-[18px]">local_shipping</span>
+                    {{ v }}
+                    <span v-if="selectedVehicle === v" class="ml-auto material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                </button>
+            </div>
+            <div class="flex gap-2">
+                <button @click="confirmVehicleAssign" :disabled="!selectedVehicle" class="flex-1 bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 rounded-lg text-sm disabled:opacity-50 transition-colors">Assign</button>
+                <button @click="showVehiclePicker = false" class="flex-1 bg-gray-50 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm">Cancel</button>
+            </div>
+        </div>
+    </div>
+    </Teleport>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 
 const totalUnbatched = ref(5)
+const showVehiclePicker = ref(false)
+const vehiclePickerCluster = ref(null)
+const selectedVehicle = ref('')
 const estimatedMilesSaved = ref(24)
 const avgEfficiency = ref(89)
 const uniqueCorridors = ref(3)
@@ -369,8 +399,15 @@ function confirmBatches() {
 
 const vehicles = ['Van T-15', 'Van T-20', 'Truck M', 'Truck XL']
 function assignVehicle(cluster) {
-    if (!cluster.vehicleAssigned) {
-        cluster.vehicleAssigned = vehicles[Math.floor(Math.random() * vehicles.length)]
+    vehiclePickerCluster.value = cluster
+    selectedVehicle.value = cluster.vehicleAssigned || ''
+    showVehiclePicker.value = true
+}
+
+function confirmVehicleAssign() {
+    if (vehiclePickerCluster.value && selectedVehicle.value) {
+        vehiclePickerCluster.value.vehicleAssigned = selectedVehicle.value
+        showVehiclePicker.value = false
     }
 }
 
@@ -415,6 +452,6 @@ function getClusterBtnClass(cluster) {
         'bg-blue-500': 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400',
         'bg-purple-500': 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400',
     }
-    return map[cluster.colorClass] || 'bg-white/10 hover:bg-white/20 text-gray-300'
+    return map[cluster.colorClass] || 'bg-white/10 hover:bg-white/20 text-gray-600 dark:text-gray-300'
 }
 </script>

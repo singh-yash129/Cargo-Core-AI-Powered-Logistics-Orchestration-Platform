@@ -3,7 +3,7 @@
         <!-- Header -->
         <div class="flex justify-between items-center">
             <div>
-                <h2 class="text-2xl font-bold text-white">Service Move & Time Blocking</h2>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Service Move & Time Blocking</h2>
                 <p class="text-sm text-gray-400 mt-1">Manage house shifts, office relocations — crew manifest, extended time blocks, dwell time</p>
             </div>
             <button @click="showNewMove = true" class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm">
@@ -14,7 +14,7 @@
         <!-- Summary Stats -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-white">{{ serviceMoves.length }}</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ serviceMoves.length }}</div>
                 <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Active Moves</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
@@ -38,13 +38,13 @@
         <!-- Active Service Moves -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div v-for="move in serviceMoves" :key="move.id"
-                class="glass-panel rounded-xl overflow-hidden border border-white/5 hover:border-white/10 transition-all">
+                class="glass-panel rounded-xl overflow-hidden border border-gray-200 dark:border-white/5 hover:border-gray-200 dark:border-white/10 transition-all">
                 <!-- Move Header -->
                 <div class="p-4 flex items-center justify-between" :class="move.headerBg">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[24px]" :class="move.iconClass">{{ move.icon }}</span>
                         <div>
-                            <div class="font-bold text-white text-sm">{{ move.title }}</div>
+                            <div class="font-bold text-gray-900 dark:text-white text-sm">{{ move.title }}</div>
                             <div class="text-[10px] text-gray-400">{{ move.id }} • {{ move.type }}</div>
                         </div>
                     </div>
@@ -62,24 +62,24 @@
                         <div class="flex-1 space-y-4">
                             <div>
                                 <div class="text-xs text-gray-500">Pickup</div>
-                                <div class="text-sm text-white">{{ move.pickup }}</div>
+                                <div class="text-sm text-gray-900 dark:text-white">{{ move.pickup }}</div>
                             </div>
                             <div>
                                 <div class="text-xs text-gray-500">Delivery</div>
-                                <div class="text-sm text-white">{{ move.delivery }}</div>
+                                <div class="text-sm text-gray-900 dark:text-white">{{ move.delivery }}</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Time Block -->
-                    <div class="p-3 bg-black/20 rounded-lg">
+                    <div class="p-3 bg-gray-100 dark:bg-black/20 rounded-lg">
                         <div class="text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-wider">Time Block Reserved</div>
                         <div class="flex items-center gap-2 mb-2">
                             <span class="material-symbols-outlined text-purple-400 text-[16px]">schedule</span>
-                            <span class="text-white text-sm font-bold">{{ move.timeBlock }}</span>
+                            <span class="text-gray-900 dark:text-white text-sm font-bold">{{ move.timeBlock }}</span>
                             <span class="text-gray-500 text-xs">({{ move.duration }})</span>
                         </div>
-                        <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div class="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
                                 :style="{ width: move.progress + '%' }"></div>
                         </div>
@@ -95,12 +95,12 @@
                         <div class="text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-wider">Crew Manifest ({{ move.crew.length }} members)</div>
                         <div class="space-y-1.5">
                             <div v-for="member in move.crew" :key="member.name"
-                                class="flex items-center justify-between p-2 bg-white/5 rounded-lg text-xs">
+                                class="flex items-center justify-between p-2 bg-gray-50 dark:bg-white/5 rounded-lg text-xs">
                                 <div class="flex items-center gap-2">
                                     <span class="material-symbols-outlined text-[14px]" :class="member.role === 'Driver' ? 'text-primary' : 'text-blue-400'">
                                         {{ member.role === 'Driver' ? 'local_shipping' : 'person' }}
                                     </span>
-                                    <span class="text-white">{{ member.name }}</span>
+                                    <span class="text-gray-900 dark:text-white">{{ member.name }}</span>
                                 </div>
                                 <span class="text-gray-400">{{ member.role }}</span>
                             </div>
@@ -109,19 +109,19 @@
 
                     <!-- Vehicle & Load -->
                     <div class="grid grid-cols-3 gap-2">
-                        <div class="bg-black/20 rounded-lg p-2 text-center">
+                        <div class="bg-gray-100 dark:bg-black/20 rounded-lg p-2 text-center">
                             <div class="text-[10px] text-gray-500">Vehicle</div>
-                            <div class="text-xs font-bold text-white">{{ move.vehicle }}</div>
+                            <div class="text-xs font-bold text-gray-900 dark:text-white">{{ move.vehicle }}</div>
                         </div>
-                        <div class="bg-black/20 rounded-lg p-2 text-center">
+                        <div class="bg-gray-100 dark:bg-black/20 rounded-lg p-2 text-center">
                             <div class="text-[10px] text-gray-500">Seats</div>
                             <div class="text-xs font-bold" :class="move.seatsAvailable >= move.crew.length ? 'text-green-400' : 'text-red-400'">
                                 {{ move.crew.length }} / {{ move.seatsAvailable }}
                             </div>
                         </div>
-                        <div class="bg-black/20 rounded-lg p-2 text-center">
+                        <div class="bg-gray-100 dark:bg-black/20 rounded-lg p-2 text-center">
                             <div class="text-[10px] text-gray-500">Equipment</div>
-                            <div class="text-xs font-bold text-white">{{ move.equipment }}</div>
+                            <div class="text-xs font-bold text-gray-900 dark:text-white">{{ move.equipment }}</div>
                         </div>
                     </div>
 
@@ -135,17 +135,17 @@
 
                     <!-- Actions -->
                     <div class="flex gap-2 pt-2">
-                        <button @click="trackMove(move)" class="flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1" :class="move.tracking ? 'bg-green-500/20 text-green-400' : 'bg-white/5 hover:bg-white/10 text-white'">
+                        <button @click="trackMove(move)" class="flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1" :class="move.tracking ? 'bg-green-500/20 text-green-400' : 'bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-white'">
                             <span class="material-symbols-outlined text-[14px]">{{ move.tracking ? 'gps_fixed' : 'visibility' }}</span> {{ move.tracking ? 'Tracking Live' : 'Track' }}
                         </button>
                         <button @click="contactCrew(move)" class="flex-1 bg-primary/10 hover:bg-primary/20 text-primary py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1">
                             <span class="material-symbols-outlined text-[14px]">chat</span> Contact Crew
                         </button>
-                        <button @click="toggleMoveMenu(move)" class="bg-white/5 hover:bg-white/10 text-gray-400 py-2 px-3 rounded-lg text-xs font-bold transition-colors relative">
+                        <button @click="toggleMoveMenu(move)" class="bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-400 py-2 px-3 rounded-lg text-xs font-bold transition-colors relative">
                             <span class="material-symbols-outlined text-[14px]">more_vert</span>
-                            <div v-if="moveMenu === move.id" class="absolute bottom-full right-0 mb-1 bg-gray-900 border border-white/10 rounded-lg shadow-xl z-20 w-40">
-                                <button @click.stop="cancelMove(move)" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-white/5">Cancel Move</button>
-                                <button @click.stop="completeMove(move)" class="w-full text-left px-3 py-2 text-xs text-green-400 hover:bg-white/5">Mark Complete</button>
+                            <div v-if="moveMenu === move.id" class="absolute bottom-full right-0 mb-1 bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-40">
+                                <button @click.stop="cancelMove(move)" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-gray-100 dark:hover:bg-white/5">Cancel Move</button>
+                                <button @click.stop="completeMove(move)" class="w-full text-left px-3 py-2 text-xs text-green-400 hover:bg-gray-100 dark:hover:bg-white/5">Mark Complete</button>
                             </div>
                         </button>
                     </div>
@@ -157,7 +157,7 @@
         <div class="glass-panel rounded-xl p-5">
             <div class="flex items-center gap-2 mb-4">
                 <span class="material-symbols-outlined text-yellow-400">event_busy</span>
-                <h3 class="font-bold text-white">Scheduling Conflicts & Overbooking Prevention</h3>
+                <h3 class="font-bold text-gray-900 dark:text-white">Scheduling Conflicts & Overbooking Prevention</h3>
             </div>
             <div class="space-y-3">
                 <div class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center justify-between">
@@ -178,49 +178,53 @@
         </div>
 
         <!-- New Service Move Modal -->
-        <div v-if="showNewMove" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" @click.self="showNewMove = false">
-            <div class="glass-panel rounded-2xl p-6 w-full max-w-lg m-4 border border-white/10">
-                <h3 class="font-bold text-white mb-4">Create New Service Move</h3>
+        <Teleport to="body">
+        <div v-if="showNewMove" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showNewMove = false">
+            <div class="glass-panel rounded-2xl p-6 w-full max-w-lg m-4 border border-gray-200 dark:border-white/10">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Create New Service Move</h3>
                 <div class="space-y-3">
                     <input v-model="newMove.title" type="text" placeholder="Move Title (e.g., Johnson Family House Shift)"
-                        class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
-                    <select v-model="newMove.type" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                        class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
+                    <select v-model="newMove.type" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
                         <option>House Shift</option><option>Office Shift</option><option>Warehouse Transfer</option>
                     </select>
                     <div class="grid grid-cols-2 gap-3">
-                        <input v-model="newMove.pickup" type="text" placeholder="Pickup Address" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
-                        <input v-model="newMove.delivery" type="text" placeholder="Delivery Address" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                        <input v-model="newMove.pickup" type="text" placeholder="Pickup Address" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
+                        <input v-model="newMove.delivery" type="text" placeholder="Delivery Address" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
                     </div>
-                    <select v-model="newMove.vehicle" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                    <select v-model="newMove.vehicle" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
                         <option>Van T-15</option><option>Van T-20</option><option>Truck XL</option>
                     </select>
                     <textarea v-model="newMove.notes" rows="2" placeholder="Special notes..."
-                        class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none"></textarea>
+                        class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none"></textarea>
                 </div>
                 <div class="flex gap-2 mt-4">
                     <button @click="createServiceMove" :disabled="!newMove.title || !newMove.pickup"
                         class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-50">Create Move</button>
-                    <button @click="showNewMove = false" class="flex-1 bg-white/10 text-white py-2 rounded-lg text-sm">Cancel</button>
+                    <button @click="showNewMove = false" class="flex-1 bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm">Cancel</button>
                 </div>
             </div>
         </div>
+        </Teleport>
 
         <!-- Contact Crew Modal -->
-        <div v-if="showCrewChat" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" @click.self="showCrewChat = false">
-            <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-white/10">
-                <h3 class="font-bold text-white mb-3">Contact Crew — {{ crewChatMove?.title }}</h3>
+        <Teleport to="body">
+        <div v-if="showCrewChat" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showCrewChat = false">
+            <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-3">Contact Crew — {{ crewChatMove?.title }}</h3>
                 <div class="space-y-2 mb-3 max-h-40 overflow-y-auto">
-                    <div v-for="msg in crewMessages" :key="msg.id" class="p-2 rounded-lg text-xs" :class="msg.from === 'dispatch' ? 'bg-primary/10 text-primary ml-8' : 'bg-white/5 text-gray-300 mr-8'">
+                    <div v-for="msg in crewMessages" :key="msg.id" class="p-2 rounded-lg text-xs" :class="msg.from === 'dispatch' ? 'bg-primary/10 text-primary ml-8' : 'bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 mr-8'">
                         <span class="font-bold">{{ msg.from === 'dispatch' ? 'Dispatcher' : msg.from }}</span>: {{ msg.text }}
                     </div>
                 </div>
                 <div class="flex gap-2">
                     <input v-model="crewMsg" type="text" placeholder="Message crew..." @keyup.enter="sendCrewMsg"
-                        class="flex-1 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                        class="flex-1 bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
                     <button @click="sendCrewMsg" class="bg-primary text-black px-4 py-2 rounded-lg text-sm font-bold">Send</button>
                 </div>
             </div>
         </div>
+        </Teleport>
     </div>
 </template>
 

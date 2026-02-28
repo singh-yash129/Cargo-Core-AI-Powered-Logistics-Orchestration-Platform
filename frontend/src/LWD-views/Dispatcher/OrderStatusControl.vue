@@ -3,11 +3,11 @@
         <!-- Header -->
         <div class="flex justify-between items-center">
             <div>
-                <h2 class="text-2xl font-bold text-white">Order Status Control</h2>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Order Status Control</h2>
                 <p class="text-sm text-gray-400 mt-1">Track and control order lifecycle — Ready → Dispatched → In Transit (Completion by Driver PoD)</p>
             </div>
             <div class="flex gap-2">
-                <select v-model="statusFilter" class="bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white text-sm">
+                <select v-model="statusFilter" class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white text-sm">
                     <option value="">All Statuses</option>
                     <option value="ready">Ready for Dispatch</option>
                     <option value="dispatched">Dispatched</option>
@@ -23,7 +23,7 @@
         <!-- Status Pipeline -->
         <div class="glass-panel rounded-xl p-6">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="font-bold text-white text-sm">Dispatch Pipeline Overview</h3>
+                <h3 class="font-bold text-gray-900 dark:text-white text-sm">Dispatch Pipeline Overview</h3>
                 <span class="text-xs text-gray-400">Today: {{ new Date().toLocaleDateString() }}</span>
             </div>
 
@@ -76,7 +76,7 @@
                     <span class="text-xs text-gray-400">Ready → Assigned Time</span>
                     <span class="material-symbols-outlined text-[16px] text-yellow-400">timer</span>
                 </div>
-                <div class="text-xl font-bold text-white">8.2 min</div>
+                <div class="text-xl font-bold text-gray-900 dark:text-white">8.2 min</div>
                 <div class="text-[10px] text-green-400">-12% vs target (10 min)</div>
             </div>
             <div class="glass-panel p-4 rounded-xl">
@@ -84,7 +84,7 @@
                     <span class="text-xs text-gray-400">On-Time Pickup %</span>
                     <span class="material-symbols-outlined text-[16px] text-blue-400">local_shipping</span>
                 </div>
-                <div class="text-xl font-bold text-white">96.2%</div>
+                <div class="text-xl font-bold text-gray-900 dark:text-white">96.2%</div>
                 <div class="text-[10px] text-green-400">+1.2% above SLA</div>
             </div>
             <div class="glass-panel p-4 rounded-xl">
@@ -92,7 +92,7 @@
                     <span class="text-xs text-gray-400">On-Time Dispatch %</span>
                     <span class="material-symbols-outlined text-[16px] text-purple-400">send</span>
                 </div>
-                <div class="text-xl font-bold text-white">94.8%</div>
+                <div class="text-xl font-bold text-gray-900 dark:text-white">94.8%</div>
                 <div class="text-[10px] text-yellow-400">-0.2% below target</div>
             </div>
             <div class="glass-panel p-4 rounded-xl">
@@ -107,25 +107,25 @@
 
         <!-- Order List Table -->
         <div class="glass-panel rounded-xl overflow-hidden">
-            <div class="p-4 border-b border-white/5 flex items-center justify-between">
+            <div class="p-4 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
                 <div class="flex gap-2">
                     <button v-for="tab in statusTabs" :key="tab.value"
                         @click="statusFilter = tab.value"
                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                        :class="statusFilter === tab.value ? tab.activeClass : 'bg-white/5 text-gray-400 hover:bg-white/10'">
+                        :class="statusFilter === tab.value ? tab.activeClass : 'bg-gray-50 dark:bg-white/5 text-gray-400 hover:bg-white/10'">
                         {{ tab.label }} ({{ tab.count }})
                     </button>
                 </div>
                 <div class="relative">
                     <span class="material-symbols-outlined absolute left-2 top-2 text-gray-500 text-[16px]">search</span>
                     <input v-model="searchQuery" type="text" placeholder="Search orders..."
-                        class="bg-black/20 border border-white/10 rounded-lg py-1.5 pl-8 pr-4 text-white text-xs focus:outline-none focus:border-primary/50 w-48">
+                        class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-1.5 pl-8 pr-4 text-gray-900 dark:text-white text-xs focus:outline-none focus:border-primary/50 w-48">
                 </div>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-white/5 text-gray-400 uppercase text-[10px] tracking-wider">
+                    <thead class="bg-gray-50 dark:bg-white/5 text-gray-400 uppercase text-[10px] tracking-wider">
                         <tr>
                             <th class="p-4">Order ID</th>
                             <th class="p-4">Status</th>
@@ -137,20 +137,20 @@
                             <th class="p-4">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-white/5">
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5">
                         <tr v-for="order in filteredOrders" :key="order.id"
-                            class="hover:bg-white/5 transition-colors group">
-                            <td class="p-4 font-mono text-white font-bold">{{ order.id }}</td>
+                            class="hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group">
+                            <td class="p-4 font-mono text-gray-900 dark:text-white font-bold">{{ order.id }}</td>
                             <td class="p-4">
                                 <div class="flex items-center gap-2">
                                     <span class="w-2 h-2 rounded-full" :class="getStatusDotClass(order.status)"></span>
                                     <span class="text-xs font-bold" :class="getStatusTextClass(order.status)">{{ order.statusLabel }}</span>
                                 </div>
                             </td>
-                            <td class="p-4 text-gray-300 text-xs">{{ order.driver || '—' }}</td>
-                            <td class="p-4 text-gray-300 text-xs">{{ order.vehicle || '—' }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-300 text-xs">{{ order.driver || '—' }}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-300 text-xs">{{ order.vehicle || '—' }}</td>
                             <td class="p-4">
-                                <span class="text-xs" :class="order.etaOverdue ? 'text-red-400' : 'text-white'">
+                                <span class="text-xs" :class="order.etaOverdue ? 'text-red-400' : 'text-gray-900 dark:text-white'">
                                     {{ order.eta || '—' }}
                                 </span>
                             </td>
@@ -183,9 +183,9 @@
                                     </button>
                                     <button @click="toggleOrderMenu(order)" class="p-1 hover:bg-white/10 rounded text-gray-400 relative">
                                         <span class="material-symbols-outlined text-[14px]">more_vert</span>
-                                        <div v-if="orderMenu === order.id" class="absolute bottom-full right-0 mb-1 bg-gray-900 border border-white/10 rounded-lg shadow-xl z-20 w-36">
-                                            <button @click.stop="cancelOrder(order)" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-white/5">Cancel Order</button>
-                                            <button @click.stop="escalateOrder(order)" class="w-full text-left px-3 py-2 text-xs text-yellow-400 hover:bg-white/5">Escalate</button>
+                                        <div v-if="orderMenu === order.id" class="absolute bottom-full right-0 mb-1 bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-36">
+                                            <button @click.stop="cancelOrder(order)" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-gray-100 dark:hover:bg-white/5">Cancel Order</button>
+                                            <button @click.stop="escalateOrder(order)" class="w-full text-left px-3 py-2 text-xs text-yellow-400 hover:bg-gray-100 dark:hover:bg-white/5">Escalate</button>
                                         </div>
                                     </button>
                                 </div>
@@ -198,7 +198,7 @@
 
         <!-- SLA Alerts -->
         <div class="glass-panel rounded-xl p-5">
-            <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+            <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-red-400">notification_important</span>
                 SLA Violation Alerts
             </h3>
@@ -233,29 +233,31 @@
         </div>
 
         <!-- PoD Modal -->
-        <div v-if="showPoD" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" @click.self="showPoD = false">
-            <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-white/10">
-                <h3 class="font-bold text-white mb-4">Proof of Delivery — {{ podOrder?.id }}</h3>
+        <Teleport to="body">
+        <div v-if="showPoD" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showPoD = false">
+            <div class="glass-panel rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Proof of Delivery — {{ podOrder?.id }}</h3>
                 <div class="space-y-3">
-                    <div class="p-3 bg-white/5 rounded-lg flex justify-between text-xs">
-                        <span class="text-gray-400">Recipient</span><span class="text-white font-bold">{{ podOrder?.driver || 'Customer' }}</span>
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg flex justify-between text-xs">
+                        <span class="text-gray-400">Recipient</span><span class="text-gray-900 dark:text-white font-bold">{{ podOrder?.driver || 'Customer' }}</span>
                     </div>
-                    <div class="p-3 bg-white/5 rounded-lg flex justify-between text-xs">
-                        <span class="text-gray-400">Delivered At</span><span class="text-white">{{ podOrder?.lastUpdated }}</span>
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg flex justify-between text-xs">
+                        <span class="text-gray-400">Delivered At</span><span class="text-gray-900 dark:text-white">{{ podOrder?.lastUpdated }}</span>
                     </div>
-                    <div class="p-3 bg-white/5 rounded-lg flex justify-between text-xs">
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg flex justify-between text-xs">
                         <span class="text-gray-400">Signature</span><span class="text-green-400 font-bold">✓ Captured</span>
                     </div>
-                    <div class="p-3 bg-white/5 rounded-lg flex justify-between text-xs">
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg flex justify-between text-xs">
                         <span class="text-gray-400">Photo Proof</span><span class="text-green-400 font-bold">✓ 2 photos attached</span>
                     </div>
-                    <div class="p-3 bg-white/5 rounded-lg flex justify-between text-xs">
-                        <span class="text-gray-400">Condition</span><span class="text-white">Good — No damage reported</span>
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg flex justify-between text-xs">
+                        <span class="text-gray-400">Condition</span><span class="text-gray-900 dark:text-white">Good — No damage reported</span>
                     </div>
                 </div>
-                <button @click="showPoD = false" class="mt-4 w-full bg-white/10 text-white py-2 rounded-lg text-sm font-bold">Close</button>
+                <button @click="showPoD = false" class="mt-4 w-full bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm font-bold">Close</button>
             </div>
         </div>
+        </Teleport>
     </div>
 </template>
 
@@ -289,7 +291,7 @@ const inTransitCount = computed(() => orders.value.filter(o => o.status === 'in-
 const deliveredCount = computed(() => orders.value.filter(o => o.status === 'delivered').length)
 
 const statusTabs = computed(() => [
-    { label: 'All', value: '', count: orders.value.length, activeClass: 'bg-white/10 text-white' },
+    { label: 'All', value: '', count: orders.value.length, activeClass: 'bg-white/10 text-gray-900 dark:text-white' },
     { label: 'Ready', value: 'ready', count: readyCount.value, activeClass: 'bg-yellow-500/20 text-yellow-400' },
     { label: 'Dispatched', value: 'dispatched', count: dispatchedCount.value, activeClass: 'bg-blue-500/20 text-blue-400' },
     { label: 'In Transit', value: 'in-transit', count: inTransitCount.value, activeClass: 'bg-purple-500/20 text-purple-400' },
