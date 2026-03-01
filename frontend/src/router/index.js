@@ -81,9 +81,11 @@ const router = createRouter({
         // Vendor Routes
         { path: '/vendor/dashboard', component: () => import('../IV-views/Vendor/Dashboard.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
         { path: '/vendor/create-shipment', component: () => import('../IV-views/Vendor/CreateShipment.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+        { path: '/vendor/orders', component: () => import('../IV-views/Vendor/Orders.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
         { path: '/vendor/tracking', component: () => import('../IV-views/Vendor/Tracking.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
         { path: '/vendor/recurring', component: () => import('../IV-views/Vendor/RecurringShipments.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
         { path: '/vendor/bulk-upload', component: () => import('../IV-views/Vendor/BulkUpload.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+        { path: '/vendor/proof-of-delivery', component: () => import('../IV-views/Vendor/ProofOfDelivery.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
         { path: '/vendor/invoices', component: () => import('../IV-views/Vendor/Invoices.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
         { path: '/vendor/analytics', component: () => import('../IV-views/Vendor/Analytics.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
         { path: '/vendor/settings', component: () => import('../IV-views/Vendor/Settings.vue'), meta: { requiresAuth: true, layout: 'vendor' } },

@@ -1,141 +1,387 @@
 <template>
-    <div class="h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-6">
-        <!-- Shipment List -->
-        <div class="w-full md:w-80 glass-panel rounded-xl overflow-hidden flex flex-col h-1/3 md:h-auto">
-            <div class="p-4 border-b border-white/5">
-                <h3 class="font-bold text-white mb-2">Active Shipments</h3>
-                <div class="relative">
-                    <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-sm">search</span>
-                    <input type="text" placeholder="Search tracking ID..."
-                        class="w-full bg-black/40 border border-white/10 rounded-lg py-2 pl-9 pr-4 text-white text-sm focus:outline-none focus:border-blue-500/50">
-                </div>
+    <div class="space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Shipment Tracking</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Live visibility into all your shipments</p>
             </div>
-            <div class="flex-1 overflow-y-auto p-2 space-y-2">
-                <div v-for="shipment in shipments" :key="shipment.id"
-                    class="p-3 rounded-lg cursor-pointer transition-colors border"
-                    :class="selectedShipment === shipment.id ? 'bg-blue-500/20 border-blue-500' : 'bg-white/5 border-transparent hover:bg-white/10'"
-                    @click="selectedShipment = shipment.id">
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="font-bold text-white text-sm">{{ shipment.id }}</span>
-                        <span class="text-[10px] font-bold px-1.5 rounded" :class="shipment.statusClass">{{
-                            shipment.status }}</span>
-                    </div>
-                    <div class="text-xs text-gray-400 truncate mb-1">{{ shipment.route }}</div>
-                    <div class="text-[10px] text-gray-500 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[10px]">schedule</span> ETA: {{ shipment.eta }}
-                    </div>
-                </div>
+            <div class="flex gap-2">
+                <select v-model="statusFilter" class="text-sm bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <option value="all">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="transit">In Transit</option>
+                    <option value="delivery">Out for Delivery</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
             </div>
         </div>
 
-        <!-- Map View -->
-        <div class="flex-1 glass-panel rounded-xl overflow-hidden relative flex flex-col">
-            <!-- Stats Overlay -->
-            <div class="absolute top-4 left-4 right-4 z-10 flex gap-4 pointer-events-none">
-                <div
-                    class="bg-black/80 backdrop-blur p-3 rounded-lg border border-white/10 shadow-lg pointer-events-auto flex items-center gap-3">
-                    <div class="w-10 h-10 rounded bg-blue-500/20 flex items-center justify-center text-blue-400">
-                        <span class="material-symbols-outlined">local_shipping</span>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-400">Total in Transit</div>
-                        <div class="text-lg font-bold text-white">12 Trucks</div>
-                    </div>
-                </div>
-                <div
-                    class="bg-black/80 backdrop-blur p-3 rounded-lg border border-white/10 shadow-lg pointer-events-auto flex items-center gap-3">
-                    <div class="w-10 h-10 rounded bg-green-500/20 flex items-center justify-center text-green-400">
-                        <span class="material-symbols-outlined">check_circle</span>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-400">Delivered Today</div>
-                        <div class="text-lg font-bold text-white">45 Orders</div>
-                    </div>
-                </div>
+        <!-- Stats Bar -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center"><span class="material-symbols-outlined text-blue-500">local_shipping</span></div>
+                <div><div class="text-xs text-gray-500 dark:text-gray-400">In Transit</div><div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.activeShipments.length }}</div></div>
             </div>
-
-            <!-- Map Container -->
-            <div class="flex-1 bg-gray-900 relative">
-                <div class="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-60"></div>
-
-                <!-- Fake Markers -->
-                <div class="absolute top-1/3 left-1/4 group cursor-pointer">
-                    <div class="w-3 h-3 bg-blue-500 rounded-full animate-ping absolute"></div>
-                    <div class="w-3 h-3 bg-blue-500 rounded-full border-2 border-white relative z-10"></div>
-                    <div
-                        class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black/90 text-white text-xs p-2 rounded hidden group-hover:block whitespace-nowrap z-20">
-                        TRK-9921 • In Transit</div>
-                </div>
-                <div class="absolute bottom-1/3 right-1/3 group cursor-pointer">
-                    <div class="w-3 h-3 bg-green-500 rounded-full animate-ping absolute"></div>
-                    <div class="w-3 h-3 bg-green-500 rounded-full border-2 border-white relative z-10"></div>
-                    <div
-                        class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black/90 text-white text-xs p-2 rounded hidden group-hover:block whitespace-nowrap z-20">
-                        TRK-8821 • Arriving Soon</div>
-                </div>
+            <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center"><span class="material-symbols-outlined text-yellow-500">pending</span></div>
+                <div><div class="text-xs text-gray-500 dark:text-gray-400">Pending</div><div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.pendingShipments.length }}</div></div>
             </div>
-
-            <!-- Bottom Panel (Driver Info) -->
-            <div class="h-48 bg-card-darker border-t border-white/5 p-6 flex gap-6" v-if="selectedShipment">
-                <div class="w-1/4">
-                    <div class="text-xs text-gray-400 uppercase font-bold mb-2">Driver Information</div>
-                    <div class="flex items-center gap-3">
-                        <img src="https://i.pravatar.cc/150?u=40" class="w-12 h-12 rounded-full border border-white/10">
-                        <div>
-                            <div class="font-bold text-white">David Miller</div>
-                            <div class="text-xs text-gray-400">Volvo FH16 • 40ft Container</div>
-                            <div class="flex items-center gap-1 text-xs text-yellow-400 mt-1">
-                                <span class="material-symbols-outlined text-[10px]">star</span> 4.8
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex gap-2 mt-4">
-                        <button
-                            class="flex-1 py-1.5 bg-white/5 hover:bg-white/10 rounded text-xs font-bold text-white flex items-center justify-center gap-2 transition-colors"><span
-                                class="material-symbols-outlined text-xs">call</span> Call</button>
-                        <button
-                            class="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-xs font-bold text-white flex items-center justify-center gap-2 transition-colors"><span
-                                class="material-symbols-outlined text-xs">chat</span> Message</button>
-                    </div>
-                </div>
-
-                <div class="flex-1 border-l border-white/5 pl-6 grid grid-cols-4 gap-6">
-                    <div>
-                        <div class="text-xs text-gray-400 mb-1">Origin</div>
-                        <div class="text-white font-bold text-sm">Central Warehouse, NY</div>
-                        <div class="text-xs text-gray-500">Oct 24, 08:00 AM</div>
-                    </div>
-                    <div class="flex items-center justify-center">
-                        <div class="w-full h-1 bg-gray-700 rounded relative">
-                            <div class="absolute left-0 top-0 h-full bg-blue-500 w-2/3"></div>
-                            <div
-                                class="absolute left-2/3 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full border-2 border-black">
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-400 mb-1">Destination</div>
-                        <div class="text-white font-bold text-sm">Retail Store #402, PA</div>
-                        <div class="text-xs text-gray-500">CTA: 16:30 PM</div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-400 mb-1">Cargo Status</div>
-                        <div class="text-green-400 font-bold text-sm">Temperature: 4°C</div>
-                        <div class="text-xs text-gray-500">Humidity: 45%</div>
-                    </div>
-                </div>
+            <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center"><span class="material-symbols-outlined text-green-500">check_circle</span></div>
+                <div><div class="text-xs text-gray-500 dark:text-gray-400">Delivered</div><div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.deliveredShipments.length }}</div></div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center"><span class="material-symbols-outlined text-purple-500">schedule</span></div>
+                <div><div class="text-xs text-gray-500 dark:text-gray-400">On-Time</div><div class="text-xl font-bold text-green-500">{{ store.analyticsData.onTime }}%</div></div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center"><span class="material-symbols-outlined text-orange-500">route</span></div>
+                <div><div class="text-xs text-gray-500 dark:text-gray-400">Avg Transit</div><div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.analyticsData.avgTransit }}d</div></div>
             </div>
         </div>
+
+        <div class="flex flex-col xl:flex-row gap-6">
+            <!-- Shipment List -->
+            <div class="w-full xl:w-96 glass-panel rounded-xl overflow-hidden flex flex-col max-h-[70vh]">
+                <div class="p-4 border-b border-gray-200 dark:border-white/5">
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-sm">search</span>
+                        <input v-model="searchQuery" type="text" placeholder="Search order ID, destination..."
+                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500/50">
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto p-2 space-y-2">
+                    <div v-if="filteredShipments.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">No shipments found</div>
+                    <div v-for="s in filteredShipments" :key="s.id"
+                        class="p-3 rounded-lg cursor-pointer transition-all border"
+                        :class="selected?.id === s.id ? 'bg-blue-500/10 border-blue-500 dark:bg-blue-500/20' : 'bg-gray-50 dark:bg-white/5 border-transparent hover:bg-gray-100 dark:hover:bg-white/10'"
+                        @click="selected = s">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-bold text-gray-900 dark:text-white text-sm">{{ s.id }}</span>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" :class="statusClass(s.statusKey)">{{ s.status }}</span>
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">{{ s.route }}</div>
+                        <div class="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
+                            <div class="flex items-center gap-1"><span class="material-symbols-outlined text-[10px]">schedule</span> ETA: {{ s.eta }}</div>
+                            <div class="font-bold text-gray-700 dark:text-gray-300">₹{{ s.amount.toLocaleString() }}</div>
+                        </div>
+                        <div v-if="s.progress > 0 && s.statusKey !== 'delivered' && s.statusKey !== 'cancelled'" class="mt-2 w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full">
+                            <div class="h-1.5 bg-blue-500 rounded-full transition-all" :style="{ width: s.progress + '%' }"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Panel -->
+            <div class="flex-1 space-y-6">
+                <div v-if="!selected" class="glass-panel rounded-xl p-12 flex flex-col items-center justify-center text-center h-[60vh]">
+                    <span class="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4">map</span>
+                    <h3 class="text-lg font-bold text-gray-500 dark:text-gray-400">Select a shipment</h3>
+                    <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Choose from the list to view live tracking details</p>
+                </div>
+
+                <template v-if="selected">
+                    <!-- Map Placeholder -->
+                    <div class="glass-panel rounded-xl overflow-hidden relative h-64">
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-gray-900/50 dark:from-blue-900/30 dark:to-gray-900/70">
+                            <div class="absolute inset-0 opacity-10 dark:opacity-20" style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzk5OSIvPjwvc3ZnPg=='); background-size: 40px 40px;"></div>
+                        </div>
+                        <!-- Origin marker -->
+                        <div class="absolute top-1/2 left-[15%] transform -translate-x-1/2 -translate-y-1/2 z-10">
+                            <div class="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg"></div>
+                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">{{ selected.origin }}</div>
+                        </div>
+                        <!-- Route line -->
+                        <div class="absolute top-1/2 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-green-500 via-blue-500 to-red-500 transform -translate-y-1/2 z-0"></div>
+                        <!-- Driver marker (if in transit) -->
+                        <div v-if="selected.driver && selected.statusKey !== 'delivered' && selected.statusKey !== 'cancelled'" class="absolute z-10" :style="{ top: '50%', left: (15 + selected.progress * 0.7) + '%', transform: 'translate(-50%, -50%)' }">
+                            <div class="w-4 h-4 bg-blue-500 rounded-full animate-ping absolute"></div>
+                            <div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white relative z-10 shadow-lg"></div>
+                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">{{ selected.vehicle || 'Driver' }}</div>
+                        </div>
+                        <!-- Destination marker -->
+                        <div class="absolute top-1/2 right-[15%] transform translate-x-1/2 -translate-y-1/2 z-10">
+                            <div class="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg"></div>
+                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">{{ selected.destination }}</div>
+                        </div>
+                        <!-- Geofence badge -->
+                        <div v-if="selected.progress >= 80 && selected.statusKey !== 'delivered'" class="absolute top-3 right-3 z-20 bg-green-500/90 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 animate-pulse">
+                            <span class="material-symbols-outlined text-sm">my_location</span>
+                            Arriving Soon — {{ Math.max(5, Math.round((100 - selected.progress) * 1.5)) }} min away
+                        </div>
+                    </div>
+
+                    <!-- Shipment Detail -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Info Cards -->
+                        <div class="lg:col-span-2 space-y-4">
+                            <div class="glass-panel p-5 rounded-xl">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="font-bold text-gray-900 dark:text-white">{{ selected.id }}</h3>
+                                    <span class="px-2.5 py-1 rounded text-xs font-bold" :class="statusClass(selected.statusKey)">{{ selected.status }}</span>
+                                </div>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Route</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.route }}</div></div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">ETA</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.eta }}</div></div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Category</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.category }}</div></div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Amount</div><div class="text-xs font-bold text-green-500">₹{{ selected.amount.toLocaleString() }}</div></div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Weight</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.weight.toLocaleString() }} kg</div></div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Pallets</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.pallets }}</div></div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Payment</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.paymentMode }}</div></div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Progress</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.progress }}%</div></div>
+                                </div>
+                            </div>
+
+                            <!-- Driver Info -->
+                            <div v-if="selected.driver" class="glass-panel p-5 rounded-xl">
+                                <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-3">Driver Information</h4>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-blue-500">person</span>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-900 dark:text-white text-sm">{{ selected.driver }}</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ selected.vehicle }} · {{ selected.driverPhone }}</div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button class="p-2 bg-gray-100 dark:bg-white/5 hover:bg-blue-500/10 rounded-lg text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">
+                                            <span class="material-symbols-outlined text-[18px]">call</span>
+                                        </button>
+                                        <button class="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors">
+                                            <span class="material-symbols-outlined text-[18px]">chat</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div v-if="selected.statusKey !== 'delivered' && selected.statusKey !== 'cancelled'" class="glass-panel p-5 rounded-xl">
+                                <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-3">Quick Actions</h4>
+                                <div class="flex flex-wrap gap-3">
+                                    <button @click="showAddressModal = true" class="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[16px]">edit_location</span> Update Address
+                                    </button>
+                                    <button @click="showRescheduleModal = true" class="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[16px]">event</span> Reschedule
+                                    </button>
+                                    <button @click="showDamageModal = true" class="px-4 py-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[16px]">report_problem</span> Report Issue
+                                    </button>
+                                    <button @click="handleCancel" class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[16px]">cancel</span> Cancel
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- PoD (if delivered) -->
+                            <div v-if="selected.pod && selected.pod.confirmed" class="glass-panel p-5 rounded-xl">
+                                <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-3 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-green-500 text-[18px]">verified</span>
+                                    Proof of Delivery
+                                </h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
+                                        <img :src="selected.pod.photo" alt="Delivery proof" class="w-full h-40 object-cover">
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Timestamp</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.pod.timestamp }}</div></div>
+                                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Location</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.pod.location }}</div></div>
+                                        <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                                            <span class="text-xs font-bold text-green-600 dark:text-green-400">Delivery Confirmed</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Timeline -->
+                        <div class="glass-panel p-5 rounded-xl">
+                            <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-4">Status Timeline</h4>
+                            <div class="space-y-4">
+                                <div v-for="(step, idx) in (selected.statusHistory || [])" :key="idx" class="flex gap-3">
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-3 h-3 rounded-full flex-shrink-0"
+                                            :class="idx === selected.statusHistory.length - 1 ? 'bg-blue-500 ring-4 ring-blue-500/20' : 'bg-green-500'"></div>
+                                        <div v-if="idx < selected.statusHistory.length - 1" class="w-0.5 flex-1 bg-gray-200 dark:bg-white/10 mt-1"></div>
+                                    </div>
+                                    <div class="pb-4">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ step.status }}</div>
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ step.time }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Address Update Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="showAddressModal" @close="showAddressModal = false">
+                <template #title>Update Delivery Address</template>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Current Address</label>
+                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg text-sm text-gray-600 dark:text-gray-300">{{ selected?.destination }}</div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">New Address *</label>
+                        <input v-model="newAddress" type="text" placeholder="Enter new delivery address" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <template #footer>
+                    <button @click="showAddressModal = false" class="px-4 py-2 text-gray-500 text-sm">Cancel</button>
+                    <button @click="updateAddress" :disabled="!newAddress.trim()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Update Address</button>
+                </template>
+            </BaseModal>
+        </Teleport>
+
+        <!-- Reschedule Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="showRescheduleModal" @close="showRescheduleModal = false">
+                <template #title>Reschedule Delivery</template>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Current ETA</label>
+                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg text-sm text-gray-600 dark:text-gray-300">{{ selected?.eta }}</div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">New Delivery Date *</label>
+                        <input v-model="newDate" type="date" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Reason</label>
+                        <textarea v-model="rescheduleReason" rows="2" placeholder="Optional reason" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                    </div>
+                </div>
+                <template #footer>
+                    <button @click="showRescheduleModal = false" class="px-4 py-2 text-gray-500 text-sm">Cancel</button>
+                    <button @click="reschedule" :disabled="!newDate" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-bold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Reschedule</button>
+                </template>
+            </BaseModal>
+        </Teleport>
+
+        <!-- Damage Report Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="showDamageModal" @close="showDamageModal = false">
+                <template #title>Report Damage / Issue</template>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Severity *</label>
+                        <div class="flex gap-3">
+                            <label v-for="sev in ['Low', 'Medium', 'High']" :key="sev" class="flex-1 text-center px-3 py-2 rounded-lg border cursor-pointer text-sm font-medium transition-colors" :class="damageForm.severity === sev ? severityClass(sev) : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400'">
+                                <input type="radio" :value="sev" v-model="damageForm.severity" class="sr-only">{{ sev }}
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Description *</label>
+                        <textarea v-model="damageForm.description" rows="3" placeholder="Describe the damage or issue..." class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Upload Evidence</label>
+                        <div class="border-2 border-dashed border-gray-300 dark:border-white/20 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors">
+                            <span class="material-symbols-outlined text-3xl text-gray-400 mb-2">cloud_upload</span>
+                            <div class="text-xs text-gray-500">Click to upload photos</div>
+                        </div>
+                    </div>
+                </div>
+                <template #footer>
+                    <button @click="showDamageModal = false" class="px-4 py-2 text-gray-500 text-sm">Cancel</button>
+                    <button @click="submitDamage" :disabled="!damageForm.description.trim()" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Submit Report</button>
+                </template>
+            </BaseModal>
+        </Teleport>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, reactive } from 'vue'
+import { useVendorStore } from '@/stores/vendorStore'
+import BaseModal from '@/components/BaseModal.vue'
 
-const selectedShipment = ref('TRK-9921')
-const shipments = ref([
-    { id: 'TRK-9921', status: 'In Transit', statusClass: 'text-blue-400 bg-blue-500/10', route: 'NY -> PA', eta: '16:30' },
-    { id: 'TRK-8821', status: 'Arriving', statusClass: 'text-green-400 bg-green-500/10', route: 'NJ -> NY', eta: '14:15' },
-    { id: 'TRK-7741', status: 'Delayed', statusClass: 'text-yellow-400 bg-yellow-500/10', route: 'CA -> NV', eta: 'Tomorrow' },
-])
+const store = useVendorStore()
+const selected = ref(null)
+const searchQuery = ref('')
+const statusFilter = ref('all')
+
+// Modals
+const showAddressModal = ref(false)
+const showRescheduleModal = ref(false)
+const showDamageModal = ref(false)
+const newAddress = ref('')
+const newDate = ref('')
+const rescheduleReason = ref('')
+const damageForm = reactive({ severity: 'Medium', description: '' })
+
+const filteredShipments = computed(() => {
+    let list = store.shipments
+    if (statusFilter.value !== 'all') list = list.filter(s => s.statusKey === statusFilter.value)
+    if (searchQuery.value.trim()) {
+        const q = searchQuery.value.toLowerCase()
+        list = list.filter(s => s.id.toLowerCase().includes(q) || s.destination.toLowerCase().includes(q) || s.route.toLowerCase().includes(q))
+    }
+    return list
+})
+
+const statusClass = k => ({
+    pending: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
+    transit: 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
+    delivery: 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
+    delivered: 'bg-green-500/20 text-green-600 dark:text-green-400',
+    cancelled: 'bg-red-500/20 text-red-600 dark:text-red-400',
+}[k] || 'bg-gray-500/20 text-gray-500')
+
+const severityClass = sev => ({
+    Low: 'border-yellow-500 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
+    Medium: 'border-orange-500 bg-orange-500/10 text-orange-600 dark:text-orange-400',
+    High: 'border-red-500 bg-red-500/10 text-red-600 dark:text-red-400',
+}[sev])
+
+function updateAddress() {
+    if (!selected.value || !newAddress.value.trim()) return
+    store.updateShipmentAddress(selected.value.id, newAddress.value.trim())
+    showAddressModal.value = false
+    newAddress.value = ''
+    showToast('Address updated successfully')
+}
+
+function reschedule() {
+    if (!selected.value || !newDate.value) return
+    const formatted = new Date(newDate.value).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+    store.rescheduleShipment(selected.value.id, formatted)
+    showRescheduleModal.value = false
+    newDate.value = ''
+    rescheduleReason.value = ''
+    showToast('Delivery rescheduled')
+}
+
+function handleCancel() {
+    if (!selected.value) return
+    if (confirm(`Cancel shipment ${selected.value.id}? This action cannot be undone.`)) {
+        store.cancelShipment(selected.value.id)
+        showToast('Shipment cancelled')
+    }
+}
+
+function submitDamage() {
+    if (!selected.value || !damageForm.description.trim()) return
+    store.reportDamage(selected.value.id, { ...damageForm, photos: [] })
+    showDamageModal.value = false
+    damageForm.severity = 'Medium'
+    damageForm.description = ''
+    showToast('Damage report submitted — reverse logistics ticket created')
+}
+
+function showToast(msg) {
+    const t = document.createElement('div')
+    t.className = 'fixed top-4 right-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
+    t.textContent = msg
+    document.body.appendChild(t)
+    setTimeout(() => t.remove(), 3000)
+}
 </script>
