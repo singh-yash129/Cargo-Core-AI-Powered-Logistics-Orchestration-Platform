@@ -136,7 +136,7 @@
                                 <span class="font-bold text-gray-900 dark:text-white">{{ msg.from }}</span>
                                 <span class="text-gray-400 text-[10px]">{{ msg.time }}</span>
                             </div>
-                            <p class="text-gray-600 dark:text-gray-300">{{ msg.text }}</p>
+                            <p class="text-gray-600 dark:text-gray-300">{{ msg.message }}</p>
                         </div>
                     </div>
 

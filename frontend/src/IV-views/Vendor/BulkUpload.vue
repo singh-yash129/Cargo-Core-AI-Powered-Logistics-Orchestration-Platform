@@ -87,7 +87,7 @@
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-2">
                                     <span class="material-symbols-outlined text-[16px]" :class="u.status === 'Processed' ? 'text-green-500' : u.status === 'Failed' ? 'text-red-500' : 'text-yellow-500'">{{ u.status === 'Processed' ? 'check_circle' : u.status === 'Failed' ? 'error' : 'pending' }}</span>
-                                    <span class="text-gray-900 dark:text-white text-xs font-medium">{{ u.fileName }}</span>
+                                    <span class="text-gray-900 dark:text-white text-xs font-medium">{{ u.filename }}</span>
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-gray-500 text-xs">{{ u.date }}</td>
@@ -108,7 +108,7 @@
         <!-- Upload Detail Modal -->
         <Teleport to="body">
             <BaseModal :isOpen="!!viewingUpload" @close="viewingUpload = null">
-                <template #title>Upload Details — {{ viewingUpload?.fileName }}</template>
+                <template #title>Upload Details — {{ viewingUpload?.filename }}</template>
                 <div v-if="viewingUpload" class="space-y-4">
                     <div class="grid grid-cols-3 gap-3">
                         <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg text-center"><div class="text-xs text-gray-500 mb-1">Orders</div><div class="text-lg font-bold text-gray-900 dark:text-white">{{ viewingUpload.orders }}</div></div>
@@ -168,7 +168,7 @@ function processUpload() {
     setTimeout(() => {
         const hasErrors = Math.random() > 0.7
         store.addBulkUpload({
-            fileName: fName,
+            filename: fName,
             orders: Math.floor(Math.random() * 100) + 10,
             status: hasErrors ? 'Failed' : 'Processed',
             errors: hasErrors ? Math.floor(Math.random() * 5) + 1 : 0,
@@ -189,7 +189,7 @@ function retryUpload(u) {
     setTimeout(() => {
         u.status = 'Processed'
         u.errors = 0
-        showToast(`${u.fileName} reprocessed successfully`)
+        showToast(`${u.filename} reprocessed successfully`)
     }, 1500)
 }
 

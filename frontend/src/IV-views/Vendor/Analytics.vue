@@ -20,17 +20,17 @@
             </div>
             <div class="glass-panel p-5 rounded-xl">
                 <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">On-Time Rate</div>
-                <div class="text-2xl font-bold text-green-500">{{ store.analyticsData.onTimeRate }}%</div>
+                <div class="text-2xl font-bold text-green-500">{{ store.analyticsData.onTime }}%</div>
                 <div class="text-[10px] text-green-500 mt-1">↑ 2.1%</div>
             </div>
             <div class="glass-panel p-5 rounded-xl">
                 <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg Transit Time</div>
-                <div class="text-2xl font-bold text-blue-500">{{ store.analyticsData.avgTransitDays }} Days</div>
+                <div class="text-2xl font-bold text-blue-500">{{ store.analyticsData.avgTransit }} Days</div>
                 <div class="text-[10px] text-green-500 mt-1">↓ 0.5 Days</div>
             </div>
             <div class="glass-panel p-5 rounded-xl">
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg Cost / Shipment</div>
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">₹{{ store.analyticsData.costPerShipment.toLocaleString() }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Cost / Mile</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">₹{{ store.analyticsData.costPerMile }}</div>
                 <div class="text-[10px] text-gray-400 mt-1">Stable</div>
             </div>
         </div>
@@ -96,10 +96,10 @@ const store = useVendorStore()
 const timePeriod = ref('6m')
 
 const spendChartData = computed(() => ({
-    labels: store.analyticsData.monthlySpend.map(m => m.month),
+    labels: store.analyticsData.monthly.map(m => m.month),
     datasets: [{
         label: 'Spend',
-        data: store.analyticsData.monthlySpend.map(m => m.amount),
+        data: store.analyticsData.monthly.map(m => m.spend),
         backgroundColor: 'rgba(59,130,246,0.5)',
         borderColor: 'rgba(59,130,246,1)',
         borderWidth: 1,
@@ -123,10 +123,10 @@ const statusChartData = computed(() => ({
 }))
 
 const trendChartData = computed(() => ({
-    labels: store.analyticsData.monthlySpend.map(m => m.month),
+    labels: store.analyticsData.monthly.map(m => m.month),
     datasets: [{
         label: 'Deliveries',
-        data: store.analyticsData.monthlySpend.map((_, i) => Math.floor(20 + Math.random() * 30 + i * 5)),
+        data: store.analyticsData.monthly.map(m => m.orders),
         borderColor: 'rgba(34,197,94,1)',
         backgroundColor: 'rgba(34,197,94,0.1)',
         fill: true,

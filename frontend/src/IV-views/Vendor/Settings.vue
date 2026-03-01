@@ -188,20 +188,24 @@ const settings = reactive({
 
 const memberForm = ref({ name: '', email: '', role: 'Viewer' })
 
+const newKeyName = ref('')
+
 const notificationLabels = {
-    emailAlerts: 'Email Alerts',
-    smsAlerts: 'SMS Alerts',
-    shipmentUpdates: 'Shipment Updates',
-    invoiceReminders: 'Invoice Reminders',
-    marketingEmails: 'Marketing Emails',
+    email: 'Email Alerts',
+    sms: 'SMS Alerts',
+    push: 'Push Notifications',
+    orderUpdates: 'Order Updates',
+    invoiceAlerts: 'Invoice Reminders',
+    promotions: 'Marketing & Promotions',
 }
 
 const notificationDescs = {
-    emailAlerts: 'Receive critical alerts via email',
-    smsAlerts: 'Get SMS for high-priority events',
-    shipmentUpdates: 'Real-time shipment status changes',
-    invoiceReminders: 'Reminders for unpaid invoices',
-    marketingEmails: 'Product updates and offers',
+    email: 'Receive critical alerts via email',
+    sms: 'Get SMS for high-priority events',
+    push: 'Browser and mobile push notifications',
+    orderUpdates: 'Real-time shipment & order status changes',
+    invoiceAlerts: 'Reminders for unpaid invoices',
+    promotions: 'Product updates and offers',
 }
 
 function saveGeneral() {
@@ -232,7 +236,9 @@ function saveNotifications() {
 }
 
 function generateKey() {
-    store.generateApiKey()
+    const name = newKeyName.value.trim() || `Key ${store.companySettings.apiKeys.length + 1}`
+    store.generateApiKey(name)
+    newKeyName.value = ''
     showToast('API key generated')
 }
 

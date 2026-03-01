@@ -71,9 +71,9 @@ export const useVendorStore = defineStore('vendor', () => {
 
     // ─── Bulk Upload Log ─────────────────────────────────────────
     const bulkUploads = ref([
-        { id: 1, filename: 'mar_orders_batch_01.csv', date: 'Today, 10:00 AM', orders: 45, status: 'Processed', errors: [] },
-        { id: 2, filename: 'feb_restock.xlsx', date: 'Feb 28, 2026', orders: 120, status: 'Failed', errors: ['Row 45: Missing destination address', 'Row 89: Invalid pallet count (-3)'] },
-        { id: 3, filename: 'jan_commercial_batch.csv', date: 'Jan 30, 2026', orders: 200, status: 'Processed', errors: [] },
+        { id: 1, filename: 'mar_orders_batch_01.csv', date: 'Today, 10:00 AM', orders: 45, status: 'Processed', errors: 0 },
+        { id: 2, filename: 'feb_restock.xlsx', date: 'Feb 28, 2026', orders: 120, status: 'Failed', errors: 2 },
+        { id: 3, filename: 'jan_commercial_batch.csv', date: 'Jan 30, 2026', orders: 200, status: 'Processed', errors: 0 },
     ])
 
     // ─── Support Tickets ─────────────────────────────────────────
