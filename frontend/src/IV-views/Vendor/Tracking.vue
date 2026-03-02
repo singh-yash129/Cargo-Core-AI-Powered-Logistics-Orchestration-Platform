@@ -7,7 +7,8 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Live visibility into all your shipments</p>
             </div>
             <div class="flex gap-2">
-                <select v-model="statusFilter" class="text-sm bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                <select v-model="statusFilter"
+                    class="text-sm bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500">
                     <option value="all">All Statuses</option>
                     <option value="pending">Pending</option>
                     <option value="transit">In Transit</option>
@@ -21,24 +22,48 @@
         <!-- Stats Bar -->
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center"><span class="material-symbols-outlined text-blue-500">local_shipping</span></div>
-                <div><div class="text-xs text-gray-500 dark:text-gray-400">In Transit</div><div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.activeShipments.length }}</div></div>
+                <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center"><span
+                        class="material-symbols-outlined text-blue-500">local_shipping</span></div>
+                <div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">In Transit</div>
+                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.activeShipments.length }}
+                    </div>
+                </div>
             </div>
             <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center"><span class="material-symbols-outlined text-yellow-500">pending</span></div>
-                <div><div class="text-xs text-gray-500 dark:text-gray-400">Pending</div><div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.pendingShipments.length }}</div></div>
+                <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center"><span
+                        class="material-symbols-outlined text-yellow-500">pending</span></div>
+                <div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Pending</div>
+                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.pendingShipments.length }}
+                    </div>
+                </div>
             </div>
             <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center"><span class="material-symbols-outlined text-green-500">check_circle</span></div>
-                <div><div class="text-xs text-gray-500 dark:text-gray-400">Delivered</div><div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.deliveredShipments.length }}</div></div>
+                <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center"><span
+                        class="material-symbols-outlined text-green-500">check_circle</span></div>
+                <div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Delivered</div>
+                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.deliveredShipments.length }}
+                    </div>
+                </div>
             </div>
             <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center"><span class="material-symbols-outlined text-purple-500">schedule</span></div>
-                <div><div class="text-xs text-gray-500 dark:text-gray-400">On-Time</div><div class="text-xl font-bold text-green-500">{{ store.analyticsData.onTime }}%</div></div>
+                <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center"><span
+                        class="material-symbols-outlined text-purple-500">schedule</span></div>
+                <div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">On-Time</div>
+                    <div class="text-xl font-bold text-green-500">{{ store.analyticsData.onTime }}%</div>
+                </div>
             </div>
             <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center"><span class="material-symbols-outlined text-orange-500">route</span></div>
-                <div><div class="text-xs text-gray-500 dark:text-gray-400">Avg Transit</div><div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.analyticsData.avgTransit }}d</div></div>
+                <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center"><span
+                        class="material-symbols-outlined text-orange-500">route</span></div>
+                <div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Avg Transit</div>
+                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.analyticsData.avgTransit }}d
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -47,28 +72,35 @@
             <div class="w-full xl:w-96 glass-panel rounded-xl overflow-hidden flex flex-col max-h-[70vh]">
                 <div class="p-4 border-b border-gray-200 dark:border-white/5">
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-sm">search</span>
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-sm">search</span>
                         <input v-model="searchQuery" type="text" placeholder="Search order ID, destination..."
                             class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500/50">
                     </div>
                 </div>
                 <div class="flex-1 overflow-y-auto p-2 space-y-2">
-                    <div v-if="filteredShipments.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">No shipments found</div>
+                    <div v-if="filteredShipments.length === 0"
+                        class="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">No shipments found</div>
                     <div v-for="s in filteredShipments" :key="s.id"
                         class="p-3 rounded-lg cursor-pointer transition-all border"
                         :class="selected?.id === s.id ? 'bg-blue-500/10 border-blue-500 dark:bg-blue-500/20' : 'bg-gray-50 dark:bg-white/5 border-transparent hover:bg-gray-100 dark:hover:bg-white/10'"
                         @click="selected = s">
                         <div class="flex justify-between items-start mb-1">
                             <span class="font-bold text-gray-900 dark:text-white text-sm">{{ s.id }}</span>
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" :class="statusClass(s.statusKey)">{{ s.status }}</span>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                                :class="statusClass(s.statusKey)">{{ s.status }}</span>
                         </div>
                         <div class="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">{{ s.route }}</div>
                         <div class="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
-                            <div class="flex items-center gap-1"><span class="material-symbols-outlined text-[10px]">schedule</span> ETA: {{ s.eta }}</div>
-                            <div class="font-bold text-gray-700 dark:text-gray-300">₹{{ s.amount.toLocaleString() }}</div>
+                            <div class="flex items-center gap-1"><span
+                                    class="material-symbols-outlined text-[10px]">schedule</span> ETA: {{ s.eta }}</div>
+                            <div class="font-bold text-gray-700 dark:text-gray-300">₹{{ s.amount.toLocaleString() }}
+                            </div>
                         </div>
-                        <div v-if="s.progress > 0 && s.statusKey !== 'delivered' && s.statusKey !== 'cancelled'" class="mt-2 w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full">
-                            <div class="h-1.5 bg-blue-500 rounded-full transition-all" :style="{ width: s.progress + '%' }"></div>
+                        <div v-if="s.progress > 0 && s.statusKey !== 'delivered' && s.statusKey !== 'cancelled'"
+                            class="mt-2 w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full">
+                            <div class="h-1.5 bg-blue-500 rounded-full transition-all"
+                                :style="{ width: s.progress + '%' }"></div>
                         </div>
                     </div>
                 </div>
@@ -76,38 +108,244 @@
 
             <!-- Detail Panel -->
             <div class="flex-1 space-y-6">
-                <div v-if="!selected" class="glass-panel rounded-xl p-12 flex flex-col items-center justify-center text-center h-[60vh]">
-                    <span class="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4">map</span>
-                    <h3 class="text-lg font-bold text-gray-500 dark:text-gray-400">Select a shipment</h3>
-                    <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Choose from the list to view live tracking details</p>
+                <!-- Global Dashboard when no shipment is selected -->
+                <div v-if="!selected" class="space-y-6">
+                    <!-- Global Dashboard Tabs -->
+                    <div class="flex items-center gap-2 border-b border-gray-200 dark:border-white/10 pb-2">
+                        <button @click="globalTab = 'map'"
+                            class="px-4 py-2 text-sm font-bold rounded-t-lg transition-colors"
+                            :class="globalTab === 'map' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'">Live
+                            Map</button>
+                        <button @click="globalTab = 'table'"
+                            class="px-4 py-2 text-sm font-bold rounded-t-lg transition-colors"
+                            :class="globalTab === 'table' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'">All
+                            Orders</button>
+                        <button @click="globalTab = 'graphs'"
+                            class="px-4 py-2 text-sm font-bold rounded-t-lg transition-colors"
+                            :class="globalTab === 'graphs' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'">Analytics</button>
+                    </div>
+
+                    <!-- Global Map Tab -->
+                    <div v-if="globalTab === 'map'" class="glass-panel rounded-xl overflow-hidden relative h-[60vh]">
+                        <div
+                            class="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-gray-900/50 dark:from-blue-900/30 dark:to-gray-900/70">
+                            <div class="absolute inset-0 opacity-10 dark:opacity-20"
+                                style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzk5OSIvPjwvc3ZnPg=='); background-size: 40px 40px;">
+                            </div>
+                        </div>
+
+                        <!-- Map all active shipments -->
+                        <div v-for="(s, idx) in store.activeShipments" :key="'gmap-' + s.id"
+                            class="absolute z-10 cursor-pointer group"
+                            :style="{ top: (20 + (idx * 15) % 60) + '%', left: (15 + s.progress * 0.7) + '%', transform: 'translate(-50%, -50%)' }"
+                            @click="selected = s">
+                            <div class="w-4 h-4 bg-blue-500 rounded-full animate-ping absolute opacity-70"></div>
+                            <div
+                                class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white relative z-10 shadow-lg group-hover:scale-125 transition-transform">
+                            </div>
+                            <div
+                                class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                                {{ s.id }} - {{ s.destination }}
+                            </div>
+                        </div>
+
+                        <div
+                            class="absolute bottom-4 left-4 bg-white/90 dark:bg-black/50 backdrop-blur-md p-3 rounded-lg border border-gray-200 dark:border-white/10 pointer-events-none">
+                            <div class="text-xs font-bold text-gray-900 dark:text-white mb-2">Global Live Tracking</div>
+                            <div class="flex items-center gap-2 text-[10px] text-gray-600 dark:text-gray-300">
+                                <div class="w-2 h-2 rounded-full bg-blue-500"></div> {{ store.activeShipments.length }}
+                                Active Vehicles
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Global Table Tab -->
+                    <div v-if="globalTab === 'table'"
+                        class="glass-panel p-4 rounded-xl overflow-x-auto h-[60vh] flex flex-col">
+                        <table class="w-full text-left text-sm min-w-[800px] flex-1">
+                            <thead
+                                class="text-gray-500 dark:text-gray-400 uppercase text-[10px] border-b border-gray-200 dark:border-white/10 sticky top-0 bg-white dark:bg-card-dark">
+                                <tr>
+                                    <th class="px-4 py-3">Order ID</th>
+                                    <th class="px-4 py-3">Route</th>
+                                    <th class="px-4 py-3">Amount</th>
+                                    <th class="px-4 py-3">ETA</th>
+                                    <th class="px-4 py-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                                <tr v-for="s in filteredShipments" :key="'tbl-' + s.id"
+                                    class="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
+                                    @click="selected = s">
+                                    <td class="px-4 py-3 font-mono text-blue-500 text-xs font-bold">{{ s.id }}</td>
+                                    <td class="px-4 py-3">
+                                        <div class="text-xs text-gray-900 dark:text-white font-medium">{{ s.origin }}
+                                        </div>
+                                        <div class="text-[10px] text-gray-500">→ {{ s.destination }}</div>
+                                    </td>
+                                    <td class="px-4 py-3 text-green-600 dark:text-green-400 font-bold text-xs">₹{{
+                                        s.amount.toLocaleString() }}</td>
+                                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300 text-xs">{{ s.eta }}</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold"
+                                            :class="statusClass(s.statusKey)">{{ s.status }}</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Global Analytics/Graphs Tab -->
+                    <div v-if="globalTab === 'graphs'" class="grid grid-cols-1 md:grid-cols-2 gap-4 h-[60vh]">
+                        <div class="glass-panel p-5 rounded-xl h-full flex flex-col">
+                            <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Shipments by Status</h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-20 text-xs text-gray-500">In Transit</div>
+                                    <div class="flex-1 h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-blue-500 rounded-full"
+                                            :style="{ width: store.shipments.length ? (store.activeShipments.length / store.shipments.length * 100) + '%' : '0%' }">
+                                        </div>
+                                    </div>
+                                    <div class="w-8 text-right text-xs font-bold">{{ store.activeShipments.length }}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-20 text-xs text-gray-500">Pending</div>
+                                    <div class="flex-1 h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-yellow-500 rounded-full"
+                                            :style="{ width: store.shipments.length ? (store.pendingShipments.length / store.shipments.length * 100) + '%' : '0%' }">
+                                        </div>
+                                    </div>
+                                    <div class="w-8 text-right text-xs font-bold">{{ store.pendingShipments.length }}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-20 text-xs text-gray-500">Delivered</div>
+                                    <div class="flex-1 h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-green-500 rounded-full"
+                                            :style="{ width: store.shipments.length ? (store.deliveredShipments.length / store.shipments.length * 100) + '%' : '0%' }">
+                                        </div>
+                                    </div>
+                                    <div class="w-8 text-right text-xs font-bold">{{ store.deliveredShipments.length }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-5 rounded-xl flex flex-col justify-between h-full">
+                            <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Volume Overview</h4>
+                            <div
+                                class="flex items-end h-[80%] gap-2 border-b border-gray-200 dark:border-white/10 pb-2">
+                                <div class="flex-1 flex flex-col justify-end items-center group relative">
+                                    <div
+                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[40%]">
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 mt-2">Mon</div>
+                                    <div
+                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                                        12</div>
+                                </div>
+                                <div class="flex-1 flex flex-col justify-end items-center group relative">
+                                    <div
+                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[60%]">
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 mt-2">Tue</div>
+                                    <div
+                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                                        18</div>
+                                </div>
+                                <div class="flex-1 flex flex-col justify-end items-center group relative">
+                                    <div
+                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[30%]">
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 mt-2">Wed</div>
+                                    <div
+                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                                        9</div>
+                                </div>
+                                <div class="flex-1 flex flex-col justify-end items-center group relative">
+                                    <div
+                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[80%]">
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 mt-2">Thu</div>
+                                    <div
+                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                                        24</div>
+                                </div>
+                                <div class="flex-1 flex flex-col justify-end items-center group relative">
+                                    <div
+                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[90%]">
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 mt-2">Fri</div>
+                                    <div
+                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                                        27</div>
+                                </div>
+                                <div class="flex-1 flex flex-col justify-end items-center group relative">
+                                    <div
+                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[20%]">
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 mt-2">Sat</div>
+                                    <div
+                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                                        6</div>
+                                </div>
+                                <div class="flex-1 flex flex-col justify-end items-center group relative">
+                                    <div
+                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[10%]">
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 mt-2">Sun</div>
+                                    <div
+                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                                        3</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <template v-if="selected">
+                <template v-else>
+                    <!-- Back Button to Global View -->
+                    <button @click="selected = null"
+                        class="mb-4 flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg w-fit mt-2">
+                        <span class="material-symbols-outlined text-[16px]">arrow_back</span> Back to Global View
+                    </button>
                     <!-- Map Placeholder -->
                     <div class="glass-panel rounded-xl overflow-hidden relative h-64">
-                        <div class="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-gray-900/50 dark:from-blue-900/30 dark:to-gray-900/70">
-                            <div class="absolute inset-0 opacity-10 dark:opacity-20" style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzk5OSIvPjwvc3ZnPg=='); background-size: 40px 40px;"></div>
+                        <div
+                            class="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-gray-900/50 dark:from-blue-900/30 dark:to-gray-900/70">
+                            <div class="absolute inset-0 opacity-10 dark:opacity-20"
+                                style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzk5OSIvPjwvc3ZnPg=='); background-size: 40px 40px;">
+                            </div>
                         </div>
                         <!-- Origin marker -->
                         <div class="absolute top-1/2 left-[15%] transform -translate-x-1/2 -translate-y-1/2 z-10">
                             <div class="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg"></div>
-                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">{{ selected.origin }}</div>
+                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">
+                                {{ selected.origin }}</div>
                         </div>
                         <!-- Route line -->
-                        <div class="absolute top-1/2 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-green-500 via-blue-500 to-red-500 transform -translate-y-1/2 z-0"></div>
+                        <div
+                            class="absolute top-1/2 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-green-500 via-blue-500 to-red-500 transform -translate-y-1/2 z-0">
+                        </div>
                         <!-- Driver marker (if in transit) -->
-                        <div v-if="selected.driver && selected.statusKey !== 'delivered' && selected.statusKey !== 'cancelled'" class="absolute z-10" :style="{ top: '50%', left: (15 + selected.progress * 0.7) + '%', transform: 'translate(-50%, -50%)' }">
+                        <div v-if="selected.driver && selected.statusKey !== 'delivered' && selected.statusKey !== 'cancelled'"
+                            class="absolute z-10"
+                            :style="{ top: '50%', left: (15 + selected.progress * 0.7) + '%', transform: 'translate(-50%, -50%)' }">
                             <div class="w-4 h-4 bg-blue-500 rounded-full animate-ping absolute"></div>
-                            <div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white relative z-10 shadow-lg"></div>
-                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">{{ selected.vehicle || 'Driver' }}</div>
+                            <div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white relative z-10 shadow-lg">
+                            </div>
+                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">
+                                {{ selected.vehicle || 'Driver' }}</div>
                         </div>
                         <!-- Destination marker -->
                         <div class="absolute top-1/2 right-[15%] transform translate-x-1/2 -translate-y-1/2 z-10">
                             <div class="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg"></div>
-                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">{{ selected.destination }}</div>
+                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">
+                                {{ selected.destination }}</div>
                         </div>
                         <!-- Geofence badge -->
-                        <div v-if="selected.progress >= 80 && selected.statusKey !== 'delivered'" class="absolute top-3 right-3 z-20 bg-green-500/90 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 animate-pulse">
+                        <div v-if="selected.progress >= 80 && selected.statusKey !== 'delivered'"
+                            class="absolute top-3 right-3 z-20 bg-green-500/90 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 animate-pulse">
                             <span class="material-symbols-outlined text-sm">my_location</span>
                             Arriving Soon — {{ Math.max(5, Math.round((100 - selected.progress) * 1.5)) }} min away
                         </div>
@@ -120,17 +358,50 @@
                             <div class="glass-panel p-5 rounded-xl">
                                 <div class="flex items-center justify-between mb-4">
                                     <h3 class="font-bold text-gray-900 dark:text-white">{{ selected.id }}</h3>
-                                    <span class="px-2.5 py-1 rounded text-xs font-bold" :class="statusClass(selected.statusKey)">{{ selected.status }}</span>
+                                    <span class="px-2.5 py-1 rounded text-xs font-bold"
+                                        :class="statusClass(selected.statusKey)">{{ selected.status }}</span>
                                 </div>
                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Route</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.route }}</div></div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">ETA</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.eta }}</div></div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Category</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.category }}</div></div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Amount</div><div class="text-xs font-bold text-green-500">₹{{ selected.amount.toLocaleString() }}</div></div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Weight</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.weight.toLocaleString() }} kg</div></div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Pallets</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.pallets }}</div></div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Payment</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.paymentMode }}</div></div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Progress</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.progress }}%</div></div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Route</div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.route
+                                        }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1">ETA</div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.eta
+                                        }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Category</div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{
+                                            selected.category }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Amount</div>
+                                        <div class="text-xs font-bold text-green-500">₹{{
+                                            selected.amount.toLocaleString() }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Weight</div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{
+                                            selected.weight.toLocaleString() }} kg</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Pallets</div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{
+                                            selected.pallets }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Payment</div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{
+                                            selected.paymentMode }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Progress</div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{
+                                            selected.progress }}%</div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -142,14 +413,18 @@
                                         <span class="material-symbols-outlined text-blue-500">person</span>
                                     </div>
                                     <div class="flex-1">
-                                        <div class="font-medium text-gray-900 dark:text-white text-sm">{{ selected.driver }}</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ selected.vehicle }} · {{ selected.driverPhone }}</div>
+                                        <div class="font-medium text-gray-900 dark:text-white text-sm">{{
+                                            selected.driver }}</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ selected.vehicle }} ·
+                                            {{ selected.driverPhone }}</div>
                                     </div>
                                     <div class="flex gap-2">
-                                        <button class="p-2 bg-gray-100 dark:bg-white/5 hover:bg-blue-500/10 rounded-lg text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">
+                                        <button
+                                            class="p-2 bg-gray-100 dark:bg-white/5 hover:bg-blue-500/10 rounded-lg text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">
                                             <span class="material-symbols-outlined text-[18px]">call</span>
                                         </button>
-                                        <button class="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors">
+                                        <button
+                                            class="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors">
                                             <span class="material-symbols-outlined text-[18px]">chat</span>
                                         </button>
                                     </div>
@@ -157,19 +432,26 @@
                             </div>
 
                             <!-- Actions -->
-                            <div v-if="selected.statusKey !== 'delivered' && selected.statusKey !== 'cancelled'" class="glass-panel p-5 rounded-xl">
+                            <div v-if="selected.statusKey !== 'delivered' && selected.statusKey !== 'cancelled'"
+                                class="glass-panel p-5 rounded-xl">
                                 <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-3">Quick Actions</h4>
                                 <div class="flex flex-wrap gap-3">
-                                    <button @click="showAddressModal = true" class="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[16px]">edit_location</span> Update Address
+                                    <button @click="showAddressModal = true"
+                                        class="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[16px]">edit_location</span> Update
+                                        Address
                                     </button>
-                                    <button @click="showRescheduleModal = true" class="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                    <button @click="showRescheduleModal = true"
+                                        class="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
                                         <span class="material-symbols-outlined text-[16px]">event</span> Reschedule
                                     </button>
-                                    <button @click="showDamageModal = true" class="px-4 py-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[16px]">report_problem</span> Report Issue
+                                    <button @click="showDamageModal = true"
+                                        class="px-4 py-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[16px]">report_problem</span> Report
+                                        Issue
                                     </button>
-                                    <button @click="handleCancel" class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                    <button @click="handleCancel"
+                                        class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
                                         <span class="material-symbols-outlined text-[16px]">cancel</span> Cancel
                                     </button>
                                 </div>
@@ -177,20 +459,33 @@
 
                             <!-- PoD (if delivered) -->
                             <div v-if="selected.pod && selected.pod.confirmed" class="glass-panel p-5 rounded-xl">
-                                <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-3 flex items-center gap-2">
+                                <h4
+                                    class="font-bold text-gray-900 dark:text-white text-sm mb-3 flex items-center gap-2">
                                     <span class="material-symbols-outlined text-green-500 text-[18px]">verified</span>
                                     Proof of Delivery
                                 </h4>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div class="rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
-                                        <img :src="selected.pod.photo" alt="Delivery proof" class="w-full h-40 object-cover">
+                                        <img :src="selected.pod.photo" alt="Delivery proof"
+                                            class="w-full h-40 object-cover">
                                     </div>
                                     <div class="space-y-3">
-                                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Timestamp</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.pod.timestamp }}</div></div>
-                                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg"><div class="text-[10px] text-gray-500 uppercase mb-1">Location</div><div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.pod.location }}</div></div>
-                                        <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center gap-2">
-                                            <span class="material-symbols-outlined text-green-500 text-sm">check_circle</span>
-                                            <span class="text-xs font-bold text-green-600 dark:text-green-400">Delivery Confirmed</span>
+                                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                            <div class="text-[10px] text-gray-500 uppercase mb-1">Timestamp</div>
+                                            <div class="text-xs font-medium text-gray-900 dark:text-white">{{
+                                                selected.pod.timestamp }}</div>
+                                        </div>
+                                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                            <div class="text-[10px] text-gray-500 uppercase mb-1">Location</div>
+                                            <div class="text-xs font-medium text-gray-900 dark:text-white">{{
+                                                selected.pod.location }}</div>
+                                        </div>
+                                        <div
+                                            class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center gap-2">
+                                            <span
+                                                class="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                                            <span class="text-xs font-bold text-green-600 dark:text-green-400">Delivery
+                                                Confirmed</span>
                                         </div>
                                     </div>
                                 </div>
@@ -201,14 +496,18 @@
                         <div class="glass-panel p-5 rounded-xl">
                             <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-4">Status Timeline</h4>
                             <div class="space-y-4">
-                                <div v-for="(step, idx) in (selected.statusHistory || [])" :key="idx" class="flex gap-3">
+                                <div v-for="(step, idx) in (selected.statusHistory || [])" :key="idx"
+                                    class="flex gap-3">
                                     <div class="flex flex-col items-center">
                                         <div class="w-3 h-3 rounded-full flex-shrink-0"
-                                            :class="idx === selected.statusHistory.length - 1 ? 'bg-blue-500 ring-4 ring-blue-500/20' : 'bg-green-500'"></div>
-                                        <div v-if="idx < selected.statusHistory.length - 1" class="w-0.5 flex-1 bg-gray-200 dark:bg-white/10 mt-1"></div>
+                                            :class="idx === selected.statusHistory.length - 1 ? 'bg-blue-500 ring-4 ring-blue-500/20' : 'bg-green-500'">
+                                        </div>
+                                        <div v-if="idx < selected.statusHistory.length - 1"
+                                            class="w-0.5 flex-1 bg-gray-200 dark:bg-white/10 mt-1"></div>
                                     </div>
                                     <div class="pb-4">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ step.status }}</div>
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ step.status }}
+                                        </div>
                                         <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ step.time }}</div>
                                     </div>
                                 </div>
@@ -226,16 +525,21 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Current Address</label>
-                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg text-sm text-gray-600 dark:text-gray-300">{{ selected?.destination }}</div>
+                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg text-sm text-gray-600 dark:text-gray-300">
+                            {{
+                                selected?.destination }}</div>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">New Address *</label>
-                        <input v-model="newAddress" type="text" placeholder="Enter new delivery address" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                        <input v-model="newAddress" type="text" placeholder="Enter new delivery address"
+                            class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
                     </div>
                 </div>
                 <template #footer>
                     <button @click="showAddressModal = false" class="px-4 py-2 text-gray-500 text-sm">Cancel</button>
-                    <button @click="updateAddress" :disabled="!newAddress.trim()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Update Address</button>
+                    <button @click="updateAddress" :disabled="!newAddress.trim()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Update
+                        Address</button>
                 </template>
             </BaseModal>
         </Teleport>
@@ -247,20 +551,25 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Current ETA</label>
-                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg text-sm text-gray-600 dark:text-gray-300">{{ selected?.eta }}</div>
+                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg text-sm text-gray-600 dark:text-gray-300">
+                            {{
+                                selected?.eta }}</div>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">New Delivery Date *</label>
-                        <input v-model="newDate" type="date" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                        <input v-model="newDate" type="date"
+                            class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Reason</label>
-                        <textarea v-model="rescheduleReason" rows="2" placeholder="Optional reason" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                        <textarea v-model="rescheduleReason" rows="2" placeholder="Optional reason"
+                            class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 resize-none"></textarea>
                     </div>
                 </div>
                 <template #footer>
                     <button @click="showRescheduleModal = false" class="px-4 py-2 text-gray-500 text-sm">Cancel</button>
-                    <button @click="reschedule" :disabled="!newDate" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-bold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Reschedule</button>
+                    <button @click="reschedule" :disabled="!newDate"
+                        class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-bold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Reschedule</button>
                 </template>
             </BaseModal>
         </Teleport>
@@ -273,18 +582,23 @@
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Severity *</label>
                         <div class="flex gap-3">
-                            <label v-for="sev in ['Low', 'Medium', 'High']" :key="sev" class="flex-1 text-center px-3 py-2 rounded-lg border cursor-pointer text-sm font-medium transition-colors" :class="damageForm.severity === sev ? severityClass(sev) : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400'">
+                            <label v-for="sev in ['Low', 'Medium', 'High']" :key="sev"
+                                class="flex-1 text-center px-3 py-2 rounded-lg border cursor-pointer text-sm font-medium transition-colors"
+                                :class="damageForm.severity === sev ? severityClass(sev) : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400'">
                                 <input type="radio" :value="sev" v-model="damageForm.severity" class="sr-only">{{ sev }}
                             </label>
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Description *</label>
-                        <textarea v-model="damageForm.description" rows="3" placeholder="Describe the damage or issue..." class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                        <textarea v-model="damageForm.description" rows="3"
+                            placeholder="Describe the damage or issue..."
+                            class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 resize-none"></textarea>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Upload Evidence</label>
-                        <div class="border-2 border-dashed border-gray-300 dark:border-white/20 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors">
+                        <div
+                            class="border-2 border-dashed border-gray-300 dark:border-white/20 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors">
                             <span class="material-symbols-outlined text-3xl text-gray-400 mb-2">cloud_upload</span>
                             <div class="text-xs text-gray-500">Click to upload photos</div>
                         </div>
@@ -292,7 +606,9 @@
                 </div>
                 <template #footer>
                     <button @click="showDamageModal = false" class="px-4 py-2 text-gray-500 text-sm">Cancel</button>
-                    <button @click="submitDamage" :disabled="!damageForm.description.trim()" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Submit Report</button>
+                    <button @click="submitDamage" :disabled="!damageForm.description.trim()"
+                        class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Submit
+                        Report</button>
                 </template>
             </BaseModal>
         </Teleport>
@@ -317,6 +633,7 @@ const newAddress = ref('')
 const newDate = ref('')
 const rescheduleReason = ref('')
 const damageForm = reactive({ severity: 'Medium', description: '' })
+const globalTab = ref('map')
 
 const filteredShipments = computed(() => {
     let list = store.shipments
