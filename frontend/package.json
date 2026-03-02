@@ -11,8 +11,10 @@
   "dependencies": {
     "@splinetool/runtime": "^1.12.55",
     "@splinetool/viewer": "^1.12.55",
+    "@types/marked": "^5.0.2",
     "chart.js": "^4.5.1",
     "gsap": "^3.14.2",
+    "marked": "^17.0.3",
     "pinia": "^3.0.4",
     "qrcode.vue": "^3.8.0",
     "uuid": "^13.0.0",

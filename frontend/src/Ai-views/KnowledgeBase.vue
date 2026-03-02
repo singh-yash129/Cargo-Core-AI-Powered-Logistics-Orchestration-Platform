@@ -254,94 +254,26 @@
                                     </div>
                                 </div>
 
-                                <div
-                                    class="prose prose-sm md:prose-base dark:prose-invert prose-purple max-w-none prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-white">
-                                    <p class="lead text-lg mb-6">{{ selectedArticle?.excerpt }} All agents and AI models
-                                        must
-                                        strictly adhere to these protocols. Deviations require Tier 2 Supervisor
-                                        approval.</p>
+                                <div class="prose prose-sm md:prose-base dark:prose-invert prose-purple max-w-none prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-white"
+                                    v-html="renderedContent">
+                                </div>
 
-                                    <div
-                                        class="bg-blue-50 dark:bg-blue-900/10 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
-                                        <h4
-                                            class="text-blue-800 dark:text-blue-300 font-bold mt-0 mb-2 flex items-center gap-2">
-                                            <span class="material-symbols-outlined text-[18px]">info</span> Quick
-                                            Summary
-                                        </h4>
-                                        <p class="mb-0 text-sm text-blue-900/80 dark:text-blue-200/80">If the customer
-                                            has a
-                                            high LTV (> $500) and the order total is under $50, the AI is authorized to
-                                            bypass
-                                            manual review and immediately issue a full refund to store credit.</p>
-                                    </div>
-
-                                    <h3 id="criteria">1. Criteria & Rules</h3>
-                                    <p>Before applying any action defined in this SOP, you must verify the following
-                                        criteria
-                                        via the integrated CRM toolset:</p>
-                                    <ul>
-                                        <li><strong>Account Standing:</strong> Must not be flagged for fraudulent
-                                            activity
-                                            (Velocity flag = false).</li>
-                                        <li><strong>Time window:</strong> The request must fall within the 30-day
-                                            standard
-                                            policy window.</li>
-                                        <li><strong>Item condition:</strong> For hardware, verify diagnostic logs if
-                                            available.
-                                        </li>
-                                    </ul>
-
-                                    <h3 id="actions">2. Action Steps</h3>
-                                    <ol>
-                                        <li>Acknowledge the customer's frustration immediately using empathy markers.
-                                        </li>
-                                        <li>Confirm order details and shipping address explicitly.</li>
-                                        <li>Process the action in the billing portal using code <code>REF-22A</code>.
-                                        </li>
-                                        <li>Send the automated confirmation email using Template B.</li>
-                                    </ol>
-
-                                    <div id="exceptions"
-                                        class="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-700/50 p-4 rounded-xl mb-6 flex gap-3">
-                                        <span
-                                            class="material-symbols-outlined text-yellow-600 dark:text-yellow-500 text-2xl shrink-0">warning</span>
-                                        <div>
-                                            <h4 class="text-yellow-800 dark:text-yellow-400 font-bold m-0 mb-1">
-                                                Exception
-                                                Handling</h4>
-                                            <p class="text-sm text-yellow-900/80 dark:text-yellow-200/80 m-0">If the
-                                                customer
-                                                threatens legal action or regulatory body involvement (e.g., BBB, FTC),
-                                                STOP
-                                                immediately. Do not process refunds. Tag the ticket as
-                                                <code>[LEGAL_THREAT]</code> and escalate to the Legal Escalation queue
-                                                automatically.
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <h3 id="ai-notes">3. AI Integration Notes</h3>
-                                    <p>The sentiment detection model is highly sensitive to the phrase "regulatory
-                                        body". When
-                                        this is parsed, bypass standard queueing and route immediately.</p>
-
-                                    <div class="mt-12 pt-8 border-t border-gray-100 dark:border-white/5 text-center">
-                                        <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Was this
-                                            article
-                                            helpful?</h4>
-                                        <div class="flex justify-center gap-3">
-                                            <button
-                                                class="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600 dark:hover:text-green-400 text-gray-600 dark:text-gray-300 font-bold text-sm rounded-lg transition-colors border border-gray-200 dark:border-gray-700 flex items-center gap-2">
-                                                <span class="material-symbols-outlined text-[18px]">thumb_up</span> Yes,
-                                                helpful
-                                            </button>
-                                            <button
-                                                class="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 text-gray-600 dark:text-gray-300 font-bold text-sm rounded-lg transition-colors border border-gray-200 dark:border-gray-700 flex items-center gap-2">
-                                                <span class="material-symbols-outlined text-[18px]">thumb_down</span>
-                                                Needs
-                                                improvement
-                                            </button>
-                                        </div>
+                                <div class="mt-12 pt-8 border-t border-gray-100 dark:border-white/5 text-center">
+                                    <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Was this
+                                        article
+                                        helpful?</h4>
+                                    <div class="flex justify-center gap-3">
+                                        <button
+                                            class="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600 dark:hover:text-green-400 text-gray-600 dark:text-gray-300 font-bold text-sm rounded-lg transition-colors border border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[18px]">thumb_up</span> Yes,
+                                            helpful
+                                        </button>
+                                        <button
+                                            class="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 text-gray-600 dark:text-gray-300 font-bold text-sm rounded-lg transition-colors border border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[18px]">thumb_down</span>
+                                            Needs
+                                            improvement
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -403,11 +335,15 @@
                                 <label
                                     class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Document
                                     Type</label>
-                                <select
+                                <select v-model="newArticle.type"
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors shadow-sm font-medium">
                                     <option>Standard Operating Procedure</option>
                                     <option>Customer Support Script</option>
                                     <option>Legal Policy</option>
+                                    <option>Policy</option>
+                                    <option>Script</option>
+                                    <option>Legal Docs</option>
+                                    <option>SOP</option>
                                 </select>
                             </div>
 
@@ -465,7 +401,7 @@
                                     title="Insert Image"><span
                                         class="material-symbols-outlined text-[18px]">image</span></button>
                             </div>
-                            <textarea
+                            <textarea v-model="newArticle.content"
                                 class="flex-1 w-full bg-transparent border-none p-4 text-sm text-gray-900 dark:text-gray-100 outline-none resize-none font-mono"
                                 placeholder="Write article content here using markdown format or the rich text tools above..."></textarea>
                         </div>
@@ -494,6 +430,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { marked } from 'marked'
 
 const searchQuery = ref('')
 const activeCategory = ref('All')
@@ -504,7 +441,29 @@ const showAddArticleModal = ref(false)
 const selectedArticle = ref(null)
 const selectedArticleCat = ref(null)
 
-const newArticle = ref({ title: '', category: 'Customer Support Scripts', excerpt: '' })
+const newArticle = ref({
+    title: '',
+    category: 'Customer Support Scripts',
+    type: 'SOP',
+    excerpt: '',
+    content: ''
+})
+
+const defaultMarkdownContent = `
+## 1. Criteria & Rules
+Before applying any action defined in this SOP, you must verify the following criteria via the integrated CRM toolset:
+* **Account Standing:** Must not be flagged for fraudulent activity.
+* **Time window:** The request must fall within the 30-day standard policy window.
+
+## 2. Action Steps
+1. Acknowledge the customer's frustration using empathy markers.
+2. Confirm order details and shipping address explicitly.
+3. Process action in billing portal.
+4. Send automated email.
+
+## 3. AI Integration Notes
+The sentiment detection model is highly sensitive to the phrase "regulatory body". When this is parsed, bypass standard queueing and route immediately.
+`
 
 const categories = ['All', 'Standard Procedures', 'Customer Support Scripts', 'Legal & Compliance', 'AI Prompts']
 
@@ -514,9 +473,9 @@ const allCategories = ref([
         iconBg: 'bg-blue-100 dark:bg-blue-500/20', iconColor: 'text-blue-600 dark:text-blue-400',
         desc: 'Approved templates and dialogue logic for support agents and AI bot responses.',
         articles: [
-            { title: 'Refund Eligibility Policy', type: 'Policy', typeIcon: 'policy', excerpt: 'Comprehensive ruleset defining when a customer is entitled to a full, partial, or no refund based on timing and item condition.', authorInitials: 'JD', lastUpdated: '2 days ago', likes: 145, featured: true },
-            { title: 'Late Delivery Apology Script', type: 'Script', typeIcon: 'forum', excerpt: 'Text and voice scripts to use when acknowledging a missed SLA or late carrier delivery.', authorInitials: 'AM', lastUpdated: '1 week ago', likes: 89, featured: false },
-            { title: 'Handling Escalations via Phone', type: 'SOP', typeIcon: 'headset_mic', excerpt: 'Step-by-step logic for de-escalating angry callers before passing to a Tier 2 supervisor.', authorInitials: 'TB', lastUpdated: '3 weeks ago', likes: 42, featured: false }
+            { title: 'Refund Eligibility Policy', type: 'Policy', typeIcon: 'policy', excerpt: 'Comprehensive ruleset defining when a customer is entitled to a full, partial, or no refund based on timing and item condition.', content: defaultMarkdownContent, authorInitials: 'JD', lastUpdated: '2 days ago', likes: 145, featured: true },
+            { title: 'Late Delivery Apology Script', type: 'Script', typeIcon: 'forum', excerpt: 'Text and voice scripts to use when acknowledging a missed SLA or late carrier delivery.', content: defaultMarkdownContent, authorInitials: 'AM', lastUpdated: '1 week ago', likes: 89, featured: false },
+            { title: 'Handling Escalations via Phone', type: 'SOP', typeIcon: 'headset_mic', excerpt: 'Step-by-step logic for de-escalating angry callers before passing to a Tier 2 supervisor.', content: defaultMarkdownContent, authorInitials: 'TB', lastUpdated: '3 weeks ago', likes: 42, featured: false }
         ]
     },
     {
@@ -524,8 +483,8 @@ const allCategories = ref([
         iconBg: 'bg-purple-100 dark:bg-purple-500/20', iconColor: 'text-purple-600 dark:text-purple-400',
         desc: 'Internal guidelines for operations, logistics execution, and safety protocols.',
         articles: [
-            { title: 'Contactless Delivery Rules', type: 'SOP', typeIcon: 'rule', excerpt: 'Instructions for drivers executing visual verification and signatureless dropoffs.', authorInitials: 'LR', lastUpdated: '1 month ago', likes: 210, featured: true },
-            { title: 'RMA Warehouse Processing', type: 'SOP', typeIcon: 'warehouse', excerpt: 'How to receive, log, and inspect a returned item at the central depot.', authorInitials: 'DK', lastUpdated: '5 days ago', likes: 67, featured: false }
+            { title: 'Contactless Delivery Rules', type: 'SOP', typeIcon: 'rule', excerpt: 'Instructions for drivers executing visual verification and signatureless dropoffs.', content: defaultMarkdownContent, authorInitials: 'LR', lastUpdated: '1 month ago', likes: 210, featured: true },
+            { title: 'RMA Warehouse Processing', type: 'SOP', typeIcon: 'warehouse', excerpt: 'How to receive, log, and inspect a returned item at the central depot.', content: defaultMarkdownContent, authorInitials: 'DK', lastUpdated: '5 days ago', likes: 67, featured: false }
         ]
     },
     {
@@ -533,8 +492,8 @@ const allCategories = ref([
         iconBg: 'bg-green-100 dark:bg-green-500/20', iconColor: 'text-green-600 dark:text-green-400',
         desc: 'Binding terms of service, privacy protocols, and regulatory requirements.',
         articles: [
-            { title: 'Data Privacy (GDPR Compliance)', type: 'Policy', typeIcon: 'gavel', excerpt: 'Mandatory rules on how customer PII string data is handled, stored, and purged upon request (Right to be Forgotten).', authorInitials: 'LF', lastUpdated: '5 months ago', likes: 91, featured: true },
-            { title: 'Liability Waiver 2024 Updates', type: 'Legal Docs', typeIcon: 'description', excerpt: 'Updated vendor liability clauses covering third-party shipping incidents.', authorInitials: 'LF', lastUpdated: 'Jan 15, 2024', likes: 23, featured: false }
+            { title: 'Data Privacy (GDPR Compliance)', type: 'Policy', typeIcon: 'gavel', excerpt: 'Mandatory rules on how customer PII string data is handled, stored, and purged upon request (Right to be Forgotten).', content: defaultMarkdownContent, authorInitials: 'LF', lastUpdated: '5 months ago', likes: 91, featured: true },
+            { title: 'Liability Waiver 2024 Updates', type: 'Legal Docs', typeIcon: 'description', excerpt: 'Updated vendor liability clauses covering third-party shipping incidents.', content: defaultMarkdownContent, authorInitials: 'LF', lastUpdated: 'Jan 15, 2024', likes: 23, featured: false }
         ]
     },
 ])
@@ -561,6 +520,11 @@ const visibleCategories = computed(() => {
     return cats
 })
 
+const renderedContent = computed(() => {
+    if (!selectedArticle.value || !selectedArticle.value.content) return '';
+    return marked(selectedArticle.value.content);
+});
+
 function openArticleModal(article, cat) {
     selectedArticle.value = article
     selectedArticleCat.value = cat
@@ -573,9 +537,10 @@ function addArticle() {
     if (cat) {
         cat.articles.unshift({
             title: newArticle.value.title,
-            type: 'Draft SOP',
+            type: newArticle.value.type,
             typeIcon: 'edit_document',
             excerpt: newArticle.value.excerpt || 'Newly drafted article. Pending review.',
+            content: newArticle.value.content || defaultMarkdownContent,
             authorInitials: 'AI',
             lastUpdated: 'Just now',
             likes: 0,
@@ -583,12 +548,13 @@ function addArticle() {
         })
     }
 
-    newArticle.value = { title: '', category: 'Customer Support Scripts', excerpt: '' }
+    newArticle.value = { title: '', category: 'Customer Support Scripts', type: 'SOP', excerpt: '', content: '' }
     showAddArticleModal.value = false
 }
 
 function saveDraftTrigger() {
     alert("Draft saved to your workspace.");
+    newArticle.value = { title: '', category: 'Customer Support Scripts', type: 'SOP', excerpt: '', content: '' }
     showAddArticleModal.value = false;
 }
 
@@ -600,7 +566,9 @@ function editArticle() {
     newArticle.value = {
         title: selectedArticle.value.title,
         category: selectedArticleCat.value.title,
-        excerpt: selectedArticle.value.excerpt
+        type: selectedArticle.value.type || 'SOP',
+        excerpt: selectedArticle.value.excerpt,
+        content: selectedArticle.value.content
     }
     showArticleModal.value = false;
     showAddArticleModal.value = true;
