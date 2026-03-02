@@ -137,7 +137,7 @@
                         <!-- Map all active shipments -->
                         <div v-for="(s, idx) in store.activeShipments" :key="'gmap-' + s.id"
                             class="absolute z-10 cursor-pointer group"
-                            :style="{ top: (20 + (idx * 15) % 60) + '%', left: (15 + s.progress * 0.7) + '%', transform: 'translate(-50%, -50%)' }"
+                            :style="{ top: (20 + (idx * 15) % 60) + '%', left: (10 + s.progress * 0.6) + '%', transform: 'translate(-50%, -50%)' }"
                             @click="selected = s">
                             <div class="w-4 h-4 bg-blue-500 rounded-full animate-ping absolute opacity-70"></div>
                             <div
@@ -149,22 +149,75 @@
                             </div>
                         </div>
 
+                        <!-- Fleet Sidebar Overlay -->
+                        <div class="absolute top-4 right-4 bottom-4 w-48 bg-white/80 dark:bg-black/40 backdrop-blur-md rounded-xl border border-gray-200 dark:border-white/10 hidden md:flex flex-col overflow-hidden z-20">
+                            <div class="p-3 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+                                <span class="text-[10px] font-bold text-gray-900 dark:text-white uppercase tracking-wider">Active Fleet</span>
+                                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            </div>
+                            <div class="flex-1 overflow-y-auto p-2 no-scrollbar">
+                                <div v-for="s in store.activeShipments.slice(0, 5)" :key="'fleet-'+s.id" @click="selected = s" class="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-white/5 cursor-pointer transition-colors mb-1 border border-transparent hover:border-blue-500/20">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <span class="text-[9px] font-mono font-bold text-blue-500">{{ s.id }}</span>
+                                        <span class="text-[8px] px-1 bg-blue-500/10 text-blue-500 rounded">{{ s.progress }}%</span>
+                                    </div>
+                                    <div class="text-[9px] text-gray-500 truncate">{{ s.destination }}</div>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-blue-500/5 text-center text-[9px] text-gray-500 border-t border-gray-200 dark:border-white/10">
+                                {{ store.activeShipments.length }} Total Vehicles
+                            </div>
+                        </div>
+                        
+                        <!-- Map Legend / Bottom Bar -->
                         <div
-                            class="absolute bottom-4 left-4 bg-white/90 dark:bg-black/50 backdrop-blur-md p-3 rounded-lg border border-gray-200 dark:border-white/10 pointer-events-none">
-                            <div class="text-xs font-bold text-gray-900 dark:text-white mb-2">Global Live Tracking</div>
-                            <div class="flex items-center gap-2 text-[10px] text-gray-600 dark:text-gray-300">
-                                <div class="w-2 h-2 rounded-full bg-blue-500"></div> {{ store.activeShipments.length }}
-                                Active Vehicles
+                            class="absolute bottom-4 left-4 right-4 md:right-56 bg-white/90 dark:bg-black/50 backdrop-blur-md p-3 rounded-lg border border-gray-200 dark:border-white/10 flex items-center justify-between pointer-events-auto">
+                            <div class="flex items-center gap-4">
+                                <div>
+                                    <div class="text-[10px] font-bold text-gray-900 dark:text-white">Global Live Tracking</div>
+                                    <div class="flex items-center gap-2 text-[9px] text-gray-600 dark:text-gray-300">
+                                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500"></span> In-Transit</span>
+                                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-green-500"></span> Origin</span>
+                                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500"></span> Destination</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hidden sm:flex items-center gap-3">
+                                <div class="px-2 py-1 bg-yellow-500/10 rounded flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-yellow-500 text-[14px]">warning</span>
+                                    <span class="text-[9px] font-bold text-yellow-600 dark:text-yellow-400">2 Alerts</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Global Table Tab -->
                     <div v-if="globalTab === 'table'"
-                        class="glass-panel p-4 rounded-xl overflow-x-auto h-[60vh] flex flex-col">
+                        class="glass-panel p-4 rounded-xl overflow-x-auto h-[60vh] flex flex-col gap-4">
+                        
+                        <!-- Quick Stats Bar -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-1">
+                            <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/5">
+                                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Total Valuation</div>
+                                <div class="text-sm font-bold text-gray-900 dark:text-white">₹{{ (store.shipments.reduce((acc, s) => acc + s.amount, 0)).toLocaleString() }}</div>
+                            </div>
+                            <div class="p-3 bg-blue-500/5 rounded-lg border border-blue-500/10">
+                                <div class="text-[9px] text-blue-500 uppercase font-bold mb-1">Active Movement</div>
+                                <div class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ store.activeShipments.length }} Shipments</div>
+                            </div>
+                            <div class="p-3 bg-green-500/5 rounded-lg border border-green-500/10">
+                                <div class="text-[9px] text-green-500 uppercase font-bold mb-1">Efficiency</div>
+                                <div class="text-sm font-bold text-green-600 dark:text-green-400">94.2% On-Time</div>
+                            </div>
+                            <div class="p-3 bg-purple-500/5 rounded-lg border border-purple-500/10">
+                                <div class="text-[9px] text-purple-500 uppercase font-bold mb-1">Total Weight</div>
+                                <div class="text-sm font-bold text-purple-600 dark:text-purple-400">12,450 kg</div>
+                            </div>
+                        </div>
+
                         <table class="w-full text-left text-sm min-w-[800px] flex-1">
                             <thead
-                                class="text-gray-500 dark:text-gray-400 uppercase text-[10px] border-b border-gray-200 dark:border-white/10 sticky top-0 bg-white dark:bg-card-dark">
+                                class="text-gray-500 dark:text-gray-400 uppercase text-[10px] border-b border-gray-200 dark:border-white/10 sticky top-0 bg-white dark:bg-card-dark z-10">
                                 <tr>
                                     <th class="px-4 py-3">Order ID</th>
                                     <th class="px-4 py-3">Route</th>
@@ -196,45 +249,38 @@
                     <!-- Global Analytics/Graphs Tab -->
                     <div v-if="globalTab === 'graphs'" class="grid grid-cols-1 md:grid-cols-2 gap-4 h-[60vh]">
                         <div class="glass-panel p-5 rounded-xl h-full flex flex-col">
-                            <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Shipments by Status</h4>
-                            <div class="space-y-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-20 text-xs text-gray-500">In Transit</div>
-                                    <div class="flex-1 h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                                        <div class="h-full bg-blue-500 rounded-full"
-                                            :style="{ width: store.shipments.length ? (store.activeShipments.length / store.shipments.length * 100) + '%' : '0%' }">
-                                        </div>
+                            <!-- Additional Performance KPIs -->
+                            <div class="mt-auto pt-6 border-t border-gray-200 dark:border-white/10 grid grid-cols-2 gap-4">
+                                <div>
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Transit Efficiency</div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.analyticsData.onTime }}%</div>
+                                        <span class="text-[10px] text-green-500 font-bold flex items-center"><span class="material-symbols-outlined text-[12px]">trending_up</span>+1.2%</span>
                                     </div>
-                                    <div class="w-8 text-right text-xs font-bold">{{ store.activeShipments.length }}
-                                    </div>
+                                    <div class="text-[8px] text-gray-400">vs Last Month</div>
                                 </div>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-20 text-xs text-gray-500">Pending</div>
-                                    <div class="flex-1 h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                                        <div class="h-full bg-yellow-500 rounded-full"
-                                            :style="{ width: store.shipments.length ? (store.pendingShipments.length / store.shipments.length * 100) + '%' : '0%' }">
-                                        </div>
+                                <div class="flex flex-col justify-end">
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Success Rate</div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.analyticsData.successRate }}%</div>
                                     </div>
-                                    <div class="w-8 text-right text-xs font-bold">{{ store.pendingShipments.length }}
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-20 text-xs text-gray-500">Delivered</div>
-                                    <div class="flex-1 h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                                        <div class="h-full bg-green-500 rounded-full"
-                                            :style="{ width: store.shipments.length ? (store.deliveredShipments.length / store.shipments.length * 100) + '%' : '0%' }">
-                                        </div>
-                                    </div>
-                                    <div class="w-8 text-right text-xs font-bold">{{ store.deliveredShipments.length }}
+                                    <div class="flex items-center mt-1 gap-0.5">
+                                        <div v-for="i in 5" :key="'spark-'+i" class="w-2 rounded-full bg-blue-500/30" :style="{ height: (8 + i * 3) + 'px' }"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="glass-panel p-5 rounded-xl flex flex-col justify-between h-full">
-                            <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Volume Overview</h4>
+                        <div class="glass-panel p-5 rounded-xl flex flex-col justify-between h-full bg-gradient-to-br from-transparent to-blue-500/5">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">Volume Overview</h4>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    <span class="text-[10px] text-gray-500 font-bold">Daily Orders</span>
+                                </div>
+                            </div>
                             <div
-                                class="flex items-end h-[80%] gap-2 border-b border-gray-200 dark:border-white/10 pb-2">
+                                class="flex items-end h-[50%] gap-2 border-b border-gray-200 dark:border-white/10 pb-2 mb-4">
                                 <div class="flex-1 flex flex-col justify-end items-center group relative">
                                     <div
                                         class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[40%]">
@@ -299,7 +345,37 @@
                                         3</div>
                                 </div>
                             </div>
+                            
+                            <!-- Top Routes List -->
+                            <div class="space-y-2 mt-2">
+                                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">High Volume Routes</div>
+                                <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
+                                    <div class="flex items-center gap-2 leading-tight">
+                                        <div class="w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-[10px]">01</div>
+                                        <div>
+                                            <div class="text-[10px] font-bold text-gray-900 dark:text-white">Mumbai → Chicago</div>
+                                            <div class="text-[8px] text-gray-500">12 Weekly Trips</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-[10px] font-bold text-green-500">98% Ontime</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
+                                    <div class="flex items-center gap-2 leading-tight">
+                                        <div class="w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-[10px]">02</div>
+                                        <div>
+                                            <div class="text-[10px] font-bold text-gray-900 dark:text-white">Delhi → London</div>
+                                            <div class="text-[8px] text-gray-500">8 Weekly Trips</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-[10px] font-bold text-green-500">96.5% Ontime</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                    </div>
                     </div>
                 </div>
 
@@ -492,23 +568,61 @@
                             </div>
                         </div>
 
-                        <!-- Status Timeline -->
-                        <div class="glass-panel p-5 rounded-xl">
-                            <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-4">Status Timeline</h4>
-                            <div class="space-y-4">
-                                <div v-for="(step, idx) in (selected.statusHistory || [])" :key="idx"
-                                    class="flex gap-3">
-                                    <div class="flex flex-col items-center">
-                                        <div class="w-3 h-3 rounded-full flex-shrink-0"
-                                            :class="idx === selected.statusHistory.length - 1 ? 'bg-blue-500 ring-4 ring-blue-500/20' : 'bg-green-500'">
+                        <!-- Right Column: Status Timeline & Tools -->
+                        <div class="space-y-4">
+                            <!-- Status Timeline -->
+                            <div class="glass-panel p-5 rounded-xl">
+                                <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-4">Status Timeline</h4>
+                                <div class="space-y-4">
+                                    <div v-for="(step, idx) in (selected.statusHistory || [])" :key="idx"
+                                        class="flex gap-3">
+                                        <div class="flex flex-col items-center">
+                                            <div class="w-3 h-3 rounded-full flex-shrink-0"
+                                                :class="idx === selected.statusHistory.length - 1 ? 'bg-blue-500 ring-4 ring-blue-500/20' : 'bg-green-500'">
+                                            </div>
+                                            <div v-if="idx < selected.statusHistory.length - 1"
+                                                class="w-0.5 flex-1 bg-gray-200 dark:bg-white/10 mt-1"></div>
                                         </div>
-                                        <div v-if="idx < selected.statusHistory.length - 1"
-                                            class="w-0.5 flex-1 bg-gray-200 dark:bg-white/10 mt-1"></div>
+                                        <div class="pb-4">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ step.status }}
+                                            </div>
+                                            <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ step.time }}</div>
+                                        </div>
                                     </div>
-                                    <div class="pb-4">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ step.status }}
+                                </div>
+                            </div>
+
+                            <!-- Document Center -->
+                            <div class="glass-panel p-5 rounded-xl">
+                                <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-3">Document Center</h4>
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-blue-500/30 cursor-pointer transition-all">
+                                        <div class="flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-red-500 text-lg">picture_as_pdf</span>
+                                            <span class="text-xs text-gray-700 dark:text-gray-300">Commercial Invoice</span>
                                         </div>
-                                        <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ step.time }}</div>
+                                        <span class="material-symbols-outlined text-gray-400 text-sm">download</span>
+                                    </div>
+                                    <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-blue-500/30 cursor-pointer transition-all">
+                                        <div class="flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-blue-500 text-lg">description</span>
+                                            <span class="text-xs text-gray-700 dark:text-gray-300">Bill of Lading</span>
+                                        </div>
+                                        <span class="material-symbols-outlined text-gray-400 text-sm">download</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Support Proxy -->
+                            <div class="p-4 rounded-xl bg-blue-600 text-white relative overflow-hidden group cursor-pointer">
+                                <div class="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full group-hover:scale-150 transition-transform"></div>
+                                <div class="relative z-10 flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                                        <span class="material-symbols-outlined">support_agent</span>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold">Need Help?</div>
+                                        <div class="text-[10px] opacity-80">Chat with Support</div>
                                     </div>
                                 </div>
                             </div>
@@ -516,8 +630,7 @@
                     </div>
                 </template>
             </div>
-        </div>
-
+    
         <!-- Address Update Modal -->
         <Teleport to="body">
             <BaseModal :isOpen="showAddressModal" @close="showAddressModal = false">
@@ -612,6 +725,8 @@
                 </template>
             </BaseModal>
         </Teleport>
+    </div>
+    
     </div>
 </template>
 
