@@ -46,9 +46,10 @@
                             <td class="py-3 px-5 font-bold text-gray-900 dark:text-white font-mono">₹{{
                                 p.amount.toLocaleString() }}</td>
                             <td class="py-3 px-5">
-                                <span
-                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">{{
-                                    p.status }}</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                                    :class="p.isDummy ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'">
+                                    {{ p.isDummy ? '🧪 Simulated' : p.status }}
+                                </span>
                             </td>
                             <td class="py-3 px-5 text-right">
                                 <button @click="viewDetail(p)"
@@ -73,9 +74,15 @@
                         <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">₹{{
                             order.cost.total.toLocaleString() }}</span>
                     </div>
-                    <button @click="payNow(order)"
-                        class="px-4 py-1.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors">Pay
-                        Now</button>
+                    <div class="flex items-center gap-3">
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" v-model="dummyMode" class="accent-amber-500 w-3.5 h-3.5" />
+                            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-bold">🧪 Test</span>
+                        </label>
+                        <button @click="payNow(order)"
+                            class="px-4 py-1.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors">Pay
+                            Now</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -95,18 +102,18 @@
                             <div class="text-xs text-gray-500">Order</div>
                             <div class="font-mono font-bold text-sm text-green-600 dark:text-green-400">{{
                                 detailModal.payment.orderId
-                                }}</div>
+                            }}</div>
                         </div>
                         <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div class="text-xs text-gray-500">Amount</div>
                             <div class="font-bold text-sm text-gray-900 dark:text-white">₹{{
                                 detailModal.payment.amount.toLocaleString()
-                                }}</div>
+                            }}</div>
                         </div>
                         <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div class="text-xs text-gray-500">Mode</div>
                             <div class="font-medium text-sm text-gray-900 dark:text-white">{{ detailModal.payment.mode
-                                }}</div>
+                            }}</div>
                         </div>
                     </div>
                     <button
@@ -137,7 +144,7 @@
 </template>
 
 <script setup>
-import { computed, reactive } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useIndividualStore } from '@/stores/individualStore'
 import BaseModal from '@/components/BaseModal.vue'
 
@@ -150,9 +157,11 @@ const pendingPayments = computed(() => store.orders.filter(o => o.paymentStatus 
 const detailModal = reactive({ show: false, payment: null })
 function viewDetail(p) { detailModal.payment = p; detailModal.show = true }
 
+const dummyMode = ref(false)
+
 function payNow(order) {
-    store.makePayment(order.id, order.cost.total, 'UPI')
-    showToast(`₹${order.cost.total.toLocaleString()} paid for ${order.id}!`)
+    store.makePayment(order.id, order.cost.total, dummyMode.value ? 'DUMMY (Test)' : 'UPI', dummyMode.value)
+    showToast(dummyMode.value ? `🧪 Test payment for ${order.id}` : `₹${order.cost.total.toLocaleString()} paid for ${order.id}!`)
 }
 
 const toast = reactive({ show: false, message: '' })
