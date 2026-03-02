@@ -9,7 +9,8 @@
                 <div class="text-xl font-bold text-primary tracking-wide">Cargo-Core</div>
             </div>
             <!-- Mobile Close Button -->
-            <button @click="$emit('close')" class="lg:hidden text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+            <button @click="$emit('close')"
+                class="lg:hidden text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -41,6 +42,26 @@
                     </router-link>
                 </li>
             </ul>
+
+            <!-- Vendor Metrics -->
+            <div class="mt-8 px-4">
+                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Vendor Metrics</div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div v-for="m in vendorMetrics" :key="m.id"
+                        class="bg-gray-100 dark:bg-white/5 rounded p-2 text-center border border-gray-200 dark:border-white/5 transition-colors cursor-default"
+                        :class="[
+                            m.status === 'Alert' ? 'hover:border-amber-500/50' :
+                                m.status === 'Critical' ? 'hover:border-red-500/50' : 'hover:border-blue-500/50'
+                        ]">
+                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ m.name }}</div>
+                        <div class="font-bold mt-1" :class="[
+                            m.status === 'Alert' ? 'text-amber-500 dark:text-yellow-400' :
+                                m.status === 'Critical' ? 'text-red-500 dark:text-red-400' :
+                                    m.status === 'Good' ? 'text-green-500 dark:text-green-400' : 'text-blue-500'
+                        ]">{{ m.value }}</div>
+                    </div>
+                </div>
+            </div>
         </nav>
 
         <!-- Business Profile with Context Menu -->
@@ -60,20 +81,23 @@
                         <!-- Profile -->
                         <button @click="showProfileModal = true"
                             class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors">
-                            <span class="material-symbols-outlined text-[20px] text-blue-500 dark:text-blue-400">person</span>
+                            <span
+                                class="material-symbols-outlined text-[20px] text-blue-500 dark:text-blue-400">person</span>
                             Profile
                         </button>
 
                         <!-- ID Card -->
                         <button @click="showIdCardModal = true"
                             class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors">
-                            <span class="material-symbols-outlined text-[20px] text-blue-500 dark:text-blue-400">badge</span>
+                            <span
+                                class="material-symbols-outlined text-[20px] text-blue-500 dark:text-blue-400">badge</span>
                             Business ID Card
                         </button>
 
                         <!-- Appearance Toggle -->
                         <div class="w-full px-4 py-2.5 flex items-center gap-3">
-                            <span class="material-symbols-outlined text-[20px] text-blue-500 dark:text-blue-400 transition-all duration-300">
+                            <span
+                                class="material-symbols-outlined text-[20px] text-blue-500 dark:text-blue-400 transition-all duration-300">
                                 {{ isDark ? 'dark_mode' : 'light_mode' }}
                             </span>
                             <span class="text-sm text-gray-700 dark:text-gray-200 flex-1">Appearance</span>
@@ -92,8 +116,10 @@
                 </div>
             </transition>
 
-            <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer transition-colors relative z-10">
-                <div class="w-9 h-9 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+            <div
+                class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer transition-colors relative z-10">
+                <div
+                    class="w-9 h-9 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
                     <span class="font-bold text-xs text-blue-600 dark:text-blue-400">{{ vendorInitials }}</span>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -118,7 +144,8 @@
                     <div>
                         <h4 class="text-xl font-bold text-gray-900 dark:text-white">{{ vendorName }}</h4>
                         <p class="text-gray-500">{{ vendorTier }}</p>
-                        <div class="mt-2 text-xs bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 px-2 py-0.5 rounded-full inline-block">
+                        <div
+                            class="mt-2 text-xs bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 px-2 py-0.5 rounded-full inline-block">
                             Active
                         </div>
                     </div>
@@ -250,4 +277,11 @@ const menuItems = [
     { label: 'Support', icon: 'help_center', route: '/vendor/support' },
     { label: 'Settings', icon: 'settings', route: '/vendor/settings' },
 ]
+
+const vendorMetrics = ref([
+    { id: 'vm1', name: 'Active', value: '34', status: 'Normal' },
+    { id: 'vm2', name: 'Pending', value: '12', status: 'Alert' },
+    { id: 'vm3', name: 'Delivered', value: '189', status: 'Good' },
+    { id: 'vm4', name: 'Issues', value: '2', status: 'Critical' },
+])
 </script>
