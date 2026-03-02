@@ -37,7 +37,11 @@ export const useLogisticStore = defineStore('logistic', () => {
     ])
 
     // Mock Data: KPIs
-    // Mock Data: KPIs
+    const creditBalance = ref(12450)
+    function addFunds(amount) {
+        if (amount > 0) creditBalance.value += amount
+    }
+
     const globalStats = {
         ordersToday: 1248, // Scalar for top bar
         activeDeliveries: 342, // In Transit
@@ -900,6 +904,8 @@ export const useLogisticStore = defineStore('logistic', () => {
         isSearchOpen,
         notifications,
         tasks,
+        creditBalance,
+        addFunds,
         // Getters
         activeWarehouseName,
         unreadNotificationsCount,

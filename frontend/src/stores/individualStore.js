@@ -138,6 +138,11 @@ export const useIndividualStore = defineStore('individual', () => {
     const cancelledOrders = computed(() => orders.value.filter(o => o.status === 'cancelled'))
     const totalSpent = computed(() => orders.value.filter(o => o.paymentStatus === 'paid').reduce((s, o) => s + o.cost.total, 0))
 
+    const walletBalance = ref(2500)
+    function addFunds(amount) {
+        if (amount > 0) walletBalance.value += amount
+    }
+
     // ─── Monthly Spending (for chart) ────────────────────────────
     const monthlySpending = ref([
         { month: 'Oct', amount: 4200 },
@@ -354,6 +359,7 @@ export const useIndividualStore = defineStore('individual', () => {
     return {
         user, userInitials,
         orders, activeOrders, pendingOrders, deliveredOrders, cancelledOrders, totalSpent,
+        walletBalance, addFunds,
         monthlySpending, vehicleTypes,
         quotes, payments, damageReports,
         notifications, unreadNotificationsCount,
