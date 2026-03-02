@@ -135,7 +135,7 @@
                                 <div class="text-right">
                                     <span class="text-2xl font-bold font-mono"
                                         :class="settings.sentimentThreshold > 70 ? 'text-red-500' : 'text-orange-500'">{{
-                                        settings.sentimentThreshold }}%</span>
+                                            settings.sentimentThreshold }}%</span>
                                     <span class="block text-[10px] uppercase font-bold text-gray-400">Risk Score</span>
                                 </div>
                             </div>
@@ -240,12 +240,14 @@
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Primary reasoning engine</p>
                                 </div>
                             </div>
-                            <button
+                            <button @click="openIntegrationModal('OpenAI', 'sk-proj-...')" v-if="integrations.openai"
                                 class="px-4 py-1.5 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-white text-xs font-bold rounded transition-colors border border-gray-200 dark:border-white/10">Configure</button>
+                            <button @click="openIntegrationModal('OpenAI', 'sk-proj-...')" v-else
+                                class="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded transition-colors shadow-sm">Connect</button>
                         </div>
 
-                        <div
-                            class="border border-gray-200 dark:border-white/10 rounded-xl p-5 flex items-center justify-between opacity-60 grayscale">
+                        <div class="border border-gray-200 dark:border-white/10 rounded-xl p-5 flex items-center justify-between"
+                            :class="!integrations.anthropic ? 'opacity-60 grayscale' : ''">
                             <div class="flex items-center gap-4">
                                 <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
                                     <!-- Anthropic logo mock -->
@@ -256,7 +258,10 @@
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Not connected</p>
                                 </div>
                             </div>
-                            <button
+                            <button @click="openIntegrationModal('Anthropic', 'sk-ant-...')"
+                                v-if="integrations.anthropic"
+                                class="px-4 py-1.5 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-white text-xs font-bold rounded transition-colors border border-gray-200 dark:border-white/10">Configure</button>
+                            <button @click="openIntegrationModal('Anthropic', 'sk-ant-...')" v-else
                                 class="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded transition-colors shadow-sm">Connect</button>
                         </div>
                     </div>
@@ -280,6 +285,65 @@
                 </div>
             </div>
         </Teleport>
+
+        <!-- API Key Modal -->
+        <Teleport to="body">
+            <div v-if="showApiModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                @click.self="showApiModal = false">
+                <div
+                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
+                    <div
+                        class="px-6 py-5 border-b border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5 flex items-center gap-3">
+                        <span class="material-symbols-outlined text-purple-600 dark:text-purple-400">api</span>
+                        <div>
+                            <h3 class="font-bold text-gray-900 dark:text-white leading-tight">Connect {{ activeProvider
+                                }}</h3>
+                            <p class="text-xs text-gray-500">Provide an API key with adequate permissions.</p>
+                        </div>
+                    </div>
+
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">Secret
+                                API Key</label>
+                            <input v-model="tempApiKey" type="password"
+                                class="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-shadow shadow-sm font-mono"
+                                :placeholder="apiPlaceholder">
+                        </div>
+
+                        <div class="bg-blue-50 dark:bg-blue-900/10 border-l-4 border-blue-500 p-3 rounded-r-lg">
+                            <p class="text-[11px] text-blue-800 dark:text-blue-300">
+                                <span class="font-bold">Security Notice:</span> Keys are stored locally in the secure
+                                credential store and are never exposed to the frontend browser context.
+                            </p>
+                        </div>
+
+                        <div v-if="isTestingKey"
+                            class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 font-medium">
+                            <span class="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+                            Validating key...
+                        </div>
+                        <div v-else-if="apiError"
+                            class="text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/10 p-2 rounded">
+                            {{ apiError }}
+                        </div>
+                    </div>
+
+                    <div class="p-6 border-t border-gray-100 dark:border-white/5 flex gap-3 bg-gray-50 dark:bg-white/5">
+                        <button @click="showApiModal = false; apiError = ''"
+                            class="flex-1 py-2.5 bg-white dark:bg-black/20 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors border border-gray-200 dark:border-white/10 shadow-sm">
+                            Cancel
+                        </button>
+                        <button @click="verifyAndConnect" :disabled="!tempApiKey || isTestingKey"
+                            class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors shadow-sm flex justify-center items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">vpn_key</span> Save Key
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
@@ -287,7 +351,19 @@
 import { ref, reactive } from 'vue'
 
 const savedToast = ref(false)
-const activeTab = ref('behavior')
+const activeTab = ref('integrations') // default to integrations for demo
+
+const showApiModal = ref(false)
+const activeProvider = ref('')
+const tempApiKey = ref('')
+const apiPlaceholder = ref('')
+const isTestingKey = ref(false)
+const apiError = ref('')
+
+const integrations = reactive({
+    openai: true, // Started as connected
+    anthropic: false
+})
 
 const configTabs = [
     { id: 'behavior', label: 'Global Behavior', icon: 'smart_toy' },
@@ -333,6 +409,40 @@ function resetSettings() {
         behaviorToggles.forEach(t => t.enabled = true);
         saveSettings();
     }
+}
+
+function openIntegrationModal(provider, placeholder) {
+    activeProvider.value = provider
+    apiPlaceholder.value = placeholder
+    tempApiKey.value = ''
+    apiError.value = ''
+    showApiModal.value = true
+}
+
+function verifyAndConnect() {
+    isTestingKey.value = true;
+    apiError.value = '';
+
+    // Simulate API verification delay
+    setTimeout(() => {
+        isTestingKey.value = false;
+
+        // Simple mock validation (must not be too short)
+        if (tempApiKey.value.length < 15) {
+            apiError.value = 'Invalid API Key format provided for ' + activeProvider.value;
+            return;
+        }
+
+        // Success
+        if (activeProvider.value === 'OpenAI') {
+            integrations.openai = true;
+        } else if (activeProvider.value === 'Anthropic') {
+            integrations.anthropic = true;
+        }
+
+        showApiModal.value = false;
+        saveSettings();
+    }, 1200)
 }
 </script>
 

@@ -33,7 +33,7 @@
                     :class="metric.trend.startsWith('+') ? 'text-green-600 dark:text-green-400' : (metric.trend.startsWith('-') ? 'text-red-500 dark:text-red-400' : 'text-blue-500 dark:text-blue-400')">
                     <span class="material-symbols-outlined text-[14px]">
                         {{ metric.trend.startsWith('+') ? 'trending_up' : (metric.trend.startsWith('-') ?
-                        'trending_down' : 'info') }}
+                            'trending_down' : 'info') }}
                     </span>
                     {{ metric.trend }}
                 </div>
@@ -120,19 +120,69 @@
                 <div>
                     <h4 class="font-bold mb-1" :class="insight.titleColor">{{ insight.title }}</h4>
                     <p class="text-sm leading-relaxed" :class="insight.textColor">{{ insight.text }}</p>
-                    <button class="mt-3 text-xs font-bold flex items-center gap-1 transition-colors"
+                    <button v-if="!insight.executed" @click="openActionModal(insight)"
+                        class="mt-3 text-xs font-bold flex items-center gap-1 transition-colors"
                         :class="insight.titleColor + ' hover:opacity-80'">
                         Take Action <span class="material-symbols-outlined text-[12px]">arrow_forward</span>
                     </button>
+                    <div v-else
+                        class="mt-3 text-xs font-bold flex items-center gap-1 text-green-600 dark:text-green-400">
+                        <span class="material-symbols-outlined text-[14px]">check_circle</span> Action Executed
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- AI Action Modal -->
+        <Teleport to="body">
+            <div v-if="showActionModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                @click.self="showActionModal = false">
+                <div
+                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
+                    <div
+                        class="p-6 border-b border-gray-100 dark:border-white/5 flex items-center gap-3 bg-gray-50 dark:bg-white/5">
+                        <span class="material-symbols-outlined text-2xl" :class="selectedInsight?.iconColor">{{
+                            selectedInsight?.icon }}</span>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ selectedInsight?.title }}</h3>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <p class="text-sm text-gray-600 dark:text-gray-300">{{ selectedInsight?.text }}</p>
+
+                        <div
+                            class="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-500/20">
+                            <div
+                                class="flex items-center gap-2 mb-2 font-bold text-purple-900 dark:text-purple-300 text-sm">
+                                <span class="material-symbols-outlined text-[18px]">auto_awesome</span> Recommended
+                                Execution
+                            </div>
+                            <p class="text-xs text-purple-800 dark:text-purple-400">By approving this action, the AI
+                                Admin will automatically implement the necessary configuration changes across all
+                                affected sub-systems. No further manual input is required.</p>
+                        </div>
+                    </div>
+                    <div class="p-6 border-t border-gray-100 dark:border-white/5 flex gap-3 bg-gray-50 dark:bg-white/5">
+                        <button @click="showActionModal = false"
+                            class="flex-1 py-2.5 bg-white dark:bg-black/20 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors border border-gray-200 dark:border-white/10 shadow-sm">
+                            Close
+                        </button>
+                        <button @click="executeAction"
+                            class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">bolt</span> Execute Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import Chart from 'chart.js/auto'
+
+const showActionModal = ref(false)
+const selectedInsight = ref(null)
 
 const activeRange = ref('7D')
 const timeRanges = ['24H', '7D', '30D', '90D']
@@ -155,20 +205,35 @@ const escalationReasons = [
 // Theme-aware colors derived from Tailwind (Purple/Blue/Gray palette)
 const cssVarColors = ['#9333ea', '#3b82f6', '#10b981', '#f59e0b', '#6b7280']; // Purple, Blue, Green, Amber, Gray
 
-const insights = [
+const insights = ref([
     {
         icon: 'rule_settings', title: 'Optimize Refund Policy', iconColor: 'text-purple-600 dark:text-purple-400',
         text: 'High volume of small refund requests (< $10). Enabling the auto-approve rule for this tier in Refund Center could save ~5 hours of manual review weekly.',
         classes: 'bg-white dark:bg-black/20 border-purple-200 dark:border-purple-500/20 shadow-sm border-l-4 border-l-purple-500',
-        titleColor: 'text-purple-900 dark:text-purple-300', textColor: 'text-gray-600 dark:text-gray-400'
+        titleColor: 'text-purple-900 dark:text-purple-300', textColor: 'text-gray-600 dark:text-gray-400',
+        executed: false
     },
     {
         icon: 'notifications_active', title: 'Logistics Alert Impact', iconColor: 'text-blue-600 dark:text-blue-400',
         text: 'New traffic prediction model successfully reduced inbound "Where is my order" chats by 40% after proactive push notifications to users in Zone A.',
         classes: 'bg-white dark:bg-black/20 border-blue-200 dark:border-blue-500/20 shadow-sm border-l-4 border-l-blue-500',
-        titleColor: 'text-blue-900 dark:text-blue-300', textColor: 'text-gray-600 dark:text-gray-400'
+        titleColor: 'text-blue-900 dark:text-blue-300', textColor: 'text-gray-600 dark:text-gray-400',
+        executed: false
     },
-]
+])
+
+function openActionModal(insight) {
+    selectedInsight.value = insight
+    showActionModal.value = true
+}
+
+function executeAction() {
+    if (selectedInsight.value) {
+        selectedInsight.value.executed = true;
+    }
+    showActionModal.value = false
+    selectedInsight.value = null
+}
 
 // Chart Instances
 let resChart = null;
