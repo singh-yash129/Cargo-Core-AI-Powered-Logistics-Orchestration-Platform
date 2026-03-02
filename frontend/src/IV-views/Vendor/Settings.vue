@@ -255,9 +255,10 @@ function copyKey(key) {
 
 function showToast(msg) {
     const t = document.createElement('div')
-    t.className = 'fixed top-4 right-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
+    t.className = 'fixed right-4 bottom-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
     t.textContent = msg
     document.body.appendChild(t)
     setTimeout(() => t.remove(), 3000)
 }
+
 </script>
