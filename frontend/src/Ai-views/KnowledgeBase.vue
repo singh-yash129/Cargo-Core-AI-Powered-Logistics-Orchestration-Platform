@@ -90,7 +90,7 @@
                                 <span
                                     class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400">
                                     <span class="material-symbols-outlined text-[12px] align-sub">{{ article.typeIcon
-                                    }}</span> {{ article.type }}
+                                        }}</span> {{ article.type }}
                                 </span>
                                 <span v-if="article.featured"
                                     class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400">
@@ -153,7 +153,7 @@
                             <span
                                 class="px-2 py-1 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded flex items-center gap-1">
                                 <span class="material-symbols-outlined text-[14px]">{{ selectedArticleCat?.icon
-                                }}</span>
+                                    }}</span>
                                 {{ selectedArticleCat?.title }}
                             </span>
                             <span
@@ -162,15 +162,25 @@
                             </span>
                         </div>
                         <div class="flex gap-2 text-gray-500 dark:text-gray-400">
-                            <button
+                            <button @click="printArticle"
                                 class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition tooltip-trigger relative text-gray-400 hover:text-gray-900 dark:hover:text-white">
                                 <span class="material-symbols-outlined">print</span>
                                 <span class="tooltip">Print</span>
                             </button>
-                            <button
-                                class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition tooltip-trigger relative text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                                <span class="material-symbols-outlined">share</span>
-                                <span class="tooltip">Share link</span>
+                            <button @click="editArticle"
+                                class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition tooltip-trigger relative text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                                <span class="material-symbols-outlined">edit</span>
+                                <span class="tooltip">Edit</span>
+                            </button>
+                            <button @click="unpublishArticle"
+                                class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition tooltip-trigger relative text-gray-400 hover:text-orange-600 dark:hover:text-orange-400">
+                                <span class="material-symbols-outlined">unpublished</span>
+                                <span class="tooltip">Unpublish</span>
+                            </button>
+                            <button @click="deleteArticle"
+                                class="p-2 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-500/20 dark:hover:text-red-400 rounded-full transition tooltip-trigger relative text-gray-400">
+                                <span class="material-symbols-outlined">delete</span>
+                                <span class="tooltip">Delete</span>
                             </button>
                             <div class="w-px h-6 bg-gray-300 dark:bg-gray-700 my-auto mx-1"></div>
                             <button @click="showArticleModal = false"
@@ -191,19 +201,20 @@
                                 On this
                                 page</h4>
                             <ul class="space-y-3 text-sm font-medium">
-                                <li><a href="#" class="text-purple-600 dark:text-purple-400 flex items-center gap-2">
+                                <li><a href="#" @click.prevent="scrollToSection('overview')"
+                                        class="text-purple-600 dark:text-purple-400 flex items-center gap-2">
                                         <div class="w-1.5 h-1.5 rounded-full bg-purple-500"></div> Overview
                                     </a></li>
-                                <li><a href="#"
+                                <li><a href="#" @click.prevent="scrollToSection('criteria')"
                                         class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition ml-3">Criteria
                                         & Rules</a></li>
-                                <li><a href="#"
+                                <li><a href="#" @click.prevent="scrollToSection('actions')"
                                         class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition ml-3">Action
                                         Steps</a></li>
-                                <li><a href="#"
+                                <li><a href="#" @click.prevent="scrollToSection('exceptions')"
                                         class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition ml-3">Exception
                                         Handling</a></li>
-                                <li><a href="#"
+                                <li><a href="#" @click.prevent="scrollToSection('ai-notes')"
                                         class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition flex items-center gap-2">
                                         <div class="w-1.5 h-1.5 rounded-full border border-gray-400"></div> AI
                                         Integration Notes
@@ -212,9 +223,10 @@
                         </div>
 
                         <!-- Main Document -->
-                        <div class="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar bg-white dark:bg-transparent">
+                        <div id="article-main-content"
+                            class="flex-1 overflow-y-auto scroll-smooth p-6 md:p-10 custom-scrollbar bg-white dark:bg-transparent">
                             <div class="max-w-3xl mx-auto pb-10">
-                                <h1
+                                <h1 id="overview"
                                     class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white leading-tight mb-4">
                                     {{ selectedArticle?.title }}
                                 </h1>
@@ -231,7 +243,7 @@
                                                 Policy
                                                 Team</span>
                                             <span class="block text-xs">Last updated: {{ selectedArticle?.lastUpdated
-                                            }}</span>
+                                                }}</span>
                                         </div>
                                     </div>
                                     <div class="w-px h-8 bg-gray-200 dark:bg-gray-800"></div>
@@ -263,7 +275,7 @@
                                             manual review and immediately issue a full refund to store credit.</p>
                                     </div>
 
-                                    <h3>1. Criteria & Rules</h3>
+                                    <h3 id="criteria">1. Criteria & Rules</h3>
                                     <p>Before applying any action defined in this SOP, you must verify the following
                                         criteria
                                         via the integrated CRM toolset:</p>
@@ -279,7 +291,7 @@
                                         </li>
                                     </ul>
 
-                                    <h3>2. Action Steps</h3>
+                                    <h3 id="actions">2. Action Steps</h3>
                                     <ol>
                                         <li>Acknowledge the customer's frustration immediately using empathy markers.
                                         </li>
@@ -289,7 +301,7 @@
                                         <li>Send the automated confirmation email using Template B.</li>
                                     </ol>
 
-                                    <div
+                                    <div id="exceptions"
                                         class="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-700/50 p-4 rounded-xl mb-6 flex gap-3">
                                         <span
                                             class="material-symbols-outlined text-yellow-600 dark:text-yellow-500 text-2xl shrink-0">warning</span>
@@ -307,6 +319,11 @@
                                             </p>
                                         </div>
                                     </div>
+
+                                    <h3 id="ai-notes">3. AI Integration Notes</h3>
+                                    <p>The sentiment detection model is highly sensitive to the phrase "regulatory
+                                        body". When
+                                        this is parsed, bypass standard queueing and route immediately.</p>
 
                                     <div class="mt-12 pt-8 border-t border-gray-100 dark:border-white/5 text-center">
                                         <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Was this
@@ -460,6 +477,10 @@
                             class="py-2.5 px-6 bg-white dark:bg-black/20 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors border border-gray-200 dark:border-white/10 shadow-sm ml-auto">
                             Discard Draft
                         </button>
+                        <button @click="saveDraftTrigger" :disabled="!newArticle.title"
+                            class="py-2.5 px-6 bg-white dark:bg-black/20 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors border border-gray-200 dark:border-white/10 shadow-sm flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">save</span> Save Draft
+                        </button>
                         <button @click="addArticle" :disabled="!newArticle.title"
                             class="py-2.5 px-6 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2">
                             <span class="material-symbols-outlined text-[18px]">publish</span> Publish Article
@@ -562,17 +583,68 @@ function addArticle() {
         })
     }
 
-    // reset form
     newArticle.value = { title: '', category: 'Customer Support Scripts', excerpt: '' }
     showAddArticleModal.value = false
+}
+
+function saveDraftTrigger() {
+    alert("Draft saved to your workspace.");
+    showAddArticleModal.value = false;
+}
+
+function printArticle() {
+    window.print();
+}
+
+function editArticle() {
+    newArticle.value = {
+        title: selectedArticle.value.title,
+        category: selectedArticleCat.value.title,
+        excerpt: selectedArticle.value.excerpt
+    }
+    showArticleModal.value = false;
+    showAddArticleModal.value = true;
+}
+
+function unpublishArticle() {
+    if (selectedArticle.value) {
+        selectedArticle.value.type = 'Draft';
+        selectedArticle.value.typeIcon = 'edit_document';
+        alert(`"${selectedArticle.value.title}" has been moved to Drafts.`);
+        showArticleModal.value = false;
+    }
+}
+
+function deleteArticle() {
+    if (confirm(`Are you sure you want to permanently delete "${selectedArticle.value.title}"?`)) {
+        if (selectedArticleCat.value) {
+            const index = selectedArticleCat.value.articles.findIndex(a => a.title === selectedArticle.value.title);
+            if (index > -1) {
+                selectedArticleCat.value.articles.splice(index, 1);
+            }
+        }
+        showArticleModal.value = false;
+    }
+}
+
+function scrollToSection(id) {
+    const el = document.getElementById(id);
+    const container = document.getElementById('article-main-content');
+    if (el && container) {
+        // Subtract a little offset for breathing room at the top
+        container.scrollTo({
+            top: el.offsetTop - 40,
+            behavior: 'smooth'
+        });
+    }
 }
 </script>
 
 <style scoped>
 /* Tooltip styling */
 .tooltip-trigger .tooltip {
-    @apply absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 whitespace-nowrap pointer-events-none transition-opacity;
-    z-index: 50;
+    @apply absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 whitespace-nowrap pointer-events-none transition-opacity;
+    z-index: 1000;
 }
 
 .tooltip-trigger:hover .tooltip {
