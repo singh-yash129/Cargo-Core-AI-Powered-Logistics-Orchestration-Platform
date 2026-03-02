@@ -56,10 +56,10 @@
                 <div class="flex items-center gap-3">
                     <h3 class="font-bold text-gray-900 dark:text-white text-sm">Support Tickets</h3>
                     <select v-model="statusFilter" class="text-xs bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded px-2 py-1 text-gray-700 dark:text-gray-300 focus:outline-none">
-                        <option value="all">All</option>
-                        <option value="Open">Open</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Resolved">Resolved</option>
+                        <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All</option>
+                        <option value="Open" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Open</option>
+                        <option value="In Progress" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Progress</option>
+                        <option value="Resolved" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Resolved</option>
                     </select>
                 </div>
                 <button @click="openCreateModal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
@@ -141,8 +141,8 @@
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Related Shipment (optional)</label>
                         <select v-model="newTicket.shipmentId" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                            <option value="">None</option>
-                            <option v-for="s in store.shipments" :key="s.id" :value="s.id">{{ s.id }} — {{ s.origin }} → {{ s.destination }}</option>
+                            <option value="" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">None</option>
+                            <option v-for="s in store.shipments" :key="s.id" :value="s.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ s.id }} — {{ s.origin }} → {{ s.destination }}</option>
                         </select>
                     </div>
                     <div>

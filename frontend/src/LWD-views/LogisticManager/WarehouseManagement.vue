@@ -217,9 +217,9 @@
                                 class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Status</label>
                             <select v-model="draftHub.status"
                                 class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
-                                <option value="Optimal">Optimal</option>
-                                <option value="Active">Active</option>
-                                <option value="Congested">Congested</option>
+                                <option value="Optimal" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Optimal</option>
+                                <option value="Active" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Active</option>
+                                <option value="Congested" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Congested</option>
                             </select>
                         </div>
                     </div>

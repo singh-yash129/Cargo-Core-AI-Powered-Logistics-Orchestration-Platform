@@ -145,9 +145,9 @@
                                     <label class="text-xs font-bold text-gray-500 uppercase">Payout Structure</label>
                                     <select :disabled="!isEditMode" v-model="rates.driver.type"
                                         class="w-full lg:w-1/2 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none">
-                                        <option value="per_km">Per KM Model</option>
-                                        <option value="per_delivery">Per Delivery Target</option>
-                                        <option value="salary_bonus">Fixed Salary (Base + HRA/DA + Bonus)</option>
+                                        <option value="per_km" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Per KM Model</option>
+                                        <option value="per_delivery" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Per Delivery Target</option>
+                                        <option value="salary_bonus" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Fixed Salary (Base + HRA/DA + Bonus)</option>
                                     </select>
                                 </div>
 
@@ -217,8 +217,8 @@
                                     <label class="text-xs font-bold text-gray-500 uppercase">Payout Structure</label>
                                     <select :disabled="!isEditMode" v-model="rates.labor.type"
                                         class="w-full lg:w-1/2 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none">
-                                        <option value="hourly">Hourly Contract</option>
-                                        <option value="salary_bonus">Fixed Salary (Base + HRA/DA + Bonus)</option>
+                                        <option value="hourly" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Hourly Contract</option>
+                                        <option value="salary_bonus" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Fixed Salary (Base + HRA/DA + Bonus)</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4"

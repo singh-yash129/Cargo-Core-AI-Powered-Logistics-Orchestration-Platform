@@ -47,11 +47,11 @@
                     class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
             </div>
             <select v-model="statusFilter" class="text-sm bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                <option value="all">All Status</option>
-                <option value="Unpaid">Unpaid</option>
-                <option value="Overdue">Overdue</option>
-                <option value="Partial">Partial</option>
-                <option value="Paid">Paid</option>
+                <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Status</option>
+                <option value="Unpaid" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Unpaid</option>
+                <option value="Overdue" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Overdue</option>
+                <option value="Partial" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Partial</option>
+                <option value="Paid" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Paid</option>
             </select>
         </div>
 

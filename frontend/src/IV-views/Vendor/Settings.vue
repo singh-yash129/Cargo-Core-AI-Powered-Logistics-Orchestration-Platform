@@ -146,10 +146,10 @@
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Role</label>
                         <select v-model="memberForm.role" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                            <option>Admin</option>
-                            <option>Manager</option>
-                            <option>Viewer</option>
-                            <option>Dispatcher</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Admin</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Manager</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Viewer</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Dispatcher</option>
                         </select>
                     </div>
                 </div>

@@ -78,8 +78,8 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Last 6 months — hover bars for details</p>
                     </div>
                     <select v-model="spendFilter" class="text-xs bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-transparent rounded-lg px-3 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="spend">Spend ($)</option>
-                        <option value="orders">Order Count</option>
+                        <option value="spend" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Spend ($)</option>
+                        <option value="orders" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Order Count</option>
                     </select>
                 </div>
                 <div class="relative h-80">

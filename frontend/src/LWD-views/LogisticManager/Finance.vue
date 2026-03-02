@@ -256,10 +256,10 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">Target Group</label>
                                 <select v-model="bulkForm.role" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/50">
-                                    <option value="all">All Staff</option>
-                                    <option value="Driver">Drivers Only</option>
-                                    <option value="Dispatcher">Dispatchers Only</option>
-                                    <option value="Warehouse Manager">Warehouse Managers</option>
+                                    <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Staff</option>
+                                    <option value="Driver" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Drivers Only</option>
+                                    <option value="Dispatcher" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Dispatchers Only</option>
+                                    <option value="Warehouse Manager" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Warehouse Managers</option>
                                 </select>
                             </div>
 
@@ -488,9 +488,9 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Category</label>
                                 <select v-model="newTx.type" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white">
-                                    <option value="Incoming">Income</option>
-                                    <option value="Expense">Expense</option>
-                                    <option value="Payroll">Payroll Adjustment</option>
+                                    <option value="Incoming" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Income</option>
+                                    <option value="Expense" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Expense</option>
+                                    <option value="Payroll" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Payroll Adjustment</option>
                                 </select>
                             </div>
                             <div>

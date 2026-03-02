@@ -248,7 +248,7 @@
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Log Category</label>
                     <div class="relative">
                         <select v-model="activeLogType" class="w-full appearance-none bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white font-bold rounded-lg py-3 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow cursor-pointer">
-                            <option v-for="type in logTypes" :key="type" :value="type">{{ type }}</option>
+                            <option v-for="type in logTypes" :key="type" :value="type" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ type }}</option>
                         </select>
                         <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">expand_more</span>
                     </div>
@@ -687,8 +687,8 @@
                             <div class="relative">
                                 <select v-model="vehicleFormData.hubId"
                                     class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                    <option value="all">Global (All Warehouses)</option>
-                                    <option v-for="h in store.hubs" :key="h.id" :value="h.id">{{ h.name }}</option>
+                                    <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Global (All Warehouses)</option>
+                                    <option v-for="h in store.hubs" :key="h.id" :value="h.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ h.name }}</option>
                                 </select>
                             </div>
                         </div>

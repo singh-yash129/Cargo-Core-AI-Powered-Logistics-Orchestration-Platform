@@ -168,20 +168,20 @@
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Assign To Team</label>
                             <select v-model="batchForm.staff"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white">
-                                <option>Team A</option>
-                                <option>Team B</option>
-                                <option>Team C</option>
-                                <option>Team D</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Team A</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Team B</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Team C</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Team D</option>
                             </select>
                         </div>
                         <div>
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Zone</label>
                             <select v-model="batchForm.zone"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white">
-                                <option>Zone A (High Vel)</option>
-                                <option>Zone B (Bulk)</option>
-                                <option>Zone C</option>
-                                <option>Zone D</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Zone A (High Vel)</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Zone B (Bulk)</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Zone C</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Zone D</option>
                             </select>
                         </div>
                         <div>

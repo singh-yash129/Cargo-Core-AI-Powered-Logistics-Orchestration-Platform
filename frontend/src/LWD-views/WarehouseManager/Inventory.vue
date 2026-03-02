@@ -45,19 +45,19 @@
                     class="flex-1 min-w-[200px] bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-4 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
                 <select v-model="categoryFilter"
                     class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white">
-                    <option value="">All Categories</option>
-                    <option value="Electronics">Electronics</option>
-                    <option value="Home & Garden">Home & Garden</option>
-                    <option value="Apparel">Apparel</option>
-                    <option value="Furniture">Furniture</option>
+                    <option value="" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Categories</option>
+                    <option value="Electronics" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Electronics</option>
+                    <option value="Home & Garden" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Home & Garden</option>
+                    <option value="Apparel" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Apparel</option>
+                    <option value="Furniture" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Furniture</option>
                 </select>
                 <select v-model="zoneFilter"
                     class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white">
-                    <option value="">All Zones</option>
-                    <option value="A">Zone A</option>
-                    <option value="B">Zone B</option>
-                    <option value="C">Zone C</option>
-                    <option value="D">Zone D</option>
+                    <option value="" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Zones</option>
+                    <option value="A" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Zone A</option>
+                    <option value="B" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Zone B</option>
+                    <option value="C" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Zone C</option>
+                    <option value="D" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Zone D</option>
                 </select>
                 <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
                     <input type="checkbox" v-model="showFastMoving" class="accent-primary" />
@@ -207,7 +207,7 @@
                                 <label class="text-[10px] text-gray-600 dark:text-gray-400 block mb-1">Zone</label>
                                 <select v-model="newLocation.zone"
                                     class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm">
-                                    <option v-for="z in ['A', 'B', 'C', 'D']" :key="z">{{ z }}</option>
+                                    <option v-for="z in ['A', 'B', 'C', 'D']" :key="z" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ z }}</option>
                                 </select>
                             </div>
                             <div>
@@ -318,7 +318,7 @@
                                 <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Zone</label>
                                 <select v-model="addForm.zone"
                                     class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white">
-                                    <option v-for="z in ['A', 'B', 'C', 'D']" :key="z">{{ z }}</option>
+                                    <option v-for="z in ['A', 'B', 'C', 'D']" :key="z" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ z }}</option>
                                 </select>
                             </div>
                         </div>

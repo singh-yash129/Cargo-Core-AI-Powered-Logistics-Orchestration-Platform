@@ -15,8 +15,8 @@
                             Order</label>
                         <select v-model="form.orderId"
                             class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500 outline-none">
-                            <option value="">Choose an order...</option>
-                            <option v-for="o in store.deliveredOrders" :key="o.id" :value="o.id">{{ o.id }} — {{
+                            <option value="" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Choose an order...</option>
+                            <option v-for="o in store.deliveredOrders" :key="o.id" :value="o.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ o.id }} — {{
                                 o.cargoType }}</option>
                         </select>
                     </div>

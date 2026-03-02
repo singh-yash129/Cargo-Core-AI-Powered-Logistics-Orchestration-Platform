@@ -90,8 +90,8 @@
                                     Required</label>
                                 <select v-model="form.insuranceRequired"
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                                    <option value="no">No</option>
-                                    <option value="yes">Yes (3% of value)</option>
+                                    <option value="no" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">No</option>
+                                    <option value="yes" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Yes (3% of value)</option>
                                 </select>
                             </div>
                             <div class="sm:col-span-2">
@@ -135,10 +135,10 @@
                                     *</label>
                                 <select v-model="form.pickupHub"
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                                    <option>Mumbai Hub</option>
-                                    <option>Delhi Hub</option>
-                                    <option>Pune Hub</option>
-                                    <option>Bangalore Hub</option>
+                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Mumbai Hub</option>
+                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delhi Hub</option>
+                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pune Hub</option>
+                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Bangalore Hub</option>
                                 </select>
                             </div>
                             <div v-else class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -202,10 +202,10 @@
                                     Window</label>
                                 <select v-model="form.timeWindow"
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                                    <option>08:00 AM - 12:00 PM</option>
-                                    <option>12:00 PM - 04:00 PM</option>
-                                    <option>04:00 PM - 08:00 PM</option>
-                                    <option>Night (08 PM - 06 AM)</option>
+                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">08:00 AM - 12:00 PM</option>
+                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">12:00 PM - 04:00 PM</option>
+                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">04:00 PM - 08:00 PM</option>
+                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Night (08 PM - 06 AM)</option>
                                 </select>
                             </div>
                             <div>
@@ -218,9 +218,9 @@
                                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Priority</label>
                                 <select v-model="form.priority"
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                                    <option>Standard</option>
-                                    <option>Express</option>
-                                    <option>Urgent</option>
+                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Standard</option>
+                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Express</option>
+                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Urgent</option>
                                 </select>
                             </div>
                         </div>
@@ -579,12 +579,12 @@
                 </div>
                 <select v-model="shipmentStatusFilter"
                     class="px-4 py-2.5 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                    <option value="all">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="transit">In Transit</option>
-                    <option value="delivery">Out for Delivery</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Status</option>
+                    <option value="pending" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pending</option>
+                    <option value="transit" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Transit</option>
+                    <option value="delivery" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Out for Delivery</option>
+                    <option value="delivered" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delivered</option>
+                    <option value="cancelled" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Cancelled</option>
                 </select>
                 <div class="text-xs text-gray-500">{{ filteredShipments.length }} of {{ store.shipments.length }}
                     shipments</div>
@@ -782,9 +782,9 @@
                                     <div><label class="block text-xs font-medium text-gray-500 mb-1.5">Category</label>
                                         <select v-model="editingEntry.category"
                                             class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                                            <option>Commercial</option>
-                                            <option>Palletized</option>
-                                            <option>Bulk</option>
+                                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Commercial</option>
+                                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Palletized</option>
+                                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Bulk</option>
                                         </select>
                                     </div>
                                     <div><label
@@ -802,9 +802,9 @@
                                                 class="block text-xs font-medium text-gray-500 mb-1.5">Priority</label>
                                             <select v-model="editingEntry.priority"
                                                 class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                                                <option>Standard</option>
-                                                <option>Express</option>
-                                                <option>Urgent</option>
+                                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Standard</option>
+                                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Express</option>
+                                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Urgent</option>
                                             </select>
                                         </div>
                                     </div>
@@ -834,8 +834,8 @@
                                                 class="block text-xs font-medium text-gray-500 mb-1.5">Insurance</label>
                                             <select v-model="editingEntry.insuranceRequired"
                                                 class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                                                <option value="No">No</option>
-                                                <option value="Yes">Yes</option>
+                                                <option value="No" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">No</option>
+                                                <option value="Yes" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Yes</option>
                                             </select>
                                         </div>
                                     </div>
@@ -849,10 +849,10 @@
                                             Hub</label>
                                         <select v-model="editingEntry.pickupHub"
                                             class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                                            <option>Mumbai Hub</option>
-                                            <option>Delhi Hub</option>
-                                            <option>Pune Hub</option>
-                                            <option>Bangalore Hub</option>
+                                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Mumbai Hub</option>
+                                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delhi Hub</option>
+                                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pune Hub</option>
+                                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Bangalore Hub</option>
                                         </select>
                                     </div>
                                     <div class="grid grid-cols-2 gap-4">
@@ -882,9 +882,9 @@
                                                 class="block text-xs font-medium text-gray-500 mb-1.5">Payment</label>
                                             <select v-model="editingEntry.paymentMode"
                                                 class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                                                <option>Invoice</option>
-                                                <option>COD</option>
-                                                <option>Full Payment</option>
+                                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Invoice</option>
+                                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">COD</option>
+                                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Full Payment</option>
                                             </select>
                                         </div>
                                     </div>

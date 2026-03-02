@@ -14,10 +14,10 @@
                 
                 <div class="flex gap-2 items-center">
                     <select v-model="timeRange" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 text-gray-700 dark:text-gray-200 cursor-pointer">
-                        <option value="today">Today (Live)</option>
-                        <option value="7d">Last 7 Days</option>
-                        <option value="30d">Last 30 Days</option>
-                        <option value="ytd">Year to Date</option>
+                        <option value="today" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Today (Live)</option>
+                        <option value="7d" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Last 7 Days</option>
+                        <option value="30d" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Last 30 Days</option>
+                        <option value="ytd" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Year to Date</option>
                     </select>
                     
                     <button @click="store.comparedWarehouses = []" v-if="store.comparedWarehouses.length > 0" class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold px-3 py-2 border border-red-200 dark:border-red-500/30 rounded-lg bg-red-50 dark:bg-red-900/10 transition-colors">

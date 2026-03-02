@@ -23,10 +23,10 @@
 
                 <select v-model="timeRange"
                     class="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 text-gray-700 dark:text-gray-200 cursor-pointer">
-                    <option value="today">Today (Live)</option>
-                    <option value="7d">Last 7 Days</option>
-                    <option value="30d">Last 30 Days</option>
-                    <option value="ytd">Year to Date</option>
+                    <option value="today" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Today (Live)</option>
+                    <option value="7d" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Last 7 Days</option>
+                    <option value="30d" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Last 30 Days</option>
+                    <option value="ytd" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Year to Date</option>
                 </select>
 
                 <button @click="downloadCurrentView"

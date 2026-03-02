@@ -163,10 +163,10 @@
                                 <div>
                                     <label class="text-[10px] text-gray-500 block mb-0.5">Corridor</label>
                                     <select v-model="cluster.corridor" class="w-full bg-gray-100 dark:bg-black/30 border border-primary/30 rounded px-2 py-1 text-xs text-gray-900 dark:text-white focus:outline-none">
-                                        <option>I-95 South Corridor</option>
-                                        <option>Highway 9 North</option>
-                                        <option>Ring Road East</option>
-                                        <option>Urban Core Loop</option>
+                                        <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">I-95 South Corridor</option>
+                                        <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Highway 9 North</option>
+                                        <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Ring Road East</option>
+                                        <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Urban Core Loop</option>
                                     </select>
                                 </div>
                             </div>

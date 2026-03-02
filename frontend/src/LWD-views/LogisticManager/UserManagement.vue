@@ -137,8 +137,8 @@
                                     <div class="relative">
                                         <select v-model="formData.role"
                                             class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none">
-                                            <option value="Warehouse Manager">Warehouse Manager</option>
-                                            <option value="Dispatcher">Dispatcher</option>
+                                            <option value="Warehouse Manager" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Warehouse Manager</option>
+                                            <option value="Dispatcher" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Dispatcher</option>
                                         </select>
                                         <span
                                             class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">arrow_drop_down</span>
@@ -150,7 +150,7 @@
                                     <div class="relative">
                                         <select v-model="formData.hubId"
                                             class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none">
-                                            <option v-for="h in store.hubs" :key="h.id" :value="h.id">{{ h.name }}
+                                            <option v-for="h in store.hubs" :key="h.id" :value="h.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ h.name }}
                                             </option>
                                         </select>
                                         <span
@@ -176,8 +176,8 @@
                                     <div class="relative">
                                         <select v-model="formData.hubId"
                                             class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none">
-                                            <option value="all">Global (All Warehouses)</option>
-                                            <option v-for="h in store.hubs" :key="h.id" :value="h.id">{{ h.name }}
+                                            <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Global (All Warehouses)</option>
+                                            <option v-for="h in store.hubs" :key="h.id" :value="h.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ h.name }}
                                             </option>
                                         </select>
                                         <span
@@ -318,7 +318,7 @@
                                     <div class="relative">
                                         <select v-model="formData.role"
                                             class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none">
-                                            <option v-for="r in roles" :key="r" :value="r">{{ r }}</option>
+                                            <option v-for="r in roles" :key="r" :value="r" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ r }}</option>
                                         </select>
                                         <span
                                             class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">arrow_drop_down</span>
@@ -330,8 +330,8 @@
                                     <div class="relative">
                                         <select v-model="formData.hubId"
                                             class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none">
-                                            <option value="all">Global (All Warehouses)</option>
-                                            <option v-for="h in store.hubs" :key="h.id" :value="h.id">{{ h.name }}
+                                            <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Global (All Warehouses)</option>
+                                            <option v-for="h in store.hubs" :key="h.id" :value="h.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ h.name }}
                                             </option>
                                         </select>
                                         <span
@@ -344,7 +344,7 @@
                                     <div class="relative">
                                         <select v-model="formData.status"
                                             class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none">
-                                            <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
+                                            <option v-for="s in statuses" :key="s" :value="s" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ s }}</option>
                                         </select>
                                         <span
                                             class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">arrow_drop_down</span>

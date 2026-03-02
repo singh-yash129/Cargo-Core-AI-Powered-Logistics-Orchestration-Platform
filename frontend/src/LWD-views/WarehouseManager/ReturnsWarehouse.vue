@@ -84,11 +84,11 @@
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Item Condition</label>
                             <select v-model="itemCondition"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option value="">Select condition...</option>
-                                <option value="Like New">Like New — No visible damage</option>
-                                <option value="Minor Wear">Minor Wear — Cosmetic only</option>
-                                <option value="Damaged">Damaged — Functional issue</option>
-                                <option value="Broken">Broken — Non-functional</option>
+                                <option value="" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Select condition...</option>
+                                <option value="Like New" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Like New — No visible damage</option>
+                                <option value="Minor Wear" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Minor Wear — Cosmetic only</option>
+                                <option value="Damaged" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Damaged — Functional issue</option>
+                                <option value="Broken" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Broken — Non-functional</option>
                             </select>
                         </div>
 

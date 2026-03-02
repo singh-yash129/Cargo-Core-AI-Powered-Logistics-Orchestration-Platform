@@ -369,18 +369,18 @@
                         <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Target Audience</label>
                         <select v-model="broadcastForm.audience"
                             class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 shadow-sm transition-all">
-                            <option value="all">All Personnel</option>
-                            <option value="drivers">All Drivers (On-Duty)</option>
-                            <option value="warehouses">All Warehouse Managers</option>
+                            <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Personnel</option>
+                            <option value="drivers" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Drivers (On-Duty)</option>
+                            <option value="warehouses" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Warehouse Managers</option>
                         </select>
                     </div>
                     <div class="space-y-1.5">
                         <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Alert Type</label>
                         <select v-model="broadcastForm.type"
                             class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 shadow-sm transition-all">
-                            <option value="info">General Information</option>
-                            <option value="warning">System Warning</option>
-                            <option value="emergency">Emergency Recall / Halt</option>
+                            <option value="info" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">General Information</option>
+                            <option value="warning" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">System Warning</option>
+                            <option value="emergency" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Emergency Recall / Halt</option>
                         </select>
                     </div>
                     <div class="space-y-1.5">

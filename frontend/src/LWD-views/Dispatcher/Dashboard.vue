@@ -241,15 +241,15 @@
             <div class="mb-3">
                 <label class="text-xs text-gray-400 mb-1 block">Select Order</label>
                 <select v-model="assignOrderId" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                    <option value="">Choose order...</option>
-                    <option v-for="load in pendingLoads" :key="load.id" :value="load.id">{{ load.id }} — {{ load.type }} ({{ load.weight }}kg)</option>
+                    <option value="" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Choose order...</option>
+                    <option v-for="load in pendingLoads" :key="load.id" :value="load.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ load.id }} — {{ load.type }} ({{ load.weight }}kg)</option>
                 </select>
             </div>
             <div class="mb-4">
                 <label class="text-xs text-gray-400 mb-1 block">Select Driver</label>
                 <select v-model="assignDriverId" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                    <option value="">Choose driver...</option>
-                    <option v-for="d in drivers" :key="d.id" :value="d.id">{{ d.name }} ({{ d.vehicle }}, {{ d.load }}% load)</option>
+                    <option value="" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Choose driver...</option>
+                    <option v-for="d in drivers" :key="d.id" :value="d.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ d.name }} ({{ d.vehicle }}, {{ d.load }}% load)</option>
                 </select>
             </div>
             <div class="flex gap-2">

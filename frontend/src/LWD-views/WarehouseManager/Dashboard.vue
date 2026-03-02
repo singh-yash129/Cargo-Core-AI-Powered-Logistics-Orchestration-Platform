@@ -148,11 +148,11 @@
                         </div>
                         <select v-model="statusFilter"
                             class="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1 text-sm text-gray-600 dark:text-gray-300 focus:outline-none focus:border-teal-500/50 transition-colors">
-                            <option value="">All Statuses</option>
-                            <option value="Pending">Pending</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Unassigned">Unassigned</option>
-                            <option value="Review">Review</option>
+                            <option value="" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Statuses</option>
+                            <option value="Pending" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pending</option>
+                            <option value="In Progress" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Progress</option>
+                            <option value="Unassigned" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Unassigned</option>
+                            <option value="Review" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Review</option>
                         </select>
                     </div>
                 </div>

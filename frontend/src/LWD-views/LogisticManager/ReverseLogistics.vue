@@ -199,10 +199,10 @@
                                 <div>
                                     <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Decision</label>
                                     <select v-model="processForm.action" @change="updateRefundAmount" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50">
-                                        <option value="Refund">Full Refund</option>
-                                        <option value="Partial Refund">Partial Refund</option>
-                                        <option value="Exchange">Exchange / Replace</option>
-                                        <option value="Store Credit">Store Credit</option>
+                                        <option value="Refund" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Full Refund</option>
+                                        <option value="Partial Refund" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Partial Refund</option>
+                                        <option value="Exchange" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Exchange / Replace</option>
+                                        <option value="Store Credit" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Store Credit</option>
                                     </select>
                                 </div>
                                 <div class="bg-gray-50 dark:bg-black/20 p-2 rounded-lg border border-gray-200 dark:border-white/10">

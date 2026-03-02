@@ -11,11 +11,11 @@
                 </div>
                 <select v-model="statusFilter"
                     class="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-green-500/50 outline-none">
-                    <option value="all">All</option>
-                    <option value="pending">Pending</option>
-                    <option value="in-transit">In Transit</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All</option>
+                    <option value="pending" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pending</option>
+                    <option value="in-transit" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Transit</option>
+                    <option value="delivered" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delivered</option>
+                    <option value="cancelled" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Cancelled</option>
                 </select>
             </div>
         </div>
@@ -338,10 +338,10 @@
                             Time</label>
                         <select v-model="rescheduleModal.time"
                             class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 outline-none">
-                            <option>06:00 AM - 09:00 AM</option>
-                            <option>09:00 AM - 12:00 PM</option>
-                            <option>12:00 PM - 03:00 PM</option>
-                            <option>03:00 PM - 06:00 PM</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">06:00 AM - 09:00 AM</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">09:00 AM - 12:00 PM</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">12:00 PM - 03:00 PM</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">03:00 PM - 06:00 PM</option>
                         </select>
                     </div>
                 </div>

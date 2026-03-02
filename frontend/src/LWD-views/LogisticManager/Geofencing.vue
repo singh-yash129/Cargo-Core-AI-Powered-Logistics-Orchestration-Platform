@@ -234,10 +234,10 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Zone Type</label>
                                 <select v-model="zoneForm.type" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary/50 outline-none">
-                                    <option value="Polygon">Polygon</option>
-                                    <option value="Circle">Circle</option>
-                                    <option value="Exclusion">Exclusion Zone</option>
-                                    <option value="Corridor">Corridor</option>
+                                    <option value="Polygon" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Polygon</option>
+                                    <option value="Circle" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Circle</option>
+                                    <option value="Exclusion" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Exclusion Zone</option>
+                                    <option value="Corridor" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Corridor</option>
                                 </select>
                             </div>
                             <div>
@@ -249,7 +249,7 @@
                         <div>
                             <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Assigned Warehouse</label>
                             <select v-model="zoneForm.hubId" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary/50 outline-none">
-                                <option v-for="hub in store.hubs" :key="hub.id" :value="hub.id">{{ hub.name }}</option>
+                                <option v-for="hub in store.hubs" :key="hub.id" :value="hub.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ hub.name }}</option>
                             </select>
                         </div>
                         

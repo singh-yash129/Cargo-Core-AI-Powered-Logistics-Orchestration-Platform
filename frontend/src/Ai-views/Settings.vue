@@ -26,9 +26,9 @@
                 </div>
                 <select
                     class="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500">
-                    <option>Professional & Formal</option>
-                    <option selected>Friendly & Empathetic</option>
-                    <option>Direct & Concise</option>
+                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Professional & Formal</option>
+                    <option selected class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Friendly & Empathetic</option>
+                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Direct & Concise</option>
                 </select>
             </div>
         </div>

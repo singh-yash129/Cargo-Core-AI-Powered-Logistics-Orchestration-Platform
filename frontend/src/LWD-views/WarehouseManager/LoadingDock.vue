@@ -119,10 +119,10 @@
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Carrier</label>
                             <select v-model="assignForm.carrier"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option>UPS Freight</option>
-                                <option>FedEx Ground</option>
-                                <option>DHL Express</option>
-                                <option>Internal Fleet</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">UPS Freight</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">FedEx Ground</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">DHL Express</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Internal Fleet</option>
                             </select>
                         </div>
                         <button @click="confirmAssign" :disabled="!assignForm.truck"
@@ -151,8 +151,8 @@
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Dock Status</label>
                             <select v-model="settingsForm.status"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option>Free</option>
-                                <option>Maintenance</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Free</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Maintenance</option>
                             </select>
                         </div>
                         <div

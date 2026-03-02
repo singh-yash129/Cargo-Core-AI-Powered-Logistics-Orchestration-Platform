@@ -77,11 +77,11 @@
                     class="flex-1 bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-4 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
                 <select v-model="deptFilter"
                     class="bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-gray-900 dark:text-white">
-                    <option value="">All Departments</option>
-                    <option value="Picking">Picking</option>
-                    <option value="Packing">Packing</option>
-                    <option value="Receiving">Receiving</option>
-                    <option value="Loading">Loading</option>
+                    <option value="" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Departments</option>
+                    <option value="Picking" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Picking</option>
+                    <option value="Packing" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Packing</option>
+                    <option value="Receiving" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Receiving</option>
+                    <option value="Loading" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Loading</option>
                 </select>
                 <div v-if="statusFilter"
                     class="flex items-center gap-2 bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-xs font-bold">
@@ -196,10 +196,10 @@
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Assignment Type</label>
                             <select
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option>Picking</option>
-                                <option>Packing</option>
-                                <option>Loading</option>
-                                <option>Field Duty (With Driver)</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Picking</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Packing</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Loading</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Field Duty (With Driver)</option>
                             </select>
                         </div>
                         <div

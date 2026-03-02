@@ -6,8 +6,8 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Monitor performance, spend, and delivery metrics</p>
             </div>
             <select v-model="timePeriod" class="text-sm bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                <option value="6m">Last 6 Months</option>
-                <option value="1y">Last Year</option>
+                <option value="6m" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Last 6 Months</option>
+                <option value="1y" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Last Year</option>
             </select>
         </div>
 

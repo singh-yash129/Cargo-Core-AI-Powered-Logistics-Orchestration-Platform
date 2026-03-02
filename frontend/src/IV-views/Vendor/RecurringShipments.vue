@@ -96,13 +96,13 @@
                         <div>
                             <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Frequency *</label>
                             <select v-model="form.frequency" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                                <option value="Daily">Daily</option>
-                                <option value="Every Monday">Every Monday</option>
-                                <option value="Every Wednesday">Every Wednesday</option>
-                                <option value="Every Friday">Every Friday</option>
-                                <option value="Bi-Weekly">Bi-Weekly</option>
-                                <option value="1st of Month">1st of Month</option>
-                                <option value="15th of Month">15th of Month</option>
+                                <option value="Daily" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Daily</option>
+                                <option value="Every Monday" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Every Monday</option>
+                                <option value="Every Wednesday" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Every Wednesday</option>
+                                <option value="Every Friday" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Every Friday</option>
+                                <option value="Bi-Weekly" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Bi-Weekly</option>
+                                <option value="1st of Month" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">1st of Month</option>
+                                <option value="15th of Month" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">15th of Month</option>
                             </select>
                         </div>
                         <div>

@@ -7,8 +7,8 @@
             </div>
             <div class="flex gap-3">
                 <select v-model="viewMode" class="text-sm bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none">
-                    <option value="grid">Grid View</option>
-                    <option value="list">List View</option>
+                    <option value="grid" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Grid View</option>
+                    <option value="list" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">List View</option>
                 </select>
                 <button @click="exportAll" class="px-4 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white rounded-lg font-bold text-sm transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[16px]">download</span> Export All

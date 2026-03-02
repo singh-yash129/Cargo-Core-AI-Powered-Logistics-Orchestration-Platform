@@ -13,8 +13,8 @@
             <label class="text-[10px] text-gray-500 block">Group</label>
             <select v-model="element.groupId"
                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded px-2 py-1.5 text-sm text-gray-900 dark:text-white focus:outline-none">
-                <option :value="null">None</option>
-                <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+                <option :value="null" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">None</option>
+                <option v-for="g in groups" :key="g.id" :value="g.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ g.name }}</option>
             </select>
         </div>
         <!-- Dimensions -->

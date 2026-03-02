@@ -184,7 +184,7 @@
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">ASN ID</label>
                             <select v-model="mismatchForm.asnId"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option v-for="asn in asns" :key="asn.id" :value="asn.id">{{ asn.id }} — {{
+                                <option v-for="asn in asns" :key="asn.id" :value="asn.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ asn.id }} — {{
                                     asn.supplier }}
                                 </option>
                             </select>
@@ -193,10 +193,10 @@
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Mismatch Type</label>
                             <select v-model="mismatchForm.type"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option>Quantity difference</option>
-                                <option>Wrong SKU received</option>
-                                <option>Missing items</option>
-                                <option>Extra items</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Quantity difference</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Wrong SKU received</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Missing items</option>
+                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Extra items</option>
                             </select>
                         </div>
                         <div>
@@ -230,7 +230,7 @@
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">ASN ID</label>
                             <select v-model="damageForm.asnId"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option v-for="asn in asns" :key="asn.id" :value="asn.id">{{ asn.id }} — {{
+                                <option v-for="asn in asns" :key="asn.id" :value="asn.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ asn.id }} — {{
                                     asn.supplier }}
                                 </option>
                             </select>

@@ -38,7 +38,7 @@
                             Language</label>
                         <select v-model="selectedLanguage"
                             class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 outline-none">
-                            <option v-for="lang in languages" :key="lang.code" :value="lang.code">{{ lang.flag }} {{
+                            <option v-for="lang in languages" :key="lang.code" :value="lang.code" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ lang.flag }} {{
                                 lang.name }}</option>
                         </select>
                     </div>
@@ -47,9 +47,9 @@
                             class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">Currency</label>
                         <select v-model="selectedCurrency"
                             class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 outline-none">
-                            <option value="INR">₹ Indian Rupee (INR)</option>
-                            <option value="USD">$ US Dollar (USD)</option>
-                            <option value="EUR">€ Euro (EUR)</option>
+                            <option value="INR" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">₹ Indian Rupee (INR)</option>
+                            <option value="USD" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">$ US Dollar (USD)</option>
+                            <option value="EUR" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">€ Euro (EUR)</option>
                         </select>
                     </div>
                 </div>
@@ -67,9 +67,9 @@
                             Method</label>
                         <select v-model="defaultPayment"
                             class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 outline-none">
-                            <option value="Full Payment">Full Payment</option>
-                            <option value="Partial">Partial Payment (50% advance)</option>
-                            <option value="COD">Cash on Delivery</option>
+                            <option value="Full Payment" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Full Payment</option>
+                            <option value="Partial" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Partial Payment (50% advance)</option>
+                            <option value="COD" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Cash on Delivery</option>
                         </select>
                     </div>
                     <div

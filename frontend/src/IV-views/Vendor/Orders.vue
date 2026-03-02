@@ -42,18 +42,18 @@
                     class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
             </div>
             <select v-model="statusFilter" class="text-sm bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none">
-                <option value="all">All Status</option>
-                <option value="Pending">Pending</option>
-                <option value="In Transit">In Transit</option>
-                <option value="Delivered">Delivered</option>
-                <option value="Cancelled">Cancelled</option>
+                <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Status</option>
+                <option value="Pending" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pending</option>
+                <option value="In Transit" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Transit</option>
+                <option value="Delivered" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delivered</option>
+                <option value="Cancelled" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Cancelled</option>
             </select>
             <select v-model="categoryFilter" class="text-sm bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none">
-                <option value="all">All Categories</option>
-                <option value="B2B">B2B</option>
-                <option value="B2C">B2C</option>
-                <option value="Pallets">Pallets</option>
-                <option value="Commercial">Commercial</option>
+                <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Categories</option>
+                <option value="B2B" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">B2B</option>
+                <option value="B2C" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">B2C</option>
+                <option value="Pallets" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pallets</option>
+                <option value="Commercial" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Commercial</option>
             </select>
         </div>
 
@@ -174,10 +174,10 @@
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Reason</label>
                         <select v-model="addressReason" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                            <option>Customer moved</option>
-                            <option>Incorrect address</option>
-                            <option>Area inaccessible</option>
-                            <option>Customer request</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Customer moved</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Incorrect address</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Area inaccessible</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Customer request</option>
                         </select>
                     </div>
                 </div>
@@ -204,11 +204,11 @@
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Reason</label>
                         <select v-model="rescheduleReason" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                            <option>Customer not available</option>
-                            <option>Weather delay</option>
-                            <option>Vehicle breakdown</option>
-                            <option>Port delay</option>
-                            <option>Vendor request</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Customer not available</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Weather delay</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Vehicle breakdown</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Port delay</option>
+                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Vendor request</option>
                         </select>
                     </div>
                 </div>

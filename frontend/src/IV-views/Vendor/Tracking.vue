@@ -9,12 +9,12 @@
             <div class="flex gap-2">
                 <select v-model="statusFilter"
                     class="text-sm bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    <option value="all">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="transit">In Transit</option>
-                    <option value="delivery">Out for Delivery</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Statuses</option>
+                    <option value="pending" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pending</option>
+                    <option value="transit" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Transit</option>
+                    <option value="delivery" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Out for Delivery</option>
+                    <option value="delivered" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delivered</option>
+                    <option value="cancelled" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Cancelled</option>
                 </select>
             </div>
         </div>
