@@ -1,5 +1,6 @@
 <template>
-    <div class="min-h-screen bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white antialiased flex relative">
+    <div
+        class="min-h-screen bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white antialiased flex relative">
 
         <!-- Mobile Overlay -->
         <div v-if="isSidebarOpen" @click="isSidebarOpen = false"
@@ -9,7 +10,8 @@
         <VendorSidebar :is-open="isSidebarOpen" @close="isSidebarOpen = false" />
 
         <!-- Main Content Area -->
-        <main class="flex-1 lg:ml-64 min-h-screen flex flex-col transition-all duration-300 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-500/5 dark:from-blue-900/10 via-surface-light dark:via-background-dark to-surface-light dark:to-background-dark">
+        <main
+            class="flex-1 lg:ml-64 min-h-screen flex flex-col transition-all duration-300 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-500/5 dark:from-blue-900/10 via-surface-light dark:via-background-dark to-surface-light dark:to-background-dark">
 
             <!-- Top Bar -->
             <header
@@ -46,12 +48,9 @@
                         </div>
 
                         <!-- Notifications -->
-                        <NotificationPopover
-                            :notifications="store.notifications"
-                            :unread-count="store.unreadNotificationsCount"
-                            @mark-read="store.markNotificationRead"
-                            @mark-all-read="store.markAllNotificationsRead"
-                            @clear-all="store.clearNotifications" />
+                        <NotificationPopover :notifications="store.notifications"
+                            :unread-count="store.unreadNotificationsCount" @mark-read="store.markNotificationRead"
+                            @mark-all-read="store.markAllNotificationsRead" @clear-all="store.clearNotifications" />
 
 
                         <div class="hidden sm:block h-6 w-px bg-gray-200 dark:bg-white/10 mx-1"></div>
@@ -67,7 +66,7 @@
             </header>
 
             <!-- Page Content -->
-            <div class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden">
+            <div class="flex-1 p-4 sm:p-6 lg:p-8">
                 <slot />
             </div>
         </main>
