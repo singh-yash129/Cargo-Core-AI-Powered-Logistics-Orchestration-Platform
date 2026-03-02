@@ -38,14 +38,14 @@
         </div>
 
         <!-- Active Move Status -->
-        <div v-if="activeMove" class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div class="xl:col-span-2 glass-panel p-5 md:p-6 rounded-xl">
-                <h3 class="font-bold text-gray-900 dark:text-white text-lg mb-4 flex items-center gap-2">
+        <div v-if="activeMove" class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
+            <div class="xl:col-span-2 glass-panel p-5 md:p-6 rounded-xl flex flex-col h-full">
+                <h3 class="font-bold text-gray-900 dark:text-white text-lg mb-4 flex items-center gap-2 shrink-0">
                     <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span> Active Move Status
                 </h3>
-                <div class="flex flex-col md:flex-row gap-6">
+                <div class="flex flex-col md:flex-row gap-6 flex-1">
                     <div
-                        class="flex-none w-full md:w-64 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900 rounded-xl h-40 md:h-auto flex items-center justify-center relative">
+                        class="flex-none w-full md:w-64 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900 rounded-xl h-48 md:h-auto flex items-center justify-center relative shadow-inner">
                         <span class="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-600">map</span>
                         <div
                             class="absolute bottom-2 left-2 px-3 py-1 bg-white/90 dark:bg-black/80 backdrop-blur-sm text-xs font-bold rounded-lg text-green-600 dark:text-green-400">
@@ -64,9 +64,10 @@
                                     :style="{ width: activeMove.progress + '%' }"></div>
                             </div>
                         </div>
-                        <div class="flex items-center gap-4">
+                        <div
+                            class="flex items-center gap-4 bg-gray-50 dark:bg-white/5 p-3 rounded-xl border border-gray-100 dark:border-white/5">
                             <div
-                                class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                                class="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
                                 {{activeMove.driver.name.split(' ').map(n => n[0]).join('')}}</div>
                             <div>
                                 <div class="font-bold text-gray-900 dark:text-white text-sm">{{ activeMove.driver.name
@@ -74,18 +75,39 @@
                                 <div class="text-xs text-gray-500">Driver ({{ activeMove.driver.rating }} ★) · {{
                                     activeMove.vehicleType?.toUpperCase() }}</div>
                             </div>
-                            <button
-                                class="ml-auto w-10 h-10 rounded-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 flex items-center justify-center transition-colors"><span
-                                    class="material-symbols-outlined text-gray-600 dark:text-white">call</span></button>
+                            <a :href="'tel:' + activeMove.driver.phone"
+                                class="ml-auto px-4 py-2 rounded-lg bg-green-50 dark:bg-green-500/10 hover:bg-green-100 dark:hover:bg-green-500/20 text-green-700 dark:text-green-400 font-bold text-sm flex items-center gap-2 transition-colors border border-green-200 dark:border-green-500/20">
+                                <span class="material-symbols-outlined text-sm">call</span>
+                                {{ activeMove.driver.phone }}
+                            </a>
                         </div>
-                        <div class="grid grid-cols-3 gap-3 text-xs">
-                            <div><span class="text-gray-500">Labor:</span> <span
+
+                        <!-- OTP Section -->
+                        <div
+                            class="flex items-center justify-between bg-blue-50/50 dark:bg-blue-500/5 p-3 border border-blue-100 dark:border-blue-500/10 rounded-xl">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-blue-500">dialpad</span>
+                                <div class="text-sm">
+                                    <div class="text-gray-900 dark:text-blue-100 font-bold">Service START OTP</div>
+                                    <div class="text-[10px] text-gray-500 dark:text-blue-300/70 uppercase">Share this
+                                        with origin crew</div>
+                                </div>
+                            </div>
+                            <div
+                                class="font-mono text-2xl font-black text-blue-600 dark:text-blue-400 tracking-[0.25em] bg-white dark:bg-black/20 px-4 py-1.5 rounded-lg shadow-inner">
+                                4092
+                            </div>
+                        </div>
+
+                        <div
+                            class="grid grid-cols-3 gap-3 text-xs bg-gray-50 dark:bg-black/20 p-3 rounded-xl border border-gray-100 dark:border-white/5 mt-auto">
+                            <div><span class="text-gray-500 block mb-0.5">Assigned Labor</span> <span
                                     class="text-gray-900 dark:text-white font-bold">{{ activeMove.laborCount }}
                                     Helpers</span></div>
-                            <div><span class="text-gray-500">Order ID:</span> <span
+                            <div><span class="text-gray-500 block mb-0.5">Order ID</span> <span
                                     class="font-mono font-bold text-green-600 dark:text-green-400">{{ activeMove.id
                                     }}</span></div>
-                            <div><span class="text-gray-500">Service Block:</span> <span
+                            <div><span class="text-gray-500 block mb-0.5">Service Block</span> <span
                                     class="text-purple-600 dark:text-purple-400 font-bold">{{
                                         activeMove.serviceTimeBlock }}</span></div>
                         </div>
@@ -93,9 +115,9 @@
                 </div>
             </div>
             <!-- Cost Summary -->
-            <div class="glass-panel p-5 md:p-6 rounded-xl">
+            <div class="glass-panel p-5 md:p-6 rounded-xl flex flex-col h-full">
                 <h3 class="font-bold text-gray-900 dark:text-white text-lg mb-4">Cost Summary</h3>
-                <div class="space-y-3 text-sm">
+                <div class="space-y-3 text-sm flex-1">
                     <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Base
                             Transport</span><span class="font-bold text-gray-900 dark:text-white font-mono">₹{{
                                 activeMove.cost.base.toLocaleString() }}</span></div>
@@ -113,8 +135,26 @@
                     <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Packing</span><span
                             class="font-bold text-gray-900 dark:text-white font-mono">₹{{
                                 activeMove.cost.packing.toLocaleString() }}</span></div>
-                    <div class="border-t border-gray-200 dark:border-white/10 pt-3 mt-3 flex justify-between"><span
-                            class="font-bold text-gray-900 dark:text-white">Total</span><span
+
+                    <div class="border-t border-gray-100 dark:border-white/5 pt-2 mt-2"></div>
+
+                    <div class="flex justify-between"><span
+                            class="text-gray-500 dark:text-gray-400 flex items-center gap-1"><span
+                                class="material-symbols-outlined text-[14px]">confirmation_number</span> Platform
+                            Fee</span><span
+                            class="font-bold text-gray-900 dark:text-white font-mono flex items-center gap-1"><span
+                                class="text-[10px] text-gray-400 line-through mr-1"
+                                v-if="activeMove.cost.platformFee > 300">₹499</span>₹{{
+                                    (activeMove.cost.platformFee || 249).toLocaleString() }}</span></div>
+                    <div class="flex justify-between"><span
+                            class="text-gray-500 dark:text-gray-400 flex items-center gap-1"><span
+                                class="material-symbols-outlined text-[14px]">account_balance</span> Taxes (18%
+                            GST)</span><span class="font-bold text-gray-900 dark:text-white font-mono">₹{{
+                                (activeMove.cost.taxes || 0).toLocaleString() }}</span></div>
+
+                    <div
+                        class="border-t border-gray-200 dark:border-white/10 pt-3 mt-3 flex justify-between items-center">
+                        <span class="font-bold text-gray-900 dark:text-white">Total</span><span
                             class="text-2xl font-bold text-green-600 dark:text-green-400 font-mono">₹{{
                                 activeMove.cost.total.toLocaleString() }}</span></div>
                 </div>

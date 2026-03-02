@@ -247,14 +247,14 @@ const vendorCardData = {
     designation: 'Enterprise Partner',
     department: 'Commercial Vendor',
     address: '45, Trade Park, Mumbai - 400001',
-    phone: '+91 98765 00123',
+    phone: '+91 0000000000',
     email: 'contact@acmelogistics.com',
     joinDate: '01 March 2024',
     validUntil: '28 February 2027',
     emergencyContact: {
         name: 'Support Desk',
         relation: 'Account Manager',
-        phone: '+91 98765 43210'
+        phone: '+91 0000000000'
     }
 }
 

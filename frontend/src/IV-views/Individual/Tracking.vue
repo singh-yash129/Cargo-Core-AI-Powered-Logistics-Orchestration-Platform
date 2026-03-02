@@ -5,7 +5,9 @@
         </h2>
 
         <!-- Active Orders Selector -->
-        <div v-if="displayOrders.length > 1" class="flex overflow-x-auto gap-4 pb-2 scrollbar-hide">
+        <div v-if="displayOrders.length > 1" class="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
+            @wheel="handleHorizontalScroll" ref="scrollContainer"
+            style="scrollbar-width: none;max-width: calc(100vw - 2rem);">
             <button v-for="order in displayOrders" :key="order.id" @click="selectOrder(order.id)"
                 class="flex-none px-4 py-3 rounded-xl border transition-all text-left min-w-[240px]"
                 :class="selectedOrderId === order.id ? 'bg-green-50 dark:bg-green-900/20 border-green-500' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-green-500/50'">
@@ -274,6 +276,18 @@ const geofenceAlert = ref(false)
 
 function toggleGeofence() { geofenceAlert.value = !geofenceAlert.value }
 function logColor(c) { return { green: '#22c55e', blue: '#3b82f6', amber: '#f59e0b', purple: '#a855f7', red: '#ef4444' }[c] || '#6b7280' }
+
+const scrollContainer = ref(null)
+function handleHorizontalScroll(e) {
+    if (scrollContainer.value) {
+        // If vertical scroll (mouse wheel), map to horizontal
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            e.preventDefault()
+            scrollContainer.value.scrollLeft += e.deltaY > 0 ? 100 : -100
+        }
+        // If horizontal scroll (trackpad), let browser handle it natively
+    }
+}
 
 const serviceChecklist = ref([
     { text: 'Arrive at pickup location', done: true },

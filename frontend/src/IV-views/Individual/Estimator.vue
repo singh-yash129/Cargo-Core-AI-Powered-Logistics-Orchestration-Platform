@@ -1,81 +1,238 @@
 <template>
-    <div class="space-y-6">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <span class="material-symbols-outlined text-purple-500">psychology</span>
-            AI Volume Estimator
-        </h2>
-        <p class="text-gray-500 dark:text-gray-400 text-sm -mt-4">Upload a photo of your room or luggage. Our AI will
-            estimate everything you need.</p>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Upload Area -->
-            <div class="glass-panel p-4 sm:p-6 rounded-xl">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Upload Room Photo</h3>
-                <div @click="triggerUpload" @dragover.prevent @drop.prevent="handleDrop"
-                    class="border-2 border-dashed rounded-xl p-8 sm:p-12 flex flex-col items-center justify-center cursor-pointer transition-all"
-                    :class="uploaded ? 'border-green-500 bg-green-500/5' : 'border-gray-300 dark:border-white/20 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-gray-50 dark:hover:bg-white/5'">
-                    <span class="material-symbols-outlined text-5xl mb-3"
-                        :class="uploaded ? 'text-green-500' : 'text-gray-400 dark:text-gray-500'">
-                        {{ uploaded ? 'check_circle' : 'cloud_upload' }}
-                    </span>
-                    <span class="text-sm font-bold text-gray-700 dark:text-gray-300" v-if="!uploaded">Click or drag to
-                        upload photo</span>
-                    <span class="text-sm font-bold text-green-600 dark:text-green-400" v-else>room_photo.jpg
-                        uploaded!</span>
-                    <span class="text-xs text-gray-400 mt-1">JPG, PNG up to 10MB</span>
+    <div class="space-y-6 max-w-7xl mx-auto">
+        <!-- Header -->
+        <div
+            class="flex flex-col md:flex-row md:items-end justify-between gap-4 glass-panel p-6 rounded-2xl relative overflow-hidden">
+            <div
+                class="absolute -right-20 -top-20 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none">
+            </div>
+            <div class="relative z-10">
+                <h2
+                    class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 flex items-center gap-3">
+                    <span class="material-symbols-outlined text-purple-500 text-4xl">psychology</span>
+                    AI Spatial Estimator
+                </h2>
+                <p class="text-gray-500 dark:text-gray-400 mt-2 font-medium max-w-xl text-sm leading-relaxed">
+                    Upload photos of your space. Our advanced neural engine calculates volumetric requirements,
+                    recommends the optimal vehicle, and predicts labor needs in real-time.
+                </p>
+            </div>
+            <div class="flex gap-3 relative z-10">
+                <div class="px-4 py-2 bg-purple-500/10 rounded-lg border border-purple-500/20 text-center">
+                    <div class="text-xs text-purple-400 font-bold uppercase tracking-wider mb-0.5">Engine</div>
+                    <div class="text-sm text-gray-900 dark:text-white font-bold">Cargo-Vision v4.2</div>
                 </div>
-                <input type="file" ref="fileInput" accept="image/*" class="hidden" @change="handleFileSelect" />
+                <div class="px-4 py-2 bg-blue-500/10 rounded-lg border border-blue-500/20 text-center">
+                    <div class="text-xs text-blue-400 font-bold uppercase tracking-wider mb-0.5">Accuracy</div>
+                    <div class="text-sm text-gray-900 dark:text-white font-bold">94.8%</div>
+                </div>
+            </div>
+        </div>
 
-                <button @click="analyzePhoto" :disabled="!uploaded || analyzing"
-                    class="w-full mt-4 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
-                    :class="uploaded ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 cursor-not-allowed'">
-                    <span v-if="analyzing"
-                        class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-                    <span class="material-symbols-outlined text-lg" v-else>auto_awesome</span>
-                    {{ analyzing ? 'Analyzing...' : 'Analyze with AI' }}
-                </button>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left Side: Upload & Scanner -->
+            <div class="lg:col-span-5 space-y-6">
+                <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4 text-lg">Input Source</h3>
+
+                    <!-- Upload Dropzone -->
+                    <div @click="triggerUpload" @dragover.prevent @drop.prevent="handleDrop"
+                        class="relative w-full aspect-[4/3] rounded-xl overflow-hidden border-2 border-dashed transition-all"
+                        :class="uploaded ? 'border-purple-500/50 bg-black' : 'border-gray-300 dark:border-white/20 hover:border-purple-400 dark:hover:border-purple-500 bg-gray-50 dark:bg-black/20 hover:bg-white/5 cursor-pointer'">
+
+                        <!-- Image Preview -->
+                        <img v-if="previewUrl" :src="previewUrl" class="w-full h-full object-cover opacity-80" />
+
+                        <!-- Empty State -->
+                        <div v-if="!uploaded"
+                            class="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+                            <div
+                                class="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <span
+                                    class="material-symbols-outlined text-3xl text-purple-400">add_photo_alternate</span>
+                            </div>
+                            <span class="text-base font-bold text-gray-700 dark:text-gray-200">Tap or drag image
+                                here</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-2">Supports JPG, PNG (Max
+                                15MB)</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Wide-angle room shots work
+                                best</span>
+                        </div>
+
+                        <!-- Scanner Overlay Animation -->
+                        <div v-if="analyzing"
+                            class="absolute inset-0 bg-purple-900/40 z-10 flex flex-col items-center justify-center backdrop-blur-[2px]">
+                            <div
+                                class="w-full h-1 bg-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.8)] absolute top-0 animate-scan">
+                            </div>
+                            <span class="material-symbols-outlined text-5xl text-white animate-pulse">view_in_ar</span>
+                            <div class="text-white font-bold mt-4 tracking-wider text-sm">PROCESSING IMAGE MESH...</div>
+                            <div class="text-purple-300 text-xs mt-1">{{ scanStatus }}</div>
+                        </div>
+
+                        <!-- Success Overlay UI -->
+                        <div v-if="uploaded && !analyzing && !showResults"
+                            class="absolute inset-0 bg-black/60 z-10 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
+                            <span class="material-symbols-outlined text-white text-4xl mb-2">find_replace</span>
+                            <span class="text-white font-bold text-sm">Change Image</span>
+                        </div>
+                    </div>
+                    <input type="file" ref="fileInput" accept="image/*" class="hidden" @change="handleFileSelect" />
+
+                    <!-- Action Button -->
+                    <button @click="analyzePhoto" :disabled="!uploaded || analyzing || showResults"
+                        class="w-full mt-6 py-4 rounded-xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 text-sm shadow-xl"
+                        :class="[
+                            !uploaded || showResults ? 'bg-gray-200 dark:bg-white/5 text-gray-400 dark:text-gray-600 cursor-not-allowed shadow-none' : '',
+                            uploaded && !analyzing && !showResults ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-purple-500/25 hover:shadow-purple-500/40 transform hover:-translate-y-0.5' : '',
+                            analyzing ? 'bg-purple-800 text-purple-300 cursor-wait' : ''
+                        ]">
+                        <span v-if="analyzing" class="material-symbols-outlined animate-spin">progress_activity</span>
+                        <span v-else-key="!showResults" class="material-symbols-outlined"
+                            :class="showResults ? 'text-gray-500' : ''">memory</span>
+                        {{ showResults ? 'Analysis Complete' : (analyzing ? 'Running Neural Engine...' : 'Run Analysis Core') }}
+                    </button>
+
+                    <div v-if="showResults" class="mt-4 flex gap-2">
+                        <button @click="resetEstimator"
+                            class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-lg transition-colors text-xs flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-sm">refresh</span> Scan Another Room
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <!-- AI Results -->
-            <div class="glass-panel p-4 sm:p-6 rounded-xl" :class="showResults ? 'border-purple-500/30' : ''">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-purple-400">auto_awesome</span>
-                    AI Recommendation
-                </h3>
-
-                <div v-if="!showResults" class="text-center py-12 text-gray-400 dark:text-gray-500">
-                    <span class="material-symbols-outlined text-4xl block mb-2">camera_enhance</span>
-                    <p class="text-sm">Upload and analyze a photo to see recommendations.</p>
-                </div>
-
-                <div v-else class="space-y-4 animate-fade-in">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div v-for="rec in aiResults" :key="rec.label"
-                            class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/5 text-center">
-                            <span class="material-symbols-outlined text-2xl" :class="rec.color">{{ rec.icon }}</span>
-                            <div class="text-lg font-bold text-gray-900 dark:text-white mt-1">{{ rec.value }}</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ rec.label }}</div>
+            <!-- Right Side: AI Results Dashboard -->
+            <div class="lg:col-span-7">
+                <div class="glass-panel p-6 rounded-2xl h-full flex flex-col relative overflow-hidden"
+                    :class="showResults ? 'border-purple-500/30' : ''">
+                    <!-- Placeholder State -->
+                    <div v-if="!showResults"
+                        class="flex-1 flex flex-col items-center justify-center text-center opacity-50 py-12">
+                        <div class="relative">
+                            <span
+                                class="material-symbols-outlined text-7xl text-gray-300 dark:text-gray-700 block mb-4">analytics</span>
                         </div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Awaiting Visual Input</h3>
+                        <p class="text-sm text-gray-500 max-w-sm">Provide an image to the engine to generate volumetric
+                            breakdown, equipment lists, and fleet requirements.</p>
                     </div>
 
-                    <div class="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
-                        <div class="flex items-start gap-2">
-                            <span
-                                class="material-symbols-outlined text-purple-500 text-lg mt-0.5">tips_and_updates</span>
+                    <!-- Results State -->
+                    <div v-else class="flex-1 flex flex-col animate-scale-in">
+                        <div
+                            class="flex justify-between items-start mb-6 border-b border-gray-100 dark:border-white/10 pb-4">
                             <div>
-                                <div class="text-sm font-bold text-gray-900 dark:text-white">AI Suggestion</div>
-                                <p class="text-xs text-gray-600 dark:text-gray-300 mt-0.5">Based on the room analysis,
-                                    we recommend a mid-size van with 2 helpers. Packing service is strongly recommended
-                                    for fragile items detected.</p>
+                                <h3 class="font-black text-2xl text-gray-900 dark:text-white flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-green-500 text-3xl">verified</span>
+                                    Estimation Complete
+                                </h3>
+                                <p class="text-xs font-bold text-gray-500 mt-1">processed in {{ processTime }}ms •
+                                    Confidence: <span class="text-green-500">92.4%</span></p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Detected
+                                    Space</div>
+                                <div
+                                    class="text-lg font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-3 py-1 rounded-lg">
+                                    Master Bedroom / Living</div>
                             </div>
                         </div>
-                    </div>
 
-                    <router-link to="/individual/book-move"
-                        class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined">arrow_forward</span>
-                        Apply to Booking
-                    </router-link>
+                        <!-- primary metrics -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                            <div v-for="rec in aiResults" :key="rec.label"
+                                class="p-4 bg-gray-50 dark:bg-black/20 rounded-xl border border-gray-200 dark:border-white/5 relative overflow-hidden group hover:border-purple-500/50 transition-colors">
+                                <div class="absolute -right-2 -bottom-2 opacity-5">
+                                    <span class="material-symbols-outlined text-6xl">{{ rec.icon }}</span>
+                                </div>
+                                <span class="material-symbols-outlined text-2xl mb-2" :class="rec.color">{{ rec.icon
+                                    }}</span>
+                                <div class="text-2xl font-black text-gray-900 dark:text-white leading-none">{{ rec.value
+                                    }}</div>
+                                <div
+                                    class="text-[10px] uppercase tracking-wider font-bold text-gray-500 dark:text-gray-400 mt-2">
+                                    {{ rec.label }}</div>
+                                <div class="text-[10px] text-gray-400 mt-1 flex justify-between">
+                                    <span>Cert:</span>
+                                    <span class="text-green-500 font-bold">{{ rec.confidence }}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fleet Recommendation -->
+                        <div
+                            class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-5 border border-gray-700 text-white mb-6 shadow-2xl relative overflow-hidden">
+                            <div
+                                class="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-purple-600/20 to-transparent pointer-events-none">
+                            </div>
+                            <div class="flex items-center gap-4 relative z-10">
+                                <div
+                                    class="w-14 h-14 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/30 shrink-0">
+                                    <span
+                                        class="material-symbols-outlined text-3xl text-purple-400">local_shipping</span>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-xs text-purple-300 font-bold uppercase tracking-wider mb-1">Optimal
+                                        Fleet Assignment</div>
+                                    <div class="text-xl font-black tracking-wide">Tata Ace / 1.5 Ton Tempo</div>
+                                    <p class="text-xs text-gray-400 mt-1 max-w-md">Calculated total volume: ~85 cubic
+                                        feet. Fits perfectly within standard LCV limits.</p>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="text-xs text-gray-400 mb-1">Base Cost Est.</div>
+                                    <div class="text-xl font-bold text-green-400">~₹4,500</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deep Insights -->
+                        <div class="flex-1">
+                            <h4
+                                class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                                Detected Inventory Breakdown</h4>
+                            <div
+                                class="bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 overflow-hidden">
+                                <table class="w-full text-left text-sm">
+                                    <thead>
+                                        <tr class="bg-gray-100 dark:bg-black/20 text-gray-600 dark:text-gray-400">
+                                            <th class="p-3 font-semibold text-xs uppercase">Item Classification</th>
+                                            <th class="p-3 font-semibold text-xs uppercase text-center">Count</th>
+                                            <th class="p-3 font-semibold text-xs uppercase">Special Handling</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                                        <tr v-for="(item, idx) in detectedItems" :key="idx"
+                                            class="hover:bg-white dark:hover:bg-white/5 transition-colors">
+                                            <td
+                                                class="p-3 font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                                <span class="w-2 h-2 rounded-full"
+                                                    :class="item.fragile ? 'bg-amber-400' : 'bg-blue-400'"></span>
+                                                {{ item.name }}
+                                            </td>
+                                            <td class="p-3 text-center text-gray-600 dark:text-gray-300">{{ item.qty }}
+                                            </td>
+                                            <td class="p-3 text-xs">
+                                                <span v-if="item.fragile"
+                                                    class="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 px-2 py-1 rounded font-bold inline-block">Requires
+                                                    Bubble Wrap</span>
+                                                <span v-else class="text-gray-400">Standard Loading</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Footer Action -->
+                        <div class="mt-6 pt-4 border-t border-gray-100 dark:border-white/10 flex justify-end gap-3">
+                            <router-link to="/individual/book-move"
+                                class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 transform hover:-translate-y-0.5">
+                                Use these requirements for Booking
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </router-link>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -89,41 +246,117 @@ const fileInput = ref(null)
 const uploaded = ref(false)
 const analyzing = ref(false)
 const showResults = ref(false)
+const previewUrl = ref(null)
+const scanStatus = ref('')
+const processTime = ref(0)
 
 const aiResults = ref([
-    { label: 'Boxes Needed', value: '12', icon: 'inventory_2', color: 'text-blue-500' },
-    { label: 'Helpers Needed', value: '2', icon: 'group', color: 'text-green-500' },
-    { label: 'Bubble Wrap', value: '3 Rolls', icon: 'bubble_chart', color: 'text-amber-500' },
-    { label: 'Blankets', value: '6', icon: 'bed', color: 'text-purple-500' },
+    { label: 'Boxes Needed', value: '14', icon: 'inventory_2', color: 'text-blue-500', confidence: 91 },
+    { label: 'Laborers', value: '2', icon: 'group', color: 'text-green-500', confidence: 98 },
+    { label: 'Bubble Wrap', value: '4 Rolls', icon: 'bubble_chart', color: 'text-amber-500', confidence: 88 },
+    { label: 'Heavy Items', value: '3', icon: 'fitness_center', color: 'text-purple-500', confidence: 95 },
 ])
 
+const detectedItems = ref([
+    { name: 'Queen Size Bed (Dismantled)', qty: 1, fragile: false },
+    { name: 'Wooden Wardrobe', qty: 1, fragile: false },
+    { name: 'Glass Coffee Table', qty: 1, fragile: true },
+    { name: 'TV/Monitor Screens', qty: 2, fragile: true },
+    { name: 'Misc Medium Boxes', qty: 14, fragile: false },
+])
+
+const scanningPhases = [
+    'Initializing Neural Net...',
+    'Mapping Spatial Boundary...',
+    'Detecting Furniture Geometry...',
+    'Evaluating Fragility Index...',
+    'Calculating Volumetric Weight...',
+    'Finalizing Fleet Recommendations...'
+]
+
 function triggerUpload() { fileInput.value?.click() }
-function handleFileSelect() { uploaded.value = true; showResults.value = false }
-function handleDrop() { uploaded.value = true; showResults.value = false }
+
+function handleFileProcess(file) {
+    if (file && file.type.startsWith('image/')) {
+        uploaded.value = true
+        showResults.value = false
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            previewUrl.value = e.target.result
+        }
+        reader.readAsDataURL(file)
+    }
+}
+
+function handleFileSelect(e) { handleFileProcess(e.target.files[0]) }
+function handleDrop(e) { handleFileProcess(e.dataTransfer.files[0]) }
+
+function resetEstimator() {
+    uploaded.value = false
+    showResults.value = false
+    previewUrl.value = null
+    if (fileInput.value) fileInput.value.value = ''
+}
 
 function analyzePhoto() {
     analyzing.value = true
+    showResults.value = false
+
+    const startTime = performance.now()
+    let phaseIdx = 0
+    scanStatus.value = scanningPhases[0]
+
+    const interval = setInterval(() => {
+        phaseIdx++
+        if (phaseIdx < scanningPhases.length) {
+            scanStatus.value = scanningPhases[phaseIdx]
+        }
+    }, 450)
+
     setTimeout(() => {
+        clearInterval(interval)
         analyzing.value = false
+        processTime.value = Math.round(performance.now() - startTime)
         showResults.value = true
-    }, 2000)
+    }, 2800)
 }
 </script>
 
 <style scoped>
-.animate-fade-in {
-    animation: fadeIn 0.5s ease-out;
+.animate-scan {
+    animation: scanLine 2s linear infinite;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
+@keyframes scanLine {
+    0% {
+        top: 0%;
+        box-shadow: 0 0 20px 2px rgba(168, 85, 247, 0.9);
     }
 
-    to {
+    50% {
+        top: 100%;
+        box-shadow: 0 0 20px 2px rgba(168, 85, 247, 0.9);
+    }
+
+    100% {
+        top: 0%;
+        box-shadow: 0 0 20px 2px rgba(168, 85, 247, 0.0);
+    }
+}
+
+.animate-scale-in {
+    animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scaleIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.97) translateY(10px);
+    }
+
+    100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: scale(1) translateY(0);
     }
 }
 </style>

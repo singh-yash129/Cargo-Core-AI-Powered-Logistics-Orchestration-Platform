@@ -104,12 +104,7 @@
                         </button>
 
                         <!-- ID Card -->
-                        <button @click="showIdCardModal = true"
-                            class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors">
-                            <span
-                                class="material-symbols-outlined text-[20px] text-green-500 dark:text-green-400">badge</span>
-                            ID Card
-                        </button>
+               
 
                         <!-- Appearance Toggle -->
                         <div class="w-full px-4 py-2.5 flex items-center gap-3">
@@ -195,24 +190,13 @@
     </Teleport>
 
     <!-- ID Card Modal -->
-    <Teleport to="body">
-        <BaseModal :isOpen="showIdCardModal" @close="showIdCardModal = false">
-            <template #title>Personal ID Card</template>
-            <div class="flex justify-center w-full">
-                <IdCard :employee="idCardData" />
-            </div>
-            <template #footer>
-                <button @click="showIdCardModal = false"
-                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Close</button>
-            </template>
-        </BaseModal>
-    </Teleport>
+
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import BaseModal from '@/components/BaseModal.vue'
-import IdCard from '@/components/IdCard.vue'
+
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useIndividualStore } from '@/stores/individualStore'
 
@@ -224,7 +208,7 @@ const store = useIndividualStore()
 // Menu & Modal State
 const isMenuOpen = ref(false)
 const showProfileModal = ref(false)
-const showIdCardModal = ref(false)
+
 
 // Dark mode tracking for dynamic icon
 const isDark = ref(true)

@@ -13,14 +13,25 @@ export const useIndividualStore = defineStore('individual', () => {
     // ─── User Profile ────────────────────────────────────────────
     const user = ref({
         name: 'Alex Johnson',
+        avatar: null,
         email: 'alex.johnson@email.com',
         phone: '+91 98765 12345',
+        altPhone: '+91 98765 54321',
+        dob: '1990-05-15',
+        joiningDate: '2025-08-10',
+        tier: 'Gold Member',
         address: '42, Green Park, New Delhi - 110016',
         language: 'English',
         paymentDefault: 'Full Payment',
         notificationsEnabled: true,
         smsAlerts: true,
     })
+
+    const savedAddresses = ref([
+        { id: 1, label: 'Home', icon: 'home', address: '42, Green Park', city: 'New Delhi', state: 'Delhi', pincode: '110016', phone: '+91 98765 12345' },
+        { id: 2, label: 'Office', icon: 'business', address: '15, Sector 62', city: 'Noida', state: 'UP', pincode: '201301', phone: '+91 99999 88888' },
+        { id: 3, label: 'Parent\'s House', icon: 'family_restroom', address: '8, DLF Phase 3', city: 'Gurgaon', state: 'Haryana', pincode: '122002', phone: '+91 77777 66666' },
+    ])
 
     const userInitials = computed(() =>
         user.value.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
@@ -39,10 +50,10 @@ export const useIndividualStore = defineStore('individual', () => {
         {
             id: 'MOV-3048', status: 'in-transit', moveType: 'house-shift', cargoType: 'Household Goods',
             pickup: '42, Green Park, New Delhi', destination: '15, Sector 62, Noida',
-            date: '2026-03-02', timeWindow: '10:00 AM - 12:00 PM',
+            date: '2026-03-02', timeWindow: '14:00 PM - 16:30 PM',
             laborCount: 2, packingRequired: true, vehicleType: 'tempo',
-            materials: { boxes: 10, bubbleWrap: 2, blankets: 4, tape: 3 },
-            cost: { base: 4500, labor: 1600, materials: 850, packing: 1200, vehicle: 1800, total: 9950 },
+            materials: { boxes: 3, bubbleWrap: 1 },
+            cost: { base: 4500, labor: 1600, materials: 850, packing: 1200, vehicle: 1800, platformFee: 249, taxes: 1791, total: 11990 },
             driver: { name: 'Mike Ross', phone: '+91 98765 43210', rating: 4.9 },
             eta: '14:30 PM', progress: 60,
             paymentMode: 'Full Payment', paymentStatus: 'paid', isDummyPayment: false,
@@ -70,7 +81,7 @@ export const useIndividualStore = defineStore('individual', () => {
             date: '2026-02-28', timeWindow: '09:00 AM - 11:00 AM',
             laborCount: 3, packingRequired: true, vehicleType: 'lcv',
             materials: { boxes: 5, blankets: 8, wardrobeBoxes: 2, tape: 2 },
-            cost: { base: 5200, labor: 2400, materials: 1100, packing: 1500, vehicle: 3200, total: 13400 },
+            cost: { base: 5200, labor: 2400, materials: 1100, packing: 1500, vehicle: 3200, platformFee: 249, taxes: 2412, total: 16061 },
             driver: { name: 'Raj Kumar', phone: '+91 98765 43211', rating: 4.7 },
             eta: null, progress: 100,
             paymentMode: 'COD', paymentStatus: 'paid', isDummyPayment: false,
@@ -102,7 +113,7 @@ export const useIndividualStore = defineStore('individual', () => {
             date: '2026-03-05', timeWindow: '08:00 AM - 10:00 AM',
             laborCount: 1, packingRequired: false, vehicleType: 'mini-truck',
             materials: {},
-            cost: { base: 8500, labor: 800, materials: 0, packing: 0, vehicle: 0, total: 9300 },
+            cost: { base: 8500, labor: 800, materials: 0, packing: 0, vehicle: 0, platformFee: 249, taxes: 1674, total: 11223 },
             driver: null,
             eta: null, progress: 0,
             paymentMode: 'Partial', paymentStatus: 'pending', isDummyPayment: false,
@@ -145,8 +156,8 @@ export const useIndividualStore = defineStore('individual', () => {
 
     // ─── Payments ────────────────────────────────────────────────
     const payments = ref([
-        { id: 'PAY-801', orderId: 'MOV-3048', amount: 9950, mode: 'UPI', status: 'completed', date: '2026-03-01T09:00:00', isDummy: false },
-        { id: 'PAY-800', orderId: 'MOV-3045', amount: 13400, mode: 'COD', status: 'completed', date: '2026-02-28T16:30:00', isDummy: false },
+        { id: 'PAY-801', orderId: 'MOV-3048', amount: 11990, mode: 'UPI', status: 'completed', date: '2026-03-01T09:00:00', isDummy: false },
+        { id: 'PAY-800', orderId: 'MOV-3045', amount: 16061, mode: 'COD', status: 'completed', date: '2026-02-28T16:30:00', isDummy: false },
     ])
 
     // ─── Damage Reports ──────────────────────────────────────────
@@ -232,12 +243,12 @@ export const useIndividualStore = defineStore('individual', () => {
             fee = Math.round(order.cost.total * 0.25); reason = 'Cancelled mid-transit — 25% fee'
         }
         order.status = 'cancelled'
-        order.cancellation = { fee, reason, cancelledAt: new Date().toISOString() }
+        order.cancellation = { reason, fee, date: new Date().toISOString() }
         order.transportLog.push({ event: `Cancelled — ${reason}`, time: new Date().toLocaleString(), icon: 'cancel', color: 'red' })
         notifications.value.unshift({
-            id: Date.now(), title: 'Order Cancelled', message: `${id} cancelled. ${reason}`, time: 'Just now', read: false, icon: 'cancel',
+            id: Date.now(), title: 'Order Cancelled', message: `${id} has been cancelled.`, time: 'Just now', read: false, icon: 'cancel'
         })
-        return { fee, reason }
+        return order
     }
 
     function rescheduleOrder(id, newDate, newTime) {
@@ -304,7 +315,10 @@ export const useIndividualStore = defineStore('individual', () => {
         const packing = packingRequired ? Math.round(base * 0.25) : 0
         const matCost = materialsCost || 0
         const vehicleCost = Math.round(base * (vehicle.priceMultiplier - 1) * 0.5)
-        return { base, labor, packing, materials: matCost, vehicle: vehicleCost, total: base + labor + packing + matCost + vehicleCost }
+        const subtotal = base + labor + packing + matCost + vehicleCost
+        const platformFee = 249
+        const taxes = Math.round(subtotal * 0.18)
+        return { base, labor, packing, materials: matCost, vehicle: vehicleCost, platformFee, taxes, total: subtotal + platformFee + taxes }
     }
 
     function markNotificationRead(id) {
@@ -324,6 +338,19 @@ export const useIndividualStore = defineStore('individual', () => {
         Object.assign(user.value, updates)
     }
 
+    function saveAddress(addressData) {
+        if (addressData.id) {
+            const idx = savedAddresses.value.findIndex(a => a.id === addressData.id)
+            if (idx !== -1) savedAddresses.value[idx] = { ...savedAddresses.value[idx], ...addressData }
+        } else {
+            savedAddresses.value.push({ ...addressData, id: Date.now() })
+        }
+    }
+
+    function deleteAddress(id) {
+        savedAddresses.value = savedAddresses.value.filter(a => a.id !== id)
+    }
+
     return {
         user, userInitials,
         orders, activeOrders, pendingOrders, deliveredOrders, cancelledOrders, totalSpent,
@@ -334,6 +361,6 @@ export const useIndividualStore = defineStore('individual', () => {
         createOrder, updateOrder, cancelOrder, rescheduleOrder, submitRating,
         addQuote, convertQuoteToOrder, makePayment, reportDamage, calculateQuote,
         markNotificationRead, markAllNotificationsRead, clearNotifications,
-        updateProfile,
+        updateProfile, savedAddresses, saveAddress, deleteAddress
     }
 })
