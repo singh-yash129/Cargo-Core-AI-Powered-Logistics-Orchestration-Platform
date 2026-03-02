@@ -15,8 +15,8 @@ export const useIndividualStore = defineStore('individual', () => {
         name: 'Alex Johnson',
         avatar: null,
         email: 'alex.johnson@email.com',
-        phone: '+91 98765 12345',
-        altPhone: '+91 98765 54321',
+        phone: '+91 0000000000',
+        altPhone: '+91 0000000000',
         dob: '1990-05-15',
         joiningDate: '2025-08-10',
         tier: 'Gold Member',
@@ -28,9 +28,9 @@ export const useIndividualStore = defineStore('individual', () => {
     })
 
     const savedAddresses = ref([
-        { id: 1, label: 'Home', icon: 'home', address: '42, Green Park', city: 'New Delhi', state: 'Delhi', pincode: '110016', phone: '+91 98765 12345' },
-        { id: 2, label: 'Office', icon: 'business', address: '15, Sector 62', city: 'Noida', state: 'UP', pincode: '201301', phone: '+91 99999 88888' },
-        { id: 3, label: 'Parent\'s House', icon: 'family_restroom', address: '8, DLF Phase 3', city: 'Gurgaon', state: 'Haryana', pincode: '122002', phone: '+91 77777 66666' },
+        { id: 1, label: 'Home', icon: 'home', address: '42, Green Park', city: 'New Delhi', state: 'Delhi', pincode: '110016', phone: '+91 0000000000' },
+        { id: 2, label: 'Office', icon: 'business', address: '15, Sector 62', city: 'Noida', state: 'UP', pincode: '201301', phone: '+91 0000000000' },
+        { id: 3, label: 'Parent\'s House', icon: 'family_restroom', address: '8, DLF Phase 3', city: 'Gurgaon', state: 'Haryana', pincode: '122002', phone: '+91 0000000000' },
     ])
 
     const userInitials = computed(() =>
@@ -54,7 +54,7 @@ export const useIndividualStore = defineStore('individual', () => {
             laborCount: 2, packingRequired: true, vehicleType: 'tempo',
             materials: { boxes: 3, bubbleWrap: 1 },
             cost: { base: 4500, labor: 1600, materials: 850, packing: 1200, vehicle: 1800, platformFee: 249, taxes: 1791, total: 11990 },
-            driver: { name: 'Mike Ross', phone: '+91 98765 43210', rating: 4.9 },
+            driver: { name: 'Mike Ross', phone: '+91 0000000000', rating: 4.9 },
             eta: '14:30 PM', progress: 60,
             paymentMode: 'Full Payment', paymentStatus: 'paid', isDummyPayment: false,
             rating: null, feedback: '',
@@ -82,7 +82,7 @@ export const useIndividualStore = defineStore('individual', () => {
             laborCount: 3, packingRequired: true, vehicleType: 'lcv',
             materials: { boxes: 5, blankets: 8, wardrobeBoxes: 2, tape: 2 },
             cost: { base: 5200, labor: 2400, materials: 1100, packing: 1500, vehicle: 3200, platformFee: 249, taxes: 2412, total: 16061 },
-            driver: { name: 'Raj Kumar', phone: '+91 98765 43211', rating: 4.7 },
+            driver: { name: 'Raj Kumar', phone: '+91 0000000000', rating: 4.7 },
             eta: null, progress: 100,
             paymentMode: 'COD', paymentStatus: 'paid', isDummyPayment: false,
             rating: 5, feedback: 'Excellent service, handled furniture carefully!',

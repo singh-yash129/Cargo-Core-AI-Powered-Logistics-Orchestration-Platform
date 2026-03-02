@@ -264,14 +264,14 @@ const employeeData = {
     designation: 'Warehouse Manager',
     department: 'Warehouse Operations',
     address: '123, MG Road, Bangalore - 560001',
-    phone: '+91 98765 43210',
+    phone: '+91 0000000000',
     email: 'alex.chen@quadcore.dev',
     joinDate: '15 January 2024',
     validUntil: '31 December 2026',
     emergencyContact: {
         name: 'Jane Doe',
         relation: 'Spouse',
-        phone: '+91 98765 43211'
+        phone: '+91 0000000000'
     }
 }
 

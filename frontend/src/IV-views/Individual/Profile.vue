@@ -188,7 +188,7 @@
                         </div>
                         <div class="col-span-2 md:col-span-1">
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Contact Phone</label>
-                            <input v-model="addressModal.data.phone" type="tel" placeholder="+91 90000 00000"
+                            <input v-model="addressModal.data.phone" type="tel" placeholder="+91 0000000000"
                                 class="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-green-500/50 outline-none text-gray-900 dark:text-white" />
                         </div>
                         <div class="col-span-2">
