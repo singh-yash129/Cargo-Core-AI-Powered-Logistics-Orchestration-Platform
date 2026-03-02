@@ -92,7 +92,7 @@
                             class="material-symbols-outlined text-green-600 dark:text-green-400 text-2xl">warehouse</span>
                     </div>
                 </div>
-                <button
+                <button @click="showReportModal = true"
                     class="w-full py-2 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded-lg text-sm font-bold hover:bg-green-600 hover:text-white transition-colors flex items-center justify-center gap-2 mt-2">
                     <span class="material-symbols-outlined text-sm">bar_chart</span> View Report
                 </button>
@@ -672,7 +672,7 @@
                         <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">AI Auto-Assign</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400">
                             Our AI will map all <strong class="text-gray-900 dark:text-white">{{ pickupsNeededCount
-                            }}</strong> pending pickups to the most efficient driver routes to save time and fuel.
+                                }}</strong> pending pickups to the most efficient driver routes to save time and fuel.
                         </p>
                     </div>
                     <div class="p-6 bg-gray-50 dark:bg-white/5 border-t border-gray-100 dark:border-white/5">
@@ -691,6 +691,134 @@
             </div>
         </Teleport>
 
+        <!-- View Report Modal -->
+        <Teleport to="body">
+            <div v-if="showReportModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
+                @click.self="showReportModal = false">
+                <div
+                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
+                    <div
+                        class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-start bg-green-50 dark:bg-green-900/10">
+                        <div class="flex items-center gap-3">
+                            <span
+                                class="material-symbols-outlined text-green-600 dark:text-green-400 text-3xl">bar_chart</span>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Returns & Logistics Report
+                                </h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Summary of all completed
+                                    returns over the last 30 days.</p>
+                            </div>
+                        </div>
+                        <button @click="showReportModal = false"
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-white bg-white dark:bg-black/20 p-2 rounded-full border border-gray-200 dark:border-white/10 transition-colors">
+                            <span class="material-symbols-outlined text-sm">close</span>
+                        </button>
+                    </div>
+
+                    <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-black/10 space-y-6">
+                        <!-- Key Metrics -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div
+                                class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/5">
+                                <div class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Total Returns
+                                </div>
+                                <div class="text-2xl font-bold text-gray-900 dark:text-white">156</div>
+                                <div class="text-xs text-green-500 mt-1 flex items-center gap-1 font-bold"><span
+                                        class="material-symbols-outlined text-[12px]">trending_down</span> 4% vs last mo
+                                </div>
+                            </div>
+                            <div
+                                class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/5">
+                                <div class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Avg
+                                    Resolution</div>
+                                <div class="text-2xl font-bold text-gray-900 dark:text-white">2.4 <span
+                                        class="text-base text-gray-500">Days</span></div>
+                                <div class="text-xs text-green-500 mt-1 flex items-center gap-1 font-bold"><span
+                                        class="material-symbols-outlined text-[12px]">trending_down</span> 1.2d faster
+                                </div>
+                            </div>
+                            <div
+                                class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/5">
+                                <div class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Recovery Kate
+                                </div>
+                                <div class="text-2xl font-bold text-gray-900 dark:text-white">82%</div>
+                                <div class="text-xs text-green-500 mt-1 flex items-center gap-1 font-bold"><span
+                                        class="material-symbols-outlined text-[12px]">trending_up</span> 2% improvement
+                                </div>
+                            </div>
+                            <div
+                                class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/5">
+                                <div class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Total Cost
+                                </div>
+                                <div class="text-2xl font-bold text-gray-900 dark:text-white">$4.2k</div>
+                                <div class="text-xs text-red-500 mt-1 flex items-center gap-1 font-bold"><span
+                                        class="material-symbols-outlined text-[12px]">trending_up</span> 8% higher</div>
+                            </div>
+                        </div>
+
+                        <!-- Top Return Reasons -->
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3">Top Return Reasons</h4>
+                            <div
+                                class="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl p-4 space-y-3">
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-bold text-gray-700 dark:text-gray-300">Defective /
+                                            Damaged</span>
+                                        <span class="text-gray-500">45% (70 items)</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-red-500 h-1.5 rounded-full" style="width: 45%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-bold text-gray-700 dark:text-gray-300">Wrong Size/Fit</span>
+                                        <span class="text-gray-500">30% (47 items)</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-yellow-500 h-1.5 rounded-full" style="width: 30%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-bold text-gray-700 dark:text-gray-300">Changed Mind</span>
+                                        <span class="text-gray-500">15% (23 items)</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-blue-500 h-1.5 rounded-full" style="width: 15%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-bold text-gray-700 dark:text-gray-300">Other</span>
+                                        <span class="text-gray-500">10% (16 items)</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-gray-500 h-1.5 rounded-full" style="width: 10%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="p-6 border-t border-gray-100 dark:border-white/5 flex gap-3 bg-gray-50 dark:bg-white/5 justify-between items-center">
+                        <button
+                            class="px-4 py-2 text-sm font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 hover:bg-green-100 dark:hover:bg-green-500/20 rounded-lg transition-colors flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px]">download</span> Export CSV
+                        </button>
+                        <button @click="showReportModal = false"
+                            class="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold rounded-xl transition-colors">
+                            Close Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+
     </div>
 </template>
 
@@ -702,6 +830,7 @@ const showPickupModal = ref(false)
 const showDetailModal = ref(false)
 const showNewReturnModal = ref(false)
 const showAutoAssignModal = ref(false)
+const showReportModal = ref(false)
 
 const selectedReturn = ref(null)
 const pickupDriver = ref('Auto-Assign (AI Optimized)')
