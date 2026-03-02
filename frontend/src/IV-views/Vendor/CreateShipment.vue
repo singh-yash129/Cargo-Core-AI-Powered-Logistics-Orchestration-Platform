@@ -171,7 +171,7 @@
                             <div v-if="form.category === 'b2c'">
                                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Customer Phone
                                     *</label>
-                                <input v-model="form.customerPhone" type="tel" placeholder="+91 9876543210"
+                                <input v-model="form.customerPhone" type="tel" placeholder="+91 0000000000"
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
                             </div>
                             <div>

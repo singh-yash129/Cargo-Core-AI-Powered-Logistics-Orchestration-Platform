@@ -236,7 +236,7 @@ const idCardData = computed(() => ({
     email: store.user.email,
     joinDate: '15 January 2025',
     validUntil: '31 December 2027',
-    emergencyContact: { name: 'Support Desk', relation: 'Help Center', phone: '+91 1800 123 456' },
+    emergencyContact: { name: 'Support Desk', relation: 'Help Center', phone: '+91 0000000000' },
 }))
 
 const handleLogout = () => {
