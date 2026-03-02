@@ -1,5 +1,5 @@
 <template>
-    <div class="max-w-4xl mx-auto space-y-8">
+    <div class="w-[95%] mx-auto space-y-8">
         <div class="text-center space-y-2">
             <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Bulk Order Upload</h2>
             <p class="text-gray-500 dark:text-gray-400 text-sm">Upload CSV or Excel files to create multiple shipments at once.</p>
@@ -34,32 +34,48 @@
             </button>
         </div>
 
-        <!-- Template Download -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="glass-panel p-5 rounded-xl flex items-center gap-4">
-                <div class="p-2.5 bg-green-500/20 rounded-lg text-green-500">
-                    <span class="material-symbols-outlined">table_view</span>
+        <!-- Template Downloads -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button @click="downloadTemplate('commercial')" class="glass-panel p-5 rounded-xl flex items-center gap-4 hover:ring-1 hover:ring-blue-500/30 transition-all text-left group">
+                <div class="p-2.5 bg-blue-500/20 rounded-lg text-blue-500">
+                    <span class="material-symbols-outlined">business</span>
                 </div>
                 <div class="flex-1">
-                    <div class="font-bold text-gray-900 dark:text-white text-sm">Standard Template</div>
-                    <div class="text-[10px] text-gray-500">CSV for general cargo shipments</div>
+                    <div class="font-bold text-gray-900 dark:text-white text-sm group-hover:text-blue-500 transition-colors">Commercial (B2B)</div>
+                    <div class="text-[10px] text-gray-500">Standard B2B shipments</div>
                 </div>
-                <button @click="downloadTemplate('standard')" class="p-2 rounded-lg hover:bg-green-500/10 text-gray-400 hover:text-green-500 transition-colors">
-                    <span class="material-symbols-outlined">download</span>
-                </button>
-            </div>
-            <div class="glass-panel p-5 rounded-xl flex items-center gap-4">
+                <span class="material-symbols-outlined text-gray-400 group-hover:text-blue-500 transition-colors">download</span>
+            </button>
+            <button @click="downloadTemplate('palletized')" class="glass-panel p-5 rounded-xl flex items-center gap-4 hover:ring-1 hover:ring-green-500/30 transition-all text-left group">
+                <div class="p-2.5 bg-green-500/20 rounded-lg text-green-500">
+                    <span class="material-symbols-outlined">inventory_2</span>
+                </div>
+                <div class="flex-1">
+                    <div class="font-bold text-gray-900 dark:text-white text-sm group-hover:text-green-500 transition-colors">Palletized</div>
+                    <div class="text-[10px] text-gray-500">Pallet-based cargo</div>
+                </div>
+                <span class="material-symbols-outlined text-gray-400 group-hover:text-green-500 transition-colors">download</span>
+            </button>
+            <button @click="downloadTemplate('b2c')" class="glass-panel p-5 rounded-xl flex items-center gap-4 hover:ring-1 hover:ring-orange-500/30 transition-all text-left group">
+                <div class="p-2.5 bg-orange-500/20 rounded-lg text-orange-500">
+                    <span class="material-symbols-outlined">person</span>
+                </div>
+                <div class="flex-1">
+                    <div class="font-bold text-gray-900 dark:text-white text-sm group-hover:text-orange-500 transition-colors">B2C Shipment</div>
+                    <div class="text-[10px] text-gray-500">Direct to customer</div>
+                </div>
+                <span class="material-symbols-outlined text-gray-400 group-hover:text-orange-500 transition-colors">download</span>
+            </button>
+            <router-link to="/vendor/api-docs" class="glass-panel p-5 rounded-xl flex items-center gap-4 hover:ring-1 hover:ring-purple-500/30 transition-all group">
                 <div class="p-2.5 bg-purple-500/20 rounded-lg text-purple-500">
                     <span class="material-symbols-outlined">code</span>
                 </div>
                 <div class="flex-1">
-                    <div class="font-bold text-gray-900 dark:text-white text-sm">API Documentation</div>
-                    <div class="text-[10px] text-gray-500">Integrate directly with your ERP</div>
+                    <div class="font-bold text-gray-900 dark:text-white text-sm group-hover:text-purple-500 transition-colors">API Documentation</div>
+                    <div class="text-[10px] text-gray-500">Integrate with your ERP</div>
                 </div>
-                <button @click="showToast('Opening API docs...')" class="p-2 rounded-lg hover:bg-purple-500/10 text-gray-400 hover:text-purple-500 transition-colors">
-                    <span class="material-symbols-outlined">open_in_new</span>
-                </button>
-            </div>
+                <span class="material-symbols-outlined text-gray-400 group-hover:text-purple-500 transition-colors">open_in_new</span>
+            </router-link>
         </div>
 
         <!-- Recent Uploads -->
@@ -86,7 +102,7 @@
                         <tr v-for="u in store.bulkUploads" :key="u.id" class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[16px]" :class="u.status === 'Processed' ? 'text-green-500' : u.status === 'Failed' ? 'text-red-500' : 'text-yellow-500'">{{ u.status === 'Processed' ? 'check_circle' : u.status === 'Failed' ? 'error' : 'pending' }}</span>
+                                    <span class="material-symbols-outlined text-[16px]" :class="u.status === 'Processed' ? 'text-green-500' : u.status === 'Failed' ? 'text-red-500' : u.status === 'Scheduled' ? 'text-purple-500' : 'text-yellow-500'">{{ u.status === 'Processed' ? 'check_circle' : u.status === 'Failed' ? 'error' : u.status === 'Scheduled' ? 'schedule' : 'pending' }}</span>
                                     <span class="text-gray-900 dark:text-white text-xs font-medium">{{ u.filename }}</span>
                                 </div>
                             </td>
@@ -129,6 +145,77 @@
                 </template>
             </BaseModal>
         </Teleport>
+
+        <!-- Post-Upload Confirmation Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="showConfirmModal" @close="cancelConfirmation">
+                <template #title>Confirm Upload</template>
+                <div class="space-y-5">
+                    <!-- File Summary -->
+                    <div class="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-xl p-4">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="p-2 bg-green-500/20 rounded-lg text-green-500">
+                                <span class="material-symbols-outlined">description</span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold text-gray-900 dark:text-white text-sm">{{ pendingUpload.filename }}</div>
+                                <div class="text-[10px] text-gray-500">{{ pendingUpload.fileSize }} KB • {{ pendingUpload.detectedRows }} shipments detected</div>
+                            </div>
+                            <span class="material-symbols-outlined text-green-500">verified</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="p-2 bg-white/50 dark:bg-black/20 rounded-lg">
+                                <div class="text-lg font-bold text-gray-900 dark:text-white">{{ pendingUpload.detectedRows }}</div>
+                                <div class="text-[10px] text-gray-500">Shipments</div>
+                            </div>
+                            <div class="p-2 bg-white/50 dark:bg-black/20 rounded-lg">
+                                <div class="text-lg font-bold text-green-500">{{ pendingUpload.validRows }}</div>
+                                <div class="text-[10px] text-gray-500">Valid</div>
+                            </div>
+                            <div class="p-2 bg-white/50 dark:bg-black/20 rounded-lg">
+                                <div class="text-lg font-bold" :class="pendingUpload.warningRows > 0 ? 'text-yellow-500' : 'text-gray-400'">{{ pendingUpload.warningRows }}</div>
+                                <div class="text-[10px] text-gray-500">Warnings</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Confirmation Prompt -->
+                    <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex items-start gap-2">
+                        <span class="material-symbols-outlined text-yellow-500 text-[18px] mt-0.5">help</span>
+                        <div>
+                            <div class="text-sm font-bold text-gray-900 dark:text-white">Are you sure this file is correct?</div>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Review the summary above. Once confirmed, shipments will be created and assigned to drivers.</p>
+                        </div>
+                    </div>
+
+                    <!-- Schedule Picker (conditionally shown) -->
+                    <div v-if="showSchedulePicker" class="space-y-2">
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 font-bold">Schedule for Later</label>
+                        <div class="flex gap-3">
+                            <input v-model="scheduleDate" type="date" class="flex-1 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                            <input v-model="scheduleTime" type="time" class="w-32 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div class="flex justify-end gap-2 mt-2">
+                            <button @click="showSchedulePicker = false" class="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Cancel</button>
+                            <button @click="confirmScheduleLater" class="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-colors">Confirm Schedule</button>
+                        </div>
+                    </div>
+                </div>
+                <template #footer>
+                    <div class="flex flex-wrap gap-2 w-full justify-end">
+                        <button @click="cancelConfirmation" class="px-4 py-2.5 text-gray-500 text-sm hover:text-gray-700 dark:hover:text-gray-300 transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px]">refresh</span> Modify / Re-upload
+                        </button>
+                        <button @click="showSchedulePicker = true" class="px-4 py-2.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg text-sm font-bold hover:bg-purple-500/20 transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px]">schedule</span> Schedule Later
+                        </button>
+                        <button @click="confirmCreateNow" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px]">rocket_launch</span> Create Shipments Now
+                        </button>
+                    </div>
+                </template>
+            </BaseModal>
+        </Teleport>
     </div>
 </template>
 
@@ -144,12 +231,26 @@ const isDragging = ref(false)
 const viewingUpload = ref(null)
 const fileInput = ref(null)
 
+// Confirmation modal state
+const showConfirmModal = ref(false)
+const showSchedulePicker = ref(false)
+const scheduleDate = ref('')
+const scheduleTime = ref('')
+const pendingUpload = ref({
+    filename: '',
+    fileSize: '',
+    detectedRows: 0,
+    validRows: 0,
+    warningRows: 0,
+})
+
 const mockErrors = ['Row 14: Missing required field "destination_address"', 'Row 27: Invalid weight format "5kg" — expected numeric value', 'Row 45: Duplicate order reference "ORD-2024-1122"']
 
 const uploadStatusClass = s => ({
     Processed: 'bg-green-500/20 text-green-600 dark:text-green-400',
     Failed: 'bg-red-500/20 text-red-600 dark:text-red-400',
     Processing: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
+    Scheduled: 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
 }[s] || 'bg-gray-500/20 text-gray-500')
 
 function handleFileSelect(e) {
@@ -164,19 +265,61 @@ function handleDrop(e) {
 function processUpload() {
     if (!selectedFile.value) return
     uploading.value = true
+
     const fName = selectedFile.value.name
+    const fSize = (selectedFile.value.size / 1024).toFixed(1)
+    const rows = Math.floor(Math.random() * 80) + 20
+    const warnings = Math.floor(Math.random() * 4)
+
     setTimeout(() => {
-        const hasErrors = Math.random() > 0.7
-        store.addBulkUpload({
-            filename: fName,
-            orders: Math.floor(Math.random() * 100) + 10,
-            status: hasErrors ? 'Failed' : 'Processed',
-            errors: hasErrors ? Math.floor(Math.random() * 5) + 1 : 0,
-        })
         uploading.value = false
-        selectedFile.value = null
-        showToast(hasErrors ? 'Upload processed with errors' : 'Upload processed successfully')
-    }, 2000)
+        // Show the confirmation modal instead of processing immediately
+        pendingUpload.value = {
+            filename: fName,
+            fileSize: fSize,
+            detectedRows: rows,
+            validRows: rows - warnings,
+            warningRows: warnings,
+        }
+        showConfirmModal.value = true
+        showSchedulePicker.value = false
+    }, 1500)
+}
+
+function confirmCreateNow() {
+    store.addBulkUpload({
+        filename: pendingUpload.value.filename,
+        orders: pendingUpload.value.detectedRows,
+        status: 'Processed',
+        errors: 0,
+    })
+    showConfirmModal.value = false
+    selectedFile.value = null
+    showToast(`${pendingUpload.value.detectedRows} shipments created successfully!`)
+}
+
+function confirmScheduleLater() {
+    if (!scheduleDate.value || !scheduleTime.value) {
+        showToast('Please select a date and time')
+        return
+    }
+    store.addBulkUpload({
+        filename: pendingUpload.value.filename,
+        orders: pendingUpload.value.detectedRows,
+        status: 'Scheduled',
+        errors: 0,
+    })
+    showConfirmModal.value = false
+    showSchedulePicker.value = false
+    selectedFile.value = null
+    showToast(`Shipments scheduled for ${scheduleDate.value} at ${scheduleTime.value}`)
+}
+
+function cancelConfirmation() {
+    showConfirmModal.value = false
+    showSchedulePicker.value = false
+    selectedFile.value = null
+    showToast('Upload cancelled — please re-upload your file')
 }
 
 function viewUploadDetail(u) {
@@ -199,9 +342,10 @@ function downloadTemplate(type) {
 
 function showToast(msg) {
     const t = document.createElement('div')
-    t.className = 'fixed top-4 right-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
+    t.className = 'fixed right-4 bottom-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
     t.textContent = msg
     document.body.appendChild(t)
     setTimeout(() => t.remove(), 3000)
 }
+
 </script>

@@ -85,6 +85,7 @@ const router = createRouter({
         { path: '/vendor/tracking', component: () => import('../IV-views/Vendor/Tracking.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
         { path: '/vendor/recurring', component: () => import('../IV-views/Vendor/RecurringShipments.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
         { path: '/vendor/bulk-upload', component: () => import('../IV-views/Vendor/BulkUpload.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
+        { path: '/vendor/api-docs', component: () => import('../IV-views/Vendor/ApiDocs.vue'), meta: { requiresAuth: true, layout: 'blank' } },
         { path: '/vendor/proof-of-delivery', component: () => import('../IV-views/Vendor/ProofOfDelivery.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
         { path: '/vendor/invoices', component: () => import('../IV-views/Vendor/Invoices.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
         { path: '/vendor/analytics', component: () => import('../IV-views/Vendor/Analytics.vue'), meta: { requiresAuth: true, layout: 'vendor' } },
@@ -118,6 +119,7 @@ const router = createRouter({
         { path: '/dispatcher/communication', component: () => import('../LWD-views/Dispatcher/Communication.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
         { path: '/dispatcher/performance', component: () => import('../LWD-views/Dispatcher/PerformanceMetrics.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
         { path: '/dispatcher/ai-assistant', component: () => import('../LWD-views/Dispatcher/SmartDispatcher.vue'), meta: { requiresAuth: true, layout: 'dispatcher' } },
+        { path: '/dispatcher/meeting-room', component: () => import('../views/MeetingRoom/MeetingRoom.vue'), meta: { requiresAuth: true, layout: 'blank' } },
 
         // Warehouse Manager Routes
         { path: '/warehouse/inventory', component: () => import('../LWD-views/WarehouseManager/Inventory.vue'), meta: { requiresAuth: true, layout: 'warehouse' } },
