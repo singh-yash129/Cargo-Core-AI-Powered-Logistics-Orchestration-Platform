@@ -248,9 +248,19 @@
 
                     <!-- Global Analytics/Graphs Tab -->
                     <div v-if="globalTab === 'graphs'" class="grid grid-cols-1 md:grid-cols-2 gap-4 h-[60vh]">
-                        <div class="glass-panel p-5 rounded-xl h-full flex flex-col">
+                        <div class="glass-panel p-5 rounded-xl h-full flex flex-col bg-blue-50/30 dark:bg-white/5 border border-blue-100/50 dark:border-white/10">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white">Spend Overview</h4>
+                                <span class="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded">Last 6 Months</span>
+                            </div>
+                            
+                            <!-- Chart.js Bar Chart for Spend -->
+                            <div class="flex-1 w-full h-full mt-2 relative min-h-[200px]">
+                                <Bar :data="spendChartData" :options="spendChartOptions" />
+                            </div>
+
                             <!-- Additional Performance KPIs -->
-                            <div class="mt-auto pt-6 border-t border-gray-200 dark:border-white/10 grid grid-cols-2 gap-4">
+                            <div class="mt-4 pt-4 border-t border-gray-100 dark:border-white/5 grid grid-cols-2 gap-4">
                                 <div>
                                     <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Transit Efficiency</div>
                                     <div class="flex items-center gap-2">
@@ -279,71 +289,8 @@
                                     <span class="text-[10px] text-gray-500 font-bold">Daily Orders</span>
                                 </div>
                             </div>
-                            <div
-                                class="flex items-end h-[50%] gap-2 border-b border-gray-200 dark:border-white/10 pb-2 mb-4">
-                                <div class="flex-1 flex flex-col justify-end items-center group relative">
-                                    <div
-                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[40%]">
-                                    </div>
-                                    <div class="text-[10px] text-gray-500 mt-2">Mon</div>
-                                    <div
-                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                                        12</div>
-                                </div>
-                                <div class="flex-1 flex flex-col justify-end items-center group relative">
-                                    <div
-                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[60%]">
-                                    </div>
-                                    <div class="text-[10px] text-gray-500 mt-2">Tue</div>
-                                    <div
-                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                                        18</div>
-                                </div>
-                                <div class="flex-1 flex flex-col justify-end items-center group relative">
-                                    <div
-                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[30%]">
-                                    </div>
-                                    <div class="text-[10px] text-gray-500 mt-2">Wed</div>
-                                    <div
-                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                                        9</div>
-                                </div>
-                                <div class="flex-1 flex flex-col justify-end items-center group relative">
-                                    <div
-                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[80%]">
-                                    </div>
-                                    <div class="text-[10px] text-gray-500 mt-2">Thu</div>
-                                    <div
-                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                                        24</div>
-                                </div>
-                                <div class="flex-1 flex flex-col justify-end items-center group relative">
-                                    <div
-                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[90%]">
-                                    </div>
-                                    <div class="text-[10px] text-gray-500 mt-2">Fri</div>
-                                    <div
-                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                                        27</div>
-                                </div>
-                                <div class="flex-1 flex flex-col justify-end items-center group relative">
-                                    <div
-                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[20%]">
-                                    </div>
-                                    <div class="text-[10px] text-gray-500 mt-2">Sat</div>
-                                    <div
-                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                                        6</div>
-                                </div>
-                                <div class="flex-1 flex flex-col justify-end items-center group relative">
-                                    <div
-                                        class="w-full bg-blue-500/50 hover:bg-blue-500 rounded-t transition-colors h-[10%]">
-                                    </div>
-                                    <div class="text-[10px] text-gray-500 mt-2">Sun</div>
-                                    <div
-                                        class="absolute -top-6 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                                        3</div>
-                                </div>
+                            <div class="flex-1 w-full h-full mt-2 relative min-h-[150px] mb-4">
+                                <Line :data="volumeChartData" :options="volumeChartOptions" />
                             </div>
                             
                             <!-- Top Routes List -->
@@ -361,7 +308,7 @@
                                         <div class="text-[10px] font-bold text-green-500">98% Ontime</div>
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
+                                 <div class="flex items-center justify-between p-2 rounded-lg bg-gray-100/50 dark:bg-white/5 border border-gray-200 dark:border-white/5">
                                     <div class="flex items-center gap-2 leading-tight">
                                         <div class="w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-[10px]">02</div>
                                         <div>
@@ -376,10 +323,9 @@
                             </div>
                         </div>
                     </div>
-                    </div>
                 </div>
 
-                <template v-else>
+            <template v-else>
                     <!-- Back Button to Global View -->
                     <button @click="selected = null"
                         class="mb-4 flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg w-fit mt-2">
@@ -428,55 +374,57 @@
                     </div>
 
                     <!-- Shipment Detail -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 ">
                         <!-- Info Cards -->
                         <div class="lg:col-span-2 space-y-4">
                             <div class="glass-panel p-5 rounded-xl">
                                 <div class="flex items-center justify-between mb-4">
-                                    <h3 class="font-bold text-gray-900 dark:text-white">{{ selected.id }}</h3>
-                                    <span class="px-2.5 py-1 rounded text-xs font-bold"
+                                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">{{ selected.id }}</h3>
+                                    <span class="px-3 py-1.5 rounded-md text-xs font-bold shadow-sm"
                                         :class="statusClass(selected.statusKey)">{{ selected.status }}</span>
                                 </div>
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Route</div>
-                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.route
-                                        }}</div>
+                                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg col-span-2 lg:col-span-3 border border-gray-100 dark:border-white/5 relative overflow-hidden">
+                                        <div class="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-blue-500/10 to-transparent pointer-events-none"></div>
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1 font-bold">Route</div>
+                                        <div class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <span class="truncate">{{ selected.route }}</span>
+                                        </div>
                                     </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                                        <div class="text-[10px] text-gray-500 uppercase mb-1">ETA</div>
-                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.eta
-                                        }}</div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg col-span-2 lg:col-span-2 border border-gray-100 dark:border-white/5">
+                                        <div class="text-[10px] text-gray-500 uppercase mb-1 font-bold">ETA</div>
+                                        <div class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ selected.eta }}</div>
                                     </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                    
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                                         <div class="text-[10px] text-gray-500 uppercase mb-1">Category</div>
-                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{
-                                            selected.category }}</div>
+                                        <div class="text-xs font-bold text-gray-900 dark:text-white">{{ selected.category }}</div>
                                     </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 hover:border-green-500/30 transition-colors">
                                         <div class="text-[10px] text-gray-500 uppercase mb-1">Amount</div>
-                                        <div class="text-xs font-bold text-green-500">₹{{
-                                            selected.amount.toLocaleString() }}</div>
+                                        <div class="text-sm font-bold text-green-500">₹{{ selected.amount.toLocaleString() }}</div>
                                     </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                                         <div class="text-[10px] text-gray-500 uppercase mb-1">Weight</div>
-                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{
-                                            selected.weight.toLocaleString() }} kg</div>
+                                        <div class="text-xs font-bold text-gray-900 dark:text-white">{{ selected.weight.toLocaleString() }} kg</div>
                                     </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                                         <div class="text-[10px] text-gray-500 uppercase mb-1">Pallets</div>
-                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{
-                                            selected.pallets }}</div>
+                                        <div class="text-xs font-bold text-gray-900 dark:text-white">{{ selected.pallets }}</div>
                                     </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                                         <div class="text-[10px] text-gray-500 uppercase mb-1">Payment</div>
-                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{
-                                            selected.paymentMode }}</div>
+                                        <div class="text-xs font-bold text-gray-900 dark:text-white">{{ selected.paymentMode }}</div>
                                     </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Progress</div>
-                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{
-                                            selected.progress }}%</div>
+                                    <div class="p-3 bg-blue-50/50 dark:bg-blue-500/10 rounded-lg col-span-2 lg:col-span-5 border border-blue-100 dark:border-blue-500/20 mt-2 block w-full">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="text-[10px] text-blue-600 dark:text-blue-400 uppercase font-bold">Trip Progress</div>
+                                            <div class="text-xs font-bold text-blue-700 dark:text-blue-400">{{ selected.progress }}%</div>
+                                        </div>
+                                        <div class="w-full h-2 bg-blue-200/50 dark:bg-blue-900/40 rounded-full overflow-hidden">
+                                            <div class="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out"
+                                                :style="{ width: selected.progress + '%' }"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -495,13 +443,15 @@
                                             {{ selected.driverPhone }}</div>
                                     </div>
                                     <div class="flex gap-2">
-                                        <button
-                                            class="p-2 bg-gray-100 dark:bg-white/5 hover:bg-blue-500/10 rounded-lg text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">
+                                        <button @click="showCallModal = true"
+                                            class="p-2 bg-gray-100 dark:bg-white/5 hover:bg-blue-500/10 rounded-lg text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors tooltip-trigger relative group">
                                             <span class="material-symbols-outlined text-[18px]">call</span>
+                                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 font-bold pointer-events-none">Call Driver</div>
                                         </button>
-                                        <button
-                                            class="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors">
+                                        <button @click="showChatModal = true"
+                                            class="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors tooltip-trigger relative group">
                                             <span class="material-symbols-outlined text-[18px]">chat</span>
+                                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 font-bold pointer-events-none">Message Driver</div>
                                         </button>
                                     </div>
                                 </div>
@@ -568,10 +518,27 @@
                             </div>
                         </div>
 
-                        <!-- Right Column: Status Timeline & Tools -->
+                        <!-- Right Column: Tabs & Content -->
                         <div class="space-y-4">
-                            <!-- Status Timeline -->
-                            <div class="glass-panel p-5 rounded-xl">
+                            <!-- Internal Detail Tabs -->
+                            <div class="flex items-center gap-1 border-b border-gray-200 dark:border-white/10 pb-2">
+                                <button @click="detailTab = 'overview'"
+                                    :class="detailTab === 'overview' ? 'bg-blue-50 text-blue-600 dark:bg-white/10 dark:text-white font-bold' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'"
+                                    class="px-4 py-2 rounded-lg text-sm transition-colors tracking-wide">
+                                    Overview
+                                </button>
+                                <button @click="detailTab = 'tracking-log'"
+                                    :class="detailTab === 'tracking-log' ? 'bg-blue-50 text-blue-600 dark:bg-white/10 dark:text-white font-bold' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'"
+                                    class="px-4 py-2 rounded-lg text-sm transition-colors tracking-wide relative">
+                                    Tracking Log
+                                    <span class="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                </button>
+                            </div>
+
+                            <!-- Overview Tab Content -->
+                            <div v-if="detailTab === 'overview'" class="space-y-4 animate-fade-in">
+                                <!-- Status Timeline -->
+                                <div class="glass-panel p-5 rounded-xl">
                                 <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-4">Status Timeline</h4>
                                 <div class="space-y-4">
                                     <div v-for="(step, idx) in (selected.statusHistory || [])" :key="idx"
@@ -614,7 +581,7 @@
                             </div>
 
                             <!-- Live Support Proxy -->
-                            <div class="p-4 rounded-xl bg-blue-600 text-white relative overflow-hidden group cursor-pointer">
+                            <div @click="showSupportModal = true" @mouseenter="showToast('Need Help? Click to chat with support')" class="p-4 rounded-xl bg-blue-600 text-white relative overflow-hidden group cursor-pointer">
                                 <div class="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full group-hover:scale-150 transition-transform"></div>
                                 <div class="relative z-10 flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -626,6 +593,53 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Tracking Log Tab Content -->
+                        <div v-else-if="detailTab === 'tracking-log'" class="space-y-4 animate-fade-in h-[500px] flex flex-col">
+                            <div class="glass-panel p-5 rounded-xl flex-1 flex flex-col overflow-hidden relative">
+                                <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-100 dark:border-white/5 shrink-0">
+                                    <h4 class="font-bold text-gray-900 dark:text-white text-base">Transit Log</h4>
+                                    <button class="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors">
+                                        <span class="material-symbols-outlined text-[14px]">download</span> Export
+                                    </button>
+                                </div>
+                                
+                                <div class="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar relative pl-4">
+                                    <div class="absolute left-6 top-2 bottom-4 w-px bg-gray-200 dark:bg-white/10 -z-10"></div>
+                                    <div v-for="(log, idx) in trackingLogs" :key="'log-'+idx"
+                                        class="relative flex gap-4 w-full group">
+                                        
+                                        <!-- Node Icon -->
+                                        <div class="flex flex-col items-center shrink-0 w-5 relative pt-1">
+                                            <div class="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 z-10 transition-colors"
+                                                :class="idx === 0 ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)] ring-4 ring-blue-500/20' : 'bg-gray-300 dark:bg-gray-600 group-hover:bg-blue-400'">
+                                                <div v-if="idx === 0" class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Content -->
+                                        <div class="flex-1 pb-2">
+                                            <div class="flex items-start justify-between">
+                                                <div>
+                                                    <div class="text-sm font-bold" :class="idx === 0 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'">
+                                                        {{ log.action }}
+                                                    </div>
+                                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ log.location }}</div>
+                                                    <div v-if="log.note" class="mt-2 text-[11px] text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-white/5 p-2 rounded border border-gray-100 dark:border-white/5">
+                                                        {{ log.note }}
+                                                    </div>
+                                                </div>
+                                                <div class="text-right shrink-0 ml-4">
+                                                    <div class="text-[10px] font-bold text-gray-900 dark:text-white">{{ log.date }}</div>
+                                                    <div class="text-[10px] text-gray-500">{{ log.time }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         </div>
                     </div>
                 </template>
@@ -725,15 +739,162 @@
                 </template>
             </BaseModal>
         </Teleport>
+        <!-- Support Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="showSupportModal" @close="showSupportModal = false">
+                <template #title>Contact Support</template>
+                <div class="space-y-4">
+                    <p class="text-sm text-gray-600 dark:text-gray-300">Our team is available 24/7 to help you with shipment <span class="font-bold">{{ selected?.id }}</span>.</p>
+                    <div>
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">How can we help?</label>
+                        <textarea v-model="supportMessage" rows="4" placeholder="Describe the issue you're facing..."
+                            class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                    </div>
+                </div>
+                <template #footer>
+                    <button @click="showSupportModal = false" class="px-4 py-2 text-gray-500 text-sm">Cancel</button>
+                    <button @click="submitSupport" :disabled="!supportMessage.trim()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Send Message</button>
+                </template>
+            </BaseModal>
+        </Teleport>
+
+        <!-- Driver Call Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="showCallModal" @close="showCallModal = false">
+                <template #title>Contact Driver</template>
+                <div class="flex flex-col items-center justify-center p-6 space-y-4">
+                    <div class="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 shadow-inner">
+                        <span class="material-symbols-outlined text-4xl">person</span>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ selected?.driver || 'Driver Name' }}</h3>
+                        <p class="text-sm text-gray-500">{{ selected?.vehicle || 'Vehicle Number' }}</p>
+                    </div>
+                    <div class="w-full bg-gray-50 dark:bg-black/20 rounded-lg border border-gray-200 dark:border-white/10 p-4 text-center mt-4">
+                        <div class="text-xs text-gray-500 uppercase font-bold mb-1">Direct Line</div>
+                        <div class="text-2xl font-bold text-gray-900 dark:text-white tracking-wider flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-green-500">phone_iphone</span>
+                            {{ selected?.driverPhone || '+1 (555) 000-0000' }}
+                        </div>
+                    </div>
+                </div>
+                <template #footer>
+                    <button @click="showCallModal = false" class="px-4 py-2 text-gray-500 text-sm">Close</button>
+                    <a :href="`tel:${selected?.driverPhone?.replace(/\s+/g, '')}`"
+                        class="px-8 py-2 bg-green-500 text-white rounded-lg text-sm font-bold hover:bg-green-600 transition-colors flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">call</span> Call Now
+                    </a>
+                </template>
+            </BaseModal>
+        </Teleport>
+
+        <!-- Driver Chat Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="showChatModal" @close="showChatModal = false">
+                <template #title>
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500">
+                           <span class="material-symbols-outlined text-xs">person</span>
+                        </div>
+                        Chat with {{ selected?.driver?.split(' ')[0] || 'Driver' }}
+                    </div>
+                </template>
+                
+                <div class="flex flex-col h-[400px] -mx-6 -mt-4 -mb-6 bg-gray-50 dark:bg-black/20">
+                    <!-- Chat Messages Area -->
+                    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                        <!-- System Message -->
+                        <div class="flex justify-center">
+                            <span class="text-[10px] font-bold text-gray-400 bg-gray-200 dark:bg-white/5 px-3 py-1 rounded-full">
+                                Shipment {{ selected?.id }} Dispatch Chat Start
+                            </span>
+                        </div>
+                        
+                        <!-- Mock Driver Message -->
+                        <div class="flex items-end gap-2">
+                            <div class="w-8 h-8 rounded-full bg-blue-500/20 flex-shrink-0 flex items-center justify-center text-blue-500">
+                                <span class="material-symbols-outlined text-sm">person</span>
+                            </div>
+                            <div class="bg-white dark:bg-card-dark border border-gray-100 dark:border-white/5 rounded-2xl rounded-bl-sm p-3 max-w-[80%] shadow-sm">
+                                <p class="text-sm text-gray-800 dark:text-gray-200">Hi, I have picked up the shipment and am en route. Traffic is light so I should arrive close to the ETA.</p>
+                                <div class="text-[9px] text-gray-400 mt-1 text-right">10:45 AM</div>
+                            </div>
+                        </div>
+
+                        <!-- User Messages -->
+                        <div v-for="(msg, idx) in chatMessages" :key="idx" class="flex justify-end items-end gap-2">
+                            <div class="bg-blue-600 rounded-2xl rounded-br-sm p-3 max-w-[80%] shadow-sm text-white">
+                                <p class="text-sm">{{ msg.text }}</p>
+                                <div class="text-[9px] text-blue-200 mt-1 flex justify-end items-center gap-1">
+                                    {{ msg.time }}
+                                    <span class="material-symbols-outlined text-[10px]">done_all</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="p-3 bg-white dark:bg-card-dark border-t border-gray-200 dark:border-white/10">
+                        <form @submit.prevent="sendChatMessage" class="flex items-center gap-2 relative">
+                            <input type="file" ref="fileInput" class="hidden" @change="handleFileUpload" accept="image/*,.pdf,.doc,.docx" />
+                            <button type="button" @click="$refs.fileInput.click()" class="p-2 text-gray-400 hover:text-blue-500 transition-colors tooltip-trigger relative group">
+                                <span class="material-symbols-outlined text-[20px]">attach_file</span>
+                                <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 font-bold pointer-events-none">Attach File</div>
+                            </button>
+                            <input v-model="newChatMessage" type="text" placeholder="Type your message..." 
+                                class="flex-1 bg-gray-100 dark:bg-black/20 border border-transparent rounded-full px-4 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-card-dark focus:border-blue-500 transition-all">
+                            <button type="submit" :disabled="!newChatMessage.trim()"
+                                class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span class="material-symbols-outlined text-[18px]">send</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <template #footer>
+                    <!-- Replacing default footer to ensure clean edge with the chat input box -->
+                    <span class="hidden"></span>
+                </template>
+            </BaseModal>
+        </Teleport>
+
     </div>
-    
-    </div>
+</div>
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { useVendorStore } from '@/stores/vendorStore'
 import BaseModal from '@/components/BaseModal.vue'
+
+// Chart.js Imports
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js'
+import { Bar, Line } from 'vue-chartjs'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
 
 const store = useVendorStore()
 const selected = ref(null)
@@ -744,11 +905,186 @@ const statusFilter = ref('all')
 const showAddressModal = ref(false)
 const showRescheduleModal = ref(false)
 const showDamageModal = ref(false)
+const showSupportModal = ref(false)
+const showCallModal = ref(false)
+const showChatModal = ref(false)
 const newAddress = ref('')
 const newDate = ref('')
 const rescheduleReason = ref('')
+const supportMessage = ref('')
+const newChatMessage = ref('')
+const chatMessages = ref([])
+const fileInput = ref(null)
 const damageForm = reactive({ severity: 'Medium', description: '' })
 const globalTab = ref('map')
+const detailTab = ref('overview')
+
+// Mock Tracking Logs
+const trackingLogs = computed(() => {
+    if (!selected.value) return []
+    // Generate dynamic logs based on the selected order's status history
+    const logs = []
+    const dates = ['Today', 'Yesterday', '2 Days Ago', '3 Days Ago']
+    
+    // Add a current active location log
+    logs.push({
+        action: 'In Transit - En Route',
+        location: `Moving towards ${selected.value.destination}`,
+        date: dates[0],
+        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        note: `Current speed: 55 mph. ETA remains ${selected.value.eta}.`
+    })
+
+    if (selected.value.statusHistory) {
+        selected.value.statusHistory.slice().reverse().forEach((step, idx) => {
+            logs.push({
+                action: step.status,
+                location: idx === selected.value.statusHistory.length - 1 ? selected.value.origin : `Hub Facility #${100 + idx}`,
+                date: dates[Math.min(idx, dates.length - 1)],
+                time: step.time,
+                note: idx === 1 ? 'Driver stopped for mandatory rest period. Journey to resume shortly.' : null
+            })
+        })
+    }
+    return logs
+})
+
+// Driver actions
+function sendChatMessage() {
+    if (!newChatMessage.value.trim()) return
+    chatMessages.value.push({
+        text: newChatMessage.value,
+        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    })
+    newChatMessage.value = ''
+    
+    // Auto reply mock
+    setTimeout(() => {
+        showToast('Driver received your message')
+    }, 1500)
+}
+
+function handleFileUpload(event) {
+    const file = event.target.files[0]
+    if (!file) return
+    
+    // Create a mock chat message with the file
+    chatMessages.value.push({
+        text: `📎 Attached: ${file.name}`,
+        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    })
+    
+    // Reset file input
+    event.target.value = ''
+    showToast('File attached successfully')
+}
+
+function submitSupport() {
+    if (!selected.value || !supportMessage.value.trim()) return
+    store.addTicket({
+        subject: `Support needed for ${selected.value.id}`,
+        description: supportMessage.value,
+        orderId: selected.value.id,
+        priority: 'Medium'
+    })
+    showSupportModal.value = false
+    supportMessage.value = ''
+    showToast('Support ticket created successfully')
+}
+
+// Analytics Charts (Chart.js)
+const primaryColor = '#3b82f6' // blue-500
+
+const spendChartData = computed(() => {
+  const months = store.analyticsData.monthly.map(m => m.month)
+  const spends = store.analyticsData.monthly.map(m => m.spend)
+  return {
+    labels: months,
+    datasets: [{
+      label: 'Monthly Spend (₹)',
+      data: spends,
+      backgroundColor: primaryColor + '40', // 25% opacity
+      borderColor: primaryColor,
+      borderWidth: 2,
+      borderRadius: 4,
+      hoverBackgroundColor: primaryColor + '80'
+    }]
+  }
+})
+
+const spendChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#1f2937',
+      padding: 10,
+      cornerRadius: 4,
+      displayColors: false,
+      callbacks: {
+        label: (context) => `₹${context.raw.toLocaleString()}`
+      }
+    }
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      grid: { color: 'rgba(156, 163, 175, 0.1)' },
+      ticks: {
+        callback: (value) => '₹' + (value / 1000) + 'k',
+        font: { size: 10 }
+      }
+    },
+    x: {
+      grid: { display: false },
+      ticks: { font: { size: 10 } }
+    }
+  }
+}
+
+const volumeChartData = computed(() => {
+  return {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [{
+        label: 'Daily Orders',
+        data: [12, 18, 9, 24, 27, 6, 3],
+        borderColor: primaryColor,
+        backgroundColor: primaryColor + '20',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#ffffff',
+        pointBorderColor: primaryColor,
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+    }]
+  }
+})
+
+const volumeChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            backgroundColor: '#1f2937',
+            padding: 10,
+            displayColors: false
+        }
+    },
+    scales: {
+        y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(156, 163, 175, 0.1)' },
+            ticks: { font: { size: 10 } }
+        },
+        x: {
+            grid: { display: false },
+            ticks: { font: { size: 10 } }
+        }
+    }
+}
 
 const filteredShipments = computed(() => {
     let list = store.shipments
@@ -811,9 +1147,11 @@ function submitDamage() {
 
 function showToast(msg) {
     const t = document.createElement('div')
-    t.className = 'fixed top-4 right-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
+    t.className = 'fixed right-4 bottom-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
     t.textContent = msg
     document.body.appendChild(t)
     setTimeout(() => t.remove(), 3000)
 }
+
+
 </script>
