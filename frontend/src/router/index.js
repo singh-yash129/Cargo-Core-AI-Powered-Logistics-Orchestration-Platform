@@ -77,6 +77,9 @@ const router = createRouter({
         { path: '/individual/payments', component: () => import('../IV-views/Individual/Payments.vue'), meta: { requiresAuth: true, layout: 'individual' } },
         { path: '/individual/support', component: () => import('../IV-views/Individual/Support.vue'), meta: { requiresAuth: true, layout: 'individual' } },
         { path: '/individual/profile', component: () => import('../IV-views/Individual/Profile.vue'), meta: { requiresAuth: true, layout: 'individual' } },
+        { path: '/individual/tracking', component: () => import('../IV-views/Individual/Tracking.vue'), meta: { requiresAuth: true, layout: 'individual' } },
+        { path: '/individual/damage-report', component: () => import('../IV-views/Individual/DamageReport.vue'), meta: { requiresAuth: true, layout: 'individual' } },
+        { path: '/individual/settings', component: () => import('../IV-views/Individual/Settings.vue'), meta: { requiresAuth: true, layout: 'individual' } },
 
         // Vendor Routes
         { path: '/vendor/dashboard', component: () => import('../IV-views/Vendor/Dashboard.vue'), meta: { requiresAuth: true, layout: 'vendor' } },

@@ -1,93 +1,160 @@
 <template>
     <div class="space-y-6">
-        <h2 class="text-2xl font-bold text-white">Payments & Wallet</h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Wallet Card -->
-            <div
-                class="glass-panel p-6 rounded-xl bg-gradient-to-br from-blue-900/40 to-black relative overflow-hidden">
-                <div class="absolute right-0 top-0 p-6 opacity-10"><span
-                        class="material-symbols-outlined text-8xl">account_balance_wallet</span></div>
-                <div class="relative z-10">
-                    <div class="text-gray-400 mb-1">Total Credits</div>
-                    <div class="text-4xl font-bold text-white mb-6">$150.00</div>
-
-                    <div class="flex gap-4">
-                        <button
-                            class="flex-1 bg-white/10 hover:bg-white/20 py-2 rounded-lg text-white font-bold transition-colors">+
-                            Add Funds</button>
-                        <button
-                            class="flex-1 bg-white/10 hover:bg-white/20 py-2 rounded-lg text-white font-bold transition-colors">Gift
-                            Card</button>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Payments</h2>
+            <div class="flex gap-3">
+                <div class="glass-panel px-4 py-2 rounded-lg text-center">
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Total Paid</div>
+                    <div class="text-lg font-bold text-green-600 dark:text-green-400">₹{{ totalPaid.toLocaleString() }}
                     </div>
                 </div>
+                <div class="glass-panel px-4 py-2 rounded-lg text-center">
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Pending</div>
+                    <div class="text-lg font-bold text-amber-500">₹{{ pendingAmount.toLocaleString() }}</div>
+                </div>
             </div>
+        </div>
 
-            <!-- Payment Methods -->
-            <div class="glass-panel p-6 rounded-xl">
-                <h3 class="font-bold text-white mb-4">Saved Cards</h3>
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between p-3 border border-white/10 rounded-lg bg-white/5">
-                        <div class="flex items-center gap-3">
-                            <span class="material-symbols-outlined text-white">credit_card</span>
-                            <div>
-                                <div class="text-white text-sm font-bold">ViSA •••• 4242</div>
-                                <div class="text-xs text-gray-400">Expires 12/26</div>
-                            </div>
-                        </div>
-                        <button class="text-gray-400 hover:text-white"><span
-                                class="material-symbols-outlined">delete</span></button>
+        <!-- Payment History -->
+        <div class="glass-panel rounded-xl overflow-hidden">
+            <div class="p-4 sm:p-5 border-b border-gray-200 dark:border-white/5">
+                <h3 class="font-bold text-gray-900 dark:text-white">Payment History</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr
+                            class="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-white/5">
+                            <th class="py-3 px-5 font-medium">Payment ID</th>
+                            <th class="py-3 px-5 font-medium">Order</th>
+                            <th class="py-3 px-5 font-medium hidden sm:table-cell">Mode</th>
+                            <th class="py-3 px-5 font-medium">Amount</th>
+                            <th class="py-3 px-5 font-medium">Status</th>
+                            <th class="py-3 px-5 font-medium text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="p in store.payments" :key="p.id"
+                            class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <td class="py-3 px-5 font-mono font-bold text-gray-700 dark:text-gray-300">{{ p.id }}</td>
+                            <td class="py-3 px-5 font-mono text-green-600 dark:text-green-400 font-bold">{{ p.orderId }}
+                            </td>
+                            <td class="py-3 px-5 text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+                                <span class="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-white/10">{{
+                                    p.mode }}</span>
+                            </td>
+                            <td class="py-3 px-5 font-bold text-gray-900 dark:text-white font-mono">₹{{
+                                p.amount.toLocaleString() }}</td>
+                            <td class="py-3 px-5">
+                                <span
+                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">{{
+                                    p.status }}</span>
+                            </td>
+                            <td class="py-3 px-5 text-right">
+                                <button @click="viewDetail(p)"
+                                    class="text-green-600 dark:text-green-400 text-xs font-bold hover:underline">View</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pending Payments -->
+        <div v-if="pendingPayments.length > 0" class="glass-panel p-4 sm:p-5 rounded-xl">
+            <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-amber-500">pending</span> Pending Payments
+            </h3>
+            <div class="space-y-3">
+                <div v-for="order in pendingPayments" :key="order.id"
+                    class="flex items-center justify-between p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+                    <div>
+                        <span class="font-mono font-bold text-gray-900 dark:text-white">{{ order.id }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">₹{{
+                            order.cost.total.toLocaleString() }}</span>
                     </div>
-                    <div class="flex items-center justify-between p-3 border border-white/10 rounded-lg bg-white/5">
-                        <div class="flex items-center gap-3">
-                            <span class="material-symbols-outlined text-white">credit_card</span>
-                            <div>
-                                <div class="text-white text-sm font-bold">MasterCard •••• 8821</div>
-                                <div class="text-xs text-gray-400">Expires 09/25</div>
-                            </div>
+                    <button @click="payNow(order)"
+                        class="px-4 py-1.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors">Pay
+                        Now</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Detail Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="detailModal.show" @close="detailModal.show = false">
+                <template #title>Payment Details</template>
+                <div class="space-y-4" v-if="detailModal.payment">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                            <div class="text-xs text-gray-500">Payment ID</div>
+                            <div class="font-mono font-bold text-sm text-gray-900 dark:text-white">{{
+                                detailModal.payment.id }}</div>
                         </div>
-                        <button class="text-gray-400 hover:text-white"><span
-                                class="material-symbols-outlined">delete</span></button>
+                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                            <div class="text-xs text-gray-500">Order</div>
+                            <div class="font-mono font-bold text-sm text-green-600 dark:text-green-400">{{
+                                detailModal.payment.orderId
+                                }}</div>
+                        </div>
+                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                            <div class="text-xs text-gray-500">Amount</div>
+                            <div class="font-bold text-sm text-gray-900 dark:text-white">₹{{
+                                detailModal.payment.amount.toLocaleString()
+                                }}</div>
+                        </div>
+                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                            <div class="text-xs text-gray-500">Mode</div>
+                            <div class="font-medium text-sm text-gray-900 dark:text-white">{{ detailModal.payment.mode
+                                }}</div>
+                        </div>
                     </div>
                     <button
-                        class="w-full py-2 border border-dashed border-white/20 text-gray-400 rounded-lg hover:text-white hover:border-white/40 transition-colors text-sm">+
-                        Add New Card</button>
+                        class="w-full py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-sm">download</span> Download Invoice
+                    </button>
                 </div>
-            </div>
-        </div>
+                <template #footer>
+                    <button @click="detailModal.show = false"
+                        class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">Close</button>
+                </template>
+            </BaseModal>
+        </Teleport>
 
-        <!-- Transaction History -->
-        <div class="glass-panel rounded-xl overflow-hidden overflow-x-auto">
-            <div class="p-6 border-b border-white/5 min-w-[600px]">
-                <h3 class="font-bold text-white">Recent Transactions</h3>
-            </div>
-            <table class="w-full text-left text-sm min-w-[600px]">
-                <thead class="bg-white/5 text-gray-400 uppercase">
-                    <tr>
-                        <th class="p-4">Date</th>
-                        <th class="p-4">Description</th>
-                        <th class="p-4">Amount</th>
-                        <th class="p-4">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-white/5">
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="p-4 text-gray-400">Oct 24, 2024</td>
-                        <td class="p-4 text-white">Order #MV-8821 Payment</td>
-                        <td class="p-4 text-white font-bold">-$150.00</td>
-                        <td class="p-4 text-green-400">Success</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="p-4 text-gray-400">Oct 01, 2024</td>
-                        <td class="p-4 text-white">Wallet Top-up</td>
-                        <td class="p-4 text-green-400 font-bold">+$50.00</td>
-                        <td class="p-4 text-green-400">Success</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <!-- Toast -->
+        <Teleport to="body">
+            <transition enter-active-class="transition duration-300 ease-out" enter-from-class="translate-y-4 opacity-0"
+                enter-to-class="translate-y-0 opacity-100" leave-active-class="transition duration-200 ease-in"
+                leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-4 opacity-0">
+                <div v-if="toast.show"
+                    class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-xl bg-green-600 text-white border border-green-500 max-w-sm">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    <span class="text-sm font-medium">{{ toast.message }}</span>
+                </div>
+            </transition>
+        </Teleport>
     </div>
 </template>
 
 <script setup>
+import { computed, reactive } from 'vue'
+import { useIndividualStore } from '@/stores/individualStore'
+import BaseModal from '@/components/BaseModal.vue'
+
+const store = useIndividualStore()
+
+const totalPaid = computed(() => store.payments.filter(p => p.status === 'completed').reduce((s, p) => s + p.amount, 0))
+const pendingAmount = computed(() => store.orders.filter(o => o.paymentStatus === 'pending').reduce((s, o) => s + o.cost.total, 0))
+const pendingPayments = computed(() => store.orders.filter(o => o.paymentStatus === 'pending'))
+
+const detailModal = reactive({ show: false, payment: null })
+function viewDetail(p) { detailModal.payment = p; detailModal.show = true }
+
+function payNow(order) {
+    store.makePayment(order.id, order.cost.total, 'UPI')
+    showToast(`₹${order.cost.total.toLocaleString()} paid for ${order.id}!`)
+}
+
+const toast = reactive({ show: false, message: '' })
+function showToast(msg) { toast.show = true; toast.message = msg; setTimeout(() => { toast.show = false }, 3000) }
 </script>

@@ -1,70 +1,92 @@
 <template>
     <div class="space-y-6">
-        <h2 class="text-2xl font-bold text-white">My Quotes</h2>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">My Quotes</h2>
+            <router-link to="/individual/book-move"
+                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">
+                <span class="material-symbols-outlined text-sm">add</span> New Quote
+            </router-link>
+        </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div v-for="quote in quotes" :key="quote.id"
-                class="glass-panel p-6 rounded-xl border border-white/5 hover:border-primary/50 transition-colors group relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <span class="material-symbols-outlined text-8xl">format_quote</span>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div v-for="q in store.quotes" :key="q.id" class="glass-panel p-5 rounded-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="font-mono font-bold text-green-600 dark:text-green-400">{{ q.id }}</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" :class="{
+                        'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400': q.status === 'active',
+                        'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400': q.status === 'expired',
+                        'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400': q.status === 'converted',
+                    }">{{ q.status }}</span>
                 </div>
 
-                <div class="flex justify-between items-start mb-4">
+                <div class="space-y-2 text-sm mb-4">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Cargo Type</span>
+                        <span class="text-gray-900 dark:text-white font-medium">{{ q.cargoType }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Route</span>
+                        <span class="text-gray-900 dark:text-white font-medium">{{ q.from }} → {{ q.to }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Helpers</span>
+                        <span class="text-gray-900 dark:text-white font-medium">{{ q.laborCount }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Packing</span>
+                        <span class="text-gray-900 dark:text-white font-medium">{{ q.packing ? 'Yes' : 'No' }}</span>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-200 dark:border-white/5 pt-3 flex justify-between items-center">
                     <div>
-                        <div class="text-sm text-gray-400 mb-1">Quote ID</div>
-                        <div class="font-mono font-bold text-white">{{ quote.id }}</div>
+                        <div class="text-xs text-gray-500">Estimated Total</div>
+                        <div class="text-xl font-bold text-green-600 dark:text-green-400">₹{{ q.total.toLocaleString()
+                            }}</div>
                     </div>
-                    <div class="text-right">
-                        <div class="text-sm text-gray-400 mb-1">Valid Until</div>
-                        <div class="text-white">{{ quote.expiry }}</div>
-                    </div>
+                    <button v-if="q.status === 'active'" @click="convertToOrder(q.id)"
+                        class="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors">
+                        Book Now
+                    </button>
                 </div>
-
-                <div class="border-y border-white/10 py-4 my-4 space-y-2">
-                    <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-gray-500 text-sm">grid_view</span>
-                        <span class="text-white">{{ quote.items }} Items</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-gray-500 text-sm">distance</span>
-                        <span class="text-white">{{ quote.distance }}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-gray-500 text-sm">group</span>
-                        <span class="text-white">{{ quote.labor }} Helpers</span>
-                    </div>
-                </div>
-
-                <div class="flex justify-between items-end">
-                    <div>
-                        <div class="text-sm text-gray-400">Total Estimate</div>
-                        <div class="text-2xl font-bold text-primary">{{ quote.price }}</div>
-                    </div>
-                    <button
-                        class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-6 rounded-lg transition-colors">Book
-                        Now</button>
-                </div>
-            </div>
-
-            <!-- Generate New Card -->
-            <div class="glass-panel p-6 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white/5 transition-colors min-h-[300px]"
-                @click="$router.push('/individual/book-move')">
-                <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                    <span class="material-symbols-outlined text-3xl text-gray-400">add</span>
-                </div>
-                <h3 class="font-bold text-white mb-2">Get New Quote</h3>
-                <p class="text-sm text-gray-400 max-w-xs">Answer a few questions to get an instant price estimate for
-                    your move.</p>
             </div>
         </div>
+
+        <div v-if="store.quotes.length === 0"
+            class="text-center py-16 text-gray-500 dark:text-gray-400 glass-panel rounded-xl">
+            <span class="material-symbols-outlined text-5xl mb-2 block">request_quote</span>
+            <p class="font-medium">No quotes yet.</p>
+            <router-link to="/individual/book-move"
+                class="text-green-600 dark:text-green-400 text-sm font-bold hover:underline mt-2 inline-block">Get a
+                Quote →</router-link>
+        </div>
+
+        <!-- Toast -->
+        <Teleport to="body">
+            <transition enter-active-class="transition duration-300 ease-out" enter-from-class="translate-y-4 opacity-0"
+                enter-to-class="translate-y-0 opacity-100" leave-active-class="transition duration-200 ease-in"
+                leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-4 opacity-0">
+                <div v-if="toast.show"
+                    class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-xl bg-green-600 text-white border border-green-500 max-w-sm">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    <span class="text-sm font-medium">{{ toast.message }}</span>
+                </div>
+            </transition>
+        </Teleport>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { reactive } from 'vue'
+import { useIndividualStore } from '@/stores/individualStore'
 
-const quotes = ref([
-    { id: 'QT-9921', expiry: 'Nov 12, 2024', items: '2 Bedroom Apt', distance: '15 km', labor: 2, price: '$245.00' },
-    { id: 'QT-9924', expiry: 'Nov 15, 2024', items: 'Sofa & Bed', distance: '5 km', labor: 1, price: '$85.00' },
-])
+const store = useIndividualStore()
+
+const toast = reactive({ show: false, message: '' })
+function showToast(msg) { toast.show = true; toast.message = msg; setTimeout(() => { toast.show = false }, 3000) }
+
+function convertToOrder(quoteId) {
+    const order = store.convertQuoteToOrder(quoteId)
+    if (order) showToast(`Order ${order.id} created from quote!`)
+}
 </script>
