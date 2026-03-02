@@ -57,12 +57,9 @@
                     </div>
 
                     <!-- Notifications -->
-                    <button
-                        class="relative p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
-                        <span class="material-symbols-outlined">notifications</span>
-                        <span
-                            class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">3</span>
-                    </button>
+                    <NotificationPopover :notifications="store.notifications"
+                        :unread-count="store.unreadNotificationsCount" @mark-read="store.markNotificationRead"
+                        @mark-all-read="store.markAllNotificationsRead" @clear-all="store.clearNotifications" />
 
                     <!-- New Ticket Button -->
                     <router-link to="/ai/tickets"
@@ -85,7 +82,10 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AISidebar from '../Ai-components/AISidebar.vue'
+import NotificationPopover from '@/components/NotificationPopover.vue'
+import { useLogisticStore } from '@/stores/logisticStore'
 
+const store = useLogisticStore()
 const isSidebarOpen = ref(false)
 const route = useRoute()
 
