@@ -259,17 +259,7 @@
                                 </div>
                             </label>
                         </div>
-                        <!-- Dummy Payment Toggle -->
-                        <label
-                            class="flex items-center gap-3 p-3 rounded-lg border border-dashed border-amber-400 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/5 cursor-pointer">
-                            <input type="checkbox" v-model="form.isDummyPayment" class="accent-amber-500 w-4 h-4" />
-                            <div>
-                                <span class="text-sm text-amber-700 dark:text-amber-400 font-bold">🧪 Dummy Payment
-                                    (Test Mode)</span>
-                                <p class="text-xs text-amber-600/70 dark:text-amber-500/60">Simulated payment — no real
-                                    transaction</p>
-                            </div>
-                        </label>
+                        <!-- Dummy Payment removed -->
                     </div>
                 </template>
 
@@ -282,6 +272,28 @@
                         </h3>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Send books, documents, small boxes, or
                             parcels. Auto-scheduled pickup with estimated delivery.</p>
+                        
+                        <div class="mb-5">
+                            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Package Type</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <button v-for="type in pkgTypes" :key="type.name"
+                                    class="p-2.5 rounded-xl border transition-all flex flex-col items-center gap-1.5 group"
+                                    :class="pkg.packageType === type.name
+                                        ? 'bg-blue-500/10 border-blue-500 dark:bg-blue-500/10 dark:border-blue-500'
+                                        : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-blue-500/50'"
+                                    @click="pkg.packageType = type.name">
+                                    <span class="material-symbols-outlined text-xl sm:text-2xl"
+                                        :class="pkg.packageType === type.name ? 'text-blue-500' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-700 dark:group-hover:text-white'">
+                                        {{ type.icon }}
+                                    </span>
+                                    <span class="text-[11px] font-medium"
+                                        :class="pkg.packageType === type.name ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'">
+                                        {{ type.name }}
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">Package
@@ -366,16 +378,7 @@
                                 </div>
                             </label>
                         </div>
-                        <label
-                            class="flex items-center gap-3 p-3 rounded-lg border border-dashed border-amber-400 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/5 cursor-pointer">
-                            <input type="checkbox" v-model="form.isDummyPayment" class="accent-amber-500 w-4 h-4" />
-                            <div>
-                                <span class="text-sm text-amber-700 dark:text-amber-400 font-bold">🧪 Dummy Payment
-                                    (Test Mode)</span>
-                                <p class="text-xs text-amber-600/70 dark:text-amber-500/60">Simulated — no real
-                                    transaction</p>
-                            </div>
-                        </label>
+                        <!-- Dummy Payment removed -->
                     </div>
                 </template>
             </div>
@@ -450,16 +453,14 @@
                         </div>
                     </template>
 
-                    <div v-if="form.isDummyPayment"
-                        class="p-2 mb-3 bg-amber-100 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 rounded-lg text-center text-xs font-bold text-amber-700 dark:text-amber-400">
-                        🧪 TEST MODE — No Real Payment</div>
+                    <!-- Dummy Payment text removed -->
 
-                    <button @click="confirmBooking"
+                    <button @click="handleBookingClick"
                         class="w-full py-3 font-bold rounded-xl transition-colors text-lg mb-2 shadow-sm"
                         :class="moveType === 'house-shift' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'">
                         {{ moveType === 'house-shift' ? 'Confirm Booking' : 'Schedule Pickup' }}
                     </button>
-                    <button @click="saveQuote" v-if="moveType === 'house-shift'"
+                    <button @click="saveQuote"
                         class="w-full py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors mb-2">
                         Save as Quote
                     </button>
@@ -530,18 +531,60 @@
                                 form.laborCount : pkg.weight + ' kg' }}</div>
                         </div>
                     </div>
-                    <div v-if="form.isDummyPayment"
-                        class="p-2 bg-amber-100 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 rounded-lg text-center text-xs font-bold text-amber-700 dark:text-amber-400">
-                        🧪 DUMMY PAYMENT — Test Transaction</div>
+                    <!-- Dummy text removed -->
                 </div>
                 <template #footer>
                     <div class="flex gap-3 w-full">
                         <router-link to="/individual/orders"
                             class="flex-1 py-2 rounded-lg hover:opacity-90 transition text-sm font-bold text-center text-white"
-                            :class="moveType === 'house-shift' ? 'bg-green-600' : 'bg-blue-600'">View
-                            Orders</router-link>
+                            :class="moveType === 'house-shift' ? 'bg-green-600' : 'bg-blue-600'">View Orders</router-link>
                         <button @click="showConfirmModal = false"
                             class="flex-1 py-2 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white rounded-lg text-sm font-medium">Close</button>
+                    </div>
+                </template>
+            </BaseModal>
+        </Teleport>
+
+        <!-- Payment Processing Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="showPaymentModal" @close="showPaymentModal = false">
+                <template #title>Make Payment</template>
+                <div class="space-y-4">
+                    <div class="text-center py-4">
+                        <div class="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 mx-auto mb-3">
+                            <span class="material-symbols-outlined text-3xl">credit_card</span>
+                        </div>
+                        <p class="text-gray-700 dark:text-gray-300 text-sm">Please pay the required amount to confirm your booking.</p>
+                        <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2 font-mono hover:scale-105 transition-transform">
+                            ₹{{ (paymentAmount).toLocaleString() }}
+                        </div>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="material-symbols-outlined text-gray-500">receipt_long</span>
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">Order Summary</div>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Service</span>
+                                <span class="font-medium text-gray-900 dark:text-white">{{ moveType === 'house-shift' ? 'House Shift' : 'Small Package' }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Payment Mode</span>
+                                <span class="font-medium text-gray-900 dark:text-white">{{ form.paymentMode }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <template #footer>
+                    <div class="flex flex-col gap-3 w-full">
+                        <button @click="processPaymentAndConfirm" :disabled="isProcessingPayment"
+                            class="w-full py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+                            <span v-if="isProcessingPayment" class="material-symbols-outlined animate-spin text-sm">cycle</span>
+                            {{ isProcessingPayment ? 'Processing...' : 'Pay Securely' }}
+                        </button>
+                        <button @click="showPaymentModal = false" :disabled="isProcessingPayment"
+                            class="w-full py-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-sm font-medium">Cancel</button>
                     </div>
                 </template>
             </BaseModal>
@@ -564,12 +607,17 @@ const form = reactive({
     instructions: '', paymentMode: 'Full Payment', isDummyPayment: false,
 })
 
-const pkg = reactive({ description: '', weight: 2.5, preferredDate: '' })
+const pkg = reactive({ description: '', weight: 2.5, preferredDate: '', packageType: 'Document' })
 
 const cargoTypes = [
     { name: 'Household Goods', icon: 'chair' }, { name: 'Furniture', icon: 'table_restaurant' },
     { name: 'Luggage / Boxes', icon: 'package_2' }, { name: 'Fragile Items', icon: 'priority_high' },
     { name: 'Mixed Items', icon: 'category' },
+]
+
+const pkgTypes = [
+    { name: 'Document', icon: 'description' }, { name: 'Fragile Item', icon: 'wine_bar' },
+    { name: 'Soft Item', icon: 'checkroom' }, { name: 'Hard Item', icon: 'inventory_2' },
 ]
 
 const paymentModes = [
@@ -607,13 +655,39 @@ function showToast(message, type = 'success') { toast.show = true; toast.message
 const showConfirmModal = ref(false)
 const confirmedOrderId = ref('')
 
-function confirmBooking() {
+const showPaymentModal = ref(false)
+const isProcessingPayment = ref(false)
+
+const paymentAmount = computed(() => {
+    const total = moveType.value === 'house-shift' ? totalCost.value : pkgTotal.value
+    if (form.paymentMode === 'Partial') return Math.round(total / 2)
+    return total
+})
+
+function handleBookingClick() {
     if (!form.pickup || !form.destination) { showToast('Please fill pickup and destination.', 'error'); return }
     if (moveType.value === 'house-shift' && !form.date) { showToast('Please select a date.', 'error'); return }
     if (moveType.value === 'small-package' && !pkg.preferredDate) { showToast('Please select a pickup date.', 'error'); return }
 
+    if (form.paymentMode === 'COD') {
+        confirmBooking()
+    } else {
+        showPaymentModal.value = true
+    }
+}
+
+function processPaymentAndConfirm() {
+    isProcessingPayment.value = true
+    setTimeout(() => {
+        isProcessingPayment.value = false
+        showPaymentModal.value = false
+        confirmBooking()
+    }, 1500)
+}
+
+function confirmBooking() {
     const order = store.createOrder({
-        moveType: moveType.value, cargoType: moveType.value === 'house-shift' ? form.cargoType : 'Small Package',
+        moveType: moveType.value, cargoType: moveType.value === 'house-shift' ? form.cargoType : pkg.packageType,
         pickup: form.pickup, destination: form.destination,
         date: moveType.value === 'house-shift' ? form.date : pkg.preferredDate,
         timeWindow: moveType.value === 'house-shift' ? form.timeWindow : 'Auto-Scheduled',
@@ -622,17 +696,40 @@ function confirmBooking() {
         vehicleType: moveType.value === 'house-shift' ? form.vehicleType : 'mini-truck',
         materials: moveType.value === 'house-shift' ? { ...form.materials } : {},
         cost: moveType.value === 'house-shift' ? { ...quote.value } : { base: pkgBase.value, labor: 0, materials: 0, packing: 0, vehicle: 0, total: pkgTotal.value },
-        paymentMode: form.paymentMode, isDummyPayment: form.isDummyPayment,
+        paymentMode: form.paymentMode, isDummyPayment: false,
         preferredPickupDate: moveType.value === 'small-package' ? pkg.preferredDate : null,
         estimatedDelivery: moveType.value === 'small-package' ? estimatedDelivery.value : null,
+        paymentStatus: form.paymentMode === 'COD' ? 'pending' : (form.paymentMode === 'Partial' ? 'partial' : 'paid'),
     })
+    
+    // Add payment record if paid
+    if (form.paymentMode !== 'COD') {
+        store.payments.push({
+            id: 'PAY-' + Math.floor(1000 + Math.random() * 9000),
+            orderId: order.id,
+            amount: paymentAmount.value,
+            date: new Date().toLocaleDateString('en-IN'),
+            status: 'completed',
+            mode: 'Card / UPI',
+            isDummy: false
+        })
+    }
+    
     confirmedOrderId.value = order.id
     showConfirmModal.value = true
 }
 
 function saveQuote() {
-    store.addQuote({ cargoType: form.cargoType, from: form.pickup || 'Not specified', to: form.destination || 'Not specified', laborCount: form.laborCount, packing: form.packingRequired, total: totalCost.value })
-    showToast('Quote saved!')
+    const total = moveType.value === 'house-shift' ? totalCost.value : pkgTotal.value
+    store.addQuote({ 
+        cargoType: moveType.value === 'house-shift' ? form.cargoType : pkg.packageType, 
+        from: form.pickup || 'Not specified', 
+        to: form.destination || 'Not specified', 
+        laborCount: moveType.value === 'house-shift' ? form.laborCount : 0, 
+        packing: moveType.value === 'house-shift' ? form.packingRequired : false, 
+        total: total 
+    })
+    showToast('Quote saved successfully!')
 }
 
 function resetForm() {
@@ -640,7 +737,7 @@ function resetForm() {
     form.packingRequired = true; form.cargoType = 'Household Goods'; form.vehicleType = 'tempo'
     form.materials = { boxes: 10, bubbleWrap: 2, plasticCrates: 0, blankets: 4, wardrobeBoxes: 0, tape: 3 }
     form.instructions = ''; form.paymentMode = 'Full Payment'; form.isDummyPayment = false
-    pkg.description = ''; pkg.weight = 2.5; pkg.preferredDate = ''
-    showToast('Form reset.')
+    pkg.description = ''; pkg.weight = 2.5; pkg.preferredDate = ''; pkg.packageType = 'Document'
+    showToast('Form reset.', 'success')
 }
 </script>

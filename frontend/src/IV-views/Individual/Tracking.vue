@@ -4,6 +4,26 @@
             <span class="material-symbols-outlined text-green-500">gps_fixed</span> Real-Time Tracking
         </h2>
 
+        <!-- Active Orders Selector -->
+        <div v-if="displayOrders.length > 1" class="flex overflow-x-auto gap-4 pb-2 scrollbar-hide">
+            <button v-for="order in displayOrders" :key="order.id" @click="selectOrder(order.id)"
+                class="flex-none px-4 py-3 rounded-xl border transition-all text-left min-w-[240px]"
+                :class="selectedOrderId === order.id ? 'bg-green-50 dark:bg-green-900/20 border-green-500' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-green-500/50'">
+                <div class="flex justify-between items-center mb-1.5">
+                    <span class="font-bold text-sm font-mono"
+                        :class="selectedOrderId === order.id ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-white'">{{
+                            order.id }}</span>
+                    <span
+                        class="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 font-bold uppercase">{{
+                            order.status.replace('-', ' ') }}</span>
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]"><span
+                        class="font-medium">{{ order.cargoType }}</span></div>
+                <div class="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px] mt-0.5">{{
+                    order.pickup.split(',')[0] }} → {{ order.destination.split(',')[0] }}</div>
+            </button>
+        </div>
+
         <div v-if="activeMove" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Map Area -->
             <div class="lg:col-span-2 space-y-4">
@@ -39,7 +59,8 @@
                     </div>
                     <div class="p-4 border-t border-gray-200 dark:border-white/5">
                         <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
-                            <span>Pickup</span><span>In Transit</span><span>Delivered</span></div>
+                            <span>Pickup</span><span>In Transit</span><span>Delivered</span>
+                        </div>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
                             <div class="bg-green-500 h-full rounded-full transition-all duration-500"
                                 :style="{ width: activeMove.progress + '%' }"></div>
@@ -80,14 +101,14 @@
                     <h3 class="font-bold text-gray-900 dark:text-white mb-4 text-sm flex items-center gap-2">
                         <span class="material-symbols-outlined text-blue-500 text-lg">timeline</span> Transport Log
                     </h3>
-                    <div class="relative pl-6">
-                        <div class="absolute left-2.5 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-white/10"></div>
+                    <div class="relative pl-8">
+                        <div class="absolute left-[11px] top-2 bottom-0 w-[2px] bg-gray-200 dark:bg-white/10"></div>
                         <div v-for="(log, i) in activeMove.transportLog" :key="i" class="relative pb-5 last:pb-0">
-                            <div class="absolute -left-3.5 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px]"
+                            <div class="absolute -left-8 top-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px]"
                                 :style="{ backgroundColor: logColor(log.color) }">
                                 <span class="material-symbols-outlined text-[12px]">{{ log.icon }}</span>
                             </div>
-                            <div class="ml-4">
+                            <div class="ml-0">
                                 <div class="text-sm font-medium text-gray-900 dark:text-white">{{ log.event }}</div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ log.time }}</div>
                             </div>
@@ -140,7 +161,7 @@
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Order
                                 ID</span><span class="font-mono font-bold text-green-600 dark:text-green-400">{{
-                                activeMove.id }}</span></div>
+                                    activeMove.id }}</span></div>
                         <div class="flex justify-between"><span
                                 class="text-gray-500 dark:text-gray-400">Vehicle</span><span
                                 class="text-gray-900 dark:text-white font-medium uppercase">{{ activeMove.vehicleType
@@ -151,7 +172,7 @@
                         </div>
                         <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Service
                                 Block</span><span class="text-purple-600 dark:text-purple-400 font-medium">{{
-                                activeMove.serviceTimeBlock }}</span></div>
+                                    activeMove.serviceTimeBlock }}</span></div>
                         <div class="flex justify-between"><span
                                 class="text-gray-500 dark:text-gray-400">Helpers</span><span
                                 class="text-gray-900 dark:text-white font-medium">{{ activeMove.laborCount }}
@@ -212,11 +233,43 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useIndividualStore } from '@/stores/individualStore'
 
+const route = useRoute()
+const router = useRouter()
 const store = useIndividualStore()
-const activeMove = computed(() => store.activeOrders[0])
+
+const allOrders = computed(() => store.orders)
+
+const displayOrders = computed(() => {
+    if (route.query.orderId) {
+        return allOrders.value.filter(o => o.id === route.query.orderId)
+    }
+    return allOrders.value
+})
+
+const selectedOrderId = ref(route.query.orderId || (allOrders.value.length > 0 ? allOrders.value[0].id : null))
+
+watch(() => route.query.orderId, (newId) => {
+    if (newId) {
+        selectedOrderId.value = newId
+    } else if (!selectedOrderId.value && allOrders.value.length > 0) {
+        selectedOrderId.value = allOrders.value[0].id
+    }
+}, { immediate: true })
+
+const activeMove = computed(() => {
+    return allOrders.value.find(o => o.id === selectedOrderId.value) || allOrders.value[0] || null
+})
+
+function selectOrder(id) {
+    selectedOrderId.value = id
+    // We don't push the route query here if they are in 'all orders' mode
+    // because doing so would filter the list down to 1 item inside displayOrders.
+    // So we just update the local state.
+}
 const geofenceAlert = ref(false)
 
 function toggleGeofence() { geofenceAlert.value = !geofenceAlert.value }

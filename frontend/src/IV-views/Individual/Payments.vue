@@ -46,9 +46,9 @@
                             <td class="py-3 px-5 font-bold text-gray-900 dark:text-white font-mono">₹{{
                                 p.amount.toLocaleString() }}</td>
                             <td class="py-3 px-5">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
-                                    :class="p.isDummy ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'">
-                                    {{ p.isDummy ? '🧪 Simulated' : p.status }}
+                                <span
+                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">
+                                    {{ p.status }}
                                 </span>
                             </td>
                             <td class="py-3 px-5 text-right">
@@ -74,15 +74,9 @@
                         <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">₹{{
                             order.cost.total.toLocaleString() }}</span>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" v-model="dummyMode" class="accent-amber-500 w-3.5 h-3.5" />
-                            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-bold">🧪 Test</span>
-                        </label>
-                        <button @click="payNow(order)"
-                            class="px-4 py-1.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors">Pay
-                            Now</button>
-                    </div>
+                    <button @click="initiatePayment(order)"
+                        class="px-4 py-1.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors">Pay
+                        Now</button>
                 </div>
             </div>
         </div>
@@ -128,6 +122,40 @@
             </BaseModal>
         </Teleport>
 
+        <!-- Payment Processing Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="showPaymentModal" @close="showPaymentModal = false">
+                <template #title>Make Payment</template>
+                <div class="space-y-4" v-if="selectedOrder">
+                    <div class="text-center py-4">
+                        <div
+                            class="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 mx-auto mb-3">
+                            <span class="material-symbols-outlined text-3xl">credit_card</span>
+                        </div>
+                        <p class="text-gray-700 dark:text-gray-300 text-sm">Please pay the required amount to confirm
+                            your
+                            order.</p>
+                        <div
+                            class="text-3xl font-bold text-gray-900 dark:text-white mt-2 font-mono hover:scale-105 transition-transform">
+                            ₹{{ selectedOrder.cost.total.toLocaleString() }}
+                        </div>
+                    </div>
+                </div>
+                <template #footer>
+                    <div class="flex flex-col gap-3 w-full">
+                        <button @click="processPaymentAndConfirm" :disabled="isProcessingPayment"
+                            class="w-full py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+                            <span v-if="isProcessingPayment"
+                                class="material-symbols-outlined animate-spin text-sm">cycle</span>
+                            {{ isProcessingPayment ? 'Processing...' : 'Pay Securely' }}
+                        </button>
+                        <button @click="showPaymentModal = false" :disabled="isProcessingPayment"
+                            class="w-full py-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-sm font-medium">Cancel</button>
+                    </div>
+                </template>
+            </BaseModal>
+        </Teleport>
+
         <!-- Toast -->
         <Teleport to="body">
             <transition enter-active-class="transition duration-300 ease-out" enter-from-class="translate-y-4 opacity-0"
@@ -157,11 +185,23 @@ const pendingPayments = computed(() => store.orders.filter(o => o.paymentStatus 
 const detailModal = reactive({ show: false, payment: null })
 function viewDetail(p) { detailModal.payment = p; detailModal.show = true }
 
-const dummyMode = ref(false)
+const showPaymentModal = ref(false)
+const isProcessingPayment = ref(false)
+const selectedOrder = ref(null)
 
-function payNow(order) {
-    store.makePayment(order.id, order.cost.total, dummyMode.value ? 'DUMMY (Test)' : 'UPI', dummyMode.value)
-    showToast(dummyMode.value ? `🧪 Test payment for ${order.id}` : `₹${order.cost.total.toLocaleString()} paid for ${order.id}!`)
+function initiatePayment(order) {
+    selectedOrder.value = order
+    showPaymentModal.value = true
+}
+
+function processPaymentAndConfirm() {
+    isProcessingPayment.value = true
+    setTimeout(() => {
+        isProcessingPayment.value = false
+        showPaymentModal.value = false
+        store.makePayment(selectedOrder.value.id, selectedOrder.value.cost.total, 'Card / UPI', false)
+        showToast(`₹${selectedOrder.value.cost.total.toLocaleString()} paid for ${selectedOrder.value.id}!`)
+    }, 1500)
 }
 
 const toast = reactive({ show: false, message: '' })

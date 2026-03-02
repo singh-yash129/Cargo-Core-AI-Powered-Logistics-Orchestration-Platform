@@ -50,7 +50,7 @@
                         <div
                             class="absolute bottom-2 left-2 px-3 py-1 bg-white/90 dark:bg-black/80 backdrop-blur-sm text-xs font-bold rounded-lg text-green-600 dark:text-green-400">
                             ETA: {{ activeMove.eta }}</div>
-                        <router-link to="/individual/tracking"
+                        <router-link :to="'/individual/tracking?orderId=' + activeMove.id"
                             class="absolute bottom-2 right-2 px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors">Track
                             Live</router-link>
                     </div>
@@ -70,7 +70,7 @@
                                 {{activeMove.driver.name.split(' ').map(n => n[0]).join('')}}</div>
                             <div>
                                 <div class="font-bold text-gray-900 dark:text-white text-sm">{{ activeMove.driver.name
-                                    }}</div>
+                                }}</div>
                                 <div class="text-xs text-gray-500">Driver ({{ activeMove.driver.rating }} ★) · {{
                                     activeMove.vehicleType?.toUpperCase() }}</div>
                             </div>
@@ -87,7 +87,7 @@
                                     }}</span></div>
                             <div><span class="text-gray-500">Service Block:</span> <span
                                     class="text-purple-600 dark:text-purple-400 font-bold">{{
-                                    activeMove.serviceTimeBlock }}</span></div>
+                                        activeMove.serviceTimeBlock }}</span></div>
                         </div>
                     </div>
                 </div>
@@ -101,9 +101,9 @@
                                 activeMove.cost.base.toLocaleString() }}</span></div>
                     <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Vehicle</span><span
                             class="font-bold text-gray-900 dark:text-white font-mono">₹{{ (activeMove.cost.vehicle ||
-                            0).toLocaleString() }}</span></div>
+                                0).toLocaleString() }}</span></div>
                     <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Labor (×{{
-                            activeMove.laborCount }})</span><span
+                        activeMove.laborCount }})</span><span
                             class="font-bold text-gray-900 dark:text-white font-mono">₹{{
                                 activeMove.cost.labor.toLocaleString() }}</span></div>
                     <div class="flex justify-between"><span
@@ -118,13 +118,7 @@
                             class="text-2xl font-bold text-green-600 dark:text-green-400 font-mono">₹{{
                                 activeMove.cost.total.toLocaleString() }}</span></div>
                 </div>
-                <div class="flex items-center gap-2 mt-4 text-sm"
-                    :class="activeMove.isDummyPayment ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'">
-                    <span class="material-symbols-outlined text-lg">{{ activeMove.isDummyPayment ? 'science' :
-                        'verified' }}</span>
-                    <span class="font-medium">{{ activeMove.isDummyPayment ? '🧪 Test Payment' : 'Payment Verified'
-                        }}</span>
-                </div>
+                <!-- Dummy badge removed -->
                 <router-link to="/individual/payments"
                     class="block w-full py-2 mt-3 text-center border border-gray-200 dark:border-white/10 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors">View
                     Payments</router-link>

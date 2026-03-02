@@ -41,9 +41,6 @@
                                     :class="statusBadge(order.status)">{{ order.status.replace('-', ' ') }}</span>
                                 <span v-if="order.moveType === 'small-package'"
                                     class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400">Package</span>
-                                <span v-if="order.isDummyPayment"
-                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400">🧪
-                                    TEST</span>
                             </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ order.cargoType }}
                                 · {{ order.vehicleType?.toUpperCase() || '' }} · {{ order.date }}</div>
@@ -129,13 +126,13 @@
                                     <div class="flex gap-4 text-xs">
                                         <div><span class="text-gray-500">Loading:</span> <span
                                                 class="font-bold text-gray-900 dark:text-white">{{
-                                                order.dwellTime.loading }} min</span></div>
+                                                    order.dwellTime.loading }} min</span></div>
                                         <div><span class="text-gray-500">Unloading:</span> <span
                                                 class="font-bold text-gray-900 dark:text-white">{{
-                                                order.dwellTime.unloading }} min</span></div>
+                                                    order.dwellTime.unloading }} min</span></div>
                                         <div><span class="text-gray-500">Total Dwell:</span> <span
                                                 class="font-bold text-purple-600 dark:text-purple-400">{{
-                                                order.dwellTime.total }} min</span></div>
+                                                    order.dwellTime.total }} min</span></div>
                                     </div>
                                 </div>
                                 <!-- Driver -->
@@ -165,23 +162,24 @@
                                         }}</div>
                                     <div class="text-xs text-gray-500 mt-1">Cancellation Fee: <span
                                             class="font-bold text-gray-900 dark:text-white">₹{{
-                                            order.cancellation.fee.toLocaleString() }}</span></div>
+                                                order.cancellation.fee.toLocaleString() }}</span></div>
                                 </div>
                             </template>
 
                             <!-- Transport Log Tab -->
                             <template v-if="(activeTab[order.id] || 'Details') === 'Transport Log'">
-                                <div class="relative pl-6">
-                                    <div class="absolute left-2.5 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-white/10">
+                                <div class="relative pl-8">
+                                    <div
+                                        class="absolute left-[11px] top-2 bottom-0 w-[2px] bg-gray-200 dark:bg-white/10">
                                     </div>
                                     <div v-for="(log, i) in order.transportLog" :key="i"
                                         class="relative pb-5 last:pb-0">
-                                        <div class="absolute -left-3.5 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px]"
+                                        <div class="absolute -left-8 top-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px]"
                                             :class="`bg-${log.color}-500`"
                                             :style="{ backgroundColor: logColor(log.color) }">
                                             <span class="material-symbols-outlined text-[12px]">{{ log.icon }}</span>
                                         </div>
-                                        <div class="ml-4">
+                                        <div class="ml-0">
                                             <div class="text-sm font-medium text-gray-900 dark:text-white">{{ log.event
                                                 }}</div>
                                             <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ log.time
@@ -203,7 +201,8 @@
                                         <div>
                                             <div class="text-sm font-medium text-gray-900 dark:text-white capitalize">{{
                                                 key.replace(/([A-Z])/g, ' $1') }}</div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ val || 'Not captured yet' }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ val || 'Not captured yet' }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -214,7 +213,8 @@
 
                             <!-- Actions -->
                             <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-200 dark:border-white/5">
-                                <router-link v-if="order.status === 'in-transit'" to="/individual/tracking"
+                                <router-link v-if="order.status === 'in-transit'"
+                                    :to="'/individual/tracking?orderId=' + order.id"
                                     class="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-sm">gps_fixed</span> Track
                                 </router-link>
@@ -277,7 +277,7 @@
                             <div class="text-red-600 dark:text-red-400 font-bold">⚠️ Cancellation fee applies</div>
                             <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
                                 Status: <span class="font-bold">{{ cancelModal.order.status }}</span> · Progress: {{
-                                cancelModal.order.progress }}%
+                                    cancelModal.order.progress }}%
                             </div>
                             <div class="text-lg font-bold text-red-600 dark:text-red-400 mt-2">Fee: ₹{{
                                 estimatedCancelFee.toLocaleString() }}</div>
