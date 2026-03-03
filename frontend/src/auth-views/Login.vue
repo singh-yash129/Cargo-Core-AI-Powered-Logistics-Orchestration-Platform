@@ -74,7 +74,7 @@
             <div class="field-group">
                 <div class="label-row">
                     <label for="login-password" class="field-label">Password</label>
-                    <a href="#" class="forgot-link" tabindex="0">Forgot password?</a>
+                    <router-link to="/forgot-password" class="forgot-link">Forgot password?</router-link>
                 </div>
                 <div class="input-wrap" :class="{ 'input-error': errors.password }">
                     <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">

@@ -1,6 +1,6 @@
 <template>
     <div
-        class="fixed inset-0 overflow-hidden flex items-center justify-center p-6 bg-surface-light dark:bg-background-dark text-gray-900 dark:text-white">
+        class="fixed inset-0 overflow-hidden flex items-center justify-center p-6 text-white" style="background:#000;">
         <!-- Decorative background elements -->
         <div class="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center opacity-20">
             <div class="w-[800px] h-[800px] bg-primary/30 rounded-full blur-[120px] absolute -top-40 -left-60"></div>
@@ -18,7 +18,7 @@
                 Shipment Not Found
             </h1>
 
-            <p class="text-lg text-gray-500 dark:text-gray-400 mb-2 max-w-md mx-auto">
+            <p class="text-lg mb-2 max-w-md mx-auto" style="color:rgba(255,255,255,0.45);">
                 Oops! It looks like this shipment has gone off the radar. The page you are looking for is not in our
                 logistics network.
             </p>
@@ -125,7 +125,8 @@
 
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <button @click="goBack"
-                    class="w-full sm:w-auto px-6 py-3 rounded-xl font-medium bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors flex items-center justify-center gap-2">
+                    class="w-full sm:w-auto px-6 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                    style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;">
                     <span class="material-symbols-outlined">arrow_back</span>
                     Go Back
                 </button>
@@ -145,7 +146,11 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const goBack = () => {
-    router.back()
+    if (window.history.length > 1) {
+        router.back()
+    } else {
+        router.push('/')
+    }
 }
 
 const goHome = () => {

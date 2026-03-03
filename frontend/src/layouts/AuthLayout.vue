@@ -15,9 +15,9 @@
         </div>
       </div>
       <nav class="auth-nav">
-        <a href="#" class="nav-link">Home</a>
-        <a href="#" class="nav-link">About</a>
-        <a href="#" class="nav-link">Article</a>
+        <router-link to="/" class="nav-link">Home</router-link>
+        <router-link to="/about" class="nav-link">About</router-link>
+        <router-link to="/article" class="nav-link">Article</router-link>
       </nav>
     </header>
 
@@ -118,6 +118,7 @@ import RegisterView from '../auth-views/Register.vue'
 
 const VerifyOTPView = defineAsyncComponent(() => import('../auth-views/VerifyOTP.vue'))
 const SetupTFAView = defineAsyncComponent(() => import('../auth-views/SetupTFA.vue'))
+const ForgotPasswordView = defineAsyncComponent(() => import('../auth-views/ForgotPassword.vue'))
 
 const route = useRoute()
 const router = useRouter()
@@ -128,7 +129,7 @@ const slideDirection = ref('slide-left')
 const registerRef = ref(null)
 
 const routePath = computed(() => route.path)
-const showTabs = computed(() => ['/login', '/register'].includes(routePath.value))
+const showTabs = computed(() => ['/login', '/register'].includes(routePath.value) && routePath.value !== '/forgot-password')
 const isRegister = computed(() => activeTab.value === 'register')
 
 const currentView = computed(() => {
@@ -136,6 +137,7 @@ const currentView = computed(() => {
     case '/register': return RegisterView
     case '/verify-otp': return VerifyOTPView
     case '/setup-tfa': return SetupTFAView
+    case '/forgot-password': return ForgotPasswordView
     default: return LoginView
   }
 })

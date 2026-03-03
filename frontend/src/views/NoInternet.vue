@@ -1,6 +1,6 @@
 <template>
     <div
-        class="fixed inset-0 overflow-hidden flex items-center justify-center p-6 bg-surface-light dark:bg-background-dark text-gray-900 dark:text-white">
+        class="fixed inset-0 overflow-hidden flex items-center justify-center p-6 text-white" style="background:#000;">
         <!-- Decorative background blobs -->
         <div class="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center opacity-20">
             <div class="w-[800px] h-[800px] bg-orange-500/30 rounded-full blur-[120px] absolute -top-40 -left-60"></div>
@@ -31,7 +31,7 @@
             </h1>
 
             <p class="text-lg mb-6 max-w-md mx-auto transition-colors duration-500"
-                :class="isOnline ? 'text-green-400' : 'text-gray-500 dark:text-gray-400'">
+                :class="isOnline ? 'text-green-400' : 'text-gray-500'">
                 {{ isOnline ? 'Back online — resuming your route…' : 'Your cargo can\'t move without a signal. Waiting for connection…' }}
             </p>
 
@@ -40,7 +40,7 @@
                 <span
                     :class="['inline-block w-2.5 h-2.5 rounded-full transition-colors duration-500', isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500 animate-pulse']"></span>
                 <span class="text-sm font-medium transition-colors duration-500"
-                    :class="isOnline ? 'text-green-500' : 'text-gray-400 dark:text-gray-500'">
+                    :class="isOnline ? 'text-green-500' : 'text-gray-500'">
                     {{ isOnline ? 'Redirecting…' : 'Offline' }}
                 </span>
             </div>

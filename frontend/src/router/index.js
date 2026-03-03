@@ -347,6 +347,25 @@ const router = createRouter({
             component: Settings,
             meta: { requiresAuth: true, layout: 'driver' }
         },
+        // Public pages
+        {
+            path: '/forgot-password',
+            name: 'ForgotPassword',
+            component: () => import('../layouts/AuthLayout.vue'),
+            meta: { layout: 'blank', guest: true }
+        },
+        {
+            path: '/about',
+            name: 'About',
+            component: () => import('../LWDDVI-views/About.vue'),
+            meta: { layout: 'blank' }
+        },
+        {
+            path: '/article',
+            name: 'Article',
+            component: () => import('../LWDDVI-views/Article.vue'),
+            meta: { layout: 'blank' }
+        },
         {
             path: '/offline',
             name: 'NoInternet',

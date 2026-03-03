@@ -1,7 +1,7 @@
 <template>
     <Transition name="loading-fade">
         <div v-if="visible"
-            class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-surface-light dark:bg-background-dark overflow-hidden">
+            class="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden" style="background:#000;">
 
             <!-- Decorative blobs -->
             <div class="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
@@ -73,12 +73,11 @@
                         class="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500 select-none font-poppins">
                         Cargo-Core
                     </div>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 tracking-widest uppercase">Moving What
-                        Matters</p>
+                    <p class="text-xs mt-1 tracking-widest uppercase" style="color:rgba(255,255,255,0.4);">Moving What Matters</p>
                 </div>
 
                 <!-- Progress bar -->
-                <div class="w-48 h-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
+                <div class="w-48 h-1 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.08);">
                     <div class="progress-bar h-full rounded-full bg-gradient-to-r from-primary to-blue-500"></div>
                 </div>
 
