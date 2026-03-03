@@ -91,6 +91,7 @@ const route = useRoute()
 
 const pageTitles = {
     '/ai/dashboard': 'AI Dashboard',
+    '/ai/contact-forms': 'Contact Form Submissions',
     '/ai/live-conversations': 'Live Conversations',
     '/ai/escalations': 'Escalation Center',
     '/ai/tickets': 'Ticket Management',

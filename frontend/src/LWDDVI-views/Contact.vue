@@ -90,7 +90,7 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            Message sent! We'll be in touch soon.
+                            Message sent! Your ticket is <strong>{{ submittedId }}</strong>. We'll be in touch soon.
                         </div>
                     </form>
                 </div>
@@ -133,17 +133,41 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { useContactStore } from '@/stores/contactStore'
 
 onMounted(() => { document.body.style.backgroundColor = '#000' })
 onUnmounted(() => { document.body.style.backgroundColor = '' })
 
+const contactStore = useContactStore()
 const sending = ref(false)
 const sent = ref(false)
+const submittedId = ref('')
 const form = reactive({ name: '', email: '', subject: '', message: '' })
+
+// Map Contact.vue subject values → store categories
+const categoryMap = {
+    general: 'general',
+    sales: 'billing',
+    support: 'technical',
+    partnership: 'general',
+    press: 'general',
+}
 
 async function sendMessage() {
     sending.value = true
     await new Promise(r => setTimeout(r, 1400))
+    const id = contactStore.submit({
+        name: form.name,
+        email: form.email,
+        phone: '',
+        category: categoryMap[form.subject] || 'general',
+        subject: form.subject
+            ? form.subject.charAt(0).toUpperCase() + form.subject.slice(1)
+            : 'General Inquiry',
+        priority: 'medium',
+        message: form.message,
+    })
+    submittedId.value = id
     sending.value = false
     sent.value = true
     Object.assign(form, { name: '', email: '', subject: '', message: '' })

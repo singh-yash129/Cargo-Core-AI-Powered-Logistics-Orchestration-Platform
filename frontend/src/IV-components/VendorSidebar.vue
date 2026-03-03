@@ -107,7 +107,7 @@
                         <div class="border-t border-gray-200 dark:border-white/5 my-1"></div>
 
                         <!-- Logout -->
-                        <button @click="handleLogout"
+                        <button @click="showLogoutConfirm = true"
                             class="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors">
                             <span class="material-symbols-outlined text-[20px]">logout</span>
                             Logout
@@ -191,10 +191,42 @@
             </template>
         </BaseModal>
     </Teleport>
+
+    <!-- Logout Confirmation Modal -->
+    <Teleport to="body">
+        <div v-if="showLogoutConfirm"
+            class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            @click.self="showLogoutConfirm = false">
+            <div
+                class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-gray-100 dark:border-white/10 p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-red-500 text-2xl">logout</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Confirm Logout</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Are you sure you want to sign out?</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button @click="showLogoutConfirm = false"
+                        class="flex-1 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors">
+                        Cancel
+                    </button>
+                    <button @click="handleLogout"
+                        class="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Teleport>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
 import IdCard from '@/components/IdCard.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
@@ -208,6 +240,7 @@ defineEmits(['close'])
 const isMenuOpen = ref(false)
 const showProfileModal = ref(false)
 const showIdCardModal = ref(false)
+const showLogoutConfirm = ref(false)
 
 // Dark mode tracking for dynamic icon
 const isDark = ref(true)
@@ -258,10 +291,14 @@ const vendorCardData = {
     }
 }
 
-const handleLogout = () => {
+const router = useRouter()
+const authStore = useAuthStore()
+
+const handleLogout = async () => {
+    showLogoutConfirm.value = false
     isMenuOpen.value = false
-    console.log('Vendor logging out...')
-    // Add logout/router redirect logic here
+    await authStore.logout()
+    router.push('/login')
 }
 
 const menuItems = [

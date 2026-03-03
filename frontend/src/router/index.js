@@ -154,6 +154,7 @@ const router = createRouter({
 
         // AI Support Module Routes
         { path: '/ai/dashboard', component: () => import('../ai-views/Dashboard.vue'), meta: { requiresAuth: true, layout: 'ai' } },
+        { path: '/ai/contact-forms', component: () => import('../Ai-views/ContactForms.vue'), meta: { requiresAuth: true, layout: 'ai' } },
         { path: '/ai/live-conversations', component: () => import('../ai-views/LiveConversations.vue'), meta: { requiresAuth: true, layout: 'ai' } },
         { path: '/ai/escalations', component: () => import('../ai-views/EscalationCenter.vue'), meta: { requiresAuth: true, layout: 'ai' } },
         { path: '/ai/tickets', component: () => import('../ai-views/Tickets.vue'), meta: { requiresAuth: true, layout: 'ai' } },

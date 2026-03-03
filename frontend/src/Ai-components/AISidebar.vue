@@ -243,6 +243,7 @@ import { useRouter } from 'vue-router'
 import BaseModal from '@/components/BaseModal.vue'
 import IdCard from '@/components/IdCard.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import { useAuthStore } from '@/stores/authStore'
 
 defineProps({
     isOpen: Boolean
@@ -250,6 +251,7 @@ defineProps({
 defineEmits(['close'])
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 // Menu & Modal State
 const isMenuOpen = ref(false)
@@ -294,10 +296,11 @@ const aiCardData = {
     }
 }
 
-const handleLogout = () => {
+const handleLogout = async () => {
     showLogoutConfirm.value = false
     isMenuOpen.value = false
-    router.push('/')
+    await authStore.logout()
+    router.push('/login')
 }
 
 // AI Live Metrics for sidebar
@@ -310,6 +313,7 @@ const aiMetrics = ref([
 
 const menuItems = [
     { label: 'Dashboard', icon: 'dashboard', route: '/ai/dashboard' },
+    { label: 'Contact Forms', icon: 'contact_mail', route: '/ai/contact-forms' },
     { label: 'Live Conversations', icon: 'chat', route: '/ai/live-conversations', badge: '3' },
     { label: 'Escalations', icon: 'warning', route: '/ai/escalations', badge: '1' },
     { label: 'Tickets', icon: 'confirmation_number', route: '/ai/tickets' },
