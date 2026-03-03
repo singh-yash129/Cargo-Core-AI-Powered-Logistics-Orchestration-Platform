@@ -34,18 +34,30 @@ const router = createRouter({
             component: () => import('../LWDDVI-views/Home.vue'),
             meta: { layout: 'blank' }
         },
-        // Authentication (System-wide)
+        // Authentication — AuthLayout handles view switching internally
         {
             path: '/login',
             name: 'SystemLogin',
-            component: () => import('../driver-views/LoginScreen.vue'), // Temporary placeholder using Driver Login
-            meta: { layout: 'blank' }
+            component: () => import('../layouts/AuthLayout.vue'),
+            meta: { layout: 'blank', guest: true }
         },
         {
             path: '/register',
             name: 'SystemRegister',
-            component: () => import('../driver-views/LoginScreen.vue'), // Temporary placeholder
-            meta: { layout: 'blank' }
+            component: () => import('../layouts/AuthLayout.vue'),
+            meta: { layout: 'blank', guest: true }
+        },
+        {
+            path: '/verify-otp',
+            name: 'VerifyOTP',
+            component: () => import('../layouts/AuthLayout.vue'),
+            meta: { layout: 'blank', guest: true }
+        },
+        {
+            path: '/setup-tfa',
+            name: 'SetupTFA',
+            component: () => import('../layouts/AuthLayout.vue'),
+            meta: { layout: 'blank', requiresAuth: true }
         },
 
         // Role-Based Dashboards
@@ -334,19 +346,51 @@ const router = createRouter({
             name: 'settings',
             component: Settings,
             meta: { requiresAuth: true, layout: 'driver' }
+        },
+        {
+            path: '/offline',
+            name: 'NoInternet',
+            component: () => import('../views/NoInternet.vue'),
+            meta: { layout: 'blank' }
+        },
+        {
+            path: '/:pathMatch(.*)*',
+            name: 'NotFound',
+            component: () => import('../views/NotFound.vue'),
+            meta: { layout: 'blank' }
         }
     ]
 })
 
 // Navigation guard for authentication
 router.beforeEach((to, from, next) => {
-    const isAuthenticated = localStorage.getItem('driverAuthenticated') === 'true'
+    // Use auth store for authentication checks
+    const isAuthenticated = !!localStorage.getItem('auth_token')
 
-    if (to.meta.requiresAuth && !isAuthenticated) {
-        next({ name: 'login' })
-    } else {
-        next()
+    // Guest-only routes (login, register) — redirect if already logged in
+    if (to.meta.guest && isAuthenticated) {
+        const user = JSON.parse(localStorage.getItem('auth_user') || '{}')
+        const roleMap = {
+            'logistics_manager': '/logistic/dashboard',
+            'warehouse_manager': '/warehouse/dashboard',
+            'dispatcher': '/dispatcher/dashboard',
+            'driver': '/driver/dashboard',
+            'vendor': '/vendor/dashboard',
+            'customer': '/individual/dashboard',
+            'ai_support': '/ai/dashboard'
+        }
+        next(roleMap[user.role] || '/individual/dashboard')
+        return
     }
+
+    // Auth-required routes — redirect to login if not authenticated
+    if (to.meta.requiresAuth && !isAuthenticated) {
+        next({ path: '/login', query: { redirect: to.fullPath } })
+        return
+    }
+
+    next()
 })
 
 export default router
+

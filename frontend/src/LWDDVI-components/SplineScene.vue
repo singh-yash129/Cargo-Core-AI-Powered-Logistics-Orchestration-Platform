@@ -1,22 +1,18 @@
 <template>
-    <div class="relative w-full h-full" :class="className">
+    <div class="spline-wrapper" :class="className">
         <!-- Loading State -->
         <transition name="fade">
-            <div v-if="loading"
-                class="absolute inset-0 flex items-center justify-center bg-transparent z-10 pointer-events-none">
-                <div class="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin">
-                </div>
+            <div v-if="loading" class="spline-loading">
+                <div class="spline-spinner"></div>
             </div>
         </transition>
 
         <!-- Spline Viewer -->
-        <spline-viewer ref="splineElement" :url="scene" class="w-full h-full" @load="onLoad"
-            loading-anim-type="none"></spline-viewer>
+        <spline-viewer ref="splineElement" :url="scene" class="spline-canvas" loading-anim-type="none"></spline-viewer>
 
-        <!-- Spline Logo Overlay with Branding -->
-        <div
-            class="absolute bottom-[21px] right-[24px] bg-black/80 backdrop-blur-sm px-[18px] py-[9px] rounded-lg z-20 flex items-center justify-center border border-white/10 pointer-events-none">
-            <span class="text-white text-xs font-bold tracking-widest uppercase">Cargo - Core</span>
+        <!-- Branding overlay (hides default Spline watermark area) -->
+        <div class="branding">
+            <span>Cargo-Core</span>
         </div>
     </div>
 </template>
@@ -54,6 +50,75 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Root wrapper fills whatever container it lives in */
+.spline-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* The web-component canvas must stretch to fill the wrapper */
+.spline-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Loading spinner */
+.spline-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.spline-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(139, 92, 246, 0.3);
+    border-top-color: rgba(139, 92, 246, 1);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Tiny branding pill — covers the Spline watermark */
+.branding {
+    position: absolute;
+    bottom: 21px;
+    right: 10px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    pointer-events: none;
+    backdrop-filter: blur(200px);
+    width: 150px;
+    height: 35px;
+    
+}
+
+.branding span {
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+/* Fade-out transition for loading overlay */
 .fade-leave-active {
     transition: opacity 0.5s ease;
 }
