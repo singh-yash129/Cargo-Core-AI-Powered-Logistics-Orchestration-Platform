@@ -61,7 +61,7 @@
 
         <!-- Role 1: Logistic Manager (Image Sequence) -->
         <!-- Role 1: Logistic Manager (Image Sequence) -->
-        <section
+        <section id="role-logistic"
             class="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 py-20 relative role-section logistic-section">
             <div class="w-full md:w-1/2 p-8 relative z-10 h-[60vh] md:h-auto flex flex-col items-center">
                 <!-- Laptop Frame -->
@@ -105,7 +105,7 @@
         </section>
 
         <!-- Role 2: Warehouse Manager -->
-        <section
+        <section id="role-warehouse"
             class="min-h-screen flex flex-col md:flex-row-reverse items-center justify-between px-6 py-20 relative role-section bg-black/50">
             <div class="w-full md:w-1/2 h-[500px] relative z-10">
                 <SplineScene scene="https://prod.spline.design/h-pIvYOqSBqshSxe/scene.splinecode" />
@@ -127,7 +127,7 @@
         </section>
 
         <!-- Role 3: Dispatcher -->
-        <section
+        <section id="role-dispatcher"
             class="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 py-20 relative role-section">
             <div class="w-full md:w-1/2 h-[500px] relative z-10">
                 <SplineScene scene="https://prod.spline.design/qjGo2c4YrEdZD6EY/scene.splinecode" />
@@ -150,7 +150,8 @@
 
         <!-- Role 4: AI Customer Support -->
         <!-- Role 4: AI Customer Support (New Card Design) -->
-        <section class="min-h-screen px-6 py-20 flex items-center justify-center role-section relative bg-black">
+        <section id="role-ai"
+            class="min-h-screen px-6 py-20 flex items-center justify-center role-section relative bg-black">
             <div
                 class="w-full max-w-7xl h-[600px] bg-black/[0.96] relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
                 <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" />
@@ -186,7 +187,7 @@
         </section>
 
         <!-- Role 5: Driver -->
-        <section
+        <section id="role-driver"
             class="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 py-20 relative role-section">
             <div class="w-full md:w-1/2 p-8 flex justify-center relative z-10">
                 <!-- Mobile Frame -->
@@ -216,7 +217,8 @@
 
         <!-- Role 6: Vendor -->
         <!-- Role 6: Vendor -->
-        <section class="min-h-screen px-6 py-20 flex items-center justify-center role-section relative bg-black">
+        <section id="role-vendor"
+            class="min-h-screen px-6 py-20 flex items-center justify-center role-section relative bg-black">
             <div class="absolute inset-0 z-0">
                 <SplineScene scene="https://prod.spline.design/fDRu5GDs8Enzi-PA/scene.splinecode" />
             </div>
@@ -246,12 +248,12 @@
                 <div>
                     <h4 class="font-bold text-white mb-6">Learn</h4>
                     <ul class="space-y-4 text-gray-400 text-sm">
-                        <li><a href="#" class="hover:text-cyan-400 transition-colors">Logistics Manager</a></li>
-                        <li><a href="#" class="hover:text-cyan-400 transition-colors">Warehouse Manager</a></li>
-                        <li><a href="#" class="hover:text-cyan-400 transition-colors">Dispatcher</a></li>
-                        <li><a href="#" class="hover:text-cyan-400 transition-colors">AI Bot</a></li>
-                        <li><a href="#" class="hover:text-cyan-400 transition-colors">Driver</a></li>
-                        <li><a href="#" class="hover:text-cyan-400 transition-colors">Vendor</a></li>
+                        <li><a href="#role-logistic" class="hover:text-cyan-400 transition-colors">Logistics Manager</a></li>
+                        <li><a href="#role-warehouse" class="hover:text-cyan-400 transition-colors">Warehouse Manager</a></li>
+                        <li><a href="#role-dispatcher" class="hover:text-cyan-400 transition-colors">Dispatcher</a></li>
+                        <li><a href="#role-ai" class="hover:text-cyan-400 transition-colors">AI Bot</a></li>
+                        <li><a href="#role-driver" class="hover:text-cyan-400 transition-colors">Driver</a></li>
+                        <li><a href="#role-vendor" class="hover:text-cyan-400 transition-colors">Vendor</a></li>
                     </ul>
                 </div>
                 <div>
@@ -266,9 +268,9 @@
                 <div>
                     <h4 class="font-bold text-white mb-6">Company</h4>
                     <ul class="space-y-4 text-gray-400 text-sm">
-                        <li><a href="#" class="hover:text-cyan-400 transition-colors">Contact Us</a></li>
-                        <li><a href="#" class="hover:text-cyan-400 transition-colors">Terms</a></li>
-                        <li><a href="#" class="hover:text-cyan-400 transition-colors">Privacy</a></li>
+                        <li><router-link to="/contact" class="hover:text-cyan-400 transition-colors">Contact Us</router-link></li>
+                        <li><router-link to="/terms" class="hover:text-cyan-400 transition-colors">Terms</router-link></li>
+                        <li><router-link to="/privacy" class="hover:text-cyan-400 transition-colors">Privacy</router-link></li>
                     </ul>
                 </div>
                 <div>

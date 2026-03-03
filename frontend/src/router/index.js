@@ -367,6 +367,24 @@ const router = createRouter({
             meta: { layout: 'blank' }
         },
         {
+            path: '/contact',
+            name: 'Contact',
+            component: () => import('../LWDDVI-views/Contact.vue'),
+            meta: { layout: 'blank' }
+        },
+        {
+            path: '/terms',
+            name: 'Terms',
+            component: () => import('../LWDDVI-views/Terms.vue'),
+            meta: { layout: 'blank' }
+        },
+        {
+            path: '/privacy',
+            name: 'Privacy',
+            component: () => import('../LWDDVI-views/Privacy.vue'),
+            meta: { layout: 'blank' }
+        },
+        {
             path: '/offline',
             name: 'NoInternet',
             component: () => import('../views/NoInternet.vue'),
