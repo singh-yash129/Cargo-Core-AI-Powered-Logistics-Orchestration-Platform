@@ -26,7 +26,12 @@ HEADERS = {
     "X-GitHub-Api-Version": "2022-11-28",
 }
 
-MAIN_ASSIGNEE = "singh-yash129"
+TEAM_ASSIGNEES = [
+    "singh-yash129",   # Yashvardhan  – Frontend Developer / Code Reviewer
+    "23f3001439",      # Siddarth S   – Product Manager / Scrum Master
+    "23f1002103",      # Pruthvi Prasad S – Backend / Frontend Developer
+    "heyitsgautham",   # Gautham Krishna S – Backend Developer / Tester
+]
 
 # ─────────────────────────────────────────────────────────────────
 # Helper functions
@@ -108,7 +113,7 @@ def create_issue(title, body, labels, milestone_number, assignees=None):
         "body": body,
         "labels": labels,
         "milestone": milestone_number,
-        "assignees": assignees or [MAIN_ASSIGNEE],
+        "assignees": assignees or TEAM_ASSIGNEES,
     }
     r = api("POST", f"/repos/{REPO}/issues", json=payload)
     if r.ok:
