@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trip Manifest</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #f3f4f6; display: flex; justify-content: center; padding: 32px; }
+    @media print { body { background: white; padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="relative bg-white w-[794px] min-h-[1123px] mx-auto shadow-lg pb-[55px]"
+       style="font-family: system-ui, -apple-system, sans-serif">
+
+    <!-- Header -->
+    <div class="h-[100px] flex items-center px-8"
+         style="background: linear-gradient(to right, #0A2540 0%, #1e4976 50%, #4fb3d9 100%)">
+      <img src="../src/assets/f27e35eb84d6e7810aa280143872a57f44f6325d.png"
+           alt="CargoCore" class="h-[60px] w-[60px] rounded-full object-cover" />
+      <div class="ml-4">
+        <div class="text-white text-[24px] font-bold tracking-wide">CARGOCORE</div>
+        <div class="text-cyan-200 text-[11px] tracking-wider">Moving What Matters</div>
+      </div>
+    </div>
+
+    <!-- Watermark -->
+    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+      <img src="../src/assets/f27e35eb84d6e7810aa280143872a57f44f6325d.png"
+           alt="" class="w-[400px] h-[400px] opacity-[0.08] rounded-full object-cover"
+           style="filter: brightness(1.2)" />
+    </div>
+
+    <!-- Content -->
+    <div class="relative z-10 px-8 py-4">
+      <div class="space-y-6">
+
+        <!-- Title -->
+        <div class="text-center border-b-2 border-blue-900 pb-3">
+          <h1 class="text-[22px] font-bold text-blue-900 tracking-wide">TRIP MANIFEST</h1>
+          <p class="text-[11px] text-gray-600 mt-1">Route Plan &amp; Journey Documentation</p>
+        </div>
+
+        <!-- Trip Details -->
+        <div class="bg-gradient-to-r from-blue-900 to-blue-700 text-white p-5 rounded-lg">
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <p class="text-[10px] opacity-80 uppercase">Trip ID</p>
+              <p class="text-[15px] font-bold">TRP-CC-12345</p>
+            </div>
+            <div>
+              <p class="text-[10px] opacity-80 uppercase">Order ID</p>
+              <p class="text-[15px] font-bold">CC-12345</p>
+            </div>
+            <div>
+              <p class="text-[10px] opacity-80 uppercase">Trip Date</p>
+              <p class="text-[13px] font-semibold">December 20, 2024</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Driver & Vehicle Info -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h3 class="text-[11px] font-bold text-blue-900 mb-3">👤 DRIVER INFORMATION</h3>
+            <div class="space-y-2 text-[11px]">
+              <div class="grid grid-cols-2">
+                <span class="text-gray-600">Name:</span>
+                <span class="font-semibold text-gray-900">Prakash Reddy</span>
+              </div>
+              <div class="grid grid-cols-2">
+                <span class="text-gray-600">Employee ID:</span>
+                <span class="font-semibold text-gray-900">DRV-8765</span>
+              </div>
+              <div class="grid grid-cols-2">
+                <span class="text-gray-600">License No:</span>
+                <span class="font-semibold text-gray-900">KA07-20210012345</span>
+              </div>
+              <div class="grid grid-cols-2">
+                <span class="text-gray-600">Contact:</span>
+                <span class="font-semibold text-gray-900">+91 98765 55555</span>
+              </div>
+            </div>
+          </div>
+          <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+            <h3 class="text-[11px] font-bold text-green-900 mb-3">🚚 VEHICLE INFORMATION</h3>
+            <div class="space-y-2 text-[11px]">
+              <div class="grid grid-cols-2">
+                <span class="text-gray-600">Vehicle No:</span>
+                <span class="font-semibold text-gray-900">KA 01 MN 5678</span>
+              </div>
+              <div class="grid grid-cols-2">
+                <span class="text-gray-600">Type:</span>
+                <span class="font-semibold text-gray-900">14 ft Covered Truck</span>
+              </div>
+              <div class="grid grid-cols-2">
+                <span class="text-gray-600">Capacity:</span>
+                <span class="font-semibold text-gray-900">3.5 Tons</span>
+              </div>
+              <div class="grid grid-cols-2">
+                <span class="text-gray-600">Fuel Start:</span>
+                <span class="font-semibold text-gray-900">85% (68 Liters)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Route Map Placeholder -->
+        <div class="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
+          <h3 class="text-[11px] font-bold text-gray-800 mb-3">🗺️ ROUTE MAP</h3>
+          <div class="w-full h-[180px] bg-gradient-to-br from-blue-100 to-green-100 rounded border-2 border-dashed border-gray-400 flex items-center justify-center">
+            <div class="text-center">
+              <div class="text-[40px] mb-2">🗺️</div>
+              <p class="text-[12px] text-gray-700 font-semibold">GPS Route: Whitefield → Indiranagar</p>
+              <p class="text-[10px] text-gray-600 mt-1">Distance: 18.5 km | Est. Time: 45 minutes</p>
+              <p class="text-[10px] text-gray-600">Via: Outer Ring Road → MG Road → Indiranagar Main Road</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stop Schedule -->
+        <div>
+          <h3 class="text-[13px] font-bold text-gray-800 mb-3 pb-2 border-b border-gray-300">STOP SCHEDULE &amp; TIMELINE</h3>
+
+          <!-- Stop 1 - Pickup -->
+          <div class="mb-3 bg-blue-50 border-l-4 border-blue-600 p-4 rounded">
+            <div class="flex items-start gap-3">
+              <div class="bg-blue-600 text-white w-[30px] h-[30px] rounded-full flex items-center justify-center font-bold text-[14px]">1</div>
+              <div class="flex-1">
+                <div class="flex justify-between items-start mb-2">
+                  <div>
+                    <p class="text-[12px] font-bold text-blue-900">PICKUP LOCATION</p>
+                    <p class="text-[11px] text-gray-700">123 Oak Street, Whitefield, Bangalore - 560066</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-[10px] text-gray-600">Scheduled Time</p>
+                    <p class="text-[13px] font-bold text-blue-900">09:00 AM</p>
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-[10px] bg-white p-2 rounded">
+                  <div>
+                    <p class="text-gray-600">Contact Person</p>
+                    <p class="font-semibold text-gray-900">Sarah Khan</p>
+                  </div>
+                  <div>
+                    <p class="text-gray-600">Phone</p>
+                    <p class="font-semibold text-gray-900">+91 98765 43210</p>
+                  </div>
+                  <div>
+                    <p class="text-gray-600">Est. Loading Time</p>
+                    <p class="font-semibold text-gray-900">90 minutes</p>
+                  </div>
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="text-[10px] text-gray-600">Actual Arrival:</span>
+                  <div class="border-b border-blue-400 flex-1 h-[20px]"></div>
+                  <span class="text-[10px] text-gray-600">Departure:</span>
+                  <div class="border-b border-blue-400 flex-1 h-[20px]"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stop 2 - Delivery -->
+          <div class="mb-3 bg-green-50 border-l-4 border-green-600 p-4 rounded">
+            <div class="flex items-start gap-3">
+              <div class="bg-green-600 text-white w-[30px] h-[30px] rounded-full flex items-center justify-center font-bold text-[14px]">2</div>
+              <div class="flex-1">
+                <div class="flex justify-between items-start mb-2">
+                  <div>
+                    <p class="text-[12px] font-bold text-green-900">DELIVERY LOCATION</p>
+                    <p class="text-[11px] text-gray-700">456 Maple Avenue, Indiranagar, Bangalore - 560038</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-[10px] text-gray-600">Scheduled Time</p>
+                    <p class="text-[13px] font-bold text-green-900">12:00 PM</p>
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-[10px] bg-white p-2 rounded">
+                  <div>
+                    <p class="text-gray-600">Contact Person</p>
+                    <p class="font-semibold text-gray-900">Sarah Khan</p>
+                  </div>
+                  <div>
+                    <p class="text-gray-600">Phone</p>
+                    <p class="font-semibold text-gray-900">+91 98765 43210</p>
+                  </div>
+                  <div>
+                    <p class="text-gray-600">Est. Unloading Time</p>
+                    <p class="font-semibold text-gray-900">75 minutes</p>
+                  </div>
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="text-[10px] text-gray-600">Actual Arrival:</span>
+                  <div class="border-b border-green-400 flex-1 h-[20px]"></div>
+                  <span class="text-[10px] text-gray-600">Completion:</span>
+                  <div class="border-b border-green-400 flex-1 h-[20px]"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stop 3 - Return -->
+          <div class="bg-gray-50 border-l-4 border-gray-600 p-4 rounded">
+            <div class="flex items-start gap-3">
+              <div class="bg-gray-600 text-white w-[30px] h-[30px] rounded-full flex items-center justify-center font-bold text-[14px]">3</div>
+              <div class="flex-1">
+                <div class="flex justify-between items-start mb-2">
+                  <div>
+                    <p class="text-[12px] font-bold text-gray-900">RETURN TO DEPOT</p>
+                    <p class="text-[11px] text-gray-700">CargoCore Logistics Depot, Koramangala, Bangalore</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-[10px] text-gray-600">Expected Return</p>
+                    <p class="text-[13px] font-bold text-gray-900">02:30 PM</p>
+                  </div>
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="text-[10px] text-gray-600">Actual Return Time:</span>
+                  <div class="border-b border-gray-400 flex-1 h-[20px]"></div>
+                  <span class="text-[10px] text-gray-600">Odometer End:</span>
+                  <div class="border-b border-gray-400 flex-1 h-[20px]"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trip Statistics -->
+        <div class="grid grid-cols-4 gap-3">
+          <div class="bg-gradient-to-br from-blue-600 to-blue-500 text-white p-3 rounded text-center">
+            <p class="text-[10px] opacity-90">Total Distance</p>
+            <p class="text-[20px] font-bold">18.5 km</p>
+          </div>
+          <div class="bg-gradient-to-br from-green-600 to-green-500 text-white p-3 rounded text-center">
+            <p class="text-[10px] opacity-90">Est. Duration</p>
+            <p class="text-[20px] font-bold">5.5 hrs</p>
+          </div>
+          <div class="bg-gradient-to-br from-purple-600 to-purple-500 text-white p-3 rounded text-center">
+            <p class="text-[10px] opacity-90">Fuel Estimate</p>
+            <p class="text-[20px] font-bold">8 L</p>
+          </div>
+          <div class="bg-gradient-to-br from-orange-600 to-orange-500 text-white p-3 rounded text-center">
+            <p class="text-[10px] opacity-90">Total Stops</p>
+            <p class="text-[20px] font-bold">3</p>
+          </div>
+        </div>
+
+        <!-- Cargo Details -->
+        <div>
+          <h3 class="text-[13px] font-bold text-gray-800 mb-3 pb-2 border-b border-gray-300">CARGO SUMMARY</h3>
+          <div class="bg-gray-50 p-4 rounded border border-gray-300">
+            <div class="grid grid-cols-3 gap-4 text-[11px]">
+              <div>
+                <p class="text-gray-600 mb-1">Total Boxes/Items</p>
+                <p class="text-[16px] font-bold text-gray-900">28 boxes</p>
+              </div>
+              <div>
+                <p class="text-gray-600 mb-1">Estimated Weight</p>
+                <p class="text-[16px] font-bold text-gray-900">850 kg</p>
+              </div>
+              <div>
+                <p class="text-gray-600 mb-1">Special Items</p>
+                <p class="text-[16px] font-bold text-gray-900">2 fragile</p>
+              </div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-gray-300">
+              <p class="text-[10px] font-semibold text-gray-700 mb-1">Notes:</p>
+              <p class="text-[10px] text-gray-600">• Handle with care: Glass items, electronics • Antique furniture pieces • Priority delivery</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Signatures -->
+        <div class="border-2 border-gray-300 rounded-lg p-4">
+          <h3 class="text-[11px] font-bold text-gray-800 mb-3">TRIP VERIFICATION</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-[10px] text-gray-600 mb-2">Driver Signature (Start):</p>
+              <div class="border-b-2 border-gray-400 h-[40px]"></div>
+              <p class="text-[9px] text-gray-500 mt-1">Time: ___________ Odometer: ___________</p>
+            </div>
+            <div>
+              <p class="text-[10px] text-gray-600 mb-2">Supervisor Signature:</p>
+              <div class="border-b-2 border-gray-400 h-[40px]"></div>
+              <p class="text-[9px] text-gray-500 mt-1">Name: ___________________</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Emergency Contact -->
+        <div class="bg-red-50 border-l-4 border-red-500 p-3">
+          <p class="text-[10px] font-bold text-red-800 mb-1">🚨 EMERGENCY CONTACTS:</p>
+          <div class="grid grid-cols-2 gap-2 text-[10px] text-gray-700">
+            <div>Operations Manager: <span class="font-semibold">+91 98765 00001</span></div>
+            <div>Customer Support: <span class="font-semibold">1800-CARGO-00</span></div>
+            <div>Roadside Assistance: <span class="font-semibold">+91 98765 00002</span></div>
+            <div>Police/Emergency: <span class="font-semibold">100 / 112</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="absolute bottom-0 left-0 right-0 border-t border-gray-300 bg-gray-50 px-8 py-3">
+      <p class="text-[9px] text-gray-600 text-center leading-relaxed">
+        This is a system-generated document | <span class="font-semibold">CargoCore Logistics Pvt. Ltd.</span>
+        Registered Office: Koramangala, Bangalore, Karnataka - 560034 | www.cargocore.com
+      </p>
+    </div>
+  </div>
+</body>
+</html>
