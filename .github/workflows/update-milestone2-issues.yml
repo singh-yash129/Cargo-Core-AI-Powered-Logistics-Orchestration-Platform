@@ -1,0 +1,142 @@
+name: Update Milestone 2 Issues
+
+on:
+  push:
+    branches:
+      - 'copilot/create-milestone-2-issues'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  update-issues:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Create in-review label
+        run: |
+          gh api -X POST "repos/$REPO/labels" \
+            -f name="in-review" \
+            -f color="fbca04" \
+            -f description="Under review" 2>/dev/null \
+          || gh api -X PATCH "repos/$REPO/labels/in-review" \
+            -f color="fbca04" \
+            -f description="Under review" 2>/dev/null \
+          || true
+          echo "Label 'in-review' ready."
+
+      - name: Create missing sub-issue 26 (Delivery Execution Tasklist)
+        run: |
+          STATE=$(gh api "repos/$REPO/issues/26" -q '.state' 2>/dev/null || echo "missing")
+          if [ "$STATE" = "missing" ] || [ -z "$STATE" ]; then
+            echo "Creating issue #26..."
+            gh issue create --repo "$REPO" \
+              --title "[M2][Frontend] UI Page: Delivery Execution Tasklist" \
+              --body "$(cat <<'BODY'
+## 🖥️ UI Page: Delivery Execution Tasklist
+
+🔧 **Status: Pending**
+
+## 📋 Tasks
+- [ ] Create wireframe/mockup for **Delivery Execution Tasklist**
+- [ ] Implement page in Vue.js / HTML-CSS-JS
+- [ ] Capture screenshot of completed page
+- [ ] Review against user stories from Milestone 1
+- [ ] Update status table in parent issue #19
+
+## 🔗 References
+- UI Reference assets: `docs/UI-references-Mobile/delivery_execution_tasklist/`
+- Parent issue: #19
+
+## 📌 Kanban
+Track on the Kanban/Project board under **Milestone 2 – Frontend Deliverables**.
+
+## ✅ Definition of Done
+- [ ] Page implemented and functional
+- [ ] Screenshot captured and added to parent issue #19
+- [ ] Code committed to the `frontend/` directory
+BODY
+)" \
+              --label "enhancement" --label "design" --label "frontend" --label "in-review" \
+              --assignee "singh-yash129" --assignee "23f1002103" --assignee "heyitsgautham" --assignee "23f3001439" \
+              --milestone "Milestone 2"
+            echo "Issue #26 created."
+          else
+            echo "Issue #26 already exists (state: $STATE)."
+          fi
+
+      - name: Add in-review label and clean issue bodies
+        run: |
+          python3 << 'PYEOF'
+          import subprocess
+          import json
+          import re
+          import os
+
+          REPO = os.environ["REPO"]
+
+          # All M2 issues to update
+          ISSUES = list(range(12, 41))  # 12 through 40 inclusive
+
+          # Pattern: match and remove the ## 👥 Team section (and everything until next ##-header or end)
+          TEAM_SECTION_RE = re.compile(
+              r'\n## 👥 Team\n(?:(?!## ).)*',
+              re.DOTALL
+          )
+          # Also remove inline name references from "Lead/Frontend/Backend/Contributors/All members" lines
+          ROLE_LINE_RE = re.compile(
+              r'- \*\*(Lead|Frontend|Backend|Contributors|All members|Scrum Master|Product Manager|Tester):\*\*.*\n',
+          )
+
+          def strip_team_info(body):
+              body = TEAM_SECTION_RE.sub('\n', body)
+              body = ROLE_LINE_RE.sub('', body)
+              return body.strip()
+
+          for issue_num in ISSUES:
+              print(f"Processing issue #{issue_num}...")
+
+              # Add in-review label
+              result = subprocess.run(
+                  ['gh', 'issue', 'edit', str(issue_num),
+                   '--repo', REPO,
+                   '--add-label', 'in-review'],
+                  capture_output=True, text=True
+              )
+              if result.returncode != 0:
+                  print(f"  Warning adding label to #{issue_num}: {result.stderr.strip()}")
+
+              # Fetch current body
+              result = subprocess.run(
+                  ['gh', 'issue', 'view', str(issue_num),
+                   '--repo', REPO,
+                   '--json', 'body'],
+                  capture_output=True, text=True
+              )
+              if result.returncode != 0:
+                  print(f"  Skipping #{issue_num} (may not exist): {result.stderr.strip()}")
+                  continue
+
+              body_data = json.loads(result.stdout)
+              old_body = body_data.get('body') or ''
+              new_body = strip_team_info(old_body)
+
+              if new_body != old_body.strip():
+                  result = subprocess.run(
+                      ['gh', 'issue', 'edit', str(issue_num),
+                       '--repo', REPO,
+                       '--body', new_body],
+                      capture_output=True, text=True
+                  )
+                  if result.returncode == 0:
+                      print(f"  #{issue_num}: body updated (team section removed).")
+                  else:
+                      print(f"  Warning updating body of #{issue_num}: {result.stderr.strip()}")
+              else:
+                  print(f"  #{issue_num}: body already clean.")
+
+          print("Done.")
+          PYEOF
