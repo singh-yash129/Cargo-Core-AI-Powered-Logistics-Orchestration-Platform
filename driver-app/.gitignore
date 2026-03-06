@@ -1,0 +1,30 @@
+# Node
+node_modules/
+dist/
+dist-ssr/
+
+# Vite
+*.local
+
+# Capacitor
+android/
+ios/
+.DS_Store
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

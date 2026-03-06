@@ -1,0 +1,188 @@
+// ── Dummy Data for Cargo-Core Driver App ───────────────────────────
+export const dummyDriver = {
+    driverId: 'DRV-2049',
+    name: 'Arjun Sharma',
+    phone: '+91 98765 43210',
+    email: 'arjun.sharma@cargocore.com',
+    rating: 4.9,
+    totalDeliveries: 1247,
+    onTimePercent: 96,
+    fuelEfficiency: '+8%',
+    badge: 'Pro Driver',
+    tier: 'Level 3 – Field Execution',
+    scheduledShifts: 12,
+    earnings: { today: 1840, week: 9200, month: 38500 },
+}
+
+export const dummyVehicle = {
+    vehicleId: 'CC-TRK-042',
+    plateNumber: 'MH 04 AB 2049',
+    type: 'Medium Truck',
+    fuelLevel: 78,
+    range: 312,
+    capacity: 3.5,
+    seats: 2,
+    odometer: 48230,
+    status: 'ready',
+    lastInspection: '2026-03-05',
+    image: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=800&q=80',
+}
+
+export const dummyManifest = {
+    routeId: 'RT-2049-MAR06',
+    date: 'Thu, Mar 6 2026',
+    shiftId: 'SHIFT-402',
+    totalStops: 7,
+    totalDistance: '47 km',
+    estimatedDuration: '5h 20m',
+    startTime: '08:00',
+    endTime: '13:20',
+    zone: 'Mumbai North-East Hub',
+    assignedCrew: [
+        { id: 'LAB-01', name: 'Ravi Kumar', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=11' },
+        { id: 'LAB-02', name: 'Suresh Patel', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=22' },
+        { id: 'LAB-03', name: 'Dinesh Singh', role: 'Helper', photo: 'https://i.pravatar.cc/40?img=33' },
+    ],
+    stops: dummyStops
+}
+
+export const dummyStops = [
+    {
+        id: 'STOP-001',
+        stopNumber: 1,
+        type: 'move',
+        customerName: 'Priya & Rohit Mehta',
+        address: '14B, Andheri West, Near JVLR, Mumbai 400053',
+        packages: null,
+        moveItems: ['Sofa Set', 'King Bed', 'Dining Table', 'Wardrobe', '28 Boxes'],
+        specialInstructions: 'Fragile glassware in Box #12. Elevator available. 3rd Floor.',
+        timeWindow: '08:30 – 10:30',
+        distance: '2.4 km',
+        cod: false,
+        codAmount: null,
+        status: 'pending',
+        serviceType: 'House Shift',
+        checklistRequired: true,
+        crewRequired: true,
+    },
+    {
+        id: 'STOP-002',
+        stopNumber: 2,
+        type: 'express',
+        customerName: 'TechSoft Pvt. Ltd.',
+        address: '500, Senapati Bapat Marg, Lower Parel, Mumbai 400013',
+        packages: [
+            { id: 'PKG-A1', barcode: 'CC-001-2049', weight: '2.3kg', description: 'Electronics' },
+            { id: 'PKG-A2', barcode: 'CC-002-2049', weight: '1.1kg', description: 'Documents' },
+        ],
+        moveItems: null,
+        specialInstructions: 'Ring reception bell. Ask for Mr. Kapoor.',
+        timeWindow: '10:45 – 11:15',
+        distance: '8.7 km',
+        cod: false,
+        codAmount: null,
+        status: 'pending',
+        serviceType: 'Parcel',
+        checklistRequired: false,
+        crewRequired: false,
+    },
+    {
+        id: 'STOP-003',
+        stopNumber: 3,
+        type: 'parcel',
+        customerName: 'Neha Gupta',
+        address: '22, Bandra East, Turner Road, Mumbai 400050',
+        packages: [
+            { id: 'PKG-B1', barcode: 'CC-003-2049', weight: '3.8kg', description: 'Clothing' },
+        ],
+        moveItems: null,
+        specialInstructions: 'COD ₹450. Collect exact change.',
+        timeWindow: '11:30 – 12:00',
+        distance: '5.2 km',
+        cod: true,
+        codAmount: 450,
+        status: 'pending',
+        serviceType: 'Parcel',
+        checklistRequired: false,
+        crewRequired: false,
+    },
+    {
+        id: 'STOP-004',
+        stopNumber: 4,
+        type: 'pickup',
+        customerName: 'Amazon Returns Hub',
+        address: 'Gate 3, Bhiwandi Warehouse, Thane 421302',
+        packages: [
+            { id: 'PKG-C1', barcode: 'RTN-001', weight: '4.5kg', description: 'Return Item' },
+        ],
+        moveItems: null,
+        specialInstructions: 'Scan return QR at gate. Collect 2 return boxes.',
+        timeWindow: '12:15 – 12:45',
+        distance: '18.3 km',
+        cod: false,
+        codAmount: null,
+        status: 'pending',
+        serviceType: 'Reverse Logistics',
+        checklistRequired: false,
+        crewRequired: false,
+    },
+    {
+        id: 'STOP-005',
+        stopNumber: 5,
+        type: 'parcel',
+        customerName: 'Café Roasters',
+        address: '87, Hill Road, Bandra West, Mumbai 400050',
+        packages: [
+            { id: 'PKG-D1', barcode: 'CC-005-2049', weight: '12.0kg', description: 'Coffee Beans (Bulk)' },
+        ],
+        moveItems: null,
+        specialInstructions: 'Deliver to basement storage. Call on arrival.',
+        timeWindow: '13:00 – 13:30',
+        distance: '7.1 km',
+        cod: true,
+        codAmount: 3200,
+        status: 'pending',
+        serviceType: 'Parcel',
+        checklistRequired: false,
+        crewRequired: false,
+    },
+]
+
+export const dummyChecklist = [
+    { id: 'c1', label: 'Kitchen packed & sealed', checked: false, required: true },
+    { id: 'c2', label: 'Fragile items wrapped in bubble wrap', checked: false, required: true },
+    { id: 'c3', label: 'Furniture dismantled', checked: false, required: true },
+    { id: 'c4', label: 'Electronics disconnected & packed', checked: false, required: true },
+    { id: 'c5', label: 'Wardrobes emptied & secured', checked: false, required: false },
+    { id: 'c6', label: 'All boxes sealed & labeled', checked: false, required: true },
+    { id: 'c7', label: 'Before-state photos captured', checked: false, required: true },
+    { id: 'c8', label: 'Customer signature on inventory list', checked: false, required: true },
+]
+
+export const dummyInspection = [
+    { id: 'i1', label: 'Fuel level recorded', icon: 'local_gas_station', value: '78%', checked: false },
+    { id: 'i2', label: 'Tire pressure OK – All 4 tires', icon: 'tire_repair', value: '32 PSI', checked: false },
+    { id: 'i3', label: 'Odometer reading captured', icon: 'speed', value: '48,230 km', checked: false },
+    { id: 'i4', label: 'Lights & indicators working', icon: 'lightbulb', value: null, checked: false },
+    { id: 'i5', label: 'Cargo area clean & secure', icon: 'inventory_2', value: null, checked: false },
+    { id: 'i6', label: 'Brakes responsive', icon: 'emergency_heat', value: null, checked: false },
+]
+
+export const dummyCrewMembers = [
+    { id: 'LAB-01', name: 'Ravi Kumar', role: 'Loader', photo: 'https://i.pravatar.cc/80?img=11', status: 'present', checkInTime: null },
+    { id: 'LAB-02', name: 'Suresh Patel', role: 'Loader', photo: 'https://i.pravatar.cc/80?img=22', status: 'present', checkInTime: null },
+    { id: 'LAB-03', name: 'Dinesh Singh', role: 'Helper', photo: 'https://i.pravatar.cc/80?img=33', status: 'present', checkInTime: null },
+]
+
+export const dummyEarnings = {
+    today: { base: 1200, deliveries: 350, move: 200, tips: 90, total: 1840 },
+    week: { base: 6000, deliveries: 1750, move: 1000, tips: 450, total: 9200 },
+    month: { base: 24000, deliveries: 7000, move: 5500, tips: 2000, total: 38500 },
+    scorecard: {
+        rating: 4.9,
+        onTime: 96,
+        fuelEfficiency: '+8%',
+        routeDeviation: '2%',
+        safetyScore: 98,
+    }
+}
