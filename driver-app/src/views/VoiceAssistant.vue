@@ -1,9 +1,8 @@
 <template>
-    <div class="min-h-screen pb-safe overflow-hidden flex flex-col"
-        :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
+    <div class="screen-layout" :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
 
         <!-- Header -->
-        <header class="px-5 pt-5 pb-4 flex items-center justify-between border-b"
+        <header class="flex-shrink-0 px-5 pt-5 pb-4 flex items-center justify-between border-b"
             :class="isDark ? 'border-white/5' : 'border-gray-100'">
             <div>
                 <p class="text-xs font-bold uppercase tracking-wider text-ai-blue mb-0.5">AI Voice Assistant</p>
@@ -16,7 +15,7 @@
         </header>
 
         <!-- Waveform placeholder -->
-        <div class="flex-1 flex flex-col items-center justify-center px-5 gap-6">
+        <div class="screen-body flex flex-col items-center justify-center px-5 gap-6">
 
             <!-- AI Avatar -->
             <div class="relative">
@@ -26,7 +25,7 @@
                     :style="listening ? 'box-shadow: 0 0 40px rgba(77,163,255,0.3)' : ''">
                     <span class="material-icons text-6xl"
                         :class="listening ? 'text-ai-blue' : isDark ? 'text-gray-400' : 'text-gray-400'">{{ listening ?
-                        'mic' : 'smart_toy' }}</span>
+                            'mic' : 'smart_toy' }}</span>
                 </div>
                 <div v-if="listening"
                     class="absolute -inset-4 rounded-full border border-ai-blue/20 animate-ping opacity-40"></div>
@@ -52,8 +51,9 @@
             </div>
         </div>
 
-        <!-- Mic Button -->
-        <div class="px-5 pb-10 flex justify-center">
+        <!-- Mic Button Footer -->
+        <div class="screen-footer flex justify-center py-6"
+            :class="isDark ? 'bg-background-dark' : 'bg-background-light'">
             <button @click="toggleListen"
                 class="w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all active:scale-[0.97]"
                 :class="listening

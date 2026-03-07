@@ -1,7 +1,8 @@
 <template>
-    <div class="min-h-screen pb-safe overflow-y-auto no-scrollbar"
-        :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
-        <div class="px-5 pt-5 pb-10 flex flex-col gap-5">
+    <div class="screen-layout" :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
+
+        <!-- ── HEADER ───────────────────────────────── -->
+        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b" :class="isDark ? 'border-white/5' : 'border-gray-100'">
             <div class="flex items-center gap-3">
                 <button @click="$router.back()" class="w-10 h-10 rounded-full flex items-center justify-center border"
                     :class="isDark ? 'bg-surface-dark border-white/5 text-gray-400' : 'bg-white border-gray-200 shadow-sm'">
@@ -9,6 +10,10 @@
                 </button>
                 <h1 class="text-2xl font-black tracking-tight">Reverse Logistics</h1>
             </div>
+        </header>
+
+        <!-- ── SCROLLABLE BODY ───────────────────────── -->
+        <div class="screen-body px-5 py-4 flex flex-col gap-4">
 
             <div class="rounded-2xl p-5 border"
                 :class="isDark ? 'bg-surface-dark/40 border-orange-500/20' : 'bg-orange-50 border-orange-200'">
@@ -39,12 +44,19 @@
                             item.collected ? 'check_circle' : 'radio_button_unchecked' }}</span>
                 </div>
             </div>
+        </div>
 
-            <button @click="$router.back()"
-                class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-background-dark shadow-glow active:scale-[0.98]"
-                style="background: linear-gradient(135deg, #1CE783, #15b86a);">
+        <!-- ── STICKY FOOTER ────────────────────────── -->
+        <div class="screen-footer px-5 py-4 border-t"
+            :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
+            <button @click="confirmPickups" :disabled="collectedCount === 0"
+                class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold active:scale-[0.98]"
+                :class="collectedCount > 0
+                    ? 'text-background-dark shadow-glow'
+                    : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'"
+                :style="collectedCount > 0 ? 'background: linear-gradient(135deg, #1CE783, #15b86a)' : ''">
                 <span class="material-icons">done_all</span>
-                Confirm Pickups
+                Confirm {{ collectedCount }} Pickup{{ collectedCount !== 1 ? 's' : '' }}
             </button>
         </div>
     </div>
@@ -52,8 +64,10 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 
+const router = useRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
@@ -61,4 +75,10 @@ const returnItems = ref([
     { id: 'RTN-001-A', reason: 'Defective product — customer return', collected: false },
     { id: 'RTN-001-B', reason: 'Wrong item delivered', collected: false },
 ])
+const collectedCount = computed(() => returnItems.value.filter(i => i.collected).length)
+
+function confirmPickups() {
+    uiStore.showToast(`${collectedCount.value} return pickup(s) confirmed ✓`, 'success')
+    router.back()
+}
 </script>

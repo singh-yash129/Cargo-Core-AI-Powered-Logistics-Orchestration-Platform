@@ -1,19 +1,21 @@
 <template>
-    <div class="min-h-screen pb-safe overflow-y-auto no-scrollbar"
-        :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
-        <div class="px-5 pt-5 pb-10 flex flex-col gap-6">
+    <div class="screen-layout" :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
 
-            <!-- Header -->
-            <div>
-                <p class="text-xs font-bold uppercase tracking-wider text-primary mb-0.5">Shift Complete</p>
-                <h1 class="text-3xl font-black tracking-tight">Summary</h1>
-                <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">RT-2049-MAR06 · Thu, Mar 6 2026
-                </p>
-            </div>
+        <!-- ── HEADER ───────────────────────────────── -->
+        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b" :class="isDark ? 'border-white/5' : 'border-gray-100'">
+            <p class="text-xs font-bold uppercase tracking-wider text-primary mb-0.5">Shift Complete</p>
+            <h1 class="text-3xl font-black tracking-tight">Summary</h1>
+            <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">RT-2049-MAR06 · Thu, Mar 6 2026</p>
+        </header>
+
+        <!-- ── SCROLLABLE BODY ───────────────────────── -->
+        <div class="screen-body px-5 py-4 flex flex-col gap-4">
 
             <!-- Score Hero -->
             <div class="rounded-3xl p-6 text-center relative overflow-hidden"
-                style="background: linear-gradient(135deg, rgba(28,231,131,0.2), rgba(28,231,131,0.05)); border: 1px solid rgba(28,231,131,0.2);">
+                :style="isDark
+                    ? 'background: linear-gradient(135deg, rgba(28,231,131,0.2), rgba(28,231,131,0.05)); border: 1px solid rgba(28,231,131,0.2);'
+                    : 'background: linear-gradient(135deg, rgba(28,231,131,0.12), rgba(28,231,131,0.03)); border: 1px solid rgba(28,231,131,0.2);'">
                 <div
                     class="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none">
                 </div>
@@ -23,7 +25,7 @@
                     98</div>
                 <div class="flex items-center justify-center gap-1 mb-2">
                     <span v-for="i in 5" :key="i" class="material-icons text-accent-gold text-lg">{{ i <= 4 ? 'star'
-                            : 'star_half' }}</span>
+                        : 'star_half' }}</span>
                 </div>
                 <p class="text-sm font-bold text-primary">Excellent Performance 🏆</p>
             </div>
@@ -56,22 +58,23 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Actions -->
-            <div class="space-y-3">
-                <button @click="$router.push('/vehicle-return')"
-                    class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-background-dark shadow-glow transition-all active:scale-[0.98]"
-                    style="background: linear-gradient(135deg, #1CE783, #15b86a);">
-                    <span class="material-icons">local_shipping</span>
-                    Return Vehicle
-                </button>
-                <button @click="$router.push('/audit')"
-                    class="w-full rounded-2xl h-12 flex items-center justify-center gap-2 font-semibold border transition-all active:scale-[0.98]"
-                    :class="isDark ? 'bg-surface-dark/30 border-white/5 text-white hover:bg-surface-dark' : 'bg-white border-gray-200 text-gray-700 shadow-sm hover:bg-gray-50'">
-                    <span class="material-icons">history</span>
-                    View Audit Log
-                </button>
-            </div>
+        <!-- ── STICKY FOOTER ────────────────────────── -->
+        <div class="screen-footer px-5 py-4 border-t flex flex-col gap-2"
+            :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
+            <button @click="$router.push('/vehicle-return')"
+                class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-background-dark shadow-glow transition-all active:scale-[0.98]"
+                style="background: linear-gradient(135deg, #1CE783, #15b86a);">
+                <span class="material-icons">local_shipping</span>
+                Return Vehicle
+            </button>
+            <button @click="$router.push('/audit')"
+                class="w-full rounded-2xl h-12 flex items-center justify-center gap-2 font-semibold border transition-all active:scale-[0.98]"
+                :class="isDark ? 'bg-surface-dark/30 border-white/5 text-white hover:bg-surface-dark' : 'bg-white border-gray-200 text-gray-700 shadow-sm hover:bg-gray-50'">
+                <span class="material-icons">history</span>
+                View Audit Log
+            </button>
         </div>
     </div>
 </template>

@@ -1,9 +1,8 @@
 <template>
-    <div class="min-h-screen pb-safe overflow-y-auto no-scrollbar"
-        :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
-        <div class="px-5 pt-5 pb-10 flex flex-col gap-5">
+    <div class="screen-layout" :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
 
-            <!-- Header -->
+        <!-- ── HEADER ───────────────────────────────── -->
+        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b" :class="isDark ? 'border-white/5' : 'border-gray-100'">
             <div class="flex items-center gap-3">
                 <button @click="$router.back()" class="w-10 h-10 rounded-full flex items-center justify-center border"
                     :class="isDark ? 'bg-surface-dark border-white/5 text-gray-400' : 'bg-white border-gray-200 shadow-sm'">
@@ -11,10 +10,15 @@
                 </button>
                 <h1 class="text-2xl font-black tracking-tight text-red-400">🚨 Crisis Mode</h1>
             </div>
+        </header>
+
+        <!-- ── SCROLLABLE BODY ───────────────────────── -->
+        <div class="screen-body px-5 py-4 flex flex-col gap-4">
 
             <!-- Panic Banner -->
-            <div class="rounded-3xl p-5 text-center border-2 border-red-500/40 relative overflow-hidden"
-                style="background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05));">
+            <div class="rounded-3xl p-5 text-center border-2 border-red-500/40 relative overflow-hidden" :style="isDark
+                ? 'background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05))'
+                : 'background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(239,68,68,0.02))'">
                 <div
                     class="absolute -top-10 -right-10 w-32 h-32 bg-red-500/15 rounded-full blur-3xl pointer-events-none">
                 </div>
@@ -36,7 +40,7 @@
                         :class="action.primary ? 'bg-red-500/20' : isDark ? 'bg-white/5' : 'bg-gray-50'">
                         <span class="material-icons text-2xl"
                             :class="action.primary ? 'text-red-400' : isDark ? 'text-gray-300' : 'text-gray-600'">{{
-                            action.icon }}</span>
+                                action.icon }}</span>
                     </div>
                     <div class="text-left flex-1">
                         <p class="font-black">{{ action.label }}</p>
@@ -110,9 +114,9 @@ const contacts = [
 function triggerAction(action) {
     if (action.id === 'sos') {
         sosActive.value = true
-        uiStore.showToast('🚨 SOS alert sent to dispatch!', 'error', 5000)
+        uiStore.showToast('🚨 SOS Alert sent — GPS location shared', 'error')
     } else {
-        uiStore.showToast(`${action.label} — Alert sent to operations`, 'warning')
+        uiStore.showToast(`${action.label} reported to dispatch`, 'warning')
     }
 }
 </script>

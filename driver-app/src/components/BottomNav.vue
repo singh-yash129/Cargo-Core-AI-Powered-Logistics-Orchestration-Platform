@@ -1,7 +1,7 @@
 <template>
-    <nav class="fixed bottom-0 left-0 right-0 z-50 pb-safe">
-        <div class="mx-3 mb-3 flex items-center justify-around rounded-2xl border border-white/10 dark:border-white/8 shadow-2xl"
-            :class="isDark ? 'bg-surface-dark/95 backdrop-blur-xl' : 'bg-white/95 backdrop-blur-xl border-gray-200'">
+    <nav class="w-full">
+        <div class="mx-3 mb-3 flex items-center justify-around rounded-2xl border shadow-2xl"
+            :class="isDark ? 'bg-surface-dark/95 backdrop-blur-xl border-white/8' : 'bg-white/95 backdrop-blur-xl border-gray-200'">
 
             <button v-for="item in navItems" :key="item.name" @click="navigate(item.route)"
                 class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 group relative btn-active">

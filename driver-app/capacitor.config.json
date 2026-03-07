@@ -12,6 +12,14 @@
             "androidSplashResourceName": "splash",
             "showSpinner": false
         },
+        "Keyboard": {
+            "resize": "none",
+            "style": "dark"
+        },
+        "StatusBar": {
+            "style": "DARK",
+            "overlaysWebView": true
+        },
         "Camera": {
             "iosUsageDescription": "Cargo-Core needs camera access to capture proof of delivery photos and fuel receipts."
         },

@@ -5,7 +5,11 @@ export const useUiStore = defineStore('ui', () => {
     const theme = ref('dark') // 'dark' | 'light'
     const syncStatus = ref('connected') // 'connected' | 'syncing' | 'offline'
     const offlineQueue = ref([])
-    const toast = ref(null)
+    const isLoading = ref(false)
+
+    function setLoading(status) {
+        isLoading.value = status
+    }
 
     function initTheme() {
         const saved = localStorage.getItem('cargo_theme')
@@ -53,14 +57,9 @@ export const useUiStore = defineStore('ui', () => {
         offlineQueue.value = []
     }
 
-    function showToast(message, type = 'info', duration = 3000) {
-        toast.value = { message, type, id: Date.now() }
-        setTimeout(() => { toast.value = null }, duration)
-    }
-
     return {
-        theme, syncStatus, offlineQueue, toast,
+        theme, syncStatus, offlineQueue, isLoading,
         initTheme, toggleTheme, setTheme,
-        setSyncStatus, queueOfflineAction, clearOfflineQueue, showToast
+        setSyncStatus, queueOfflineAction, clearOfflineQueue, setLoading
     }
 })

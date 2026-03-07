@@ -1,7 +1,8 @@
 <template>
-    <div class="min-h-screen pb-safe overflow-y-auto no-scrollbar"
-        :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
-        <div class="px-5 pt-5 pb-10 flex flex-col gap-5">
+    <div class="screen-layout" :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
+
+        <!-- ── HEADER ───────────────────────────────── -->
+        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b" :class="isDark ? 'border-white/5' : 'border-gray-100'">
             <div class="flex items-center gap-3">
                 <button @click="$router.back()" class="w-10 h-10 rounded-full flex items-center justify-center border"
                     :class="isDark ? 'bg-surface-dark border-white/5 text-gray-400' : 'bg-white border-gray-200 shadow-sm'">
@@ -9,6 +10,10 @@
                 </button>
                 <h1 class="text-2xl font-black tracking-tight">Route Deviation</h1>
             </div>
+        </header>
+
+        <!-- ── SCROLLABLE BODY ───────────────────────── -->
+        <div class="screen-body px-5 py-4 flex flex-col gap-4">
 
             <div class="rounded-2xl p-5 border"
                 :class="isDark ? 'bg-signal-amber/10 border-signal-amber/20' : 'bg-amber-50 border-amber-200'">
@@ -31,7 +36,11 @@
                     {{ reason }}
                 </button>
             </div>
+        </div>
 
+        <!-- ── STICKY FOOTER ────────────────────────── -->
+        <div class="screen-footer px-5 py-4 border-t"
+            :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
             <button @click="submit" :disabled="!selectedReason"
                 class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold active:scale-[0.98] transition-all"
                 :class="selectedReason

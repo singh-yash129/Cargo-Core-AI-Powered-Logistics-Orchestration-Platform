@@ -1,7 +1,8 @@
 <template>
-    <div class="min-h-screen pb-safe overflow-y-auto no-scrollbar"
-        :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
-        <div class="px-5 pt-5 pb-10 flex flex-col gap-5">
+    <div class="screen-layout" :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
+
+        <!-- ── HEADER ───────────────────────────────── -->
+        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b" :class="isDark ? 'border-white/5' : 'border-gray-100'">
             <div class="flex items-center gap-3">
                 <button @click="$router.back()" class="w-10 h-10 rounded-full flex items-center justify-center border"
                     :class="isDark ? 'bg-surface-dark border-white/5 text-gray-400' : 'bg-white border-gray-200 shadow-sm'">
@@ -12,6 +13,10 @@
                     <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">North-East Hub · Gate 7</p>
                 </div>
             </div>
+        </header>
+
+        <!-- ── SCROLLABLE BODY ───────────────────────── -->
+        <div class="screen-body px-5 py-4 flex flex-col gap-4">
 
             <div class="rounded-2xl p-5 border text-center space-y-4"
                 :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
@@ -20,8 +25,9 @@
                 <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Point camera at gate terminal to
                     log exit</p>
                 <div class="inline-block px-6 py-3 rounded-2xl font-black text-background-dark cursor-pointer active:scale-[0.97] transition-all"
-                    style="background: linear-gradient(135deg, #1CE783, #15b86a);" @click="scanExit">
-                    Scan &amp; Exit Gate
+                    style="background: linear-gradient(135deg, #1CE783, #15b86a);" @click="scanExit"
+                    :class="{ 'opacity-60 pointer-events-none': isCapturing }">
+                    {{ isCapturing ? 'Scanning...' : 'Scan & Exit Gate' }}
                 </div>
             </div>
 
@@ -42,10 +48,12 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useCamera } from '../composables/useCamera.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+const { scanDocument, isCapturing } = useCamera()
 
 const exitItems = [
     { label: 'Exit Time', value: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) },
@@ -54,8 +62,11 @@ const exitItems = [
     { label: 'Stops', value: '7 assigned' },
 ]
 
-function scanExit() {
-    uiStore.showToast('Gate exit logged successfully ✓', 'success')
-    setTimeout(() => router.push('/navigation'), 800)
+async function scanExit() {
+    const result = await scanDocument('Scan Gate QR Code')
+    if (result) {
+        uiStore.showToast('Gate exit logged ✓', 'success')
+        setTimeout(() => router.push('/navigation'), 600)
+    }
 }
 </script>

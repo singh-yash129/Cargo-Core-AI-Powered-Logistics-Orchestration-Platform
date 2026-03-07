@@ -1,7 +1,8 @@
 <template>
-    <div class="min-h-screen pb-safe overflow-y-auto no-scrollbar"
-        :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
-        <div class="px-5 pt-5 pb-10 flex flex-col gap-5">
+    <div class="screen-layout" :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
+
+        <!-- ── HEADER ───────────────────────────────── -->
+        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b" :class="isDark ? 'border-white/5' : 'border-gray-100'">
             <div class="flex items-center gap-3">
                 <button @click="$router.back()" class="w-10 h-10 rounded-full flex items-center justify-center border"
                     :class="isDark ? 'bg-surface-dark border-white/5 text-gray-400' : 'bg-white border-gray-200 shadow-sm'">
@@ -12,10 +13,14 @@
                     <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Stop #1 · Active</p>
                 </div>
             </div>
+        </header>
+
+        <!-- ── SCROLLABLE BODY ───────────────────────── -->
+        <div class="screen-body px-5 py-4 flex flex-col gap-4">
 
             <!-- Status card -->
             <div class="rounded-2xl p-5 border"
-                :class="isDark ? 'bg-surface-dark/40 border-primary/20 bg-primary/5' : 'bg-primary/5 border-primary/20'">
+                :class="isDark ? 'bg-primary/5 border-primary/20' : 'bg-primary/5 border-primary/20'">
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <p class="text-xs text-primary font-bold uppercase tracking-wide">In Progress</p>
@@ -23,7 +28,7 @@
                         <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">14B, Andheri West, Near
                             JVLR</p>
                     </div>
-                    <div class="text-xl font-black text-primary">{{ time }}</div>
+                    <div class="text-xl font-black text-primary font-mono">{{ time }}</div>
                 </div>
                 <div class="grid grid-cols-3 gap-3 text-center text-sm">
                     <div class="rounded-xl p-2" :class="isDark ? 'bg-black/20' : 'bg-primary/5'">

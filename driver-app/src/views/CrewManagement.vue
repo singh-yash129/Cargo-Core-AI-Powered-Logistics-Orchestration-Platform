@@ -1,35 +1,35 @@
 <template>
-    <div class="min-h-screen pb-safe-nav overflow-y-auto no-scrollbar"
-        :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
-        <div class="px-5 pt-5 flex flex-col gap-4">
+    <div class="screen-layout" :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
 
-            <!-- Header -->
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-wider text-primary mb-0.5">Crew Management</p>
-                    <h1 class="text-3xl font-black tracking-tight">Your Team</h1>
-                    <p class="text-sm mt-0.5" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
-                        House Shift · 14B Andheri West
-                    </p>
-                </div>
+        <!-- ── HEADER ───────────────────────────────── -->
+        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b" :class="isDark ? 'border-white/5' : 'border-gray-100'">
+            <div class="flex items-center justify-between mb-2">
+                <button @click="$router.back()" class="w-10 h-10 rounded-full flex items-center justify-center border"
+                    :class="isDark ? 'bg-surface-dark border-white/5 text-gray-400' : 'bg-white border-gray-200 shadow-sm'">
+                    <span class="material-icons text-xl">arrow_back</span>
+                </button>
                 <span class="text-xs font-bold px-3 py-1.5 rounded-full border"
                     :class="isDark ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-primary/10 border-primary/30 text-primary'">
-                    3 Assigned
+                    {{ clockedIn }} / {{ crew.length }} Clocked In
                 </span>
             </div>
+            <p class="text-xs font-bold uppercase tracking-wider text-primary mb-0.5">Crew Management</p>
+            <h1 class="text-2xl font-black tracking-tight">Your Team</h1>
+            <p class="text-sm mt-0.5" :class="isDark ? 'text-gray-400' : 'text-gray-500'">House Shift · 14B Andheri West
+            </p>
+        </header>
+
+        <!-- ── SCROLLABLE BODY ───────────────────────── -->
+        <div class="screen-body px-5 py-4 flex flex-col gap-4">
 
             <!-- Crew Clock-In Cards -->
             <div class="space-y-3">
-                <div v-for="member in crew" :key="member.id"
-                    class="rounded-2xl p-4 border flex items-center gap-4 transition-all" :class="member.checkInTime
+                <div v-for="member in crew" :key="member.id" class="rounded-2xl p-4 border flex items-center gap-4"
+                    :class="member.checkInTime
                         ? isDark ? 'bg-primary/8 border-primary/20' : 'bg-primary/8 border-primary/30'
                         : isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'">
-
-                    <!-- Avatar -->
                     <img :src="member.photo" :alt="member.name" class="w-14 h-14 rounded-2xl object-cover border-2"
                         :class="member.checkInTime ? 'border-primary' : isDark ? 'border-gray-700' : 'border-gray-200'" />
-
-                    <!-- Info -->
                     <div class="flex-1 min-w-0">
                         <p class="font-bold">{{ member.name }}</p>
                         <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ member.role }} · {{
@@ -39,20 +39,12 @@
                             <span class="text-xs text-primary font-semibold">Clocked in {{ member.checkInTime }}</span>
                         </div>
                     </div>
-
-                    <!-- Action -->
                     <button v-if="!member.checkInTime" @click="clockIn(member)"
-                        class="px-4 py-2 rounded-xl font-bold text-sm text-background-dark active:scale-[0.97] transition-all"
-                        style="background: #1CE783;">
-                        Clock In
-                    </button>
-                    <div v-else class="flex flex-col gap-1">
-                        <button @click="reportException(member)"
-                            class="text-xs px-3 py-1.5 rounded-lg border font-semibold transition-colors"
-                            :class="isDark ? 'border-red-500/30 text-red-400 bg-red-500/8 hover:bg-red-500/15' : 'border-red-200 text-red-500 bg-red-50 hover:bg-red-100'">
-                            Report
-                        </button>
-                    </div>
+                        class="px-4 py-2 rounded-xl font-bold text-sm text-background-dark active:scale-[0.97]"
+                        style="background: #1CE783;">Clock In</button>
+                    <button v-else @click="reportException(member)"
+                        class="text-xs px-3 py-1.5 rounded-lg border font-semibold"
+                        :class="isDark ? 'border-red-500/30 text-red-400 bg-red-500/8' : 'border-red-200 text-red-500 bg-red-50'">Report</button>
                 </div>
             </div>
 
@@ -68,8 +60,7 @@
                         </p>
                     </div>
                     <div>
-                        <p class="text-2xl font-black" :class="isDark ? 'text-gray-400' : 'text-gray-600'">{{
-                            crew.length - clockedIn }}</p>
+                        <p class="text-2xl font-black">{{ crew.length - clockedIn }}</p>
                         <p class="text-[10px] uppercase" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Pending</p>
                     </div>
                     <div>
@@ -78,11 +69,16 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- CTA -->
+        <!-- ── STICKY FOOTER ────────────────────────── -->
+        <div class="screen-footer px-5 py-4 border-t"
+            :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
             <button @click="proceedToLoad" :disabled="clockedIn < crew.length"
-                class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-lg transition-all active:scale-[0.98]"
-                :class="clockedIn === crew.length ? 'bg-primary text-background-dark shadow-glow' : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
+                class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-lg active:scale-[0.98]"
+                :class="clockedIn === crew.length
+                    ? 'bg-primary text-background-dark shadow-glow'
+                    : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
                 <span class="material-icons">{{ clockedIn === crew.length ? 'check' : 'group' }}</span>
                 {{ clockedIn === crew.length ? 'All Clocked In · Proceed' : `${crew.length - clockedIn} crew pending` }}
             </button>
@@ -104,15 +100,8 @@ const crew = ref(dummyCrewMembers.map(m => ({ ...m })))
 const clockedIn = computed(() => crew.value.filter(m => m.checkInTime).length)
 
 function clockIn(member) {
-    const now = new Date()
-    member.checkInTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    member.checkInTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
 }
-
-function reportException(member) {
-    alert(`Report filed for ${member.name}`)
-}
-
-function proceedToLoad() {
-    router.push('/load-verify')
-}
+function reportException(member) { }
+function proceedToLoad() { router.push('/load-verify') }
 </script>

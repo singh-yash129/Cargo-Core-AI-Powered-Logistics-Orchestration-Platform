@@ -11,7 +11,7 @@ export default {
                 'primary': '#1CE783',
                 'primary-dark': '#15b86a',
                 'background-dark': '#0F1115',
-                'background-light': '#f4f7f5',
+                'background-light': '#F5F7F6',
                 'surface-dark': '#1a2c24',
                 'surface-light': '#ffffff',
                 'card-dark': '#1a2c24',

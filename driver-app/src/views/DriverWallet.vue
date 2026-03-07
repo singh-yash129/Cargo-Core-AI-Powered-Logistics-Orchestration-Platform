@@ -1,146 +1,132 @@
 <template>
-    <div class="min-h-screen pb-safe-nav overflow-y-auto no-scrollbar"
-        :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
-        <div class="px-5 pt-5 pb-8 flex flex-col gap-5">
+    <div class="screen-layout" :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
 
-            <!-- Header -->
-            <div class="flex items-center justify-between">
+        <!-- ── HEADER ───────────────────────────────── -->
+        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b" :class="isDark ? 'border-white/5' : 'border-gray-100'">
+            <div class="flex items-center gap-3 mb-3">
+                <button @click="$router.back()"
+                    class="w-10 h-10 rounded-full flex items-center justify-center border flex-shrink-0"
+                    :class="isDark ? 'bg-surface-dark border-white/5 text-gray-400' : 'bg-white border-gray-200 shadow-sm'">
+                    <span class="material-icons text-xl">arrow_back</span>
+                </button>
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-wider text-primary mb-0.5">Driver Wallet</p>
-                    <h1 class="text-3xl font-black tracking-tight">Earnings</h1>
-                </div>
-                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold text-primary"
-                    :class="isDark ? 'bg-primary/10 border-primary/20' : 'bg-primary/10 border-primary/30'">
-                    <span class="relative w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0"></span>
-                    Synced
+                    <p class="text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Driver Wallet</p>
+                    <h1 class="text-xl font-black leading-tight">Earnings</h1>
                 </div>
             </div>
 
-            <!-- Balance Hero Card -->
-            <div class="rounded-3xl p-6 relative overflow-hidden aspect-video flex flex-col justify-between"
-                style="background: linear-gradient(135deg, #1CE783 0%, #0ea855 40%, #0d7a40 100%);">
-                <div class="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
-                <div class="absolute -bottom-8 -left-8 w-36 h-36 bg-white/5 rounded-full blur-2xl"></div>
-
-                <div class="flex justify-between items-start z-10">
-                    <div>
-                        <p class="text-xs font-bold text-background-dark/60 uppercase tracking-widest">Today's Earnings
-                        </p>
-                        <div class="text-5xl font-black text-background-dark mt-1">₹{{
-                            earnings.today.total.toLocaleString() }}</div>
-                    </div>
-                    <div class="p-2 bg-background-dark/15 rounded-2xl">
-                        <span class="material-icons text-background-dark text-2xl">account_balance_wallet</span>
-                    </div>
+            <!-- Hero Balance Card -->
+            <div class="rounded-3xl p-5 relative overflow-hidden"
+                :style="isDark
+                    ? 'background: linear-gradient(135deg, #0d2117 0%, #1a3929 50%, #0a1a0f 100%); border: 1px solid rgba(28,231,131,0.3);'
+                    : 'background: linear-gradient(135deg, #e8faf0 0%, #d4f5e3 50%, #e0f8ea 100%); border: 1px solid rgba(28,231,131,0.3);'">
+                <div class="absolute -top-8 -right-8 w-32 h-32 bg-primary/20 rounded-full blur-3xl pointer-events-none">
                 </div>
-
-                <div class="z-10 flex justify-between items-end">
-                    <div>
-                        <p class="text-xs font-bold text-background-dark/60 uppercase mb-0.5">Driver ID</p>
-                        <p class="text-sm font-bold text-background-dark/90">DRV-2049 · Arjun Sharma</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs font-bold text-background-dark/60 uppercase mb-0.5">Badge</p>
-                        <p class="text-sm font-bold text-background-dark/90 flex items-center gap-1">
-                            <span class="material-icons text-background-dark/80 text-sm">military_tech</span>
-                            Pro Driver
-                        </p>
+                <p class="text-xs font-bold uppercase tracking-widest text-primary/70 mb-1">{{ periods[activePeriod] }}
+                    Total</p>
+                <div class="text-5xl font-black mb-3"
+                    style="background: linear-gradient(135deg,#1CE783,#44a8e9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    ₹{{ currentEarnings.total.toLocaleString('en-IN') }}
+                </div>
+                <div class="flex gap-3">
+                    <div v-for="period in ['Today', 'Week', 'Month']" :key="period" class="flex-1 text-center">
+                        <p class="text-[10px] uppercase font-bold text-primary/50">{{ period }}</p>
+                        <p class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-gray-800'">₹{{
+                            allEarnings[period.toLowerCase()]?.total?.toLocaleString('en-IN') }}</p>
                     </div>
                 </div>
             </div>
 
             <!-- Period Tabs -->
-            <div class="flex gap-2 rounded-xl border p-1"
-                :class="isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'">
-                <button v-for="p in periods" :key="p.id" @click="period = p.id"
-                    class="flex-1 py-2 rounded-lg text-sm font-bold transition-all"
-                    :class="period === p.id ? 'bg-primary text-background-dark' : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'">
-                    {{ p.label }}
+            <div class="flex gap-2 mt-3">
+                <button v-for="(label, i) in periods" :key="i" @click="activePeriod = i"
+                    class="flex-1 py-2 rounded-xl text-sm font-bold uppercase tracking-wide border transition-all"
+                    :class="activePeriod === i
+                        ? 'bg-primary text-background-dark border-primary'
+                        : isDark ? 'bg-surface-dark/30 border-white/5 text-gray-400' : 'bg-white border-gray-200 text-gray-500'">
+                    {{ label }}
                 </button>
             </div>
+        </header>
+
+        <!-- ── SCROLLABLE BODY ───────────────────────── -->
+        <div class="screen-body px-5 py-4 flex flex-col gap-4">
 
             <!-- Earnings Breakdown -->
-            <div class="rounded-2xl border p-5 space-y-4"
-                :class="isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'">
-                <div v-for="row in earningsRows" :key="row.label" class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl flex items-center justify-center" :class="row.bg">
-                            <span class="material-icons text-sm" :class="row.color">{{ row.icon }}</span>
+            <div class="rounded-2xl border overflow-hidden"
+                :class="isDark ? 'border-white/5' : 'border-gray-100 shadow-sm'">
+                <div class="px-4 py-3 border-b"
+                    :class="isDark ? 'bg-surface-dark/50 border-white/5' : 'bg-gray-50 border-gray-100'">
+                    <p class="text-xs font-bold uppercase tracking-widest"
+                        :class="isDark ? 'text-gray-400' : 'text-gray-500'">Breakdown</p>
+                </div>
+                <div class="divide-y" :class="isDark ? 'divide-gray-800' : 'divide-gray-100'">
+                    <div v-for="row in earningRows" :key="row.label"
+                        class="flex justify-between items-center px-4 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-xl flex items-center justify-center" :class="row.bg">
+                                <span class="material-icons text-sm" :class="row.color">{{ row.icon }}</span>
+                            </div>
+                            <span class="text-sm font-semibold">{{ row.label }}</span>
                         </div>
-                        <span class="text-sm font-medium">{{ row.label }}</span>
-                    </div>
-                    <span class="font-bold text-sm">₹{{ row.value.toLocaleString() }}</span>
-                </div>
-                <div class="border-t pt-4" :class="isDark ? 'border-gray-700' : 'border-gray-100'">
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold">Total</span>
-                        <span class="text-xl font-black text-primary">₹{{ currentEarnings.total.toLocaleString()
-                            }}</span>
+                        <span class="text-lg font-black">₹{{ currentEarnings[row.key]?.toLocaleString('en-IN') }}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Performance Scorecard -->
-            <div class="rounded-2xl border p-5"
+            <!-- Scorecard -->
+            <div class="rounded-2xl p-4 border"
                 :class="isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'">
-                <h3 class="text-xs font-bold uppercase tracking-widest mb-4"
-                    :class="isDark ? 'text-gray-400' : 'text-gray-500'">Performance Scorecard</h3>
-                <div class="grid grid-cols-3 gap-4">
-                    <div v-for="metric in scorecard" :key="metric.label" class="text-center">
-                        <div class="text-2xl font-black" :class="metric.color">{{ metric.value }}</div>
-                        <div class="text-[10px] uppercase font-medium mt-0.5"
-                            :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ metric.label }}</div>
+                <h3 class="text-xs font-bold uppercase tracking-widest mb-3"
+                    :class="isDark ? 'text-gray-400' : 'text-gray-500'">Performance</h3>
+                <div class="grid grid-cols-3 gap-3 text-center">
+                    <div v-for="score in scorecard" :key="score.label" class="rounded-xl p-3 border"
+                        :class="isDark ? 'bg-black/20 border-white/5' : 'bg-gray-50 border-gray-100'">
+                        <p class="text-xl font-black" :class="score.color">{{ score.value }}</p>
+                        <p class="text-[9px] uppercase mt-0.5" :class="isDark ? 'text-gray-500' : 'text-gray-400'">{{
+                            score.label }}</p>
                     </div>
                 </div>
-            </div>
-
-            <!-- Request Cashout -->
-            <button
-                class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-background-dark shadow-glow transition-all active:scale-[0.98]"
-                style="background: linear-gradient(135deg, #1CE783, #15b86a);">
-                <span class="material-icons">account_balance</span>
-                Request Cashout
-            </button>
-
-            <div class="py-2 text-center">
-                <p class="text-xs" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
-                    Bank settlement every Friday by 18:00 IST
-                </p>
             </div>
         </div>
-        <BottomNav />
+
+        <!-- ── STICKY FOOTER ────────────────────────── -->
+        <div class="screen-footer border-t"
+            :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
+            <div class="px-5 pt-4 pb-2">
+                <button
+                    class="w-full h-12 rounded-2xl bg-primary/10 border border-primary/20 text-primary font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.97]">
+                    <span class="material-icons">account_balance_wallet</span>
+                    Cashout to Bank · ₹{{ currentEarnings.total.toLocaleString('en-IN') }}
+                </button>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { useUiStore } from '../stores/uiStore.js'
-import BottomNav from '../components/BottomNav.vue'
 import { dummyEarnings } from '../utils/dummyData.js'
 
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
-const period = ref('today')
-const periods = [
-    { id: 'today', label: 'Today' },
-    { id: 'week', label: 'Week' },
-    { id: 'month', label: 'Month' },
+const periods = ['Today', 'Week', 'Month']
+const activePeriod = ref(0)
+const allEarnings = { today: dummyEarnings.today, week: dummyEarnings.week, month: dummyEarnings.month }
+const currentEarnings = computed(() => allEarnings[periods[activePeriod.value].toLowerCase()])
+
+const earningRows = [
+    { label: 'Base Pay', key: 'base', icon: 'payments', bg: 'bg-primary/15', color: 'text-primary' },
+    { label: 'Delivery Bonus', key: 'deliveries', icon: 'place', bg: 'bg-accent-blue/15', color: 'text-accent-blue' },
+    { label: 'Move Premium', key: 'move', icon: 'home', bg: 'bg-accent-purple/15', color: 'text-accent-purple' },
+    { label: 'Tips', key: 'tips', icon: 'favorite', bg: 'bg-accent-gold/15', color: 'text-accent-gold' },
 ]
-
-const earnings = ref(dummyEarnings)
-const currentEarnings = computed(() => earnings.value[period.value])
-
-const earningsRows = computed(() => [
-    { label: 'Base Pay', icon: 'work', value: currentEarnings.value.base, bg: 'bg-primary/15', color: 'text-primary' },
-    { label: 'Delivery Bonus', icon: 'local_shipping', value: currentEarnings.value.deliveries, bg: 'bg-accent-blue/15', color: 'text-accent-blue' },
-    { label: 'Move Premium', icon: 'inventory_2', value: currentEarnings.value.move, bg: 'bg-accent-purple/15', color: 'text-accent-purple' },
-    { label: 'Tips', icon: 'thumb_up', value: currentEarnings.value.tips, bg: 'bg-accent-gold/15', color: 'text-accent-gold' },
-])
 
 const scorecard = [
     { label: 'Rating', value: '4.9★', color: 'text-accent-gold' },
     { label: 'On-Time', value: '96%', color: 'text-primary' },
-    { label: 'Safety', value: '98%', color: 'text-accent-blue' },
+    { label: 'Safety', value: '98', color: 'text-accent-blue' },
 ]
 </script>

@@ -28,24 +28,6 @@ export const dummyVehicle = {
     image: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=800&q=80',
 }
 
-export const dummyManifest = {
-    routeId: 'RT-2049-MAR06',
-    date: 'Thu, Mar 6 2026',
-    shiftId: 'SHIFT-402',
-    totalStops: 7,
-    totalDistance: '47 km',
-    estimatedDuration: '5h 20m',
-    startTime: '08:00',
-    endTime: '13:20',
-    zone: 'Mumbai North-East Hub',
-    assignedCrew: [
-        { id: 'LAB-01', name: 'Ravi Kumar', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=11' },
-        { id: 'LAB-02', name: 'Suresh Patel', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=22' },
-        { id: 'LAB-03', name: 'Dinesh Singh', role: 'Helper', photo: 'https://i.pravatar.cc/40?img=33' },
-    ],
-    stops: dummyStops
-}
-
 export const dummyStops = [
     {
         id: 'STOP-001',
@@ -148,6 +130,24 @@ export const dummyStops = [
     },
 ]
 
+export const dummyManifest = {
+    routeId: 'RT-2049-MAR06',
+    date: 'Thu, Mar 6 2026',
+    shiftId: 'SHIFT-402',
+    totalStops: 7,
+    totalDistance: '47 km',
+    estimatedDuration: '5h 20m',
+    startTime: '08:00',
+    endTime: '13:20',
+    zone: 'Mumbai North-East Hub',
+    assignedCrew: [
+        { id: 'LAB-01', name: 'Ravi Kumar', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=11' },
+        { id: 'LAB-02', name: 'Suresh Patel', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=22' },
+        { id: 'LAB-03', name: 'Dinesh Singh', role: 'Helper', photo: 'https://i.pravatar.cc/40?img=33' },
+    ],
+    stops: dummyStops,
+}
+
 export const dummyChecklist = [
     { id: 'c1', label: 'Kitchen packed & sealed', checked: false, required: true },
     { id: 'c2', label: 'Fragile items wrapped in bubble wrap', checked: false, required: true },
@@ -160,12 +160,12 @@ export const dummyChecklist = [
 ]
 
 export const dummyInspection = [
-    { id: 'i1', label: 'Fuel level recorded', icon: 'local_gas_station', value: '78%', checked: false },
-    { id: 'i2', label: 'Tire pressure OK – All 4 tires', icon: 'tire_repair', value: '32 PSI', checked: false },
-    { id: 'i3', label: 'Odometer reading captured', icon: 'speed', value: '48,230 km', checked: false },
-    { id: 'i4', label: 'Lights & indicators working', icon: 'lightbulb', value: null, checked: false },
-    { id: 'i5', label: 'Cargo area clean & secure', icon: 'inventory_2', value: null, checked: false },
-    { id: 'i6', label: 'Brakes responsive', icon: 'emergency_heat', value: null, checked: false },
+    { id: 'fuel_level', label: 'Fuel level recorded', icon: 'local_gas_station', value: '', checked: false },
+    { id: 'tire_pressure', label: 'Tire pressure OK – All 4 tires', icon: 'donut_large', value: '', checked: false },
+    { id: 'odometer', label: 'Odometer reading captured', icon: 'speed', value: '', checked: false },
+    { id: 'lights', label: 'Lights & indicators working', icon: 'lightbulb', value: '', checked: false },
+    { id: 'cargo', label: 'Cargo area clean & secure', icon: 'inventory_2', value: '', checked: false },
+    { id: 'brakes', label: 'Brakes responsive', icon: 'commute', value: '', checked: false },
 ]
 
 export const dummyCrewMembers = [
