@@ -10,6 +10,7 @@ export const useRouteStore = defineStore('route', () => {
     const completedStops = ref([])
     const dwellTimes = ref({})
     const deviations = ref([])
+    const exceptions = ref([])
 
     const currentStop = computed(() => stops.value[currentStopIndex.value] || null)
     const totalStops = computed(() => stops.value.length)
@@ -47,6 +48,10 @@ export const useRouteStore = defineStore('route', () => {
         deviations.value.push({ reason, timestamp: new Date().toISOString() })
     }
 
+    function logException(data) {
+        exceptions.value.push({ ...data, capturedAt: Date.now() })
+    }
+
     function startDwell(stopId) {
         dwellTimes.value[stopId] = { start: Date.now(), end: null }
     }
@@ -59,9 +64,9 @@ export const useRouteStore = defineStore('route', () => {
 
     return {
         manifest, stops, currentStopIndex, isRouteActive,
-        codPayments, completedStops, dwellTimes, deviations,
+        codPayments, completedStops, dwellTimes, deviations, exceptions,
         currentStop, totalStops, completedCount, progressPercent,
         loadManifest, startRoute, completeDelivery,
-        logCODPayment, logDeviation, startDwell, endDwell
+        logCODPayment, logDeviation, logException, startDwell, endDwell
     }
 })

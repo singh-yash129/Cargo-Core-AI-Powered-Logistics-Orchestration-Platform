@@ -34,9 +34,9 @@
     </main>
 
     <!-- Bottom navigation in FLEX FLOW (not fixed).
-         Being in-flow means pages never need padding-bottom hacks to avoid overlap.
-         .bottom-nav-wrapper adds env(safe-area-inset-bottom) for gesture-nav phones. -->
-    <div v-if="!isKeyboardVisible && !route.meta.hideNav" class="bottom-nav-wrapper">
+         Margin snaps instantly to avoid vibration, but visual transform animates cleanly. -->
+    <div v-if="!isKeyboardVisible && !route.meta.hideNav" class="bottom-nav-wrapper"
+      :class="{ 'nav-hidden': uiStore.isNavHidden }">
       <BottomNav />
     </div>
 
@@ -44,7 +44,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import BottomNav from '../components/BottomNav.vue'
@@ -57,6 +57,37 @@ const { isKeyboardVisible } = useKeyboard()
 
 // Wire Android hardware back button for all authenticated routes in one place
 useHardwareBack()
+
+// ── Smart Auto-Hide Bottom Navbar ─────────────────────────────
+let lastScrollY = 0
+let ticking = false
+
+onMounted(() => {
+  // Use event capturing to catch scroll events from any nested .screen-body
+  window.addEventListener('scroll', (e) => {
+    // Only care about vertical scrolling inside our main scrollable areas
+    const target = e.target
+    if (!target || !target.classList || !target.classList.contains('screen-body')) return
+
+    const currentScrollY = target.scrollTop
+
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        // Only trigger hiding if scrolled down past 50px
+        if (currentScrollY > 50 && currentScrollY > lastScrollY) {
+          // Scrolling down
+          uiStore.isNavHidden = true
+        } else if (currentScrollY < lastScrollY || currentScrollY <= 50) {
+          // Scrolling up (or at the top)
+          uiStore.isNavHidden = false
+        }
+        lastScrollY = currentScrollY <= 0 ? 0 : currentScrollY
+        ticking = false
+      })
+      ticking = true
+    }
+  }, { capture: true, passive: true })
+})
 
 const themeClass = computed(() =>
   uiStore.theme === 'light'
@@ -116,5 +147,15 @@ const themeClass = computed(() =>
 .bottom-nav-wrapper {
   flex-shrink: 0;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Animate visual movement, but keep layout changes instant to block scroll-jitter */
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+/* Smart Auto-hide Styles */
+.nav-hidden {
+  transform: translateY(120%);
+  margin-bottom: calc(-78px - env(safe-area-inset-bottom, 0px));
+  opacity: 0;
+  pointer-events: none;
 }
 </style>

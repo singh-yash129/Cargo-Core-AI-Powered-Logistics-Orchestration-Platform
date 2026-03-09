@@ -1,34 +1,24 @@
 <template>
     <nav class="w-full">
-        <div class="mx-3 mb-3 flex items-center justify-around rounded-2xl border shadow-2xl"
-            :class="isDark ? 'bg-surface-dark/95 backdrop-blur-xl border-white/8' : 'bg-white/95 backdrop-blur-xl border-gray-200'">
+        <div class="mx-3 mb-3 p-2 flex items-center justify-around rounded-full border shadow-2xl"
+            :class="isDark ? 'bg-background-dark/95 backdrop-blur-xl border-white/10' : 'bg-white/95 backdrop-blur-xl border-gray-200'">
 
             <button v-for="item in navItems" :key="item.name" @click="navigate(item.route)"
-                class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 group relative btn-active">
-
-                <!-- Active indicator -->
-                <div v-if="isActive(item.route)"
-                    class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary"></div>
+                class="relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ease-in-out group"
+                :class="isActive(item.route) ? 'bg-primary/15' : 'hover:bg-white/5'">
 
                 <!-- Icon -->
-                <div class="relative p-1.5 rounded-xl transition-all duration-200"
-                    :class="isActive(item.route) ? 'bg-primary/15' : 'group-hover:bg-white/5'">
-                    <span class="material-icons text-xl transition-colors duration-200"
-                        :class="isActive(item.route) ? 'text-primary' : isDark ? 'text-gray-500 group-hover:text-gray-300' : 'text-gray-400 group-hover:text-gray-600'">
+                <div class="relative flex items-center justify-center">
+                    <span class="material-icons text-[22px] transition-colors duration-300"
+                        :class="isActive(item.route) ? 'text-primary' : isDark ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-400 group-hover:text-gray-600'">
                         {{ item.icon }}
                     </span>
                     <!-- Badge -->
-                    <span v-if="item.badge"
-                        class="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
-                        {{ item.badge }}
+                    <span v-if="item.badge" class="absolute w-2.5 h-2.5 rounded-full bg-red-500 ring-2" style="right: -0.35rem; top: -0.2rem;"
+                        :class="isDark ? 'ring-background-dark' : 'ring-white'">
                     </span>
                 </div>
 
-                <!-- Label -->
-                <span class="text-[9px] font-semibold tracking-wide transition-colors duration-200"
-                    :class="isActive(item.route) ? 'text-primary' : isDark ? 'text-gray-600' : 'text-gray-400'">
-                    {{ item.label }}
-                </span>
             </button>
         </div>
     </nav>

@@ -3,15 +3,29 @@
 
         <!-- ── DETAIL MODAL (Fuel / Odometer) ────────── -->
         <Transition name="fade-scale">
-            <div v-if="detailModal" class="absolute inset-0 z-50 flex items-center justify-center px-6"
+            <div v-if="detailModal" class="absolute inset-0 z-50 flex flex-col items-center justify-center px-6"
                 :class="isDark ? 'bg-background-dark/90' : 'bg-background-light/90'" style="backdrop-filter: blur(8px);"
                 @click.self="cancelDetail">
-                <div class="w-full max-w-sm rounded-3xl p-6 border"
+                <div class="w-full max-w-sm rounded-3xl p-6 border flex flex-col gap-4"
                     :class="isDark ? 'bg-surface-dark border-white/10' : 'bg-white border-gray-200 shadow-xl'">
+
+                    <!-- ── Image Preview ─────────────────── -->
+                    <div v-if="photoUrl" class="w-full h-40 rounded-2xl overflow-hidden relative border"
+                        :class="isDark ? 'border-white/10' : 'border-gray-200'">
+                        <img :src="photoUrl" class="w-full h-full object-cover" />
+                        <button @click.stop="removePhoto"
+                            class="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-sm active:scale-95 transition-transform hover:bg-black/70">
+                            <span class="material-icons text-lg">close</span>
+                        </button>
+                        <div
+                            class="absolute bottom-2 left-2 px-2 py-1 rounded bg-black/50 text-white text-[10px] font-bold backdrop-blur-sm uppercase tracking-wider">
+                            Captured Info
+                        </div>
+                    </div>
 
                     <!-- ── Fuel Modal ──────────────────── -->
                     <template v-if="detailType === 'fuel'">
-                        <div class="text-center mb-5">
+                        <div class="text-center mb-1 mt-2">
                             <div class="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-3"
                                 :class="isDark ? 'bg-primary/15' : 'bg-primary/10'">
                                 <span class="material-icons text-primary text-2xl">local_gas_station</span>
@@ -49,8 +63,9 @@
 
                     <!-- ── Odometer Modal ──────────────── -->
                     <template v-if="detailType === 'odometer'">
-                        <div class="text-center mb-5">
-                            <div class="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-3"
+                        <div class="text-center mb-1 mt-2">
+                            <div v-if="!photoUrl"
+                                class="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-3"
                                 :class="isDark ? 'bg-primary/15' : 'bg-primary/10'">
                                 <span class="material-icons text-primary text-2xl">speed</span>
                             </div>
@@ -114,20 +129,47 @@
 
                     <!-- 4 tire grid -->
                     <div class="grid grid-cols-2 gap-3 mb-5">
-                        <div v-for="(tire, idx) in tirePhotos" :key="idx" @click="captureTirePhoto(idx)"
-                            class="aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-[0.96]"
-                            :class="tire.captured
-                                ? 'border-primary bg-primary/10'
-                                : isDark ? 'border-gray-600 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400'">
-                            <span class="material-icons text-2xl"
-                                :class="tire.captured ? 'text-primary' : isDark ? 'text-gray-500' : 'text-gray-400'">
-                                {{ tire.captured ? 'check_circle' : 'photo_camera' }}
-                            </span>
-                            <span class="text-xs font-bold"
-                                :class="tire.captured ? 'text-primary' : isDark ? 'text-gray-500' : 'text-gray-400'">
-                                {{ tire.label }}
-                            </span>
-                            <span v-if="tire.captured" class="text-[10px] text-primary">Captured ✓</span>
+                        <div v-for="(tire, idx) in tirePhotos" :key="idx"
+                            class="aspect-square rounded-2xl border-2 flex flex-col relative overflow-hidden transition-all"
+                            :class="tire.url
+                                ? 'border-primary'
+                                : isDark ? 'border-dashed border-gray-600 hover:border-gray-500 cursor-pointer' : 'border-dashed border-gray-300 hover:border-gray-400 cursor-pointer'"
+                            @click="!tire.url && captureTirePhoto(idx)">
+
+                            <!-- Captured state (Image) -->
+                            <template v-if="tire.url">
+                                <div class="absolute inset-0 m-1 rounded-xl overflow-hidden">
+                                    <img :src="tire.url" class="w-full h-full object-cover" />
+                                    <div
+                                        class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none">
+                                    </div>
+                                    <div
+                                        class="absolute bottom-2 left-2 right-2 flex items-center justify-between z-10">
+                                        <div class="flex items-center gap-1">
+                                            <span class="material-icons text-primary text-[10px]">check_circle</span>
+                                            <span class="text-[10px] font-bold text-white">{{ tire.label }}</span>
+                                        </div>
+                                    </div>
+                                    <button @click.stop="removeTirePhoto(idx)"
+                                        class="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center backdrop-blur-sm active:scale-90 transition-transform hover:bg-black/80 z-20">
+                                        <span class="material-icons text-xs">close</span>
+                                    </button>
+                                </div>
+                            </template>
+
+                            <!-- Uncaptured state -->
+                            <template v-else>
+                                <div class="w-full h-full flex flex-col items-center justify-center gap-1">
+                                    <span class="material-icons text-2xl"
+                                        :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+                                        photo_camera
+                                    </span>
+                                    <span class="text-xs font-bold text-center px-2"
+                                        :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+                                        {{ tire.label }}
+                                    </span>
+                                </div>
+                            </template>
                         </div>
                     </div>
 
@@ -258,6 +300,7 @@ const detailType = ref('')
 const detailItem = ref(null)
 const fuelLiters = ref(null)
 const odometerKm = ref(null)
+const photoUrl = ref(null)
 const fuelInputRef = ref(null)
 const odometerInputRef = ref(null)
 
@@ -286,6 +329,22 @@ function clampFuel() {
 function cancelDetail() {
     detailModal.value = false
     detailItem.value = null
+    photoUrl.value = null
+}
+
+async function removePhoto() {
+    photoUrl.value = null
+    const result = await scanDocument(detailType.value === 'fuel' ? 'Capture fuel gauge' : 'Scan odometer')
+    if (result) {
+        // Mock returning a newly captured sample photo
+        photoUrl.value = result // in a real app, this would be the URI of the captured image
+        if (detailType.value === 'odometer') {
+            odometerKm.value = 48230 // Re-run OCR mock
+        }
+    } else {
+        // If they cancelled the recapture, close the modal entirely since an image is required
+        cancelDetail()
+    }
 }
 
 function confirmDetail() {
@@ -318,28 +377,33 @@ function confirmDetail() {
 const tireModal = ref(false)
 const tireItem = ref(null)
 const tirePhotos = ref([
-    { label: 'Front Left', captured: false },
-    { label: 'Front Right', captured: false },
-    { label: 'Rear Left', captured: false },
-    { label: 'Rear Right', captured: false },
+    { label: 'Front Left', url: null },
+    { label: 'Front Right', url: null },
+    { label: 'Rear Left', url: null },
+    { label: 'Rear Right', url: null },
 ])
-const tireCaptured = computed(() => tirePhotos.value.filter(t => t.captured).length)
+const tireCaptured = computed(() => tirePhotos.value.filter(t => t.url).length)
 
 async function captureTirePhoto(idx) {
-    if (tirePhotos.value[idx].captured) {
-        tirePhotos.value[idx].captured = false
-        return
-    }
+    if (tirePhotos.value[idx].url) return // already captured
+
     // On native: open camera. In browser: use file picker.
     try {
         const result = await scanDocument(`Capture ${tirePhotos.value[idx].label} tire`)
         if (result) {
-            tirePhotos.value[idx].captured = true
+            // Mock returning a real photo URI for testing in browser
+            tirePhotos.value[idx].url = result === true
+                ? 'https://images.unsplash.com/photo-1580274455191-1c62238fa333?auto=format&fit=crop&q=80&w=200&h=200'
+                : result
         }
     } catch {
         // If camera fails, still allow marking as captured for testing
-        tirePhotos.value[idx].captured = true
+        tirePhotos.value[idx].url = 'https://images.unsplash.com/photo-1580274455191-1c62238fa333?auto=format&fit=crop&q=80&w=200&h=200'
     }
+}
+
+function removeTirePhoto(idx) {
+    tirePhotos.value[idx].url = null
 }
 
 function confirmTires() {
@@ -381,10 +445,12 @@ async function handleItemClick(item) {
         // Step 1: Camera
         const result = await scanDocument('Capture fuel gauge')
         if (!result) return
+
         // Step 2: Open fuel detail modal
         detailType.value = 'fuel'
         detailItem.value = item
         fuelLiters.value = null
+        photoUrl.value = result || 'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&q=80&w=400&h=200' // mock photo
         detailModal.value = true
         await nextTick()
         fuelInputRef.value?.focus()
@@ -393,10 +459,12 @@ async function handleItemClick(item) {
         // Step 1: Camera + OCR
         const result = await scanDocument('Scan odometer')
         if (!result) return
-        // Step 2: Open odometer modal with OCR auto-fill (simulated in browser)
+
+        // Step 2: Open odometer modal with OCR auto-fill
         detailType.value = 'odometer'
         detailItem.value = item
-        odometerKm.value = 48230 // Simulated OCR result — on native, real ML OCR would set this
+        photoUrl.value = result || 'https://images.unsplash.com/photo-1627883287040-e2ef6cb90b21?auto=format&fit=crop&q=80&w=400&h=200' // mock photo
+        odometerKm.value = 48230 // Simulated OCR result
         detailModal.value = true
         await nextTick()
         odometerInputRef.value?.focus()
@@ -404,7 +472,7 @@ async function handleItemClick(item) {
     } else if (item.id === 'tire_pressure') {
         // Open tire photo modal
         tireItem.value = item
-        tirePhotos.value.forEach(t => t.captured = false)
+        tirePhotos.value.forEach(t => t.url = null)
         tireModal.value = true
 
     } else {
@@ -416,7 +484,7 @@ async function handleItemClick(item) {
 }
 
 function handleComplete() {
-    router.push('/load-verify')
+    router.push('/crew')
 }
 </script>
 

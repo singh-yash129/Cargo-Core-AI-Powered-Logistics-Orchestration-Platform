@@ -10,7 +10,8 @@
                 </button>
                 <div>
                     <h1 class="text-2xl font-black tracking-tight">Route Progress</h1>
-                    <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">RT-2049-MAR06 · Live tracking
+                    <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{
+                        routeStore.manifest?.routeId || 'RT-2049-MAR06' }} · Live tracking
                     </p>
                 </div>
             </div>
@@ -88,15 +89,19 @@ const uiStore = useUiStore()
 const routeStore = useRouteStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
-const totalStops = 7
-const completedStops = computed(() => routeStore.completedCount)
-const progress = computed(() => Math.round((completedStops.value / totalStops) * 100))
-const estimatedDone = '13:20'
+const totalStops = computed(() => routeStore.totalStops || 7) // Fallback for UI if empty
+const completedStops = computed(() => routeStore.completedCount || 0)
+const progress = computed(() => routeStore.progressPercent || 0)
+const estimatedDone = computed(() => routeStore.manifest?.endTime || '13:20')
 
-const liveStats = [
+const totalCod = computed(() => {
+    return routeStore.codPayments.reduce((sum, p) => sum + (p.amount || 0), 0)
+})
+
+const liveStats = computed(() => [
     { label: 'Speed', icon: 'speed', value: '38 km/h', color: 'text-accent-blue' },
     { label: 'Distance Covered', icon: 'timeline', value: '18.4 km', color: 'text-primary' },
     { label: 'Time Elapsed', icon: 'schedule', value: '2h 14m', color: 'text-accent-gold' },
-    { label: 'COD Collected', icon: 'payments', value: '₹450', color: 'text-primary' },
-]
+    { label: 'COD Collected', icon: 'payments', value: `₹${totalCod.value}`, color: 'text-primary' },
+])
 </script>

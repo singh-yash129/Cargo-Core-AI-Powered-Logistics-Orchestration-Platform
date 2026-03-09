@@ -20,7 +20,7 @@
                 </div>
                 <button @click="$router.push('/voice')" class="p-2 rounded-xl border"
                     :class="isDark ? 'bg-surface-dark/50 border-white/5 text-primary' : 'bg-primary/10 border-primary/20 text-primary'">
-                    <span class="material-icons">smart_toy</span>
+                    <span class="material-icons">record_voice_over</span>
                 </button>
             </div>
         </header>
@@ -85,9 +85,6 @@
                         class="flex-1 text-sm bg-transparent outline-none"
                         :class="isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'"
                         @keyup.enter="handleSend" />
-                    <button @click="$router.push('/voice')" class="text-primary">
-                        <span class="material-icons text-xl">mic</span>
-                    </button>
                 </div>
                 <button @click="handleSend" :disabled="!inputText.trim()"
                     class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95"

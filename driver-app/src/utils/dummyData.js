@@ -144,6 +144,8 @@ export const dummyManifest = {
         { id: 'LAB-01', name: 'Ravi Kumar', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=11' },
         { id: 'LAB-02', name: 'Suresh Patel', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=22' },
         { id: 'LAB-03', name: 'Dinesh Singh', role: 'Helper', photo: 'https://i.pravatar.cc/40?img=33' },
+        { id: 'LAB-04', name: 'Vikram Yadav', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=44' },
+        { id: 'LAB-05', name: 'Manoj Tiwari', role: 'Helper', photo: 'https://i.pravatar.cc/40?img=55' },
     ],
     stops: dummyStops,
 }
@@ -172,6 +174,8 @@ export const dummyCrewMembers = [
     { id: 'LAB-01', name: 'Ravi Kumar', role: 'Loader', photo: 'https://i.pravatar.cc/80?img=11', status: 'present', checkInTime: null },
     { id: 'LAB-02', name: 'Suresh Patel', role: 'Loader', photo: 'https://i.pravatar.cc/80?img=22', status: 'present', checkInTime: null },
     { id: 'LAB-03', name: 'Dinesh Singh', role: 'Helper', photo: 'https://i.pravatar.cc/80?img=33', status: 'present', checkInTime: null },
+    { id: 'LAB-04', name: 'Vikram Yadav', role: 'Loader', photo: 'https://i.pravatar.cc/80?img=44', status: 'present', checkInTime: null },
+    { id: 'LAB-05', name: 'Manoj Tiwari', role: 'Helper', photo: 'https://i.pravatar.cc/80?img=55', status: 'present', checkInTime: null },
 ]
 
 export const dummyEarnings = {

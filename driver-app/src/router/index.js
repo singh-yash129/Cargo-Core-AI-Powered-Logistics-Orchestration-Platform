@@ -93,13 +93,13 @@ const routes = [
                 path: 'route-progress',
                 name: 'route-progress',
                 component: () => import('../views/RouteProgress.vue'),
-                meta: { requiresAuth: true, hideNav: true }
+                meta: { requiresAuth: true }
             },
             {
                 path: 'navigation',
                 name: 'navigation',
                 component: () => import('../views/LiveNavigation.vue'),
-                meta: { requiresAuth: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Load & Crew ──────────────────────────────
@@ -144,6 +144,12 @@ const routes = [
                 meta: { requiresAuth: true, hideNav: true }
             },
             {
+                path: 'exception/:id',
+                name: 'exception',
+                component: () => import('../views/DeliveryException.vue'),
+                meta: { requiresAuth: true, hideNav: true }
+            },
+            {
                 path: 'service-checklist/:id',
                 name: 'service-checklist',
                 component: () => import('../views/ServiceChecklist.vue'),
@@ -181,7 +187,7 @@ const routes = [
                 path: 'chat',
                 name: 'chat',
                 component: () => import('../views/DispatchChat.vue'),
-                meta: { requiresAuth: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'voice',

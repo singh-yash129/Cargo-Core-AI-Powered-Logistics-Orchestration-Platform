@@ -16,16 +16,22 @@
         <div class="screen-body px-5 py-4 flex flex-col gap-4">
 
             <!-- Panic Banner -->
-            <div class="rounded-3xl p-5 text-center border-2 border-red-500/40 relative overflow-hidden" :style="isDark
-                ? 'background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05))'
-                : 'background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(239,68,68,0.02))'">
-                <div
-                    class="absolute -top-10 -right-10 w-32 h-32 bg-red-500/15 rounded-full blur-3xl pointer-events-none">
+            <div class="rounded-3xl p-5 text-center relative border border-red-500/30"
+                :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-red-100 shadow-sm'">
+                <div class="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+                    <div class="absolute inset-0 bg-red-500/5"></div>
+                    <div class="absolute -top-12 -right-12 w-36 h-36 bg-red-500/20 rounded-full blur-2xl">
+                    </div>
                 </div>
-                <p class="text-xs font-bold uppercase tracking-widest text-red-400 mb-2">Emergency Mode Active</p>
-                <p class="text-sm" :class="isDark ? 'text-gray-300' : 'text-gray-600'">
-                    All alerts are being sent to Dispatch &amp; Emergency Operations Center
-                </p>
+                <div class="relative z-10 flex flex-col items-center">
+                    <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mb-3">
+                        <span class="material-icons text-red-500 text-2xl animate-pulse">warning</span>
+                    </div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-red-500 mb-2">Emergency Mode Active</p>
+                    <p class="text-xs leading-relaxed" :class="isDark ? 'text-gray-300' : 'text-gray-600'">
+                        All alerts are being sent to Dispatch &amp; Emergency Operations Center
+                    </p>
+                </div>
             </div>
 
             <!-- Emergency Actions -->
@@ -58,34 +64,76 @@
                 <h3 class="text-xs font-bold uppercase tracking-widest mb-3"
                     :class="isDark ? 'text-gray-400' : 'text-gray-500'">Emergency Contacts</h3>
                 <div class="space-y-3">
-                    <div v-for="contact in contacts" :key="contact.name" class="flex items-center justify-between">
+                    <a v-for="contact in contacts" :key="contact.name" :href="'tel:' + contact.phone"
+                        class="flex items-center justify-between p-2 -mx-2 rounded-xl transition-colors active:scale-[0.98]"
+                        :class="isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'">
                         <div>
                             <p class="text-sm font-semibold">{{ contact.name }}</p>
                             <p class="text-xs" :class="isDark ? 'text-gray-500' : 'text-gray-400'">{{ contact.role }}
                             </p>
                         </div>
-                        <a :href="'tel:' + contact.phone"
-                            class="w-10 h-10 rounded-full flex items-center justify-center bg-primary/20 text-primary">
+                        <div
+                            class="w-10 h-10 rounded-full flex items-center justify-center bg-primary/20 text-primary flex-shrink-0">
                             <span class="material-icons">phone</span>
-                        </a>
-                    </div>
+                        </div>
+                    </a>
                 </div>
             </div>
 
             <!-- Active Alert (SOS) -->
             <div v-if="sosActive"
-                class="rounded-2xl border-2 border-red-500/50 p-4 flex items-center gap-3 animate-pulse"
+                class="rounded-2xl border-2 border-red-500/50 p-4 flex items-center gap-3 animate-pulse relative pr-12"
                 style="background: rgba(239,68,68,0.1);">
-                <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center animate-pulse">
+                <div
+                    class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center animate-pulse flex-shrink-0">
                     <span class="material-icons text-white text-lg">warning</span>
                 </div>
                 <div>
-                    <p class="font-black text-red-400">SOS Active — GPS Shared</p>
-                    <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-600'">Location sent to Dispatch,
+                    <p class="font-black text-red-400 text-sm">SOS Active — GPS Shared</p>
+                    <p class="text-[10px]" :class="isDark ? 'text-gray-400' : 'text-gray-600'">Location sent to
+                        Dispatch,
                         Emergency Response, Fleet Manager</p>
                 </div>
+                <button @click="sosActive = false"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/10 active:scale-95 text-red-400">
+                    <span class="material-icons">close</span>
+                </button>
             </div>
         </div>
+
+        <!-- ── CONFIRMATION MODAL ───────────────────────── -->
+        <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
+            <div v-if="selectedAction"
+                class="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm">
+                <div class="w-full max-w-sm rounded-3xl p-6 border shadow-2xl"
+                    :class="isDark ? 'bg-surface-dark border-white/10' : 'bg-white border-gray-200'">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                        :class="selectedAction.primary ? 'bg-red-500/20 text-red-400' : 'bg-primary/20 text-primary'">
+                        <span class="material-icons text-3xl">{{ selectedAction.icon }}</span>
+                    </div>
+                    <h2 class="text-xl font-black text-center mb-2">{{ selectedAction.label }}</h2>
+                    <p class="text-sm text-center mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                        Are you sure you want to trigger this emergency action?
+                        <span v-if="selectedAction.id === 'sos'" class="block mt-1 font-bold text-red-400">This will
+                            immediately broadcast your location.</span>
+                    </p>
+                    <div class="flex gap-3">
+                        <button @click="selectedAction = null"
+                            class="flex-1 py-3.5 rounded-xl font-bold uppercase tracking-wide text-xs transition-colors"
+                            :class="isDark ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'">
+                            Cancel
+                        </button>
+                        <button @click="confirmAction"
+                            class="flex-1 py-3.5 rounded-xl font-bold uppercase tracking-wide text-xs text-white shadow-glow transition-transform active:scale-95"
+                            :class="selectedAction.primary ? 'bg-red-500 shadow-glow-red' : 'bg-primary'">
+                            Confirm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Transition>
     </div>
 </template>
 
@@ -96,6 +144,7 @@ import { useUiStore } from '../stores/uiStore.js'
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const sosActive = ref(false)
+const selectedAction = ref(null)
 
 const emergencyActions = [
     { id: 'sos', label: 'SOS Alert', description: 'Send GPS location to dispatch immediately', icon: 'emergency', primary: true },
@@ -112,11 +161,18 @@ const contacts = [
 ]
 
 function triggerAction(action) {
-    if (action.id === 'sos') {
+    selectedAction.value = action
+}
+
+function confirmAction() {
+    if (!selectedAction.value) return
+
+    if (selectedAction.value.id === 'sos') {
         sosActive.value = true
         uiStore.showToast('🚨 SOS Alert sent — GPS location shared', 'error')
     } else {
-        uiStore.showToast(`${action.label} reported to dispatch`, 'warning')
+        uiStore.showToast(`${selectedAction.value.label} reported to dispatch`, 'warning')
     }
+    selectedAction.value = null
 }
 </script>

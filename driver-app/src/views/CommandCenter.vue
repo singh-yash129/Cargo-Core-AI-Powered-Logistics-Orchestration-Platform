@@ -32,7 +32,7 @@
         </header>
 
         <!-- ── SCROLLABLE BODY ───────────────────────── -->
-        <div class="screen-body px-5 py-4 flex flex-col gap-4">
+        <div class="screen-body flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
 
             <!-- Ambient glow -->
             <div class="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
@@ -41,10 +41,11 @@
             </div>
 
             <!-- Driver Greeting Card -->
-            <div class="rounded-3xl p-5 relative overflow-hidden border"
+            <div class="rounded-3xl p-5 relative border"
                 :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
-                <div
-                    class="absolute -top-12 -right-12 w-36 h-36 bg-primary/10 rounded-full blur-2xl pointer-events-none">
+                <div class="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+                    <div class="absolute -top-12 -right-12 w-36 h-36 bg-primary/10 rounded-full blur-2xl">
+                    </div>
                 </div>
                 <div class="flex items-center gap-3 mb-4">
                     <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
@@ -130,15 +131,12 @@
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ action.label }}</span>
                 </button>
             </div>
-
-            <!-- Spacer so content isn't hidden by footer -->
-            <div class="h-2"></div>
         </div>
 
         <!-- ── STICKY FOOTER ────────────────────────── -->
         <div class="screen-footer border-t"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
-            <div class="px-5 pt-4 pb-2">
+            <div class="px-5 pt-4 pb-4">
                 <button @click="beginRoute"
                     class="w-full rounded-2xl overflow-hidden relative group active:scale-[0.98] transition-transform shadow-glow h-14 flex items-center justify-center gap-3">
                     <div class="absolute inset-0 bg-gradient-to-r from-primary to-primary-dark"></div>

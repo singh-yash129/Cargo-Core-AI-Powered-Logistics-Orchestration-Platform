@@ -92,6 +92,6 @@ async function scanPkg(pkg) {
 }
 
 function proceed() {
-    router.push('/crew')
+    router.push('/gate-exit')
 }
 </script>

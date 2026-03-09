@@ -66,6 +66,14 @@
                     <span class="material-icons text-sm">report_problem</span>
                     Report Damage
                 </button>
+                <div class="pt-2 border-t mt-2" :class="isDark ? 'border-white/5' : 'border-gray-100'">
+                    <button @click="$router.push('/exception/STOP-001')"
+                        class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold transition-all active:scale-[0.98] text-red-500 border"
+                        :class="isDark ? 'border-red-500/30 bg-red-500/10 hover:bg-red-500/20' : 'border-red-200 bg-red-50 hover:bg-red-100'">
+                        <span class="material-icons">cancel</span>
+                        Report Delivery Exception
+                    </button>
+                </div>
             </div>
         </div>
     </div>

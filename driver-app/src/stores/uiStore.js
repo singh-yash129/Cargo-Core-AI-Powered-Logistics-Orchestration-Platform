@@ -1,11 +1,27 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { Capacitor } from '@capacitor/core'
 
 export const useUiStore = defineStore('ui', () => {
-    const theme = ref('dark') // 'dark' | 'light'
+    const theme = ref('light') // 'dark' | 'light'
     const syncStatus = ref('connected') // 'connected' | 'syncing' | 'offline'
     const offlineQueue = ref([])
     const isLoading = ref(false)
+    const toast = ref(null)
+    const isNavHidden = ref(false)
+
+    const isNativePlatform = Capacitor.isNativePlatform()
+
+    let toastTimer = null
+
+    function showToast(message, type = 'info', duration = 3000) {
+        if (toastTimer) clearTimeout(toastTimer)
+        toast.value = { id: Date.now(), message, type }
+
+        toastTimer = setTimeout(() => {
+            toast.value = null
+        }, duration)
+    }
 
     function setLoading(status) {
         isLoading.value = status
@@ -58,8 +74,8 @@ export const useUiStore = defineStore('ui', () => {
     }
 
     return {
-        theme, syncStatus, offlineQueue, isLoading,
+        theme, syncStatus, offlineQueue, isLoading, toast, isNativePlatform, isNavHidden,
         initTheme, toggleTheme, setTheme,
-        setSyncStatus, queueOfflineAction, clearOfflineQueue, setLoading
+        setSyncStatus, queueOfflineAction, clearOfflineQueue, setLoading, showToast
     }
 })

@@ -32,29 +32,29 @@
         </header>
 
         <!-- ── SCROLLABLE BODY ───────────────────────── -->
-        <div class="screen-body px-5 py-5">
+        <div class="screen-body px-5 py-5 flex flex-col">
 
             <!-- STEP 0: Signature -->
-            <div v-if="currentStep === 0" class="rounded-2xl border overflow-hidden"
+            <div v-if="currentStep === 0" class="flex-1 rounded-2xl border overflow-hidden flex flex-col min-h-[40vh]"
                 :class="isDark ? 'border-white/5' : 'border-gray-100'">
-                <div class="p-4 flex justify-between items-center border-b"
+                <div class="p-4 flex justify-between items-center border-b shrink-0"
                     :class="isDark ? 'bg-surface-dark/50 border-white/5' : 'bg-gray-50 border-gray-100'">
                     <h3 class="font-bold text-sm">Customer Signature</h3>
-                    <button @click="hasSig = false" class="text-xs font-semibold text-primary">Clear</button>
+                    <button @click="clearSignature" class="text-xs font-semibold text-primary">Clear</button>
                 </div>
-                <div class="h-52 flex items-center justify-center cursor-crosshair"
-                    :class="isDark ? 'bg-black/20' : 'bg-gray-50'" @click="hasSig = true">
-                    <div v-if="!hasSig" class="text-center">
+                <div class="flex-1 flex items-center justify-center cursor-crosshair relative overflow-hidden"
+                    :class="isDark ? 'bg-black/20' : 'bg-gray-50'">
+                    <canvas ref="signatureCanvas" class="w-full h-full absolute inset-0 rounded-b-2xl touch-none"
+                        @touchstart="startDrawing" @touchmove="draw" @touchend="stopDrawing" @mousedown="startDrawing"
+                        @mousemove="draw" @mouseup="stopDrawing" @mouseleave="stopDrawing"></canvas>
+                    <div v-if="!hasSig" class="text-center pointer-events-none">
                         <span class="material-icons text-4xl mb-2"
                             :class="isDark ? 'text-gray-600' : 'text-gray-300'">draw</span>
                         <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-400'">Tap to sign</p>
                     </div>
-                    <svg v-else viewBox="0 0 300 100" class="w-4/5 h-20">
-                        <path d="M 10 60 Q 60 20 100 50 Q 140 80 180 40 Q 220 10 260 50 Q 290 70 290 70"
-                            stroke="#1CE783" stroke-width="3" fill="none" stroke-linecap="round" class="opacity-80" />
-                    </svg>
                 </div>
-                <p class="text-center text-xs py-2" :class="isDark ? 'text-gray-600' : 'text-gray-400'">Geotagged &amp;
+                <p class="text-center text-xs py-2 shrink-0 bg-transparent"
+                    :class="isDark ? 'text-gray-600' : 'text-gray-400'">Geotagged &amp;
                     timestamped automatically</p>
             </div>
 
@@ -93,8 +93,9 @@
                     </p>
                 </div>
                 <div class="flex gap-3 justify-center">
-                    <input v-for="i in 4" :key="i" type="tel" maxlength="1" v-model="otp[i - 1]"
-                        class="w-14 h-14 text-center text-2xl font-black rounded-2xl border outline-none"
+                    <input v-for="(digit, idx) in 4" :key="idx" type="tel" maxlength="1" v-model="otp[idx]"
+                        ref="otpInputs" @input="handleOtpInput(idx, $event)" @keydown="handleOtpKeydown(idx, $event)"
+                        class="w-14 h-14 text-center text-2xl font-black rounded-2xl border outline-none transition-colors"
                         :class="isDark ? 'bg-surface-dark border-white/10 text-white focus:border-primary' : 'bg-white border-gray-200 text-gray-900 focus:border-primary shadow-sm'" />
                 </div>
                 <p class="text-center text-xs" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Resend OTP in 28s</p>
@@ -116,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
@@ -126,12 +127,122 @@ const router = useRouter()
 const uiStore = useUiStore()
 const routeStore = useRouteStore()
 const isDark = computed(() => uiStore.theme !== 'light')
-const { takePhoto, isCapturing } = useCamera()
+const { scanDocument, isCapturing } = useCamera()
 
 const steps = ['Signature', 'Photos', 'OTP']
 const currentStep = ref(0)
+
+// --- Signature Pad Logic ---
+const signatureCanvas = ref(null)
 const hasSig = ref(false)
+const isDrawing = ref(false)
+let ctx = null
+
+function initSignature() {
+    if (!signatureCanvas.value) return;
+    const canvas = signatureCanvas.value;
+    const w = canvas.offsetWidth || canvas.parentElement.clientWidth;
+    const h = canvas.offsetHeight || canvas.parentElement.clientHeight;
+
+    if (w > 0 && h > 0) {
+        // Only scale if the actual DOM container size is evaluated correctly 
+        canvas.width = w;
+        canvas.height = h;
+        ctx = canvas.getContext('2d');
+        ctx.strokeStyle = '#1CE783'; // Primary color
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+    }
+}
+
+// Reactively re-initialize whenever we mount Step 0
+watch(currentStep, (newStep) => {
+    if (newStep === 0) {
+        nextTick(() => setTimeout(initSignature, 300));
+    }
+}, { immediate: true });
+
+function getCoordinates(event) {
+    if (!signatureCanvas.value) return { x: 0, y: 0 };
+    const canvas = signatureCanvas.value;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width || 1;
+    const scaleY = canvas.height / rect.height || 1;
+
+    let clientX = event.clientX;
+    let clientY = event.clientY;
+
+    if (event.touches && event.touches.length > 0) {
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+    }
+
+    return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+    };
+}
+
+function startDrawing(event) {
+    if (!signatureCanvas.value) return;
+    if (!ctx || signatureCanvas.value.width === 300) {
+        initSignature();
+    }
+    if (!ctx) return;
+
+    isDrawing.value = true;
+    hasSig.value = true;
+    const { x, y } = getCoordinates(event);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+}
+
+function draw(event) {
+    if (!isDrawing.value || !ctx) return;
+    const { x, y } = getCoordinates(event);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+}
+
+function stopDrawing() {
+    if (!isDrawing.value || !ctx) return;
+    isDrawing.value = false;
+    ctx.closePath();
+}
+
+function clearSignature() {
+    hasSig.value = false;
+    if (ctx && signatureCanvas.value) {
+        ctx.clearRect(0, 0, signatureCanvas.value.width, signatureCanvas.value.height);
+    }
+}
+
+// --- OTP Logic ---
 const otp = ref(['', '', '', ''])
+const otpInputs = ref([])
+
+function handleOtpInput(idx, event) {
+    const val = event.target.value;
+    // Allow only digits
+    if (!/^\d*$/.test(val)) {
+        otp.value[idx] = '';
+        return;
+    }
+    // Move to next input if filled and next exists
+    if (val && idx < 3) {
+        otpInputs.value[idx + 1]?.focus();
+    }
+}
+
+function handleOtpKeydown(idx, event) {
+    // Move to previous input on backspace if current is empty
+    if (event.key === 'Backspace' && !otp.value[idx] && idx > 0) {
+        otpInputs.value[idx - 1]?.focus();
+    }
+}
+
+// --- Photos & Navigation ---
 const photos = ref([])
 
 const canProceed = computed(() => {
@@ -142,7 +253,7 @@ const canProceed = computed(() => {
 })
 
 async function addPhoto() {
-    const result = await takePhoto({ promptLabel: 'Delivery Photo' })
+    const result = await scanDocument('Delivery Photo')
     if (result) {
         photos.value.push(result.base64)
         uiStore.showToast('Photo captured ✓', 'success', 1200)
