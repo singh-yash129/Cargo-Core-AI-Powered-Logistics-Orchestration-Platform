@@ -5,6 +5,7 @@ dist-ssr/
 
 # Vite
 *.local
+.vite/
 
 # Capacitor
 android/
