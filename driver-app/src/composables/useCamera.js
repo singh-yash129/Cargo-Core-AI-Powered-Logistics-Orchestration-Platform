@@ -10,6 +10,11 @@ export function useCamera() {
 
     function mountScanner(Component, propsData) {
         return new Promise((resolve) => {
+            // ONLY make app transparent if running on native device with real camera underneath array
+            if (Capacitor.isNativePlatform()) {
+                document.documentElement.classList.add('camera-active')
+            }
+
             const mountNode = document.createElement('div')
             // Add a class so we can potentially target it if needed
             mountNode.className = 'scanner-mount-point'
@@ -19,6 +24,9 @@ export function useCamera() {
 
             const cleanup = () => {
                 isCapturing.value = false
+                if (Capacitor.isNativePlatform()) {
+                    document.documentElement.classList.remove('camera-active')
+                }
                 // Small delay to allow fade out animations if they existed
                 setTimeout(() => {
                     render(null, mountNode)

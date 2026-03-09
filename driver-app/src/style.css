@@ -407,3 +407,19 @@ body.light {
         transform: translateX(-350px);
     }
 }
+
+/* ── Global Camera Transparency ───────────────── */
+/* 
+  When native plugins are active, we must strip all solid backgrounds
+  down the node tree so the OS camera underneath is visible.
+*/
+html.camera-active,
+html.camera-active body,
+html.camera-active #app,
+html.camera-active .screen-layout,
+html.camera-active .screen-body,
+html.camera-active .bg-background-dark,
+html.camera-active .bg-background-light {
+    background: transparent !important;
+    background-color: transparent !important;
+}

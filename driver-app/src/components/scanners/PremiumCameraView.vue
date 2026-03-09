@@ -1,5 +1,6 @@
 <template>
-    <div v-if="isOpen" class="fixed inset-0 z-[9999] bg-transparent flex flex-col font-sans">
+    <div v-if="isOpen" class="fixed inset-0 z-[9999] flex flex-col font-sans"
+        :class="isNative ? 'bg-transparent' : 'bg-gray-900'">
 
         <!-- Top Controls -->
         <div
@@ -94,9 +95,10 @@ const isCapturing = ref(false)
 const showingFlash = ref(false)
 const flashMode = ref('off')
 const currentPosition = ref('rear')
+const isNative = Capacitor.isNativePlatform()
 
 onMounted(async () => {
-    if (Capacitor.isNativePlatform()) {
+    if (isNative) {
         document.body.classList.add('camera-preview-transparent')
         document.documentElement.classList.add('camera-preview-transparent')
 

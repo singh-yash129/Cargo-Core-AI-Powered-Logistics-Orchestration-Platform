@@ -1,5 +1,6 @@
 <template>
-    <div v-if="isOpen" class="fixed inset-0 z-[9999] bg-transparent flex flex-col font-sans">
+    <div v-if="isOpen" class="fixed inset-0 z-[9999] flex flex-col font-sans"
+        :class="isNative ? 'bg-transparent' : 'bg-gray-900'">
 
         <!-- Header Overlay -->
         <div
@@ -75,10 +76,11 @@ const emit = defineEmits(['close', 'scanned'])
 const isOpen = ref(true)
 const flashOn = ref(false)
 const scanListener = ref(null)
+const isNative = Capacitor.isNativePlatform()
 
 onMounted(async () => {
     // Check permissions and start scanning
-    if (Capacitor.isNativePlatform()) {
+    if (isNative) {
         const { camera } = await BarcodeScanner.requestPermissions()
         if (camera === 'granted' || camera === 'limited') {
             document.body.classList.add('barcode-scanner-active') // Makes webview transparent
