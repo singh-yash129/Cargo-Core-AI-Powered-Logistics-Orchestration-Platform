@@ -1,5 +1,5 @@
 <template>
-    <div class="register-view">
+    <div class="register-view animate-view">
         <!-- Header -->
         <div class="reg-header">
             <h2 class="reg-title">Create your account</h2>
@@ -364,22 +364,48 @@ defineExpose({ resetForm })
     width: 100%;
 }
 
+.animate-view>* {
+    animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.animate-view>*:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.animate-view>*:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.animate-view>*:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes fade-in-up {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .reg-header {
     margin-bottom: 1.25rem;
 }
 
 .reg-title {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 1.6rem;
+    font-weight: 800;
     letter-spacing: -0.03em;
     color: #fff;
     margin-bottom: 0.15rem;
-    text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
 }
 
 .reg-subtitle {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 /* Step dots */
@@ -605,9 +631,10 @@ defineExpose({ resetForm })
 
 .field-label {
     display: block;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.95);
+    color: #fff;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
     margin-bottom: 0.25rem;
 }
 
@@ -627,9 +654,9 @@ defineExpose({ resetForm })
     gap: 0.35rem;
     padding: 0 0.65rem;
     height: 38px;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
     border-radius: 0.55rem;
     transition: all 0.25s;
 }
@@ -656,7 +683,7 @@ defineExpose({ resetForm })
 }
 
 .auth-input::placeholder {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .field-error {
