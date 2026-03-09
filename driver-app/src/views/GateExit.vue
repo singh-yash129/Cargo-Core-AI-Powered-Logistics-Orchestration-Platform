@@ -58,7 +58,7 @@
                     class="flex items-center justify-between text-sm py-1 border-b last:border-0"
                     :class="isDark ? 'border-white/5' : 'border-gray-50'">
                     <span class="font-medium" :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ item.label
-                        }}</span>
+                    }}</span>
                     <span class="font-bold">{{ item.value }}</span>
                 </div>
             </div>
@@ -75,7 +75,7 @@ import { useCamera } from '../composables/useCamera.js'
 const router = useRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
-const { scanDocument, isCapturing } = useCamera()
+const { scanQrCode, isCapturing } = useCamera()
 
 const exitItems = [
     { label: 'Exit Time', value: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) },
@@ -86,7 +86,7 @@ const exitItems = [
 
 async function scanExit() {
     try {
-        const result = await scanDocument('Scan Gate QR Code')
+        const result = await scanQrCode('Scan Gate QR Code')
         // Allow progression even if canceled/failed on web
         if (result || !uiStore.isNativePlatform) {
             uiStore.showToast('Gate exit logged ✓', 'success')

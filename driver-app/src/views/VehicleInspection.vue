@@ -289,7 +289,7 @@ import { dummyInspection } from '../utils/dummyData.js'
 const router = useRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
-const { scanDocument } = useCamera()
+const { takePhoto, scanOdometer } = useCamera()
 
 // ── Constants ──────────────────────────────────────
 const TANK_CAPACITY = 120
@@ -334,16 +334,18 @@ function cancelDetail() {
 
 async function removePhoto() {
     photoUrl.value = null
-    const result = await scanDocument(detailType.value === 'fuel' ? 'Capture fuel gauge' : 'Scan odometer')
-    if (result) {
-        // Mock returning a newly captured sample photo
-        photoUrl.value = result // in a real app, this would be the URI of the captured image
-        if (detailType.value === 'odometer') {
-            odometerKm.value = 48230 // Re-run OCR mock
-        }
+    if (detailType.value === 'fuel') {
+        const result = await takePhoto({ promptLabel: 'Capture fuel gauge' })
+        if (result) photoUrl.value = result.base64
+        else cancelDetail()
     } else {
-        // If they cancelled the recapture, close the modal entirely since an image is required
-        cancelDetail()
+        const result = await scanOdometer('Scan odometer')
+        if (result) {
+            photoUrl.value = result.base64 || 'data:image/jpeg;base64,MOCK'
+            odometerKm.value = result.text.replace(/[^0-9]/g, '') || 48230
+        } else {
+            cancelDetail()
+        }
     }
 }
 
@@ -389,12 +391,13 @@ async function captureTirePhoto(idx) {
 
     // On native: open camera. In browser: use file picker.
     try {
-        const result = await scanDocument(`Capture ${tirePhotos.value[idx].label} tire`)
-        if (result) {
-            // Mock returning a real photo URI for testing in browser
-            tirePhotos.value[idx].url = result === true
-                ? 'https://images.unsplash.com/photo-1580274455191-1c62238fa333?auto=format&fit=crop&q=80&w=200&h=200'
-                : result
+        const result = await takePhoto({ promptLabel: `Capture ${tirePhotos.value[idx].label} tire` })
+        if (result && result.base64 && result.base64.startsWith('data:')) {
+            tirePhotos.value[idx].url = result.base64
+        } else if (result && result.base64) {
+            tirePhotos.value[idx].url = `data:image/jpeg;base64,${result.base64}`
+        } else if (result) {
+            tirePhotos.value[idx].url = 'https://images.unsplash.com/photo-1580274455191-1c62238fa333?auto=format&fit=crop&q=80&w=200&h=200'
         }
     } catch {
         // If camera fails, still allow marking as captured for testing
@@ -443,28 +446,32 @@ async function handleItemClick(item) {
 
     if (item.id === 'fuel_level') {
         // Step 1: Camera
-        const result = await scanDocument('Capture fuel gauge')
+        const result = await takePhoto({ promptLabel: 'Capture fuel gauge' })
         if (!result) return
 
         // Step 2: Open fuel detail modal
         detailType.value = 'fuel'
         detailItem.value = item
         fuelLiters.value = null
-        photoUrl.value = result || 'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&q=80&w=400&h=200' // mock photo
+        photoUrl.value = (result.base64 && !result.base64.startsWith('MOCK'))
+            ? `data:image/jpeg;base64,${result.base64}`
+            : 'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&q=80&w=400&h=200'
         detailModal.value = true
         await nextTick()
         fuelInputRef.value?.focus()
 
     } else if (item.id === 'odometer') {
         // Step 1: Camera + OCR
-        const result = await scanDocument('Scan odometer')
+        const result = await scanOdometer('Scan odometer')
         if (!result) return
 
         // Step 2: Open odometer modal with OCR auto-fill
         detailType.value = 'odometer'
         detailItem.value = item
-        photoUrl.value = result || 'https://images.unsplash.com/photo-1627883287040-e2ef6cb90b21?auto=format&fit=crop&q=80&w=400&h=200' // mock photo
-        odometerKm.value = 48230 // Simulated OCR result
+        photoUrl.value = (result.base64 && !result.base64.startsWith('MOCK'))
+            ? `data:image/jpeg;base64,${result.base64}`
+            : 'https://images.unsplash.com/photo-1627883287040-e2ef6cb90b21?auto=format&fit=crop&q=80&w=400&h=200'
+        odometerKm.value = result.text.replace(/[^0-9]/g, '') || 48230 // OCR result
         detailModal.value = true
         await nextTick()
         odometerInputRef.value?.focus()

@@ -1,65 +1,88 @@
-import { ref } from 'vue'
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera'
+import { ref, render, h } from 'vue'
 import { Capacitor } from '@capacitor/core'
+import PremiumQrScanner from '../components/scanners/PremiumQrScanner.vue'
+import PremiumOcrScanner from '../components/scanners/PremiumOcrScanner.vue'
+import PremiumCameraView from '../components/scanners/PremiumCameraView.vue'
 
-/**
- * Composable for Capacitor Camera integration.
- * Provides takePhoto() and scanDocument() methods that launch the native camera.
- * Falls back gracefully in browser (web dev) mode.
- */
 export function useCamera() {
     const isCapturing = ref(false)
     const lastError = ref('')
 
-    /**
-     * Take a photo using the native camera.
-     * @param {Object} opts - Optional overrides
-     * @param {string} opts.promptLabel - Action sheet prompt label
-     * @param {boolean} opts.allowGallery - Allow picking from gallery (default true)
-     * @returns {Promise<{base64: string, format: string} | null>}
-     */
-    async function takePhoto(opts = {}) {
-        isCapturing.value = true
-        lastError.value = ''
-        try {
-            const image = await Camera.getPhoto({
-                resultType: CameraResultType.Base64,
-                source: opts.allowGallery === false ? CameraSource.Camera : CameraSource.Prompt,
-                quality: 80,
-                allowEditing: false,
-                promptLabelHeader: opts.promptLabel || 'Capture Photo',
-                promptLabelPhoto: 'From Gallery',
-                promptLabelPicture: 'Take Photo',
-                width: 1280,
-                height: 960,
-            })
-            return { base64: image.base64String, format: image.format || 'jpeg' }
-        } catch (err) {
-            if (err?.message?.includes('cancelled') || err?.message?.includes('User cancelled')) {
-                return null
+    function mountScanner(Component, propsData) {
+        return new Promise((resolve) => {
+            const mountNode = document.createElement('div')
+            // Add a class so we can potentially target it if needed
+            mountNode.className = 'scanner-mount-point'
+            document.body.appendChild(mountNode)
+
+            isCapturing.value = true
+
+            const cleanup = () => {
+                isCapturing.value = false
+                // Small delay to allow fade out animations if they existed
+                setTimeout(() => {
+                    render(null, mountNode)
+                    mountNode.remove()
+                }, 50)
             }
-            lastError.value = err.message || 'Camera error'
-            console.warn('[useCamera] takePhoto error:', err)
-            return null
-        } finally {
-            isCapturing.value = false
+
+            const onClose = () => {
+                cleanup()
+                resolve(null)
+            }
+
+            const onScanned = (data) => {
+                cleanup()
+                resolve(data)
+            }
+
+            const vnode = h(Component, {
+                ...propsData,
+                onClose,
+                onScanned,        // From PremiumQrScanner
+                onExtracted: onScanned, // From PremiumOcrScanner
+                onCaptured: onScanned   // From PremiumCameraView
+            })
+
+            render(vnode, mountNode)
+        })
+    }
+
+    async function scanQrCode(promptText = 'Scan QR Code') {
+        const result = await mountScanner(PremiumQrScanner, { promptText })
+        return result // returns string representation of QR code, or null
+    }
+
+    async function scanOdometer(promptText = 'Align Dashboard Text') {
+        const result = await mountScanner(PremiumOcrScanner, { promptText })
+        return result // returns { text, base64 } or null
+    }
+
+    async function takePhoto(opts = {}) {
+        const base64Pic = await mountScanner(PremiumCameraView, { promptText: opts.promptLabel || 'TAKE PHOTO' })
+        if (base64Pic) {
+            return { base64: base64Pic, format: 'jpeg' }
         }
+        return null
     }
 
-    /**
-     * Capture a document photo (fuel receipt, odometer scan, etc.)
-     * Uses camera-only source (no gallery) for compliance.
-     * @param {string} label - Prompt label
-     * @returns {Promise<{base64: string, format: string} | null>}
-     */
-    async function scanDocument(label = 'Scan Document') {
-        return takePhoto({ promptLabel: label, allowGallery: false })
+    async function scanDocument(label = 'SCAN DOCUMENT') {
+        const base64Pic = await mountScanner(PremiumCameraView, { promptText: label })
+        if (base64Pic) {
+            return { base64: base64Pic, format: 'jpeg' }
+        }
+        return null
     }
 
-    /**
-     * Check if native camera is available (Capacitor native platform).
-     */
     const isNative = Capacitor.isNativePlatform()
 
-    return { takePhoto, scanDocument, isCapturing, lastError, isNative }
+    return {
+        takePhoto,
+        scanDocument,
+        scanQrCode,
+        scanOdometer,
+        isCapturing,
+        lastError,
+        isNative
+    }
 }

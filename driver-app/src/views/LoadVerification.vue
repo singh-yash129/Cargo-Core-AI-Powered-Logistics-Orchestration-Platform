@@ -70,7 +70,7 @@ import { useCamera } from '../composables/useCamera.js'
 const router = useRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
-const { scanDocument, isCapturing } = useCamera()
+const { scanQrCode, isCapturing } = useCamera()
 
 const packages = ref([
     { barcode: 'CC-001-2049', description: 'Electronics', weight: '2.3kg', scanned: false },
@@ -83,10 +83,12 @@ const scanned = computed(() => packages.value.filter(p => p.scanned).length)
 
 async function scanPkg(pkg) {
     if (pkg.scanned) return
-    const result = await scanDocument(`Scan ${pkg.barcode}`)
+    const result = await scanQrCode(`Scan ${pkg.barcode}`)
     if (result) {
         pkg.scanned = true
-        pkg.scanPhoto = result.base64
+        // QR Code scanner just returns a string, so we don't need a photo.
+        // We simulate a mock photo for the UI if needed
+        pkg.scanPhoto = 'MOCK_PHOTO'
         uiStore.showToast(`${pkg.barcode} scanned ✓`, 'success', 1200)
     }
 }

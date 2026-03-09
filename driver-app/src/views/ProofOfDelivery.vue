@@ -44,7 +44,7 @@
                 </div>
                 <div class="flex-1 flex items-center justify-center cursor-crosshair relative overflow-hidden"
                     :class="isDark ? 'bg-black/20' : 'bg-gray-50'">
-                    <canvas ref="signatureCanvas" class="w-full h-full absolute inset-0 rounded-b-2xl touch-none"
+                    <canvas ref="signatureCanvas" class="w-full h-full absolute inset-0 touch-none"
                         @touchstart="startDrawing" @touchmove="draw" @touchend="stopDrawing" @mousedown="startDrawing"
                         @mousemove="draw" @mouseup="stopDrawing" @mouseleave="stopDrawing"></canvas>
                     <div v-if="!hasSig" class="text-center pointer-events-none">
@@ -137,6 +137,7 @@ const signatureCanvas = ref(null)
 const hasSig = ref(false)
 const isDrawing = ref(false)
 let ctx = null
+let canvasInitialized = false
 
 function initSignature() {
     if (!signatureCanvas.value) return;
@@ -145,21 +146,26 @@ function initSignature() {
     const h = canvas.offsetHeight || canvas.parentElement.clientHeight;
 
     if (w > 0 && h > 0) {
-        // Only scale if the actual DOM container size is evaluated correctly 
-        canvas.width = w;
-        canvas.height = h;
+        // High DPI canvas scaling for crisp drawing
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
         ctx = canvas.getContext('2d');
-        ctx.strokeStyle = '#1CE783'; // Primary color
+        ctx.scale(dpr, dpr);
+        ctx.strokeStyle = '#1ce783'; // Primary color
         ctx.lineWidth = 4;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        canvasInitialized = true;
     }
 }
 
-// Reactively re-initialize whenever we mount Step 0
+// Reactively re-initialize whenever we mount Step 0, wait for DOM layout
 watch(currentStep, (newStep) => {
     if (newStep === 0) {
-        nextTick(() => setTimeout(initSignature, 300));
+        nextTick(() => {
+            setTimeout(initSignature, 400); // Wait for transition & layout
+        });
     }
 }, { immediate: true });
 
@@ -167,8 +173,6 @@ function getCoordinates(event) {
     if (!signatureCanvas.value) return { x: 0, y: 0 };
     const canvas = signatureCanvas.value;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width || 1;
-    const scaleY = canvas.height / rect.height || 1;
 
     let clientX = event.clientX;
     let clientY = event.clientY;
@@ -176,17 +180,21 @@ function getCoordinates(event) {
     if (event.touches && event.touches.length > 0) {
         clientX = event.touches[0].clientX;
         clientY = event.touches[0].clientY;
+    } else if (event.changedTouches && event.changedTouches.length > 0) {
+        clientX = event.changedTouches[0].clientX;
+        clientY = event.changedTouches[0].clientY;
     }
 
     return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY
+        x: clientX - rect.left,
+        y: clientY - rect.top
     };
 }
 
 function startDrawing(event) {
+    if (event.cancelable) event.preventDefault(); // Stop mobile scrolling
     if (!signatureCanvas.value) return;
-    if (!ctx || signatureCanvas.value.width === 300) {
+    if (!ctx || !canvasInitialized || signatureCanvas.value.width === 0) {
         initSignature();
     }
     if (!ctx) return;
@@ -200,13 +208,15 @@ function startDrawing(event) {
 
 function draw(event) {
     if (!isDrawing.value || !ctx) return;
+    if (event.cancelable) event.preventDefault(); // Stop mobile scrolling
     const { x, y } = getCoordinates(event);
     ctx.lineTo(x, y);
     ctx.stroke();
 }
 
-function stopDrawing() {
+function stopDrawing(event) {
     if (!isDrawing.value || !ctx) return;
+    if (event && event.cancelable) event.preventDefault();
     isDrawing.value = false;
     ctx.closePath();
 }
@@ -253,10 +263,10 @@ const canProceed = computed(() => {
 })
 
 async function addPhoto() {
-    const result = await scanDocument('Delivery Photo')
+    const result = await scanDocument('Capture Proof of Delivery')
     if (result) {
-        photos.value.push(result.base64)
-        uiStore.showToast('Photo captured ✓', 'success', 1200)
+        photos.value.push(result.base64.startsWith('data:') ? result.base64 : `data:image/jpeg;base64,${result.base64}`)
+        uiStore.showToast('Photo added ✓', 'success', 1200)
     }
 }
 function removePhoto(idx) { photos.value.splice(idx, 1) }

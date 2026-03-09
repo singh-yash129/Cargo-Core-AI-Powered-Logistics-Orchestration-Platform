@@ -290,11 +290,13 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
+import { useCamera } from '../composables/useCamera.js'
 import { dummyVehicle } from '../utils/dummyData.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
 const driverStore = useDriverStore()
+const { scanQrCode, isCapturing } = useCamera()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 // ── Phase state: 'scan' → 'confirm' → 'success' ──────────────────
@@ -314,10 +316,17 @@ const vehicleSpecs = computed(() => [
     { label: 'Last Check', icon: 'build', value: 'Mar 5', unit: '', bar: null, sub: 'Inspection passed' },
 ])
 
-// ── Simulate QR scan (resolves to the assigned vehicle) ──────────
-function simulateScan() {
-    manualId.value = 'CC-TRK-042'
-    handleManualLookup()
+// ── Simulate or Actual QR scan (resolves to the assigned vehicle) ──────────
+async function simulateScan() {
+    // If native platform, this opens the custom UI overlay via ML-Kit.
+    // If browser, this simulates a scan returning a mock code after 2.5s.
+    const result = await scanQrCode('Align QR code in frame')
+    if (result) {
+        // Typically we'd use the real result to look up the van
+        // For our prototype, we'll force it to CC-TRK-042 if successful
+        manualId.value = 'CC-TRK-042'
+        handleManualLookup()
+    }
 }
 
 // ── Look up by typed or scanned ID ───────────────────────────────
