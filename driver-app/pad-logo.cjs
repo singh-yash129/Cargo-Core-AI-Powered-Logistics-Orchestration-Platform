@@ -16,7 +16,7 @@ async function processLogo() {
   })
     .composite([
       {
-        input: await sharp(inputPath).resize(614, 614, { fit: 'inside' }).toBuffer(),
+        input: await sharp(inputPath).resize(800, 800, { fit: 'inside' }).toBuffer(),
         gravity: 'center'
       }
     ])
@@ -29,7 +29,7 @@ async function processLogo() {
       width: 1024,
       height: 1024,
       channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 }
+      background: { r: 255, g: 255, b: 255, alpha: 1 }
     }
   })
     .png()
@@ -41,12 +41,12 @@ async function processLogo() {
       width: 1024,
       height: 1024,
       channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 }
+      background: { r: 255, g: 255, b: 255, alpha: 1 }
     }
   })
     .composite([
       {
-        input: await sharp(inputPath).resize(614, 614, { fit: 'inside' }).toBuffer(),
+        input: await sharp(inputPath).resize(800, 800, { fit: 'inside' }).toBuffer(),
         gravity: 'center'
       }
     ])
@@ -59,12 +59,12 @@ async function processLogo() {
       width: 2732,
       height: 2732,
       channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 }
+      background: { r: 255, g: 255, b: 255, alpha: 1 }
     }
   })
     .composite([
       {
-        input: await sharp(inputPath).resize(1000, 1000, { fit: 'inside' }).toBuffer(),
+        input: await sharp(inputPath).resize(1200, 1200, { fit: 'inside' }).toBuffer(),
         gravity: 'center'
       }
     ])

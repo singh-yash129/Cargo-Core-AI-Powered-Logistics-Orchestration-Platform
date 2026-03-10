@@ -8,8 +8,6 @@
     "plugins": {
         "SplashScreen": {
             "launchShowDuration": 0,
-            "backgroundColor": "#0F1115",
-            "androidSplashResourceName": "splash",
             "showSpinner": false
         },
         "Keyboard": {
