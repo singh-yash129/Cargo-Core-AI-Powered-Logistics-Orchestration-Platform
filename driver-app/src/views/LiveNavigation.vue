@@ -72,7 +72,7 @@
                         <span class="material-icons text-sm">warning</span>
                         Deviation
                     </button>
-                    <button @click="$router.push('/geofence-arrival/STOP-001')"
+                    <button @click="handleArrival"
                         class="flex-[2] flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-background-dark shadow-glow active:scale-[0.97] transition-all text-sm"
                         style="background: linear-gradient(135deg, #1CE783, #15b86a);">
                         <span class="material-icons text-lg">where_to_vote</span>
@@ -86,10 +86,20 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useRouteStore } from '../stores/routeStore.js'
 
+const router = useRouter()
 const uiStore = useUiStore()
+const routeStore = useRouteStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+const currentStopId = computed(() => routeStore.currentStop?.id || 'STOP-001')
+
+function handleArrival() {
+    routeStore.startDwell(currentStopId.value)
+    router.push(`/geofence-arrival/${currentStopId.value}`)
+}
 
 const routeStats = [
     { label: 'Distance', value: '2.4 km' },

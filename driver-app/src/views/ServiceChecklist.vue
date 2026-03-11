@@ -63,13 +63,15 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { dummyChecklist } from '../utils/dummyData.js'
 
+const route = useRoute()
 const router = useRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+const stopId = computed(() => route.params.id || 'STOP-001')
 
 const checklist = ref(dummyChecklist.map(i => ({ ...i })))
 const done = computed(() => checklist.value.filter(c => c.checked).length)
@@ -77,6 +79,6 @@ const progressPct = computed(() => Math.round(done.value / checklist.value.lengt
 const allRequiredDone = computed(() => checklist.value.filter(c => c.required).every(c => c.checked))
 
 function proceed() {
-    router.push('/pod/STOP-001')
+    router.push('/pod/' + stopId.value)
 }
 </script>

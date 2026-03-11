@@ -48,13 +48,13 @@
 
             <!-- Action buttons -->
             <div class="space-y-3">
-                <button @click="$router.push('/service-checklist/STOP-001')"
+                <button @click="$router.push('/service-checklist/' + stopId)"
                     class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold border active:scale-[0.98] transition-all"
                     :class="isDark ? 'bg-surface-dark/30 border-white/5 text-white' : 'bg-white border-gray-200 text-gray-700 shadow-sm'">
                     <span class="material-icons">checklist</span>
                     Service Checklist
                 </button>
-                <button @click="$router.push('/pod/STOP-001')"
+                <button @click="$router.push('/pod/' + stopId)"
                     class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-background-dark shadow-glow active:scale-[0.98] transition-all"
                     style="background: linear-gradient(135deg, #1CE783, #15b86a);">
                     <span class="material-icons">verified</span>
@@ -67,7 +67,7 @@
                     Report Damage
                 </button>
                 <div class="pt-2 border-t mt-2" :class="isDark ? 'border-white/5' : 'border-gray-100'">
-                    <button @click="$router.push('/exception/STOP-001')"
+                    <button @click="$router.push('/exception/' + stopId)"
                         class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold transition-all active:scale-[0.98] text-red-500 border"
                         :class="isDark ? 'border-red-500/30 bg-red-500/10 hover:bg-red-500/20' : 'border-red-200 bg-red-50 hover:bg-red-100'">
                         <span class="material-icons">cancel</span>
@@ -81,10 +81,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 
+const route = useRoute()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+const stopId = computed(() => route.params.id || 'STOP-001')
 
 const time = ref('00:00')
 let start = Date.now()

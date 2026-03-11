@@ -104,11 +104,16 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useRouteStore } from '../stores/routeStore.js'
+import { useLocalNotifications } from '../composables/useLocalNotifications.js'
 
 const route = useRoute()
 const router = useRouter()
 const uiStore = useUiStore()
+const routeStore = useRouteStore()
+const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
+const stopId = computed(() => route.params.id || 'STOP-001')
 
 const targetAmount = 450
 const paymentMethod = ref('cash')
@@ -125,6 +130,14 @@ const canConfirm = computed(() => (paymentMethod.value === 'cash' && amountMatch
 
 function simulateUpiPaid() { upiPaid.value = true }
 function confirmCOD() {
-    router.push('/pod/' + (route.params.id || 'STOP-003'))
+    routeStore.logCODPayment({
+        stopId: stopId.value,
+        amount: targetAmount,
+        method: paymentMethod.value,
+        collectedAt: new Date().toISOString()
+    })
+    notify({ title: 'COD Collected', body: `₹${targetAmount} via ${paymentMethod.value} at ${stopId.value}`, type: 'success' })
+    uiStore.showToast(`₹${targetAmount} COD collected ✓`, 'success')
+    router.push('/pod/' + stopId.value)
 }
 </script>

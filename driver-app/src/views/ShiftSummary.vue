@@ -63,11 +63,17 @@
         <!-- ── STICKY FOOTER ────────────────────────── -->
         <div class="screen-footer px-5 py-4 border-t flex flex-col gap-2"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
-            <button @click="$router.push('/vehicle-return')"
+            <button v-if="driverStore.vehicleId" @click="$router.push('/vehicle-return')"
                 class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-background-dark shadow-glow transition-all active:scale-[0.98]"
                 style="background: linear-gradient(135deg, #1CE783, #15b86a);">
                 <span class="material-icons">local_shipping</span>
                 Return Vehicle
+            </button>
+            <button v-else @click="endShift"
+                class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-background-dark shadow-glow transition-all active:scale-[0.98]"
+                style="background: linear-gradient(135deg, #1CE783, #15b86a);">
+                <span class="material-icons">logout</span>
+                End Shift & Sign Out
             </button>
             <button @click="$router.push('/audit')"
                 class="w-full rounded-2xl h-12 flex items-center justify-center gap-2 font-semibold border transition-all active:scale-[0.98]"
@@ -81,10 +87,20 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
 
+const router = useRouter()
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+
+function endShift() {
+    driverStore.logout()
+    uiStore.showToast('Shift ended. See you tomorrow!', 'success')
+    router.replace('/login')
+}
 
 const summaryStats = [
     { label: 'Stops Done', icon: 'place', value: '7/7', sub: '100% complete', color: 'text-primary' },

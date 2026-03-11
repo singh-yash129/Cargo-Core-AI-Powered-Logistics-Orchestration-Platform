@@ -200,8 +200,12 @@ const manifestMetrics = [
 const quickActions = [
     { label: 'Crew', icon: 'group', route: '/crew', bg: 'bg-accent-blue/15', color: 'text-accent-blue' },
     { label: 'Wallet', icon: 'payments', route: '/wallet', bg: 'bg-primary/15', color: 'text-primary' },
+    { label: 'Fuel', icon: 'local_gas_station', route: '/fuel-receipt', bg: 'bg-signal-amber/15', color: 'text-signal-amber' },
     { label: 'AI', icon: 'smart_toy', route: '/voice', bg: 'bg-accent-purple/15', color: 'text-accent-purple' },
+    { label: 'Returns', icon: 'assignment_return', route: '/returns', bg: 'bg-orange-500/15', color: 'text-orange-400' },
+    { label: 'Offline', icon: 'cloud_off', route: '/offline', bg: 'bg-gray-500/15', color: 'text-gray-400' },
     { label: 'Crisis', icon: 'emergency', route: '/crisis', bg: 'bg-red-500/15', color: 'text-red-400' },
+    { label: 'Summary', icon: 'summarize', route: '/shift-summary', bg: 'bg-accent-blue/15', color: 'text-accent-blue' },
 ]
 function beginRoute() { router.push('/manifest') }
 </script>

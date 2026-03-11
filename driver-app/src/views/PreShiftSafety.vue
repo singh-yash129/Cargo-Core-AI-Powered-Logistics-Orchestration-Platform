@@ -86,9 +86,13 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
+import { useLocalNotifications } from '../composables/useLocalNotifications.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
+const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 const authChecks = ref([
@@ -98,5 +102,9 @@ const authChecks = ref([
     { id: 4, label: 'Medical Fitness', status: 'Cleared – Last check Mar 1', ok: true, icon: 'health_and_safety' },
 ])
 
-function proceed() { router.push('/vehicle-binding') }
+function proceed() {
+    driverStore.preShiftDone = true
+    notify({ title: 'Pre-Shift Complete', body: 'Safety checks passed — proceed to vehicle binding', type: 'success', route: '/vehicle-binding' })
+    router.push('/vehicle-binding')
+}
 </script>

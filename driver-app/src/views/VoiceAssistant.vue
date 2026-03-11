@@ -68,8 +68,10 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 
+const router = useRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
@@ -78,12 +80,20 @@ const lastCommand = ref('')
 
 const commands = [
     'Navigate to next stop',
-    'Call dispatcher',
+    'Open dispatcher chat',
     'What is my ETA?',
     'Log fuel receipt',
     'Report route deviation',
     'Activate SOS',
 ]
+
+const commandRoutes = {
+    'Navigate to next stop': '/navigation',
+    'Open dispatcher chat': '/chat',
+    'Log fuel receipt': '/fuel-receipt',
+    'Report route deviation': '/route-deviation',
+    'Activate SOS': '/crisis',
+}
 
 function toggleListen() {
     listening.value = !listening.value
@@ -92,6 +102,7 @@ function toggleListen() {
             listening.value = false
             lastCommand.value = 'Navigating to next stop...'
             uiStore.showToast('✦ CargoAI: Navigating to next stop', 'info')
+            router.push('/navigation')
         }, 3000)
     }
 }
@@ -99,5 +110,9 @@ function toggleListen() {
 function handleCommand(cmd) {
     lastCommand.value = cmd
     uiStore.showToast(`✦ CargoAI: ${cmd}`, 'info')
+    const route = commandRoutes[cmd]
+    if (route) {
+        setTimeout(() => router.push(route), 600)
+    }
 }
 </script>

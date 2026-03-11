@@ -24,6 +24,9 @@
     <!-- Transparent spacer below status bar — all page content automatically starts here -->
     <div class="status-bar-spacer" aria-hidden="true" />
 
+    <!-- In-app notification banner (slides from top) -->
+    <NotificationBanner :banner="banner" @dismiss="dismissBanner" @tap="handleBannerTap" />
+
     <!-- Page render slot: fills remaining height precisely -->
     <main class="page-container">
       <RouterView v-slot="{ Component }">
@@ -45,15 +48,22 @@
 
 <script setup>
 import { computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import BottomNav from '../components/BottomNav.vue'
+import NotificationBanner from '../components/NotificationBanner.vue'
 import { useKeyboard } from '../composables/useKeyboard.js'
 import { useHardwareBack } from '../composables/useHardwareBack.js'
+import { useLocalNotifications } from '../composables/useLocalNotifications.js'
 
 const uiStore = useUiStore()
 const route = useRoute()
+const router = useRouter()
 const { isKeyboardVisible } = useKeyboard()
+const { banner, dismissBanner } = useLocalNotifications()
+
+// Expose notify globally via provide so child pages can inject it
+// (pages can alternatively import useLocalNotifications directly)
 
 // Wire Android hardware back button for all authenticated routes in one place
 useHardwareBack()
@@ -88,6 +98,13 @@ onMounted(() => {
     }
   }, { capture: true, passive: true })
 })
+
+function handleBannerTap() {
+  if (banner.value?.route) {
+    router.push(banner.value.route)
+  }
+  dismissBanner()
+}
 
 const themeClass = computed(() =>
   uiStore.theme === 'light'

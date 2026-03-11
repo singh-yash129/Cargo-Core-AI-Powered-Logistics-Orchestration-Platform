@@ -44,7 +44,7 @@
                 <span class="material-icons">play_arrow</span>
                 Begin Service
             </button>
-            <button @click="$router.push('/delivery/STOP-001')"
+            <button @click="$router.push('/delivery/' + stopId)"
                 class="w-full rounded-2xl h-12 border font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                 :class="isDark ? 'bg-surface-dark/30 border-white/5 text-white' : 'bg-white border-gray-200 text-gray-700 shadow-sm'">
                 <span class="material-icons text-sm">list_alt</span>
@@ -56,12 +56,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 
+const route = useRoute()
 const router = useRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+const stopId = computed(() => route.params.id || 'STOP-001')
 
 const seconds = ref(0)
 let timer = null
@@ -76,6 +78,6 @@ onMounted(() => { timer = setInterval(() => seconds.value++, 1000) })
 onUnmounted(() => clearInterval(timer))
 
 function proceed() {
-    router.push('/service-checklist/STOP-001')
+    router.push('/service-checklist/' + stopId.value)
 }
 </script>

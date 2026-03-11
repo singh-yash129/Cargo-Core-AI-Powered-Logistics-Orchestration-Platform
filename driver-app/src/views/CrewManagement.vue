@@ -173,10 +173,12 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
 import { dummyCrewMembers } from '../utils/dummyData.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 const crew = ref(dummyCrewMembers.map(m => ({ ...m, reportedReason: null })))
@@ -216,7 +218,10 @@ function submitReport() {
     closeReportModal()
 }
 
-function proceedToLoad() { router.push('/load-verify') }
+function proceedToLoad() {
+    driverStore.crewCheckedIn = true
+    router.push('/load-verify')
+}
 </script>
 
 <style scoped>

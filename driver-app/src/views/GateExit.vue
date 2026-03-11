@@ -70,10 +70,14 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
 import { useCamera } from '../composables/useCamera.js'
+import { useLocalNotifications } from '../composables/useLocalNotifications.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
+const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
 const { scanQrCode, isCapturing } = useCamera()
 
@@ -89,13 +93,17 @@ async function scanExit() {
         const result = await scanQrCode('Scan Gate QR Code')
         // Allow progression even if canceled/failed on web
         if (result || !uiStore.isNativePlatform) {
-            uiStore.showToast('Gate exit logged ✓', 'success')
-            setTimeout(() => router.push('/route-progress'), 600)
+            driverStore.gateExited = true
+            uiStore.showToast('Gate exit logged \u2713', 'success')
+            notify({ title: 'Route Started', body: 'Gate exit logged — 7 stops assigned', type: 'navigation', route: '/dashboard' })
+            setTimeout(() => router.push('/dashboard'), 600)
         }
     } catch (e) {
         // Fallback for dev mode
+        driverStore.gateExited = true
         uiStore.showToast('Gate exit logged ✓', 'success')
-        setTimeout(() => router.push('/route-progress'), 600)
+        notify({ title: 'Route Started', body: 'Gate exit logged — 7 stops assigned', type: 'navigation', route: '/dashboard' })
+        setTimeout(() => router.push('/dashboard'), 600)
     }
 }
 </script>

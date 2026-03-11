@@ -140,8 +140,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useUiStore } from '../stores/uiStore.js'
+import { useLocalNotifications } from '../composables/useLocalNotifications.js'
 
 const uiStore = useUiStore()
+const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
 const sosActive = ref(false)
 const selectedAction = ref(null)
@@ -170,8 +172,10 @@ function confirmAction() {
     if (selectedAction.value.id === 'sos') {
         sosActive.value = true
         uiStore.showToast('🚨 SOS Alert sent — GPS location shared', 'error')
+        notify({ title: 'SOS Activated', body: 'Emergency alert sent — GPS shared with dispatch', type: 'error' })
     } else {
         uiStore.showToast(`${selectedAction.value.label} reported to dispatch`, 'warning')
+        notify({ title: selectedAction.value.label, body: 'Reported to dispatch control', type: 'warning' })
     }
     selectedAction.value = null
 }

@@ -251,6 +251,12 @@ const routes = [
                 component: () => import('../views/OfflineQueue.vue'),
                 meta: { requiresAuth: true, hideNav: true }
             },
+            {
+                path: 'notifications',
+                name: 'notifications',
+                component: () => import('../views/NotificationCenter.vue'),
+                meta: { requiresAuth: true, hideNav: true }
+            },
         ]
     },
 
@@ -284,8 +290,39 @@ router.beforeEach((to, from, next) => {
         return next({ name: 'login' })
     }
     if (to.meta.public && driverStore.isAuthenticated && to.name === 'login') {
-        return next({ name: 'dashboard' })
+        return next({ name: driverStore.preShiftDone ? 'dashboard' : 'pre-shift' })
     }
+
+    // ── Shift flow enforcement ─────────────────────────────────
+    // Pages that are always accessible once authenticated (no flow guard)
+    const flowExempt = ['pre-shift', 'settings', 'notifications']
+    if (to.meta.requiresAuth && !flowExempt.includes(to.name)) {
+        // Must complete pre-shift before anything else
+        if (!driverStore.preShiftDone) {
+            return next({ name: 'pre-shift' })
+        }
+        // Must bind vehicle before inspection+
+        if (!driverStore.vehicleBound && to.name !== 'vehicle-binding') {
+            return next({ name: 'vehicle-binding' })
+        }
+        // Must inspect before crew+
+        if (!driverStore.inspectionDone && !['vehicle-binding', 'vehicle-inspection'].includes(to.name)) {
+            return next({ name: 'vehicle-inspection' })
+        }
+        // Must check crew before load+
+        if (!driverStore.crewCheckedIn && !['vehicle-binding', 'vehicle-inspection', 'crew'].includes(to.name)) {
+            return next({ name: 'crew' })
+        }
+        // Must verify load before gate+
+        if (!driverStore.loadVerified && !['vehicle-binding', 'vehicle-inspection', 'crew', 'load-verify'].includes(to.name)) {
+            return next({ name: 'load-verify' })
+        }
+        // Must pass gate before main app
+        if (!driverStore.gateExited && !['vehicle-binding', 'vehicle-inspection', 'crew', 'load-verify', 'gate-exit'].includes(to.name)) {
+            return next({ name: 'gate-exit' })
+        }
+    }
+
     next()
 })
 

@@ -7,9 +7,23 @@ export const useDriverStore = defineStore('driver', () => {
     const isAuthenticated = ref(false)
     const shiftStartTime = ref(null)
 
+    // ── Shift Flow State ──────────────────────────
+    const preShiftDone = ref(false)
+    const vehicleBound = ref(false)
+    const inspectionDone = ref(false)
+    const crewCheckedIn = ref(false)
+    const loadVerified = ref(false)
+    const gateExited = ref(false)
+
     const driverName = computed(() => driver.value?.name || 'Driver')
     const driverId = computed(() => driver.value?.driverId || 'DRV-0000')
     const vehicleId = computed(() => vehicle.value?.vehicleId || null)
+
+    // Computed: can the driver access the main dashboard?
+    const shiftFlowComplete = computed(() =>
+        preShiftDone.value && vehicleBound.value && inspectionDone.value &&
+        crewCheckedIn.value && loadVerified.value && gateExited.value
+    )
 
     function login(id, method = 'password') {
         driver.value = {
@@ -35,6 +49,12 @@ export const useDriverStore = defineStore('driver', () => {
         vehicle.value = null
         isAuthenticated.value = false
         shiftStartTime.value = null
+        preShiftDone.value = false
+        vehicleBound.value = false
+        inspectionDone.value = false
+        crewCheckedIn.value = false
+        loadVerified.value = false
+        gateExited.value = false
     }
 
     function bindVehicle(v) {
@@ -43,7 +63,8 @@ export const useDriverStore = defineStore('driver', () => {
 
     return {
         driver, vehicle, isAuthenticated, shiftStartTime,
-        driverName, driverId, vehicleId,
+        preShiftDone, vehicleBound, inspectionDone, crewCheckedIn, loadVerified, gateExited,
+        driverName, driverId, vehicleId, shiftFlowComplete,
         login, logout, bindVehicle
     }
 }, { persist: true })

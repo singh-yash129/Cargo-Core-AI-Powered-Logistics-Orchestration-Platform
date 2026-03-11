@@ -291,12 +291,14 @@ import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useCamera } from '../composables/useCamera.js'
+import { useLocalNotifications } from '../composables/useLocalNotifications.js'
 import { dummyVehicle } from '../utils/dummyData.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
 const driverStore = useDriverStore()
 const { scanQrCode, isCapturing } = useCamera()
+const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 // ── Phase state: 'scan' → 'confirm' → 'success' ──────────────────
@@ -355,8 +357,10 @@ async function handleBind() {
     binding.value = true
     await new Promise(r => setTimeout(r, 900))
     driverStore.bindVehicle(vehicle.value)
+    driverStore.vehicleBound = true
     binding.value = false
     phase.value = 'success'
+    notify({ title: 'Vehicle Bound', body: `${vehicle.value.vehicleId} linked to your shift`, type: 'success' })
     // Brief success display then advance
     await new Promise(r => setTimeout(r, 1800))
     router.push('/vehicle-inspection')

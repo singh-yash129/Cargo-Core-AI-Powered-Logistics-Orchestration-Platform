@@ -28,19 +28,21 @@
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useNotificationStore } from '../stores/notificationStore.js'
 
 const router = useRouter()
 const route = useRoute()
 const uiStore = useUiStore()
+const notificationStore = useNotificationStore()
 const isDark = computed(() => uiStore.theme === 'dark')
 
-const navItems = [
+const navItems = computed(() => [
     { name: 'home', label: 'Home', icon: 'home', route: '/dashboard', badge: null },
     { name: 'manifest', label: 'Manifest', icon: 'list_alt', route: '/manifest', badge: null },
     { name: 'navigation', label: 'Navigate', icon: 'near_me', route: '/navigation', badge: null },
     { name: 'wallet', label: 'Wallet', icon: 'account_balance_wallet', route: '/wallet', badge: null },
-    { name: 'chat', label: 'Chat', icon: 'headset_mic', route: '/chat', badge: '2' },
-]
+    { name: 'notifications', label: 'Alerts', icon: 'notifications', route: '/notifications', badge: notificationStore.unreadCount > 0 ? notificationStore.unreadCount : null },
+])
 
 function isActive(r) {
     if (r === '/dashboard') return route.path === '/dashboard' || route.path === '/'

@@ -85,10 +85,12 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
 import { useCamera } from '../composables/useCamera.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const { scanDocument, isCapturing } = useCamera()
 
@@ -106,7 +108,8 @@ async function captureCondition() {
 }
 
 function submit() {
+    driverStore.vehicle = null
     uiStore.showToast('Vehicle returned successfully ✓', 'success')
-    router.push('/shift-summary')
+    router.replace('/shift-summary')
 }
 </script>

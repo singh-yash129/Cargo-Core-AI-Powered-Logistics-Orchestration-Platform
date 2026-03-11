@@ -283,11 +283,13 @@
 import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
 import { useCamera } from '../composables/useCamera.js'
 import { dummyInspection } from '../utils/dummyData.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const { takePhoto, scanOdometer } = useCamera()
 
@@ -491,6 +493,7 @@ async function handleItemClick(item) {
 }
 
 function handleComplete() {
+    driverStore.inspectionDone = true
     router.push('/crew')
 }
 </script>

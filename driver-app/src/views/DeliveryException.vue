@@ -109,12 +109,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
 import { useCamera } from '../composables/useCamera.js'
+import { useLocalNotifications } from '../composables/useLocalNotifications.js'
 
 const route = useRoute()
 const router = useRouter()
 const uiStore = useUiStore()
 const routeStore = useRouteStore()
 const { scanDocument, isCapturing } = useCamera()
+const { notify } = useLocalNotifications()
 
 const isDark = computed(() => uiStore.theme !== 'light')
 const stopId = computed(() => route.params.id || 'Unknown')
@@ -194,6 +196,7 @@ function submitException() {
     // Mark as completed so itinerary advances
     routeStore.completeDelivery(stopId.value)
 
+    notify({ title: 'Exception Reported', body: `Stop ${stopId.value} — ${selectedReason.value}`, type: 'warning', route: '/manifest' })
     uiStore.showToast('Exception Report Submitted', 'error', 2000)
     router.replace('/manifest')
 }

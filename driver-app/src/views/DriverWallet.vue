@@ -94,7 +94,7 @@
         <div class="screen-footer border-t"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
             <div class="px-5 pt-4 pb-2">
-                <button
+                <button @click="handleCashout"
                     class="w-full h-12 rounded-2xl bg-primary/10 border border-primary/20 text-primary font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.97]">
                     <span class="material-icons">account_balance_wallet</span>
                     Cashout to Bank · ₹{{ currentEarnings.total.toLocaleString('en-IN') }}
@@ -111,6 +111,15 @@ import { dummyEarnings } from '../utils/dummyData.js'
 
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+
+const cashoutRequested = ref(false)
+
+function handleCashout() {
+    if (cashoutRequested.value) return
+    cashoutRequested.value = true
+    uiStore.showToast(`Cashout of ₹${currentEarnings.value.total.toLocaleString('en-IN')} initiated ✓`, 'success', 3000)
+    setTimeout(() => { cashoutRequested.value = false }, 5000)
+}
 
 const periods = ['Today', 'Week', 'Month']
 const activePeriod = ref(0)

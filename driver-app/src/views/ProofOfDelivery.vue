@@ -118,16 +118,20 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
 import { useCamera } from '../composables/useCamera.js'
+import { useLocalNotifications } from '../composables/useLocalNotifications.js'
 
+const route = useRoute()
 const router = useRouter()
 const uiStore = useUiStore()
 const routeStore = useRouteStore()
+const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
 const { scanDocument, isCapturing } = useCamera()
+const stopId = computed(() => route.params.id || 'STOP-001')
 
 const steps = ['Signature', 'Photos', 'OTP']
 const currentStep = ref(0)
@@ -273,7 +277,9 @@ function removePhoto(idx) { photos.value.splice(idx, 1) }
 function handleNext() {
     if (currentStep.value < steps.length - 1) { currentStep.value++ }
     else {
-        routeStore.completeDelivery('STOP-001')
+        routeStore.completeDelivery(stopId.value)
+        routeStore.endDwell(stopId.value)
+        notify({ title: 'Delivery Complete', body: `Stop ${stopId.value} delivered successfully`, type: 'delivery', route: '/manifest' })
         router.push('/manifest')
     }
 }
