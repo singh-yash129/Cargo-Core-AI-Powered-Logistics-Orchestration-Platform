@@ -27,10 +27,6 @@ pytest
 pytest-asyncio
 httpx
 
-# ─── AI / Gemini ──────────────────────────────────────────────────────────────
-google-genai
-sqlparse
-
 # ─── Dev / Linting ────────────────────────────────────────────────────────────
 ruff
 black
