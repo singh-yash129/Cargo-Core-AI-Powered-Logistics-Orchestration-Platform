@@ -4,19 +4,27 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.database import engine, Base
+from app.database import engine, ro_engine, Base
 from app.middleware.logging_middleware import LoggingMiddleware
 from app.routers import auth as auth_router
+from app.routers import ai as ai_router
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: nothing needed — Alembic handles schema creation
+    # Startup
+    from loguru import logger
+
+    if not settings.gemini_api_key:
+        logger.warning(
+            "GEMINI_API_KEY is not set. AI chatbot endpoints will return 503."
+        )
     yield
-    # Shutdown: dispose async engine
+    # Shutdown: dispose async engines
     await engine.dispose()
+    await ro_engine.dispose()
 
 
 def create_app() -> FastAPI:
@@ -41,6 +49,7 @@ def create_app() -> FastAPI:
 
     # ── Routers ───────────────────────────────────────────────────────────────
     app.include_router(auth_router.router)
+    app.include_router(ai_router.router)
 
     # ── Health check ──────────────────────────────────────────────────────────
     @app.get("/health", tags=["Health"])
