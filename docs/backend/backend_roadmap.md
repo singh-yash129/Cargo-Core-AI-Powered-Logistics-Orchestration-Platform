@@ -1,7 +1,7 @@
 ywa# Backend Development Roadmap
 ### Logistics & Personal Move Management System
 **Stack:** FastAPI · PostgreSQL · SQLAlchemy · Alembic · Redis · Celery  
-**Last Updated:** 24 February 2026
+**Last Updated:** 16 March 2026
 
 ---
 
@@ -86,6 +86,8 @@ backend/
 │   │
 │   ├── models/                  # SQLAlchemy ORM models
 │   │   ├── user.py
+│   │   ├── ai_conversation.py
+│   │   ├── escalation.py
 │   │   ├── order.py
 │   │   ├── inventory.py
 │   │   ├── fleet.py
@@ -118,6 +120,7 @@ backend/
 │   │   ├── route_service.py
 │   │   ├── payroll_service.py
 │   │   ├── ai_service.py
+│   │   ├── sql_validator.py
 │   │   └── ...
 │   │
 │   ├── tasks/                   # Celery async tasks
@@ -129,8 +132,10 @@ backend/
 │   ├── utils/                   # Helpers (JWT, file upload, geocoding)
 │   │   ├── jwt.py
 │   │   ├── hashing.py
+│   │   ├── redis.py
 │   │   ├── file_upload.py
-│   │   └── maps.py
+│   │   ├── maps.py
+│   │   └── gemini.py
 │   │
 │   └── middleware/
 │       ├── auth_middleware.py
@@ -179,7 +184,7 @@ backend/
 | `damage_reports` | id, order_id, driver_id, photo_urls, description, severity, reported_at, resolved_at | Damage logs |
 | `notifications` | id, user_id, type, title, body, is_read, created_at | In-app notifications |
 | `audit_logs` | id, user_id, action, entity_type, entity_id, old_value, new_value, timestamp | Full audit trail |
-| `ai_conversations` | id, session_id, user_id, role, message, timestamp, intent, sentiment_score | AI support chat |
+| `ai_conversations` | id, session_id, user_id, role, message, created_at, intent, sql_generated, query_result | AI support chat |
 | `escalations` | id, conversation_id, reason, escalated_to_user_id, escalated_at, resolved_at, status | AI escalations |
 
 ---
@@ -203,24 +208,15 @@ backend/
   - Create initial migration with `users` and `roles` tables
 
 - [x] **1.3 — Authentication System**
-  - Self-service registration (bcrypt password hashing) — **Individual & Vendor roles only**
+  - User registration with bcrypt password hashing
   - JWT access token (15 min) + refresh token (7 days)
   - Role-based `require_role()` dependency
   - Secure logout via Redis token blacklist
 
-  > **Role Onboarding Model:**
-  > | Role | How account is created |
-  > |---|---|
-  > | **Logistic Manager** | Pre-seeded at deployment (superadmin — no sign-up) |
-  > | **Warehouse Manager** | Created by Logistic Manager via `POST /api/v1/users` |
-  > | **Dispatcher** | Created by Logistic Manager via `POST /api/v1/users` |
-  > | **Driver** | Created by Logistic Manager / Warehouse Manager via `POST /api/v1/users` |
-  > | **Individual / Vendor** | Self-service via `POST /api/v1/auth/register` |
-
 ### API Endpoints
 
 ```
-POST   /api/v1/auth/register          # Self-service sign-up (Individual & Vendor only)
+POST   /api/v1/auth/register          # Create new user account
 POST   /api/v1/auth/login             # Issue JWT tokens
 POST   /api/v1/auth/refresh           # Refresh access token
 POST   /api/v1/auth/logout            # Invalidate token (Redis)
@@ -442,15 +438,19 @@ POST   /api/v1/auth/reset-password    # Confirm reset with token
 
 ### Milestones
 
-- [ ] **5.1 — AI Support Bot (Customer Facing)**
-  - Session-based chat with order context
-  - Intent classification: tracking, rescheduling, refund, complaint
-  - Sentiment analysis — escalation trigger if score falls below threshold
-  - Autonomous actions: address update, reschedule, flag for refund
+- [x] **5.1 — AI Support Bot (Customer Facing) — Core done, escalations remaining**
+  - [x] Session-based chat with order context
+  - [x] Intent classification: db_query, general, greeting, error
+  - [x] NL-to-SQL pipeline (Gemini function-calling → SQL validator → read-only DB → natural language summary)
+  - [ ] Sentiment analysis — escalation trigger if score falls below threshold
+  - [x] Autonomous escalation: manual trigger via API
+  - [ ] Autonomous escalation: auto-trigger on sentiment threshold
 
+  **Done:**
   ```
   POST   /api/v1/ai/chat                          # Send message to AI bot
   GET    /api/v1/ai/conversations/{session_id}    # Get conversation history
+  GET    /api/v1/ai/sessions                      # List user's chat sessions
   POST   /api/v1/ai/escalate/{conversation_id}    # Manually escalate to human
   GET    /api/v1/ai/escalations                   # List active escalations (human agent view)
   PUT    /api/v1/ai/escalations/{id}/resolve      # Resolve escalation
@@ -459,6 +459,10 @@ POST   /api/v1/auth/reset-password    # Confirm reset with token
 - [ ] **5.2 — Natural Language Analytics (Manager)**
   - RAG pipeline on top of PostgreSQL data
   - Accepts plain-English queries and returns structured charts/data
+  - **Note:** NL-to-SQL is already working inside the Phase 5.1 chat endpoint (intent `db_query`).
+    5.2 is a *separate, dedicated* manager-facing interface: structured JSON output with chart
+    config, preset query suggestions, and no conversational context — designed for dashboards,
+    not chat. The `/api/v1/ai/query` endpoint must still be built as its own thing.
 
   ```
   POST   /api/v1/ai/query                         # NL query → data + chart config
