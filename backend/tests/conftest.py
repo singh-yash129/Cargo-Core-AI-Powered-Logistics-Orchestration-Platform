@@ -17,9 +17,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import NullPool
 
 from app.config import get_settings
-from app.database import Base, get_db
+from app.database import Base, get_db, get_ro_db
 from app.main import app
 from app.models import user as _  # noqa: F401 — registers models with Base
+import app.models.ai_conversation  # noqa: F401 — registers AIConversation with Base
+import app.models.escalation  # noqa: F401 — registers Escalation with Base
 from app.utils.redis import get_redis
 
 settings = get_settings()
@@ -96,6 +98,7 @@ async def client(db_session: AsyncSession, redis_mock) -> AsyncGenerator[AsyncCl
         yield redis_mock
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_ro_db] = override_get_db  # AI read-only also uses test session
     app.dependency_overrides[get_redis] = override_get_redis
 
     async with AsyncClient(
