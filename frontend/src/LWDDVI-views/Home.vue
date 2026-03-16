@@ -60,7 +60,6 @@
         </section>
 
         <!-- Role 1: Logistic Manager (Image Sequence) -->
-        <!-- Role 1: Logistic Manager (Image Sequence) -->
         <section id="role-logistic"
             class="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 py-20 relative role-section logistic-section">
             <div class="w-full md:w-1/2 p-8 relative z-10 h-[60vh] md:h-auto flex flex-col items-center">
@@ -120,7 +119,7 @@
                         <span class="typing-text"></span><span class="cursor animate-pulse text-purple-400">|</span>
                     </div>
                     <p class="role-description opacity-0 translate-y-4 text-gray-400 leading-relaxed text-lg">
-                        Where Inventory Becomes Intelligence... Where Orders Take Shape... Where Labor Teams Deploy...
+                        Manages packing schedules, box tracking, storage allocation, crew deployment, and real-time inventory updates across all warehouse zones.
                     </p>
                 </div>
             </div>
@@ -142,13 +141,12 @@
                         <span class="typing-text"></span><span class="cursor animate-pulse text-green-400">|</span>
                     </div>
                     <p class="role-description opacity-0 translate-y-4 text-gray-400 leading-relaxed text-lg">
-                        The Route Optimizer... The Crisis Controller... The Real-Time Coordinator...
+                        Assigns routes, monitors live GPS feeds, reroutes around traffic, tracks driver compliance, and resolves delivery conflicts in real time.
                     </p>
                 </div>
             </div>
         </section>
 
-        <!-- Role 4: AI Customer Support -->
         <!-- Role 4: AI Customer Support (New Card Design) -->
         <section id="role-ai"
             class="min-h-screen px-6 py-20 flex items-center justify-center role-section relative bg-black">
@@ -215,7 +213,6 @@
             </div>
         </section>
 
-        <!-- Role 6: Vendor -->
         <!-- Role 6: Vendor -->
         <section id="role-vendor"
             class="min-h-screen px-6 py-20 flex items-center justify-center role-section relative bg-black">
