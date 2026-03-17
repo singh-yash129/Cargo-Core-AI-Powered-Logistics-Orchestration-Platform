@@ -275,8 +275,10 @@ import GlassCard from '../components/GlassCard.vue';
 import GlassInput from '../components/GlassInput.vue';
 import GlassButton from '../components/GlassButton.vue';
 import { useAuthStore, DUMMY_USERS } from '../stores/authStore';
+import { useToast } from '../composables/useToast';
 
 const authStore = useAuthStore();
+const toast = useToast();
 
 const router = useRouter();
 const route = useRoute();
@@ -340,13 +342,14 @@ const handleSubmit = async () => {
   isLoading.value = false;
 
   if (result.success) {
-    router.push('/2fa');
+    router.push('/dashboard');
+  } else {
+    toast.error(result.message);
   }
 };
 
 const handleGoogleSignIn = () => {
-  console.log('Google Sign-In');
-  // Implement Google Sign-In logic here
+  toast.info('Google Sign-In is not available yet. Please use email and password.');
 };
 </script>
 

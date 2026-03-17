@@ -175,7 +175,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { Shield, ArrowLeft, Smartphone } from 'lucide-vue-next';
 import Background from '../components/Background.vue';
 import Navbar from '../components/Navbar.vue';
@@ -187,6 +187,7 @@ import { useAuthStore, DUMMY_OTP } from '../stores/authStore';
 const authStore = useAuthStore();
 
 const router = useRouter();
+const route = useRoute();
 
 const otp = ref(['', '', '', '', '', '']);
 const isLoading = ref(false);
@@ -264,7 +265,13 @@ const handleVerify = async () => {
   isLoading.value = false;
 
   if (result.success) {
-    router.push('/signup-success');
+    const flow = String(route.query.flow || '') || authStore.pendingFlow || sessionStorage.getItem('authFlow') || '';
+    sessionStorage.removeItem('authFlow');
+    if (flow === 'signup') {
+      router.push('/signup-success');
+      return;
+    }
+    router.push('/dashboard');
   }
 };
 

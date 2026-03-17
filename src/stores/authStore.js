@@ -72,6 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
   const authToken = ref(null);
   const pendingEmail = ref('');
   const pendingRole = ref('');
+  const pendingFlow = ref('');
   const loginError = ref('');
   const signupError = ref('');
   const otpError = ref('');
@@ -100,22 +101,39 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true;
     loginError.value = '';
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailOrPhone, password }),
+      });
 
-    const user = findUser(emailOrPhone, password, role);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        loginError.value = errData.detail || 'Invalid credentials. Please try again.';
+        return { success: false, message: loginError.value };
+      }
 
-    if (!user) {
-      loginError.value = 'Invalid credentials. Please check your email/phone and password.';
-      isLoading.value = false;
+      const data = await response.json();
+
+      pendingEmail.value = emailOrPhone;
+      pendingRole.value = role;
+      pendingFlow.value = 'login';
+      
+      // Fallback details since login only returns tokens, you would ideally fetch /me here
+      currentUser.value = { email: emailOrPhone, role: role };
+      isAuthenticated.value = true;
+      authToken.value = data.access_token;
+      
+      localStorage.setItem('auth_token', data.access_token);
+
+      return { success: true, message: 'Login successful' };
+    } catch (error) {
+      loginError.value = 'Error connecting to the server.';
       return { success: false, message: loginError.value };
+    } finally {
+      isLoading.value = false;
     }
-
-    pendingEmail.value = user.email;
-    pendingRole.value = role;
-    currentUser.value = user;
-
-    isLoading.value = false;
-    return { success: true, message: 'OTP sent to ' + user.email };
   }
 
   async function verifyOTP(otp) {
@@ -130,8 +148,14 @@ export const useAuthStore = defineStore('auth', () => {
       return { success: false, message: otpError.value };
     }
 
+    if (!currentUser.value && pendingEmail.value) {
+      currentUser.value = { email: pendingEmail.value, role: pendingRole.value };
+    }
+    if (!pendingRole.value && currentUser.value?.role) {
+      pendingRole.value = currentUser.value.role;
+    }
+
     isAuthenticated.value = true;
-    authToken.value = 'token_' + Math.random().toString(36).slice(2);
     isLoading.value = false;
     return { success: true, message: 'Verified!' };
   }
@@ -140,78 +164,114 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true;
     signupError.value = '';
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      const mappedRole = userData.role?.toUpperCase() === 'VENDOR' ? 'VENDOR' : 'INDIVIDUAL';
+      
+      const payload = {
+        name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'New User',
+        email: userData.email,
+        phone: userData.phone || null,
+        password: userData.password,
+        role: mappedRole
+      };
 
-    const existing = DUMMY_USERS.find((u) => u.email === userData.email);
-    if (existing) {
-      signupError.value = 'An account with this email already exists.';
-      isLoading.value = false;
+      const response = await fetch('http://localhost:8000/api/v1/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        let errMsg = errData.detail || 'An error occurred during registration.';
+        if (Array.isArray(errMsg)) errMsg = errMsg[0]?.msg || JSON.stringify(errMsg);
+        signupError.value = typeof errMsg === 'string' ? errMsg : 'Registration failed.';
+        return { success: false, message: signupError.value };
+      }
+
+      const data = await response.json();
+
+      pendingEmail.value = userData.email;
+      pendingRole.value = userData.role;
+      pendingFlow.value = 'signup';
+      currentUser.value = { 
+        name: payload.name, 
+        email: payload.email, 
+        role: userData.role 
+      };
+      
+      authToken.value = data.access_token;
+      isAuthenticated.value = true;
+      localStorage.setItem('auth_token', data.access_token);
+
+      return { success: true, message: 'Account created successfully.' };
+    } catch (error) {
+      signupError.value = 'Error connecting to the server.';
       return { success: false, message: signupError.value };
+    } finally {
+      isLoading.value = false;
     }
-
-    const newUser = {
-      id: 'usr_' + Date.now(),
-      role: userData.role,
-      name: userData.firstName + ' ' + userData.lastName,
-      email: userData.email,
-      phone: userData.phone,
-      password: userData.password,
-      company: userData.company,
-    };
-
-    DUMMY_USERS.push(newUser);
-    pendingEmail.value = userData.email;
-    currentUser.value = newUser;
-
-    isLoading.value = false;
-    return { success: true, message: 'Account created. OTP sent to ' + userData.email };
   }
 
   async function sendPasswordResetOTP(email) {
     isLoading.value = true;
     resetError.value = '';
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
 
-    const user = DUMMY_USERS.find((u) => u.email === email);
-    if (!user) {
-      resetError.value = 'No account found with this email.';
-      isLoading.value = false;
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        resetError.value = errData.detail || 'Failed to send reset link.';
+        return { success: false, message: resetError.value };
+      }
+
+      pendingEmail.value = email;
+      return { success: true, message: 'OTP sent to ' + email };
+    } catch (error) {
+      resetError.value = 'Error connecting to the server.';
       return { success: false, message: resetError.value };
+    } finally {
+      isLoading.value = false;
     }
-
-    pendingEmail.value = email;
-    isLoading.value = false;
-    return { success: true, message: 'OTP sent to ' + email };
   }
 
   async function resetPassword(otp, newPassword) {
     isLoading.value = true;
     resetError.value = '';
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: otp, new_password: newPassword }),
+      });
 
-    if (otp !== DUMMY_OTP) {
-      resetError.value = 'Invalid OTP. Use ' + DUMMY_OTP + ' for demo.';
-      isLoading.value = false;
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        resetError.value = errData.detail || 'Reset failed. Invalid OTP?';
+        return { success: false, message: resetError.value };
+      }
+
+      pendingEmail.value = '';
+      return { success: true, message: 'Password reset successful!' };
+    } catch (error) {
+      resetError.value = 'Error connecting to the server.';
       return { success: false, message: resetError.value };
+    } finally {
+      isLoading.value = false;
     }
-
-    const user = DUMMY_USERS.find((u) => u.email === pendingEmail.value);
-    if (user) user.password = newPassword;
-
-    pendingEmail.value = '';
-    isLoading.value = false;
-    return { success: true, message: 'Password reset successful!' };
-  }
-
-  function logout() {
-    currentUser.value = null;
     isAuthenticated.value = false;
     authToken.value = null;
     pendingEmail.value = '';
     pendingRole.value = '';
+    pendingFlow.value = '';
     loginError.value = '';
+    localStorage.removeItem('auth_token');
   }
 
   function clearErrors() {
@@ -227,6 +287,7 @@ export const useAuthStore = defineStore('auth', () => {
     authToken,
     pendingEmail,
     pendingRole,
+    pendingFlow,
     loginError,
     signupError,
     otpError,

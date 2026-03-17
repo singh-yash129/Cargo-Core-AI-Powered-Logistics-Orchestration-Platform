@@ -93,10 +93,6 @@
               {{ errorMessage }}
             </div>
 
-            <!-- Demo OTP Hint -->
-            <div class="p-3 rounded-lg bg-[#00C4FF]/10 border border-[#00C4FF]/20 text-xs text-white/60 text-center">
-              🔑 Demo OTP: <span class="text-white font-bold tracking-widest select-all">{{ DUMMY_OTP }}</span>
-            </div>
 
             <!-- Resend Code -->
             <div class="flex items-center justify-between text-sm">

@@ -41,6 +41,11 @@ const routes = [
     component: () => import('../pages/SignupSuccess.vue'),
   },
   {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('../pages/Dashboard.vue'),
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../pages/NotFound.vue'),

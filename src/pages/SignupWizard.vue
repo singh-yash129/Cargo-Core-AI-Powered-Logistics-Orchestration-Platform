@@ -773,7 +773,8 @@ const handleNext = async () => {
     isLoading.value = false;
 
     if (result.success) {
-      router.push('/2fa');
+      sessionStorage.setItem('authFlow', 'signup');
+      router.push({ path: '/2fa', query: { flow: 'signup' } });
     } else {
       toast.error(result.message);
     }

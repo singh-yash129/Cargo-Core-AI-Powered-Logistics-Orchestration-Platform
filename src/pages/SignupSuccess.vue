@@ -166,13 +166,13 @@
               variant="primary"
               :icon="ArrowRight"
               class-name="w-full text-lg py-4"
-              @click="handleGoToDashboard"
+              @click="handleGoToLogin"
             >
-              Go to Dashboard
+              Go to Login
             </GlassButton>
 
             <p class="mt-4 text-white/50 text-xs">
-              You can also access your dashboard anytime by logging in
+              Redirecting to login shortly...
             </p>
           </div>
 
@@ -211,6 +211,7 @@
 </template>
 
 <script setup>
+import { onMounted, onUnmounted } from 'vue';
 import { CheckCircle2, ArrowRight, Sparkles } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 import Background from '../components/Background.vue';
@@ -222,9 +223,22 @@ import { useAuthStore } from '../stores/authStore';
 
 const router = useRouter();
 const authStore = useAuthStore();
+let redirectTimer = null;
 
-const handleGoToDashboard = () => {
-  // In a real app, navigate to the role-specific dashboard
-  router.push('/login');
+const handleGoToLogin = () => {
+  const role = authStore.pendingRole || authStore.currentUser?.role;
+  const loginPath = role ? `/login/${role}` : '/login';
+  authStore.logout();
+  router.push(loginPath);
 };
+
+onMounted(() => {
+  redirectTimer = setTimeout(() => {
+    handleGoToLogin();
+  }, 3500);
+});
+
+onUnmounted(() => {
+  if (redirectTimer) clearTimeout(redirectTimer);
+});
 </script>
