@@ -326,15 +326,19 @@ async def reset_password(
 
 
 async def send_signup_otp(redis: Redis, data: SendOTPRequest) -> None:
-    """Generate a 6-digit OTP for email verification and store in Redis.
-
-    In dev mode the OTP is logged to console.
-    In production wire up an SMTP/email service here.
-    """
+    """Generate a 6-digit OTP, store in Redis, and send via email."""
     import random
+    from app.utils.email import send_email, otp_email_html
+
     otp = f"{random.randint(0, 999999):06d}"
     await redis.setex(f"{_OTP_PREFIX}{data.email.lower()}", _OTP_TTL_SECONDS, otp)
     logger.info(f"[DEV] Signup OTP for {data.email}: {otp}")
+
+    await send_email(
+        to=data.email,
+        subject="Your Cargo Core Verification Code",
+        html_body=otp_email_html(otp, data.email),
+    )
 
 
 async def verify_signup_otp(redis: Redis, data: VerifyOTPRequest) -> OTPVerifiedResponse:
