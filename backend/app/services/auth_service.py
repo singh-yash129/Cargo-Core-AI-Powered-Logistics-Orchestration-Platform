@@ -18,13 +18,16 @@ from app.schemas.auth import (
     SELF_SERVICE_ROLES,
     ChangePasswordRequest,
     ForgotPasswordRequest,
+    OTPVerifiedResponse,
     RefreshTokenRequest,
     ResetPasswordRequest,
+    SendOTPRequest,
     TokenResponse,
     UserLogin,
     UserProfile,
     UserProfileUpdate,
     UserRegister,
+    VerifyOTPRequest,
 )
 
 from app.utils.hashing import hash_password, verify_password
@@ -33,7 +36,9 @@ from app.utils.jwt import create_access_token, create_refresh_token, decode_toke
 # Redis key prefixes
 _BLACKLIST_PREFIX = "blacklist:"
 _RESET_PREFIX = "pwd_reset:"
-_RESET_TTL_SECONDS = 3600  # 1 hour
+_OTP_PREFIX = "signup_otp:"
+_RESET_TTL_SECONDS = 3600   # 1 hour
+_OTP_TTL_SECONDS = 600      # 10 minutes
 
 # Roles allowed through the public /register endpoint (kept in sync with schema).
 _SELF_SERVICE_ROLE_NAMES: frozenset[str] = frozenset(SELF_SERVICE_ROLES.__args__)  # type: ignore[union-attr]
@@ -318,3 +323,32 @@ async def reset_password(
     # Consume the token (one-time use)
     await redis.delete(redis_key)
     logger.info(f"Password reset completed for user: {user.email}")
+
+
+async def send_signup_otp(redis: Redis, data: SendOTPRequest) -> None:
+    """Generate a 6-digit OTP for email verification and store in Redis.
+
+    In dev mode the OTP is logged to console.
+    In production wire up an SMTP/email service here.
+    """
+    import random
+    otp = f"{random.randint(0, 999999):06d}"
+    await redis.setex(f"{_OTP_PREFIX}{data.email.lower()}", _OTP_TTL_SECONDS, otp)
+    logger.info(f"[DEV] Signup OTP for {data.email}: {otp}")
+
+
+async def verify_signup_otp(redis: Redis, data: VerifyOTPRequest) -> OTPVerifiedResponse:
+    """Verify the signup OTP sent to the user's email."""
+    key = f"{_OTP_PREFIX}{data.email.lower()}"
+    stored_otp = await redis.get(key)
+
+    if not stored_otp or stored_otp.decode() != data.otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP. Please request a new one.",
+        )
+
+    # Consume OTP — one time use
+    await redis.delete(key)
+    logger.info(f"Email verified via OTP: {data.email}")
+    return OTPVerifiedResponse(verified=True, message="Email verified successfully!")

@@ -51,6 +51,15 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
+class SendOTPRequest(BaseModel):
+    email: EmailStr
+
+
+class VerifyOTPRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+
+
 # ── Response Schemas ──────────────────────────────────────────────────────────
 
 class TokenResponse(BaseModel):
@@ -72,4 +81,9 @@ class UserProfile(BaseModel):
 
 
 class MessageResponse(BaseModel):
+    message: str
+
+
+class OTPVerifiedResponse(BaseModel):
+    verified: bool
     message: str
