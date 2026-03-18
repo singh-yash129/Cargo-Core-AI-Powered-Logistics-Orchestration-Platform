@@ -283,7 +283,7 @@ const handleSubmit = async () => {
 
   if (result.success) {
     toast.success(result.message);
-    router.push('/dashboard');
+    router.push(result.redirect || '/dashboard');
   } else {
     toast.error(result.message);
   }
@@ -300,7 +300,7 @@ const handleGoogleCredential = async (response) => {
 
   if (result.success) {
     toast.success(result.message);
-    router.push('/dashboard');
+    router.push(result.redirect || '/dashboard');
     return;
   }
 

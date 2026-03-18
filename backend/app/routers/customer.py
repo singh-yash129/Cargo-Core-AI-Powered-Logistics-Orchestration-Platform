@@ -1,0 +1,105 @@
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_db
+from app.dependencies import get_current_user
+from app.models.user import User
+from app.schemas.customer import (
+    CustomerDamageReport,
+    CustomerDamageReportCreate,
+    CustomerDamageReportsResponse,
+    CustomerDashboardResponse,
+    CustomerPaymentsSummary,
+    CustomerProfileResponse,
+    CustomerQuote,
+    CustomerQuotesResponse,
+    CustomerSettings,
+    CustomerSettingsResponse,
+    CustomerTrackingResponse,
+)
+from app.services import customer_service
+
+router = APIRouter(prefix="/api/v1/customer", tags=["Customer"])
+
+
+@router.get("/dashboard", response_model=CustomerDashboardResponse)
+async def get_dashboard(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await customer_service.get_customer_dashboard(db, current_user)
+
+
+@router.get("/tracking", response_model=CustomerTrackingResponse)
+async def get_tracking(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await customer_service.get_customer_tracking(db, current_user)
+
+
+@router.get("/payments", response_model=CustomerPaymentsSummary)
+async def get_payments(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await customer_service.get_customer_payments(db, current_user)
+
+
+@router.get("/profile", response_model=CustomerProfileResponse)
+async def get_profile(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await customer_service.get_customer_profile(current_user)
+
+
+@router.get("/quotes", response_model=CustomerQuotesResponse)
+async def get_quotes(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await customer_service.get_customer_quotes(db, current_user)
+
+
+@router.post("/quotes/{quote_id}/convert")
+async def convert_quote(
+    quote_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await customer_service.convert_customer_quote(db, current_user, quote_id)
+
+
+@router.get("/damage-reports", response_model=CustomerDamageReportsResponse)
+async def get_damage_reports(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await customer_service.get_customer_damage_reports(db, current_user)
+
+
+@router.post("/damage-reports", response_model=CustomerDamageReport)
+async def create_damage_report(
+    data: CustomerDamageReportCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await customer_service.create_customer_damage_report(db, current_user, data)
+
+
+@router.get("/settings", response_model=CustomerSettingsResponse)
+async def get_settings(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await customer_service.get_customer_settings(current_user)
+
+
+@router.put("/settings", response_model=CustomerSettingsResponse)
+async def update_settings(
+    data: CustomerSettings,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await customer_service.update_customer_settings(db, current_user, data)

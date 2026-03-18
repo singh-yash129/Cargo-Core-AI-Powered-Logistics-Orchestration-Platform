@@ -1,0 +1,432 @@
+<template>
+    <div class="space-y-6">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <span class="material-symbols-outlined text-green-500">gps_fixed</span> Real-Time Tracking
+        </h2>
+
+        <!-- Active Orders Selector -->
+        <div v-if="displayOrders.length > 1" class="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
+            @wheel="handleHorizontalScroll" ref="scrollContainer"
+            style="scrollbar-width: none;max-width: calc(100vw - 2rem);">
+            <button v-for="order in displayOrders" :key="order.id" @click="selectOrder(order.id)"
+                class="flex-none px-4 py-3 rounded-xl border transition-all text-left min-w-[240px]"
+                :class="selectedOrderId === order.id ? 'bg-green-50 dark:bg-green-900/20 border-green-500' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-green-500/50'">
+                <div class="flex justify-between items-center mb-1.5">
+                    <span class="font-bold text-sm font-mono"
+                        :class="selectedOrderId === order.id ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-white'">{{
+                            order.id }}</span>
+                    <span
+                        class="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 font-bold uppercase">{{
+                            order.status.replace('-', ' ') }}</span>
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]"><span
+                        class="font-medium">{{ order.cargoType }}</span></div>
+                <div class="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px] mt-0.5">{{
+                    order.pickup.split(',')[0] }} → {{ order.destination.split(',')[0] }}</div>
+            </button>
+        </div>
+
+        <div v-if="activeMove" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Map Area -->
+            <div class="lg:col-span-2 space-y-4">
+                <div class="glass-panel rounded-xl overflow-hidden">
+                    <div
+                        class="h-72 sm:h-96 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900 relative">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center"><span
+                                    class="material-symbols-outlined text-6xl text-gray-400 dark:text-gray-600">map</span>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Live GPS Map</p>
+                            </div>
+                        </div>
+                        <div
+                            class="absolute top-3 left-3 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-4 py-2 rounded-lg shadow-sm">
+                            <div class="text-[10px] text-gray-500 uppercase font-bold">ETA</div>
+                            <div class="text-lg font-bold text-green-600 dark:text-green-400">{{ activeMove.eta ||
+                                'Calculating...' }}</div>
+                        </div>
+                        <div
+                            class="absolute top-3 right-3 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-4 py-2 rounded-lg shadow-sm">
+                            <div class="text-[10px] text-gray-500 uppercase font-bold">Progress</div>
+                            <div class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ activeMove.progress }}%
+                            </div>
+                        </div>
+                        <div v-if="geofenceAlert"
+                            class="absolute bottom-3 left-3 right-3 bg-green-600 text-white px-4 py-3 rounded-lg flex items-center gap-3 animate-pulse shadow-lg">
+                            <span class="material-symbols-outlined">location_on</span>
+                            <div>
+                                <div class="text-sm font-bold">Crew Arriving!</div>
+                                <div class="text-xs">Your driver is within 50 meters of the pickup location.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t border-gray-200 dark:border-white/5">
+                        <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
+                            <span>Pickup</span><span>In Transit</span><span>Delivered</span>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                            <div class="bg-green-500 h-full rounded-full transition-all duration-500"
+                                :style="{ width: activeMove.progress + '%' }"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dwell Time Card -->
+                <div v-if="activeMove.dwellTime && activeMove.dwellTime.total > 0"
+                    class="glass-panel p-4 sm:p-5 rounded-xl">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-3 text-sm flex items-center gap-2">
+                        <span class="material-symbols-outlined text-purple-500 text-lg">timer</span> Dwell Time Log
+                    </h3>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div
+                            class="p-3 bg-blue-50 dark:bg-blue-500/5 rounded-lg text-center border border-blue-200 dark:border-blue-500/20">
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Loading</div>
+                            <div class="text-xl font-bold text-blue-600 dark:text-blue-400">{{
+                                activeMove.dwellTime.loading }}<span class="text-xs font-normal"> min</span></div>
+                        </div>
+                        <div
+                            class="p-3 bg-amber-50 dark:bg-amber-500/5 rounded-lg text-center border border-amber-200 dark:border-amber-500/20">
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Unloading</div>
+                            <div class="text-xl font-bold text-amber-600 dark:text-amber-400">{{
+                                activeMove.dwellTime.unloading }}<span class="text-xs font-normal"> min</span></div>
+                        </div>
+                        <div
+                            class="p-3 bg-purple-50 dark:bg-purple-500/5 rounded-lg text-center border border-purple-200 dark:border-purple-500/20">
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Total Dwell</div>
+                            <div class="text-xl font-bold text-purple-600 dark:text-purple-400">{{
+                                activeMove.dwellTime.total }}<span class="text-xs font-normal"> min</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transport Log Timeline -->
+                <div class="glass-panel p-4 sm:p-5 rounded-xl">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4 text-sm flex items-center gap-2">
+                        <span class="material-symbols-outlined text-blue-500 text-lg">timeline</span> Transport Log
+                    </h3>
+                    <div class="relative pl-8">
+                        <div class="absolute left-[11px] top-2 bottom-0 w-[2px] bg-gray-200 dark:bg-white/10"></div>
+                        <div v-for="(log, i) in activeMove.transportLog" :key="i" class="relative pb-5 last:pb-0">
+                            <div class="absolute -left-8 top-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px]"
+                                :style="{ backgroundColor: logColor(log.color) }">
+                                <span class="material-symbols-outlined text-[12px]">{{ log.icon }}</span>
+                            </div>
+                            <div class="ml-0">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ log.event }}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ log.time }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Details Sidebar -->
+            <div class="space-y-4">
+                <!-- Driver Card -->
+                <div class="glass-panel p-4 sm:p-5 rounded-xl" v-if="activeMove.driver">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-3 text-sm">Driver & Crew</h3>
+                    <div class="flex items-center gap-3 mb-3">
+                        <div
+                            class="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                            {{activeMove.driver.name.split(' ').map(n => n[0]).join('')}}
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-900 dark:text-white">{{ activeMove.driver.name }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ activeMove.driver.rating }} ★ ·
+                                Team Lead</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mb-3">
+                        <button @click="showCallModal = true"
+                            class="flex-1 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1"><span
+                                class="material-symbols-outlined text-sm">call</span> Call</button>
+                        <button @click="showChatModal = true"
+                            class="flex-1 py-2 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white text-sm font-bold rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 transition-colors flex items-center justify-center gap-1"><span
+                                class="material-symbols-outlined text-sm">chat</span> Chat</button>
+                    </div>
+                    <!-- Crew Check-in -->
+                    <div v-if="activeMove.crewCheckin" class="space-y-2">
+                        <div class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Crew Check-In</div>
+                        <div v-for="laborer in activeMove.crewCheckin.laborers" :key="laborer.name"
+                            class="flex items-center justify-between text-xs p-2 bg-gray-50 dark:bg-white/5 rounded-lg">
+                            <span class="text-gray-900 dark:text-white font-medium">{{ laborer.name }}</span>
+                            <span v-if="laborer.checkedIn"
+                                class="text-green-500 font-bold flex items-center gap-1"><span
+                                    class="material-symbols-outlined text-xs">check_circle</span>Checked In</span>
+                            <span v-else class="text-red-500 font-bold">Absent</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vehicle Info -->
+                <div class="glass-panel p-4 sm:p-5 rounded-xl">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-3 text-sm">Vehicle & Order</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Order
+                                ID</span><span class="font-mono font-bold text-green-600 dark:text-green-400">{{
+                                    activeMove.id }}</span></div>
+                        <div class="flex justify-between"><span
+                                class="text-gray-500 dark:text-gray-400">Vehicle</span><span
+                                class="text-gray-900 dark:text-white font-medium uppercase">{{ activeMove.vehicleType
+                                }}</span></div>
+                        <div class="flex justify-between"><span
+                                class="text-gray-500 dark:text-gray-400">Cargo</span><span
+                                class="text-gray-900 dark:text-white font-medium">{{ activeMove.cargoType }}</span>
+                        </div>
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Service
+                                Block</span><span class="text-purple-600 dark:text-purple-400 font-medium">{{
+                                    activeMove.serviceTimeBlock }}</span></div>
+                        <div class="flex justify-between"><span
+                                class="text-gray-500 dark:text-gray-400">Helpers</span><span
+                                class="text-gray-900 dark:text-white font-medium">{{ activeMove.laborCount }}
+                                assigned</span></div>
+                    </div>
+                </div>
+
+                <!-- Before/After Photos -->
+                <div v-if="activeMove.beforeAfterPhotos && Object.keys(activeMove.beforeAfterPhotos).length > 0"
+                    class="glass-panel p-4 sm:p-5 rounded-xl">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-3 text-sm flex items-center gap-2">
+                        <span class="material-symbols-outlined text-amber-500 text-lg">photo_camera</span> Move Photos
+                    </h3>
+                    <div class="space-y-2">
+                        <div v-for="(val, key) in activeMove.beforeAfterPhotos" :key="key"
+                            class="flex items-center justify-between p-2 bg-gray-50 dark:bg-white/5 rounded-lg text-xs">
+                            <span class="text-gray-700 dark:text-gray-300 font-medium capitalize">{{
+                                key.replace(/([A-Z])/g, ' $1') }}</span>
+                            <span :class="val ? 'text-green-500' : 'text-gray-400'">{{ val || 'Pending' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service Checklist -->
+                <div class="glass-panel p-4 sm:p-5 rounded-xl">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-3 text-sm flex items-center gap-2">
+                        <span class="material-symbols-outlined text-purple-500 text-lg">checklist</span> Service
+                        Checklist
+                    </h3>
+                    <div class="space-y-2">
+                        <div v-for="task in serviceChecklist" :key="task.text" class="flex items-center gap-3 text-sm">
+                            <span class="material-symbols-outlined text-lg"
+                                :class="task.done ? 'text-green-500' : 'text-gray-300 dark:text-gray-600'">{{ task.done
+                                    ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                            <span :class="task.done ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'">{{
+                                task.text }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button @click="toggleGeofence"
+                    class="w-full py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 border border-gray-200 dark:border-white/5">
+                    <span class="material-symbols-outlined text-sm">{{ geofenceAlert ? 'notifications_active' :
+                        'notifications' }}</span>
+                    {{ geofenceAlert ? 'Geofence Alert Active' : 'Simulate Arrival Alert' }}
+                </button>
+            </div>
+        </div>
+
+        <div v-else class="glass-panel p-12 rounded-xl text-center text-gray-500 dark:text-gray-400">
+            <span class="material-symbols-outlined text-5xl block mb-3">location_off</span>
+            <p class="font-medium text-lg">No active move to track.</p>
+            <router-link to="/individual/book-move"
+                class="text-green-600 dark:text-green-400 text-sm font-bold hover:underline mt-2 inline-block">Book a
+                Move →</router-link>
+        </div>
+        
+        <!-- Call Modal -->
+        <Teleport to="body">
+            <div v-if="showCallModal && activeMove?.driver" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <div class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-slide-up border border-gray-100 dark:border-white/10">
+                    <div class="p-6 text-center">
+                        <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white text-2xl font-bold mb-4 shadow-lg shadow-green-500/20">
+                            {{ activeMove.driver.name.split(' ').map(n => n[0]).join('') }}
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">{{ activeMove.driver.name }}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Driver · {{ activeMove.vehicleType?.toUpperCase() }}</p>
+                        
+                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl mb-6">
+                            <div class="text-xs text-gray-500 mb-1 uppercase font-bold">Phone Number</div>
+                            <div class="text-lg font-mono font-bold text-gray-900 dark:text-white tracking-widest">{{ activeMove.driver.phone || '+91 98765 43210' }}</div>
+                        </div>
+                        
+                        <div class="flex gap-3">
+                            <button @click="showCallModal = false" class="flex-1 py-3 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors">Cancel</button>
+                            <a :href="'tel:' + (activeMove.driver.phone || '+910000000000')" @click="showCallModal = false" class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined">call</span> Call
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Chat Modal -->
+        <Teleport to="body">
+            <div v-if="showChatModal && activeMove?.driver" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <div class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl flex flex-col h-[600px] max-h-[85vh] animate-slide-up border border-gray-100 dark:border-white/10 relative">
+                    <!-- Chat Header -->
+                    <div class="p-4 border-b border-gray-100 dark:border-white/10 flex items-center justify-between shrink-0 bg-gray-50 dark:bg-black/50 rounded-t-2xl">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                                    {{ activeMove.driver.name.split(' ').map(n => n[0]).join('') }}
+                                </div>
+                                <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></div>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900 dark:text-white text-sm">{{ activeMove.driver.name }}</h3>
+                                <div class="text-[10px] text-green-600 dark:text-green-400 font-bold">Online</div>
+                            </div>
+                        </div>
+                        <button @click="showChatModal = false" class="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full text-gray-500 transition-colors">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Chat Messages Area -->
+                    <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50 dark:bg-black/20" ref="chatScrollContainer">
+                        <div class="text-center py-2">
+                            <span class="bg-gray-200 dark:bg-white/10 text-gray-500 dark:text-gray-400 text-[10px] px-3 py-1 rounded-full font-bold uppercase">Today</span>
+                        </div>
+                        
+                        <!-- Incoming Message -->
+                        <div class="flex gap-2">
+                            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-[10px] shrink-0 mt-1">
+                                {{ activeMove.driver.name.split(' ').map(n => n[0]).join('') }}
+                            </div>
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 dark:border-white/5 max-w-[80%]">
+                                <p class="text-sm text-gray-800 dark:text-gray-200">Hi sir, I am reaching the pickup location in about 10 minutes.</p>
+                                <div class="text-[10px] text-gray-400 mt-1 text-right">10:45 AM</div>
+                            </div>
+                        </div>
+                        
+                        <!-- System Message -->
+                        <div class="text-center py-2">
+                            <span class="text-gray-400 dark:text-gray-500 text-xs italic">Crew is nearing the location</span>
+                        </div>
+                        
+                        <!-- Appended Dynamic Messages -->
+                        <div v-for="(msg, idx) in chatMessages" :key="idx" class="flex gap-2 justify-end">
+                            <div class="bg-green-600 p-3 rounded-2xl rounded-tr-none shadow-sm text-white max-w-[80%]">
+                                <p class="text-sm">{{ msg.text }}</p>
+                                <div class="text-[10px] text-green-200 mt-1 flex justify-end items-center gap-1">
+                                    {{ msg.time }}
+                                    <span class="material-symbols-outlined text-[12px]">done_all</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Input Area -->
+                    <div class="p-3 border-t border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900 rounded-b-2xl shrink-0">
+                        <form @submit.prevent="sendChatMessage" class="flex items-center gap-2">
+                            <input type="text" v-model="pendingMessage" placeholder="Message driver..." class="flex-1 bg-gray-100 dark:bg-white/5 border border-transparent focus:border-green-500 focus:ring-1 focus:ring-green-500 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none transition-all">
+                            <button type="submit" :disabled="!pendingMessage.trim()" class="p-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:hover:bg-green-600 transition-colors flex items-center justify-center">
+                                <span class="material-symbols-outlined text-sm">send</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+    </div>
+</template>
+
+<script setup>
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useIndividualStore } from '@/stores/individualStore'
+
+const route = useRoute()
+const router = useRouter()
+const store = useIndividualStore()
+
+const allOrders = computed(() => store.orders)
+
+const displayOrders = computed(() => {
+    if (route.query.orderId) {
+        return allOrders.value.filter(o => o.id === route.query.orderId)
+    }
+    return allOrders.value
+})
+
+const selectedOrderId = ref(route.query.orderId || (allOrders.value.length > 0 ? allOrders.value[0].id : null))
+
+watch(() => route.query.orderId, (newId) => {
+    if (newId) {
+        selectedOrderId.value = newId
+    } else if (!selectedOrderId.value && allOrders.value.length > 0) {
+        selectedOrderId.value = allOrders.value[0].id
+    }
+}, { immediate: true })
+
+const activeMove = computed(() => {
+    return allOrders.value.find(o => o.id === selectedOrderId.value) || allOrders.value[0] || null
+})
+
+function selectOrder(id) {
+    selectedOrderId.value = id
+    // We don't push the route query here if they are in 'all orders' mode
+    // because doing so would filter the list down to 1 item inside displayOrders.
+    // So we just update the local state.
+}
+const geofenceAlert = ref(false)
+
+function toggleGeofence() { geofenceAlert.value = !geofenceAlert.value }
+function logColor(c) { return { green: '#22c55e', blue: '#3b82f6', amber: '#f59e0b', purple: '#a855f7', red: '#ef4444' }[c] || '#6b7280' }
+
+const scrollContainer = ref(null)
+function handleHorizontalScroll(e) {
+    if (scrollContainer.value) {
+        // If vertical scroll (mouse wheel), map to horizontal
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            e.preventDefault()
+            scrollContainer.value.scrollLeft += e.deltaY > 0 ? 100 : -100
+        }
+        // If horizontal scroll (trackpad), let browser handle it natively
+    }
+}
+
+const serviceChecklist = computed(() => {
+    const progress = activeMove.value?.progress ?? 0
+    return [
+        { text: 'Order confirmed', done: progress >= 15 },
+        { text: 'Crew assigned', done: progress >= 35 },
+        { text: 'Shipment in transit', done: progress >= 65 },
+        { text: 'Arrive at destination', done: progress >= 85 },
+        { text: 'Delivery completed', done: progress >= 100 },
+    ]
+})
+
+// ─── Modals State ───
+const showCallModal = ref(false)
+const showChatModal = ref(false)
+
+const chatMessages = ref([
+    { text: 'Okay perfect. Please park near Gate B.', time: '10:48 AM' }
+])
+const pendingMessage = ref('')
+const chatScrollContainer = ref(null)
+
+const sendChatMessage = () => {
+    if (!pendingMessage.value.trim()) return
+    
+    chatMessages.value.push({
+        text: pendingMessage.value,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    })
+    pendingMessage.value = ''
+    
+    nextTick(() => {
+        if (chatScrollContainer.value) {
+            chatScrollContainer.value.scrollTop = chatScrollContainer.value.scrollHeight
+        }
+    })
+}
+
+onMounted(async () => {
+    await store.fetchTrackingOrders()
+    if (!selectedOrderId.value && allOrders.value.length > 0) {
+        selectedOrderId.value = allOrders.value[0].id
+    }
+})
+</script>

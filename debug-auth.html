@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Debug</title>
+</head>
+<body>
+    <h2>Authentication Debug</h2>
+    <div id="output"></div>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        const user = localStorage.getItem('auth_user');
+
+        document.getElementById('output').innerHTML = `
+            <p><strong>Token:</strong> ${token ? token.substring(0, 50) + '...' : 'NOT FOUND'}</p>
+            <p><strong>User:</strong> ${user || 'NOT FOUND'}</p>
+            <hr>
+            <p>Token exists: ${!!token}</p>
+            <p>User exists: ${!!user}</p>
+
+            ${token ? `<p><strong>Token length:</strong> ${token.length}</p>` : ''}
+        `;
+    </script>
+</body>
+</html>

@@ -1,0 +1,462 @@
+<template>
+    <!-- Loading State -->
+    <div v-if="store.dashboardLoading" class="space-y-6 sm:space-y-8 animate-pulse">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+            <div v-for="i in 3" :key="i" class="glass-panel p-4 md:p-6 rounded-xl h-32 bg-gray-200 dark:bg-gray-800"></div>
+        </div>
+        <div class="glass-panel p-5 md:p-6 rounded-xl h-64 bg-gray-200 dark:bg-gray-800"></div>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="store.dashboardError" class="glass-panel p-8 rounded-xl text-center">
+        <span class="material-symbols-outlined text-6xl text-red-500 mb-4">error</span>
+        <h3 class="font-bold text-xl text-gray-900 dark:text-white mb-2">Unable to Load Dashboard</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">{{ store.dashboardError }}</p>
+
+        <!-- Show login prompt if authentication error -->
+        <div v-if="store.dashboardError.includes('credentials') || store.dashboardError.includes('Unauthorized')" class="space-y-3">
+            <p class="text-sm text-amber-600 dark:text-amber-400">You need to login to access the dashboard.</p>
+            <div class="flex gap-3 justify-center">
+                <router-link to="/login"
+                    class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-colors">
+                    Go to Login
+                </router-link>
+                <button @click="refreshDashboard"
+                    class="px-6 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 rounded-lg font-bold transition-colors">
+                    Try Again
+                </button>
+            </div>
+        </div>
+
+        <!-- Generic error -->
+        <button v-else @click="refreshDashboard"
+            class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-colors">
+            Try Again
+        </button>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div v-else class="space-y-6 sm:space-y-8">
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+            <router-link to="/individual/book-move"
+                class="glass-panel p-4 md:p-6 rounded-xl hover:border-green-500/50 transition-all cursor-pointer group relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-4 opacity-10"><span
+                        class="material-symbols-outlined text-6xl">local_shipping</span></div>
+                <div
+                    class="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center text-green-500 mb-4 group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-2xl">add_circle</span>
+                </div>
+                <h3 class="font-bold text-gray-900 dark:text-white text-lg">Book a Move</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">House shift or small package delivery.</p>
+            </router-link>
+            <router-link to="/individual/estimator"
+                class="glass-panel p-4 md:p-6 rounded-xl hover:border-purple-500/50 transition-all cursor-pointer group relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-4 opacity-10"><span
+                        class="material-symbols-outlined text-6xl">photo_camera</span></div>
+                <div
+                    class="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-500 mb-4 group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-2xl">auto_awesome</span>
+                </div>
+                <h3 class="font-bold text-gray-900 dark:text-white text-lg">AI Estimator</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Upload a photo to get volume estimates.</p>
+            </router-link>
+            <router-link to="/individual/quotes"
+                class="glass-panel p-4 md:p-6 rounded-xl hover:border-blue-500/50 transition-all cursor-pointer group relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-4 opacity-10"><span
+                        class="material-symbols-outlined text-6xl">request_quote</span></div>
+                <div
+                    class="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500 mb-4 group-hover:scale-110 transition-transform">
+                    <span class="material-symbols-outlined text-2xl">receipt_long</span>
+                </div>
+                <h3 class="font-bold text-gray-900 dark:text-white text-lg">Get Instant Quote</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Check prices for different vehicle types.</p>
+            </router-link>
+        </div>
+
+        <!-- Active Move Status -->
+        <div v-if="activeMove" class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
+            <div class="xl:col-span-2 glass-panel p-5 md:p-6 rounded-xl flex flex-col h-full">
+                <h3 class="font-bold text-gray-900 dark:text-white text-lg mb-4 flex items-center gap-2 shrink-0">
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span> Active Move Status
+                </h3>
+                <div class="flex flex-col md:flex-row gap-6 flex-1">
+                    <div
+                        class="flex-none w-full md:w-64 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900 rounded-xl h-48 md:h-auto flex items-center justify-center relative shadow-inner">
+                        <span class="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-600">map</span>
+                        <div
+                            class="absolute bottom-2 left-2 px-3 py-1 bg-white/90 dark:bg-black/80 backdrop-blur-sm text-xs font-bold rounded-lg text-green-600 dark:text-green-400">
+                            ETA: {{ activeMove.eta }}</div>
+                        <router-link :to="'/individual/tracking?orderId=' + activeMove.id"
+                            class="absolute bottom-2 right-2 px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors">Track
+                            Live</router-link>
+                    </div>
+                    <div class="flex-1 space-y-4">
+                        <div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold mb-1">Current
+                                Status</div>
+                            <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ activeMove.statusLabel }}</div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden mt-2">
+                                <div class="bg-green-500 h-full rounded-full transition-all"
+                                    :style="{ width: activeMove.progress + '%' }"></div>
+                            </div>
+                        </div>
+                        <div
+                            class="flex items-center gap-4 bg-gray-50 dark:bg-white/5 p-3 rounded-xl border border-gray-100 dark:border-white/5">
+                            <div
+                                class="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                                {{ activeMove.driverInitials }}</div>
+                            <div>
+                                <div class="font-bold text-gray-900 dark:text-white text-sm">{{ activeMove.driverName
+                                }}</div>
+                                <div class="text-xs text-gray-500">Driver {{ activeMove.driverRating ? `(${activeMove.driverRating} ★)` : '' }} · {{
+                                    activeMove.vehicleType?.toUpperCase() }}</div>
+                            </div>
+                            <a :href="'tel:' + activeMove.driverPhone"
+                                class="ml-auto px-4 py-2 rounded-lg bg-green-50 dark:bg-green-500/10 hover:bg-green-100 dark:hover:bg-green-500/20 text-green-700 dark:text-green-400 font-bold text-sm flex items-center gap-2 transition-colors border border-green-200 dark:border-green-500/20">
+                                <span class="material-symbols-outlined text-sm">call</span>
+                                {{ activeMove.driverPhone }}
+                            </a>
+                        </div>
+
+                        <!-- OTP Section -->
+                        <div
+                            class="flex items-center justify-between bg-blue-50/50 dark:bg-blue-500/5 p-3 border border-blue-100 dark:border-blue-500/10 rounded-xl">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-blue-500">dialpad</span>
+                                <div class="text-sm">
+                                    <div class="text-gray-900 dark:text-blue-100 font-bold">Service START OTP</div>
+                                    <div class="text-[10px] text-gray-500 dark:text-blue-300/70 uppercase">Share this
+                                        with origin crew</div>
+                                </div>
+                            </div>
+                            <div
+                                class="font-mono text-2xl font-black text-blue-600 dark:text-blue-400 tracking-[0.25em] bg-white dark:bg-black/20 px-4 py-1.5 rounded-lg shadow-inner">
+                                {{ activeMove.serviceOtp }}
+                            </div>
+                        </div>
+
+                        <div
+                            class="grid grid-cols-3 gap-3 text-xs bg-gray-50 dark:bg-black/20 p-3 rounded-xl border border-gray-100 dark:border-white/5 mt-auto">
+                            <div><span class="text-gray-500 block mb-0.5">Assigned Labor</span> <span
+                                    class="text-gray-900 dark:text-white font-bold">{{ activeMove.laborCount }}
+                                    Helpers</span></div>
+                            <div><span class="text-gray-500 block mb-0.5">Order ID</span> <span
+                                    class="font-mono font-bold text-green-600 dark:text-green-400">{{ activeMove.id
+                                    }}</span></div>
+                            <div><span class="text-gray-500 block mb-0.5">Service Block</span> <span
+                                    class="text-purple-600 dark:text-purple-400 font-bold">{{
+                                        activeMove.serviceTimeBlock }}</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Cost Summary -->
+            <div class="glass-panel p-5 md:p-6 rounded-xl flex flex-col h-full">
+                <h3 class="font-bold text-gray-900 dark:text-white text-lg mb-4">Cost Summary</h3>
+                <div class="space-y-3 text-sm flex-1">
+                    <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Base
+                            Transport</span><span class="font-bold text-gray-900 dark:text-white font-mono">₹{{
+                                activeMove.cost.base.toLocaleString() }}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Vehicle</span><span
+                            class="font-bold text-gray-900 dark:text-white font-mono">₹{{ (activeMove.cost.vehicle ||
+                                0).toLocaleString() }}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Labor (×{{
+                        activeMove.laborCount }})</span><span
+                            class="font-bold text-gray-900 dark:text-white font-mono">₹{{
+                                activeMove.cost.labor.toLocaleString() }}</span></div>
+                    <div class="flex justify-between"><span
+                            class="text-gray-500 dark:text-gray-400">Materials</span><span
+                            class="font-bold text-gray-900 dark:text-white font-mono">₹{{
+                                activeMove.cost.materials.toLocaleString() }}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Packing</span><span
+                            class="font-bold text-gray-900 dark:text-white font-mono">₹{{
+                                activeMove.cost.packing.toLocaleString() }}</span></div>
+
+                    <div class="border-t border-gray-100 dark:border-white/5 pt-2 mt-2"></div>
+
+                    <div class="flex justify-between"><span
+                            class="text-gray-500 dark:text-gray-400 flex items-center gap-1"><span
+                                class="material-symbols-outlined text-[14px]">confirmation_number</span> Platform
+                            Fee</span><span
+                            class="font-bold text-gray-900 dark:text-white font-mono flex items-center gap-1"><span
+                                class="text-[10px] text-gray-400 line-through mr-1"
+                                v-if="activeMove.cost.platformFee > 300">₹499</span>₹{{
+                                    (activeMove.cost.platformFee || 0).toLocaleString() }}</span></div>
+                    <div class="flex justify-between"><span
+                            class="text-gray-500 dark:text-gray-400 flex items-center gap-1"><span
+                                class="material-symbols-outlined text-[14px]">account_balance</span> Taxes (18%
+                            GST)</span><span class="font-bold text-gray-900 dark:text-white font-mono">₹{{
+                                (activeMove.cost.taxes || 0).toLocaleString() }}</span></div>
+
+                    <div
+                        class="border-t border-gray-200 dark:border-white/10 pt-3 mt-3 flex justify-between items-center">
+                        <span class="font-bold text-gray-900 dark:text-white">Total</span><span
+                            class="text-2xl font-bold text-green-600 dark:text-green-400 font-mono">₹{{
+                                activeMove.cost.total.toLocaleString() }}</span></div>
+                </div>
+                <!-- Dummy badge removed -->
+                <router-link to="/individual/payments"
+                    class="block w-full py-2 mt-3 text-center border border-gray-200 dark:border-white/10 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors">View
+                    Payments</router-link>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div v-if="stats.total_orders > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass-panel p-5 md:p-6 rounded-xl">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Monthly Spending</h3>
+                <div class="h-56">
+                    <Bar :data="barChartData" :options="chartOptions" />
+                </div>
+            </div>
+            <div class="glass-panel p-5 md:p-6 rounded-xl">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Move Status Distribution</h3>
+                <div class="h-56 flex items-center justify-center">
+                    <Doughnut :data="doughnutData" :options="doughnutOptions" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Orders -->
+        <div class="glass-panel p-5 md:p-6 rounded-xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-gray-900 dark:text-white text-lg">Recent Orders</h3>
+                <router-link to="/individual/orders"
+                    class="text-sm text-green-600 dark:text-green-400 font-bold hover:underline">View All
+                    →</router-link>
+            </div>
+
+            <!-- Empty State for Recent Orders -->
+            <div v-if="recentOrders.length === 0" class="text-center py-8">
+                <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-600 mb-2">inbox</span>
+                <p class="text-gray-500 dark:text-gray-400 text-sm">No orders yet. Book your first move to get started!</p>
+            </div>
+
+            <div v-else class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr
+                            class="text-xs text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200 dark:border-white/5">
+                            <th class="text-left py-3 pr-4">Order ID</th>
+                            <th class="text-left py-3 pr-4">Type</th>
+                            <th class="text-left py-3 pr-4 hidden sm:table-cell">Vehicle</th>
+                            <th class="text-left py-3 pr-4 hidden sm:table-cell">Route</th>
+                            <th class="text-left py-3 pr-4">Status</th>
+                            <th class="text-right py-3">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="order in recentOrders" :key="order.id"
+                            class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <td class="py-3 pr-4"><span
+                                    class="font-mono font-bold text-green-600 dark:text-green-400">{{ order.tracking_code || order.id }}</span>
+                            </td>
+                            <td class="py-3 pr-4 text-gray-700 dark:text-gray-300">{{ order.cargoType || order.order_type }}</td>
+                            <td
+                                class="py-3 pr-4 text-gray-700 dark:text-gray-300 hidden sm:table-cell uppercase text-xs">
+                                {{ order.vehicleType || order.vehicle_type }}</td>
+                            <td
+                                class="py-3 pr-4 text-gray-500 dark:text-gray-400 hidden sm:table-cell truncate max-w-[150px]">
+                                {{ (order.pickup || order.pickup_addr)?.split(',')[0] }} → {{ (order.destination || order.delivery_addr)?.split(',')[0] }}</td>
+                            <td class="py-3 pr-4"><span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase"
+                                    :class="statusBadge(order.ui_status || order.status)">{{ (order.ui_status || order.status).replace('-', ' ') }}</span></td>
+                            <td class="py-3 text-right font-bold text-gray-900 dark:text-white font-mono">₹{{
+                                Number(order.cost?.total || order.total_amount || 0).toLocaleString() }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="glass-panel p-4 rounded-xl text-center">
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.total_orders || 0 }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Moves</div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl text-center">
+                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.active_orders || 0 }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Active</div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl text-center">
+                <div class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ stats.pending_orders || 0 }}
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Pending</div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl text-center">
+                <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">₹{{
+                    Number(stats.total_spent || 0).toLocaleString() }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Spent</div>
+            </div>
+        </div>
+
+        <!-- Empty State (No Orders) -->
+        <div v-if="stats.total_orders === 0" class="glass-panel p-8 md:p-12 rounded-xl text-center mt-8">
+            <span class="material-symbols-outlined text-6xl text-gray-400 dark:text-gray-600 mb-4">local_shipping</span>
+            <h3 class="font-bold text-xl text-gray-900 dark:text-white mb-2">No Moves Yet</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">Start your first move by booking a service or getting a quote.</p>
+            <div class="flex gap-4 justify-center flex-wrap">
+                <router-link to="/individual/book-move"
+                    class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-colors">
+                    Book a Move
+                </router-link>
+                <router-link to="/individual/quotes"
+                    class="px-6 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 rounded-lg font-bold transition-colors">
+                    Get Quote
+                </router-link>
+            </div>
+        </div>
+
+        <!-- Refresh Indicator -->
+        <div class="text-center text-xs text-gray-400 dark:text-gray-600">
+            <button @click="refreshDashboard" class="hover:text-green-500 transition-colors flex items-center gap-1 mx-auto">
+                <span class="material-symbols-outlined text-sm">refresh</span>
+                Last updated: {{ lastRefreshTime }}
+            </button>
+        </div>
+    </div>
+</template>
+
+<script setup>
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useIndividualStore } from '@/stores/individualStore'
+import { Bar, Doughnut } from 'vue-chartjs'
+import { Chart as ChartJS, ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js'
+
+ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
+
+const store = useIndividualStore()
+const lastRefreshTime = ref('')
+let autoRefreshInterval = null
+
+const apiDashboard = computed(() => store.dashboardSummary)
+const activeMove = computed(() => {
+    const move = apiDashboard.value?.active_move
+    if (!move) return null
+    const driverName = move.driver?.name || 'Crew assignment pending'
+    return {
+        id: move.tracking_code,
+        eta: move.eta_label,
+        progress: move.progress,
+        statusLabel: String(move.ui_status || move.status).replace('-', ' '),
+        vehicleType: move.vehicle_type,
+        laborCount: move.labor_count,
+        serviceTimeBlock: move.service_time_block,
+        serviceOtp: move.service_otp,
+        cost: {
+            base: Number(move.cost?.base || 0),
+            vehicle: Number(move.cost?.vehicle || 0),
+            labor: Number(move.cost?.labor || 0),
+            materials: Number(move.cost?.materials || 0),
+            packing: Number(move.cost?.packing || 0),
+            platformFee: Number(move.cost?.platform_fee || 0),
+            taxes: Number(move.cost?.taxes || 0),
+            total: Number(move.cost?.total || 0),
+        },
+        driverName,
+        driverPhone: move.driver?.phone || 'Unavailable',
+        driverRating: move.driver?.rating || null,
+        driverInitials: driverName === 'Crew assignment pending'
+            ? 'NA'
+            : driverName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+    }
+})
+const recentOrders = computed(() => apiDashboard.value?.recent_orders || [])
+const stats = computed(() => apiDashboard.value?.stats || {
+    total_orders: 0,
+    active_orders: 0,
+    pending_orders: 0,
+    delivered_orders: 0,
+    cancelled_orders: 0,
+    total_spent: 0,
+})
+
+async function refreshDashboard() {
+    await store.fetchDashboardSummary()
+    updateRefreshTime()
+}
+
+function updateRefreshTime() {
+    const now = new Date()
+    lastRefreshTime.value = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+}
+
+onMounted(async () => {
+    await refreshDashboard()
+
+    // Auto-refresh every 30 seconds if there's an active move
+    autoRefreshInterval = setInterval(() => {
+        if (activeMove.value) {
+            store.fetchDashboardSummary()
+            updateRefreshTime()
+        }
+    }, 30000)
+})
+
+onUnmounted(() => {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval)
+    }
+})
+
+function statusBadge(st) {
+    return { 'delivered': 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400', 'in-transit': 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', 'pending': 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400', 'cancelled': 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' }[st] || ''
+}
+
+const barChartData = computed(() => {
+    const monthlyActivity = apiDashboard.value?.monthly_activity || []
+    return {
+        labels: monthlyActivity.length > 0 ? monthlyActivity.map((m) => m.month) : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [{
+            label: 'Orders',
+            data: monthlyActivity.length > 0 ? monthlyActivity.map((m) => m.count) : [0, 0, 0, 0, 0, 0],
+            backgroundColor: ['#22c55e33', '#22c55e33', '#22c55e33', '#22c55e66', '#22c55e99', '#22c55e'],
+            borderColor: '#22c55e',
+            borderWidth: 1,
+            borderRadius: 6,
+        }],
+    }
+})
+
+const chartOptions = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+        y: {
+            ticks: {
+                callback: (value) => String(value),
+                color: '#9ca3af',
+                font: { size: 10 }
+            },
+            grid: { color: '#e5e7eb22' }
+        },
+        x: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { display: false } },
+    },
+}
+
+const doughnutData = computed(() => {
+    const delivered = stats.value.delivered_orders || 0
+    const active = stats.value.active_orders || 0
+    const pending = stats.value.pending_orders || 0
+    const cancelled = stats.value.cancelled_orders || 0
+
+    // If all are zero, show a placeholder
+    const hasData = delivered + active + pending + cancelled > 0
+
+    return {
+        labels: ['Delivered', 'In Transit', 'Pending', 'Cancelled'],
+        datasets: [{
+            data: hasData ? [delivered, active, pending, cancelled] : [1, 0, 0, 0],
+            backgroundColor: hasData ? ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'] : ['#e5e7eb'],
+            borderWidth: 0,
+        }],
+    }
+})
+
+const doughnutOptions = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'right', labels: { color: '#9ca3af', font: { size: 11 }, boxWidth: 12, padding: 16 } } },
+    cutout: '65%',
+}
+</script>

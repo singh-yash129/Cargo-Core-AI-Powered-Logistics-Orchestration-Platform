@@ -269,10 +269,18 @@ async def update_profile(
     db: AsyncSession, user: User, data: UserProfileUpdate
 ) -> UserProfile:
     """Update the authenticated user's name / phone."""
+    from datetime import date
+
     if data.name is not None:
         user.name = data.name
     if data.phone is not None:
         user.phone = data.phone
+    if data.alt_phone is not None:
+        user.alt_phone = data.alt_phone
+    if data.date_of_birth is not None:
+        user.date_of_birth = date.fromisoformat(data.date_of_birth) if data.date_of_birth else None
+    if data.address is not None:
+        user.address = data.address
     db.add(user)
     await db.flush()
     await db.refresh(user, attribute_names=["role"])

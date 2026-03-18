@@ -1,11 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
-// ─────────────────────────────────────────────
-//  AUTH STORE
-// ─────────────────────────────────────────────
 export const useAuthStore = defineStore('auth', () => {
-  // ── State ──────────────────────────────────
   const currentUser = ref(null);
   const isAuthenticated = ref(false);
   const authToken = ref(null);
@@ -19,7 +15,6 @@ export const useAuthStore = defineStore('auth', () => {
   const resetError = ref('');
   const isLoading = ref(false);
 
-  // ── Getters ────────────────────────────────
   const userRole = computed(() => currentUser.value?.role ?? '');
   const userName = computed(() => currentUser.value?.name ?? '');
   const userEmail = computed(() => currentUser.value?.email ?? pendingEmail.value);
@@ -36,7 +31,11 @@ export const useAuthStore = defineStore('auth', () => {
     return role;
   });
 
-  // ── Actions ────────────────────────────────
+  function getDashboardRoute(role = currentUser.value?.role) {
+    if (role === 'INDIVIDUAL') return '/individual/dashboard';
+    if (role === 'VENDOR') return '/vendor/dashboard';
+    return '/dashboard';
+  }
 
   async function login(emailOrPhone, password) {
     isLoading.value = true;
@@ -57,14 +56,18 @@ export const useAuthStore = defineStore('auth', () => {
 
       const data = await response.json();
 
-      // Use the user profile from backend response
       currentUser.value = data.user;
       isAuthenticated.value = true;
       authToken.value = data.access_token;
 
       localStorage.setItem('auth_token', data.access_token);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
 
-      return { success: true, message: `Welcome back, ${data.user.name}!` };
+      return {
+        success: true,
+        message: `Welcome back, ${data.user.name}!`,
+        redirect: getDashboardRoute(data.user.role),
+      };
     } catch (error) {
       loginError.value = 'Error connecting to the server.';
       return { success: false, message: loginError.value };
@@ -91,7 +94,6 @@ export const useAuthStore = defineStore('auth', () => {
           return { success: false, message: otpError.value };
         }
 
-        // OTP verified, now register
         const registerResp = await fetch('http://localhost:8000/api/v1/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -108,21 +110,25 @@ export const useAuthStore = defineStore('auth', () => {
 
         const data = await registerResp.json();
         const payload = pendingRegistrationData.value;
-        currentUser.value = { 
-          name: payload.name, 
-          email: payload.email, 
-          role: payload.role 
+        currentUser.value = {
+          name: payload.name,
+          email: payload.email,
+          role: payload.role
         };
         authToken.value = data.access_token;
         isAuthenticated.value = true;
         localStorage.setItem('auth_token', data.access_token);
-        
-        return { success: true, message: 'Account created successfully.' };
+        localStorage.setItem('auth_user', JSON.stringify(currentUser.value));
 
-      } else {
-        otpError.value = 'OTP verification is only available for signup in the current flow.';
-        return { success: false, message: otpError.value };
+        return {
+          success: true,
+          message: 'Account created successfully.',
+          redirect: getDashboardRoute(currentUser.value.role),
+        };
       }
+
+      otpError.value = 'OTP verification is only available for signup in the current flow.';
+      return { success: false, message: otpError.value };
     } catch (error) {
       otpError.value = 'Error connecting to the server.';
       return { success: false, message: otpError.value };
@@ -137,7 +143,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const mappedRole = userData.role?.toUpperCase() === 'VENDOR' ? 'VENDOR' : 'INDIVIDUAL';
-      
+
       const payload = {
         name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'New User',
         email: userData.email,
@@ -241,12 +247,13 @@ export const useAuthStore = defineStore('auth', () => {
     pendingFlow.value = '';
     loginError.value = '';
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
   }
 
   async function googleLogin(credential, role = 'INDIVIDUAL') {
     isLoading.value = true;
     loginError.value = '';
-    
+
     try {
       const response = await fetch('http://localhost:8000/api/v1/auth/google-login', {
         method: 'POST',
@@ -266,8 +273,14 @@ export const useAuthStore = defineStore('auth', () => {
       isAuthenticated.value = true;
       authToken.value = data.access_token;
       localStorage.setItem('auth_token', data.access_token);
-      
-      return { success: true, message: `Welcome back, ${data.user.name}!`, status: response.status };
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
+
+      return {
+        success: true,
+        message: `Welcome back, ${data.user.name}!`,
+        status: response.status,
+        redirect: getDashboardRoute(data.user.role),
+      };
     } catch (error) {
       loginError.value = 'Error connecting to the server.';
       return { success: false, message: loginError.value, status: 0 };
@@ -306,6 +319,7 @@ export const useAuthStore = defineStore('auth', () => {
     resetPassword,
     logout,
     googleLogin,
+    getDashboardRoute,
     clearErrors,
   };
 });
