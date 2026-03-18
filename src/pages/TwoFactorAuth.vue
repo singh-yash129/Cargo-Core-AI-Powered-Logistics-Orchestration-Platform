@@ -102,48 +102,13 @@
             >
               {{ authStore.otpError }}
             </div>
-
-            <!-- Demo OTP Hint -->
-            <div class="p-3 rounded-lg bg-[#00C4FF]/10 border border-[#00C4FF]/20 text-xs text-white/60 text-center">
-              🔑 Demo OTP: <span class="text-white font-bold tracking-widest select-all">{{ DUMMY_OTP }}</span>
-            </div>
-          </div>
-
-          <!-- Alternative Methods -->
-          <div
-            v-motion
-            :initial="{ opacity: 0 }"
-            :enter="{ opacity: 1, transition: { delay: 500 } }"
-            class="space-y-3"
-          >
-            <div class="relative py-4">
-              <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-white/10" />
-              </div>
-              <div class="relative flex justify-center">
-                <span class="px-4 text-xs text-white/50 bg-transparent">
-                  Use another method
-                </span>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <button class="px-4 py-3 rounded-lg bg-white/5 backdrop-blur-xl border border-white/10 hover:border-[#00C4FF50] hover:bg-white/10 transition-all duration-300 flex items-center justify-center gap-2">
-                <Smartphone class="w-4 h-4 text-[#00C4FF]" />
-                <span class="text-white/90 text-sm">SMS</span>
-              </button>
-              <button class="px-4 py-3 rounded-lg bg-white/5 backdrop-blur-xl border border-white/10 hover:border-[#00C4FF50] hover:bg-white/10 transition-all duration-300 flex items-center justify-center gap-2">
-                <Shield class="w-4 h-4 text-[#00C4FF]" />
-                <span class="text-white/90 text-sm">Authenticator</span>
-              </button>
-            </div>
           </div>
 
           <!-- Back Button -->
           <div
             v-motion
             :initial="{ opacity: 0 }"
-            :enter="{ opacity: 1, transition: { delay: 600 } }"
+            :enter="{ opacity: 1, transition: { delay: 500 } }"
             class="mt-6 text-center"
           >
             <button
@@ -176,13 +141,13 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { Shield, ArrowLeft, Smartphone } from 'lucide-vue-next';
+import { Shield, ArrowLeft } from 'lucide-vue-next';
 import Background from '../components/Background.vue';
 import Navbar from '../components/Navbar.vue';
 import AIHelpOrb from '../components/AIHelpOrb.vue';
 import GlassCard from '../components/GlassCard.vue';
 import GlassButton from '../components/GlassButton.vue';
-import { useAuthStore, DUMMY_OTP } from '../stores/authStore';
+import { useAuthStore } from '../stores/authStore';
 
 const authStore = useAuthStore();
 

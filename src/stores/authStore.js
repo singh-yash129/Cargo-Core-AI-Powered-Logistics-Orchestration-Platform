@@ -2,67 +2,6 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 // ─────────────────────────────────────────────
-//  DUMMY USER DATABASE
-// ─────────────────────────────────────────────
-export const DUMMY_USERS = [
-  {
-    id: 'usr_001',
-    role: 'customer',
-    name: 'Aanya Sharma',
-    email: 'aanya.sharma@gmail.com',
-    phone: '+91 98765 43210',
-    password: 'Customer@123',
-  },
-  {
-    id: 'usr_002',
-    role: 'vendor',
-    name: 'Rajesh Logistics Pvt. Ltd.',
-    email: 'rajesh@rlpl.in',
-    phone: '+91 91234 56789',
-    password: 'Vendor@123',
-    company: 'Rajesh Logistics Pvt. Ltd.',
-  },
-  {
-    id: 'usr_003',
-    role: 'manager',
-    name: 'Priya Nair',
-    email: 'priya.nair@cargocorp.in',
-    phone: '+91 99001 12345',
-    password: 'Manager@123',
-    company: 'Cargo Core HQ',
-  },
-  {
-    id: 'usr_004',
-    role: 'warehouse',
-    name: 'Suresh Patel',
-    email: 'suresh.patel@cargocorp.in',
-    phone: '+91 97654 32109',
-    password: 'Warehouse@123',
-    company: 'Cargo Core Warehouse',
-  },
-  {
-    id: 'usr_005',
-    role: 'dispatcher',
-    name: 'Meena Krishnan',
-    email: 'meena.k@cargocorp.in',
-    phone: '+91 85678 90123',
-    password: 'Dispatch@123',
-    company: 'Cargo Core Dispatch',
-  },
-  {
-    id: 'usr_006',
-    role: 'driver',
-    name: 'Arjun Singh',
-    email: 'arjun.singh@cargocorp.in',
-    phone: '+91 70123 45678',
-    password: 'Driver@123',
-  },
-];
-
-// Dummy OTP for 2FA / password reset
-export const DUMMY_OTP = '123456';
-
-// ─────────────────────────────────────────────
 //  AUTH STORE
 // ─────────────────────────────────────────────
 export const useAuthStore = defineStore('auth', () => {
@@ -73,6 +12,7 @@ export const useAuthStore = defineStore('auth', () => {
   const pendingEmail = ref('');
   const pendingRole = ref('');
   const pendingFlow = ref('');
+  const pendingRegistrationData = ref(null);
   const loginError = ref('');
   const signupError = ref('');
   const otpError = ref('');
@@ -83,21 +23,22 @@ export const useAuthStore = defineStore('auth', () => {
   const userRole = computed(() => currentUser.value?.role ?? '');
   const userName = computed(() => currentUser.value?.name ?? '');
   const userEmail = computed(() => currentUser.value?.email ?? pendingEmail.value);
+  const userRoleLabel = computed(() => {
+    const role = currentUser.value?.role ?? '';
+
+    if (role === 'INDIVIDUAL') return 'Customer';
+    if (role === 'VENDOR') return 'Vendor';
+    if (role === 'manager') return 'Logistics Manager';
+    if (role === 'warehouse') return 'Warehouse Manager';
+    if (role === 'dispatcher') return 'Dispatcher';
+    if (role === 'driver') return 'Driver';
+
+    return role;
+  });
 
   // ── Actions ────────────────────────────────
 
-  function findUser(emailOrPhone, password, role) {
-    return (
-      DUMMY_USERS.find(
-        (u) =>
-          (u.email === emailOrPhone || u.phone === emailOrPhone) &&
-          u.password === password &&
-          u.role === role
-      ) ?? null
-    );
-  }
-
-  async function login(emailOrPhone, password, role) {
+  async function login(emailOrPhone, password) {
     isLoading.value = true;
     loginError.value = '';
 
@@ -116,18 +57,14 @@ export const useAuthStore = defineStore('auth', () => {
 
       const data = await response.json();
 
-      pendingEmail.value = emailOrPhone;
-      pendingRole.value = role;
-      pendingFlow.value = 'login';
-      
-      // Fallback details since login only returns tokens, you would ideally fetch /me here
-      currentUser.value = { email: emailOrPhone, role: role };
+      // Use the user profile from backend response
+      currentUser.value = data.user;
       isAuthenticated.value = true;
       authToken.value = data.access_token;
-      
+
       localStorage.setItem('auth_token', data.access_token);
 
-      return { success: true, message: 'Login successful' };
+      return { success: true, message: `Welcome back, ${data.user.name}!` };
     } catch (error) {
       loginError.value = 'Error connecting to the server.';
       return { success: false, message: loginError.value };
@@ -140,24 +77,58 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true;
     otpError.value = '';
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      if (pendingFlow.value === 'signup') {
+        const verifyResp = await fetch('http://localhost:8000/api/v1/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: pendingEmail.value, otp: otp }),
+        });
 
-    if (otp !== DUMMY_OTP) {
-      otpError.value = 'Invalid OTP. Use ' + DUMMY_OTP + ' for demo.';
-      isLoading.value = false;
+        if (!verifyResp.ok) {
+          const errData = await verifyResp.json().catch(() => ({}));
+          otpError.value = errData.detail || 'Invalid OTP. Please try again.';
+          return { success: false, message: otpError.value };
+        }
+
+        // OTP verified, now register
+        const registerResp = await fetch('http://localhost:8000/api/v1/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pendingRegistrationData.value),
+        });
+
+        if (!registerResp.ok) {
+          const errData = await registerResp.json().catch(() => ({}));
+          let errMsg = errData.detail || 'An error occurred during registration.';
+          if (Array.isArray(errMsg)) errMsg = errMsg[0]?.msg || JSON.stringify(errMsg);
+          otpError.value = typeof errMsg === 'string' ? errMsg : 'Registration failed.';
+          return { success: false, message: otpError.value };
+        }
+
+        const data = await registerResp.json();
+        const payload = pendingRegistrationData.value;
+        currentUser.value = { 
+          name: payload.name, 
+          email: payload.email, 
+          role: payload.role 
+        };
+        authToken.value = data.access_token;
+        isAuthenticated.value = true;
+        localStorage.setItem('auth_token', data.access_token);
+        
+        return { success: true, message: 'Account created successfully.' };
+
+      } else {
+        otpError.value = 'OTP verification is only available for signup in the current flow.';
+        return { success: false, message: otpError.value };
+      }
+    } catch (error) {
+      otpError.value = 'Error connecting to the server.';
       return { success: false, message: otpError.value };
+    } finally {
+      isLoading.value = false;
     }
-
-    if (!currentUser.value && pendingEmail.value) {
-      currentUser.value = { email: pendingEmail.value, role: pendingRole.value };
-    }
-    if (!pendingRole.value && currentUser.value?.role) {
-      pendingRole.value = currentUser.value.role;
-    }
-
-    isAuthenticated.value = true;
-    isLoading.value = false;
-    return { success: true, message: 'Verified!' };
   }
 
   async function signup(userData) {
@@ -175,36 +146,26 @@ export const useAuthStore = defineStore('auth', () => {
         role: mappedRole
       };
 
-      const response = await fetch('http://localhost:8000/api/v1/auth/register', {
+      const response = await fetch('http://localhost:8000/api/v1/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ email: payload.email }),
       });
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        let errMsg = errData.detail || 'An error occurred during registration.';
+        let errMsg = errData.detail || 'An error occurred sending OTP.';
         if (Array.isArray(errMsg)) errMsg = errMsg[0]?.msg || JSON.stringify(errMsg);
-        signupError.value = typeof errMsg === 'string' ? errMsg : 'Registration failed.';
+        signupError.value = typeof errMsg === 'string' ? errMsg : 'OTP request failed.';
         return { success: false, message: signupError.value };
       }
-
-      const data = await response.json();
 
       pendingEmail.value = userData.email;
       pendingRole.value = userData.role;
       pendingFlow.value = 'signup';
-      currentUser.value = { 
-        name: payload.name, 
-        email: payload.email, 
-        role: userData.role 
-      };
-      
-      authToken.value = data.access_token;
-      isAuthenticated.value = true;
-      localStorage.setItem('auth_token', data.access_token);
+      pendingRegistrationData.value = payload;
 
-      return { success: true, message: 'Account created successfully.' };
+      return { success: true, message: 'OTP sent successfully.' };
     } catch (error) {
       signupError.value = 'Error connecting to the server.';
       return { success: false, message: signupError.value };
@@ -240,7 +201,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function resetPassword(otp, newPassword) {
+  async function resetPassword(email, otp, newPassword) {
     isLoading.value = true;
     resetError.value = '';
 
@@ -248,7 +209,11 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await fetch('http://localhost:8000/api/v1/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: otp, new_password: newPassword }),
+        body: JSON.stringify({
+          email: email,
+          token: otp,
+          new_password: newPassword
+        }),
       });
 
       if (!response.ok) {
@@ -265,13 +230,50 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  function logout() {
     isAuthenticated.value = false;
     authToken.value = null;
+    currentUser.value = null;
     pendingEmail.value = '';
     pendingRole.value = '';
     pendingFlow.value = '';
     loginError.value = '';
     localStorage.removeItem('auth_token');
+  }
+
+  async function googleLogin(credential, role = 'INDIVIDUAL') {
+    isLoading.value = true;
+    loginError.value = '';
+    
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/auth/google-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential, role }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        loginError.value = errData.detail || 'Google Login failed.';
+        return { success: false, message: loginError.value, status: response.status };
+      }
+
+      const data = await response.json();
+
+      currentUser.value = data.user;
+      isAuthenticated.value = true;
+      authToken.value = data.access_token;
+      localStorage.setItem('auth_token', data.access_token);
+      
+      return { success: true, message: `Welcome back, ${data.user.name}!`, status: response.status };
+    } catch (error) {
+      loginError.value = 'Error connecting to the server.';
+      return { success: false, message: loginError.value, status: 0 };
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   function clearErrors() {
@@ -294,6 +296,7 @@ export const useAuthStore = defineStore('auth', () => {
     resetError,
     isLoading,
     userRole,
+    userRoleLabel,
     userName,
     userEmail,
     login,
@@ -302,8 +305,7 @@ export const useAuthStore = defineStore('auth', () => {
     sendPasswordResetOTP,
     resetPassword,
     logout,
+    googleLogin,
     clearErrors,
-    DUMMY_USERS,
-    DUMMY_OTP,
   };
 });

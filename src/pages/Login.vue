@@ -1,6 +1,6 @@
 <template>
-  <Background :image-url="currentRole.background">
-    <Navbar :show-role-info="{ role: currentRole.title, onChangeRole: () => router.push('/login') }" />
+  <Background image-url="https://images.unsplash.com/photo-1611216625141-d52dc0441830?crop=entropy&cs=tinysrgb&fit=max&fm=jpg">
+    <Navbar />
     <AIHelpOrb />
 
     <div class="min-h-screen flex items-center justify-center px-8 pt-32 pb-20">
@@ -36,7 +36,7 @@
               </span>
             </h2>
             <p class="text-white/70 text-base">
-              Sign in to your <span class="text-[#00C4FF] font-semibold">{{ currentRole.title }}</span> account
+              Sign in to your <span class="text-[#00C4FF] font-semibold">Cargo Core</span> account
             </p>
             <div class="mt-4 h-0.5 w-16 bg-gradient-to-r from-transparent via-[#00C4FF] to-transparent mx-auto" />
           </div>
@@ -131,9 +131,9 @@
               {{ authStore.loginError }}
             </div>
 
-            <!-- Divider - Only show for roles with Google Auth -->
+            <!-- Divider -->
             <div
-              v-if="currentRole.showGoogleAuth"
+              v-if="showGoogleSignIn"
               v-motion
               :initial="{ opacity: 0 }"
               :enter="{ opacity: 1, transition: { delay: 800 } }"
@@ -144,21 +144,29 @@
               </div>
               <div class="relative flex justify-center">
                 <span class="px-4 text-sm text-white/50 bg-transparent">
-                  Or sign in with
+                  Or continue with
                 </span>
               </div>
             </div>
 
-            <!-- Google Sign In - Only for Customer, Vendor and Driver -->
+            <!-- Google Sign In -->
             <div
-              v-if="currentRole.showGoogleAuth"
+              v-if="showGoogleSignIn"
               v-motion
               :initial="{ opacity: 0, y: 10 }"
               :enter="{ opacity: 1, y: 0, transition: { delay: 900 } }"
+              class="flex justify-center"
             >
+              <GoogleLogin
+                v-if="googleClientId"
+                :callback="handleGoogleCredential"
+                :error="handleGoogleError"
+                :button-config="googleButtonConfig"
+              />
               <button
+                v-else
                 type="button"
-                @click="handleGoogleSignIn"
+                @click="handleMissingGoogleConfig"
                 class="w-full px-6 py-3.5 rounded-lg bg-white hover:bg-white/95 transition-all duration-300 flex items-center justify-center gap-3 group shadow-lg hover:shadow-xl"
               >
                 <svg class="w-5 h-5" viewBox="0 0 24 24">
@@ -184,47 +192,26 @@
                 </span>
               </button>
             </div>
-
-            <!-- Driver Mobile QR Option -->
-            <div
-              v-if="role === 'driver'"
-              v-motion
-              :initial="{ opacity: 0 }"
-              :enter="{ opacity: 1, transition: { delay: 1000 } }"
-              class="pt-4"
-            >
-              <button
-                type="button"
-                @click="showMobileQR = !showMobileQR"
-                class="w-full px-6 py-3.5 rounded-lg bg-white/5 backdrop-blur-xl border border-white/10 hover:border-[#00C4FF50] hover:bg-white/10 transition-all duration-300 flex items-center justify-center gap-3"
-              >
-                <Smartphone class="w-5 h-5 text-[#00C4FF]" />
-                <span class="text-white/90">
-                  Scan QR from Mobile App
-                </span>
-              </button>
-
-              <Transition name="expand">
-                <div
-                  v-if="showMobileQR"
-                  class="mt-4 p-6 bg-white/5 rounded-lg border border-white/10 text-center"
-                >
-                  <div class="w-48 h-48 mx-auto bg-white rounded-lg p-4 mb-4">
-                    <div class="w-full h-full bg-gradient-to-br from-[#00C4FF] to-[#1E3A8A] rounded flex items-center justify-center">
-                      <span class="text-white text-xs">QR Code</span>
-                    </div>
-                  </div>
-                  <p class="text-white/70 text-sm mb-2">
-                    Scan this QR code with your mobile app
-                  </p>
-                  <div class="flex items-center justify-center gap-2 text-[#00C4FF] text-sm">
-                    <Smartphone class="w-4 h-4" />
-                    <span>Use Face ID on your iPhone 16</span>
-                  </div>
-                </div>
-              </Transition>
-            </div>
           </form>
+
+          <!-- Sign Up Link -->
+          <div
+            v-if="showSignupLink"
+            v-motion
+            :initial="{ opacity: 0 }"
+            :enter="{ opacity: 1, transition: { delay: 1000 } }"
+            class="mt-8 text-center"
+          >
+            <p class="text-white/60 text-sm">
+              Don't have an account?
+              <button
+                @click="router.push('/signup')"
+                class="text-[#00C4FF] hover:text-[#00D4FF] font-semibold transition-colors duration-300 ml-1"
+              >
+                Sign up
+              </button>
+            </p>
+          </div>
 
           <!-- Security Footer -->
           <div
@@ -245,14 +232,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import {
   Mail,
   Lock,
   Eye,
   EyeOff,
-  Smartphone,
   Shield,
 } from 'lucide-vue-next';
 import Background from '../components/Background.vue';
@@ -263,116 +249,71 @@ import GlassInput from '../components/GlassInput.vue';
 import GlassButton from '../components/GlassButton.vue';
 import { useAuthStore } from '../stores/authStore';
 import { useToast } from '../composables/useToast';
-import { googleOneTap } from 'vue3-google-login';
 
 const authStore = useAuthStore();
 const toast = useToast();
-
 const router = useRouter();
 const route = useRoute();
 
-const role = computed(() => route.params.role);
-
-const roleDataMap = {
-  manager: {
-    title: 'Logistics Manager',
-    background: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg',
-  },
-  warehouse: {
-    title: 'Warehouse Manager',
-    background: 'https://images.unsplash.com/photo-1575565147602-f9f8d0721dbe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg',
-  },
-  dispatcher: {
-    title: 'Dispatcher',
-    background: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg',
-  },
-  driver: {
-    title: 'Driver',
-    background: 'https://images.unsplash.com/photo-1763623252413-579b4695557b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg',
-    showGoogleAuth: true,
-  },
-  customer: {
-    title: 'Customer',
-    background: 'https://images.unsplash.com/photo-1644134913822-1cd030b3d148?crop=entropy&cs=tinysrgb&fit=max&fm=jpg',
-    showGoogleAuth: true,
-  },
-  vendor: {
-    title: 'Vendor',
-    background: 'https://images.unsplash.com/photo-1553484771-371a605b060b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg',
-    showGoogleAuth: true,
-  },
-  support: {
-    title: 'AI Customer Support',
-    background: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?crop=entropy&cs=tinysrgb&fit=max&fm=jpg',
-  },
+const selectedRole = computed(() => String(route.query.role || '').toLowerCase());
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const showGoogleSignIn = computed(() => selectedRole.value === 'customer');
+const showSignupLink = computed(() => !['vendor', 'manager', 'warehouse', 'dispatcher'].includes(selectedRole.value));
+const googleButtonConfig = {
+  theme: 'filled_white',
+  size: 'large',
+  text: 'signin_with',
+  shape: 'rectangular',
+  width: 360,
 };
-
-const currentRole = computed(() => roleDataMap[role.value] || roleDataMap.manager);
 
 const showPassword = ref(false);
 const emailOrPhone = ref('');
 const password = ref('');
 const rememberMe = ref(false);
 const isLoading = ref(false);
-const showMobileQR = ref(false);
 
 const handleSubmit = async () => {
   authStore.clearErrors();
   isLoading.value = true;
 
-  const result = await authStore.login(emailOrPhone.value, password.value, role.value);
+  const result = await authStore.login(emailOrPhone.value, password.value);
 
   isLoading.value = false;
 
   if (result.success) {
+    toast.success(result.message);
     router.push('/dashboard');
   } else {
     toast.error(result.message);
   }
 };
 
-const handleGoogleSignIn = () => {
-  if (roleData.value.id !== 'customer' && roleData.value.id !== 'vendor') {
-    return toast.error('Google Sign-In is only allowed for Customers and Vendors.');
+const handleMissingGoogleConfig = () => {
+  toast.error('Google Sign-In is not configured yet. Add VITE_GOOGLE_CLIENT_ID to the frontend env.');
+};
+
+const handleGoogleCredential = async (response) => {
+  isLoading.value = true;
+  const result = await authStore.googleLogin(response.credential, 'INDIVIDUAL');
+  isLoading.value = false;
+
+  if (result.success) {
+    toast.success(result.message);
+    router.push('/dashboard');
+    return;
   }
-  
-  googleOneTap()
-    .then(async (response) => {
-      isLoading.value = true;
-      const mappedRole = roleData.value.id.toUpperCase() === 'VENDOR' ? 'VENDOR' : 'INDIVIDUAL';
-      const result = await authStore.googleLogin(response.credential, mappedRole);
-      isLoading.value = false;
-      
-      if (result.success) {
-        toast.success(result.message);
-        router.push('/dashboard');
-      } else {
-        toast.error(result.message);
-      }
-    })
-    .catch((error) => {
-      console.error(error);
-      toast.error('Google Sign-In was cancelled or failed.');
-    });
+
+  if (result.status === 409) {
+    toast.warning(result.message);
+    return;
+  }
+
+  toast.error(result.message);
+};
+
+const handleGoogleError = (error) => {
+  console.error(error);
+  toast.error('Google Sign-In failed. Check the Google client configuration and allowed origins.');
 };
 </script>
-
-<style scoped>
-.expand-enter-active,
-.expand-leave-active {
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
-
-.expand-enter-from,
-.expand-leave-to {
-  opacity: 0;
-  max-height: 0;
-}
-
-.expand-enter-to,
-.expand-leave-from {
-  opacity: 1;
-  max-height: 500px;
-}
-</style>

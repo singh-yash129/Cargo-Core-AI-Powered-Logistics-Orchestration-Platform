@@ -395,7 +395,7 @@
                 Almost There!
               </h3>
               <p class="text-white/70 mb-6">
-                We'll send a verification code to your email to complete the signup process.
+                We have sent a verification code to your email to complete the signup process.
               </p>
               <div class="p-4 bg-white/5 rounded-lg border border-white/10 text-left">
                 <p class="text-white/60 text-sm mb-2">Account Summary:</p>
@@ -440,7 +440,7 @@
               class-name="flex-1"
               @click="handleNext"
             >
-              {{ currentStep === 5 ? 'Complete Signup' : 'Next' }}
+              {{ currentStep === 5 ? 'Verify Email' : 'Next' }}
             </GlassButton>
           </div>
 
@@ -522,6 +522,7 @@ const filteredSteps = computed(() => {
 
 const currentStep = ref(1);
 const isLoading = ref(false);
+const isSignupPrepared = ref(false);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 const isDetectingLocation = ref(false);
@@ -751,12 +752,7 @@ const handleNext = async () => {
       toast.warning('Please enter your country');
       return;
     }
-    currentStep.value++;
-    return;
-  }
-  
-  // Step 5: Final step - call authStore.signup() then navigate to 2FA
-  if (currentStep.value === 5) {
+
     isLoading.value = true;
     authStore.clearErrors();
 
@@ -772,16 +768,33 @@ const handleNext = async () => {
 
     isLoading.value = false;
 
-    if (result.success) {
-      sessionStorage.setItem('authFlow', 'signup');
-      router.push({ path: '/2fa', query: { flow: 'signup' } });
-    } else {
+    if (!result.success) {
       toast.error(result.message);
+      return;
     }
+
+    isSignupPrepared.value = true;
+    currentStep.value++;
+    return;
+  }
+  
+  // Step 5: OTP has already been requested, continue to verification
+  if (currentStep.value === 5) {
+    if (!isSignupPrepared.value) {
+      toast.error('Please complete signup details before verifying your email.');
+      return;
+    }
+
+    sessionStorage.setItem('authFlow', 'signup');
+    router.push({ path: '/2fa', query: { flow: 'signup' } });
   }
 };
 
 const handleBack = () => {
+  if (currentStep.value === 5) {
+    isSignupPrepared.value = false;
+  }
+
   // For Customers: Skip step 3 (Business Details) - go from 4 → 2
   if (formData.role === 'customer' && currentStep.value === 4) {
     currentStep.value = 2;

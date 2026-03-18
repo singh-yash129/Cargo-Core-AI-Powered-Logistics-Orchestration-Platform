@@ -226,10 +226,10 @@ const authStore = useAuthStore();
 let redirectTimer = null;
 
 const handleGoToLogin = () => {
-  const role = authStore.pendingRole || authStore.currentUser?.role;
-  const loginPath = role ? `/login/${role}` : '/login';
+  const rawRole = authStore.pendingRole || authStore.currentUser?.role || '';
+  const role = rawRole === 'INDIVIDUAL' ? 'customer' : String(rawRole).toLowerCase();
   authStore.logout();
-  router.push(loginPath);
+  router.push(role ? { path: '/login', query: { role } } : '/login');
 };
 
 onMounted(() => {

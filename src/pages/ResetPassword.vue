@@ -155,7 +155,7 @@ import AIHelpOrb from '../components/AIHelpOrb.vue';
 import GlassCard from '../components/GlassCard.vue';
 import GlassInput from '../components/GlassInput.vue';
 import GlassButton from '../components/GlassButton.vue';
-import { useAuthStore, DUMMY_OTP } from '../stores/authStore';
+import { useAuthStore } from '../stores/authStore';
 import { useToast } from '../composables/useToast';
 
 const authStore = useAuthStore();
@@ -233,7 +233,7 @@ const handleResetPassword = async () => {
 
   loading.value = true;
 
-  const result = await authStore.resetPassword(otp.value, newPassword.value);
+  const result = await authStore.resetPassword(email.value, otp.value, newPassword.value);
 
   loading.value = false;
 
