@@ -2,18 +2,14 @@
     "appId": "com.cargocoredriver.app",
     "appName": "Cargo-Core Driver",
     "webDir": "dist",
-    "server": {
-        "androidScheme": "http",
-        "url": "http://10.0.2.2:5174",
-        "cleartext": true
-    },
+
     "plugins": {
         "SplashScreen": {
             "launchShowDuration": 0,
             "showSpinner": false
         },
         "Keyboard": {
-            "resize": "none",
+            "resize": "body",
             "style": "dark"
         },
         "StatusBar": {

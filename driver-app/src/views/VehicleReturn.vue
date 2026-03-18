@@ -28,12 +28,12 @@
                 <div>
                     <label class="block text-xs uppercase tracking-wider font-bold mb-2"
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">Odometer (km)</label>
-                    <div class="glass-input rounded-xl flex items-center px-4 py-3 gap-2">
+                    <label for="returnOdometer" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
                         <span class="material-icons text-primary text-sm">speed</span>
-                        <input v-model.number="odometer" type="number"
+                        <input id="returnOdometer" v-model.number="odometer" type="number"
                             class="flex-1 bg-transparent border-none outline-none text-xl font-black"
                             :class="isDark ? 'text-white' : 'text-gray-900'" />
-                    </div>
+                    </label>
                 </div>
                 <div>
                     <label class="block text-xs uppercase tracking-wider font-bold mb-2"

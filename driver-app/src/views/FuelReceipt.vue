@@ -20,31 +20,31 @@
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider mb-2"
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">Amount (₹)</label>
-                    <div class="glass-input rounded-xl flex items-center px-4 py-3 gap-2">
+                    <label for="fuelAmount" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
                         <span class="text-primary font-bold">₹</span>
-                        <input v-model="amount" type="number" placeholder="0"
+                        <input id="fuelAmount" v-model="amount" type="number" placeholder="0"
                             class="flex-1 bg-transparent border-none outline-none text-xl font-black"
                             :class="isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'" />
-                    </div>
+                    </label>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider mb-2"
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">Liters</label>
-                    <div class="glass-input rounded-xl flex items-center px-4 py-3 gap-2">
+                    <label for="fuelLiters" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
                         <span class="material-icons text-primary text-sm">local_gas_station</span>
-                        <input v-model="liters" type="number" placeholder="0.0"
+                        <input id="fuelLiters" v-model="liters" type="number" placeholder="0.0"
                             class="flex-1 bg-transparent border-none outline-none text-xl font-black"
                             :class="isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'" />
-                    </div>
+                    </label>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider mb-2"
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">Station Name</label>
-                    <div class="glass-input rounded-xl flex items-center px-4 py-3 gap-2">
-                        <input v-model="station" type="text" placeholder="e.g. HP Petrol Pump, Andheri"
+                    <label for="fuelStation" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
+                        <input id="fuelStation" v-model="station" type="text" placeholder="e.g. HP Petrol Pump, Andheri"
                             class="flex-1 bg-transparent border-none outline-none text-sm"
                             :class="isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'" />
-                    </div>
+                    </label>
                 </div>
 
                 <!-- Photo upload -->

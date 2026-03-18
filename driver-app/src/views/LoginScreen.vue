@@ -38,41 +38,41 @@
             <!-- Driver ID -->
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-2 ml-1"
-                    :class="isDark ? 'text-primary/80' : 'text-primary'">Driver ID</label>
-                <div class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 transition-colors"
+                    :class="isDark ? 'text-primary/80' : 'text-primary'" for="driverIdInput">Driver ID</label>
+                <label for="driverIdInput" class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 transition-colors cursor-text"
                     :class="driverId ? (isDark ? 'border-primary/40' : 'border-primary/50 shadow-sm') : ''">
                     <span class="material-icons text-lg"
                         :class="driverId ? 'text-primary' : (isDark ? 'text-white/40' : 'text-gray-400')">badge</span>
-                    <input v-model="driverId" @keyup.enter="handleLogin" type="text" placeholder="e.g. DRV-2049"
+                    <input id="driverIdInput" v-model="driverId" @keyup.enter="handleLogin" type="text" placeholder="e.g. DRV-2049"
                         :disabled="isAnyLoading"
                         class="flex-1 min-w-0 bg-transparent border-none outline-none font-medium text-lg placeholder-opacity-30 disabled:opacity-50"
-                        style="text-transform: uppercase;"
+                        style="text-transform: uppercase; user-select: auto; -webkit-user-select: auto;"
                         :class="isDark ? 'text-white placeholder-white/30' : 'text-gray-900 placeholder-gray-400'"
                         autocomplete="username" />
-                </div>
+                </label>
             </div>
 
             <!-- Password -->
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-2 ml-1"
-                    :class="isDark ? 'text-primary/80' : 'text-primary'">Password</label>
-                <div class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 transition-colors"
+                    :class="isDark ? 'text-primary/80' : 'text-primary'" for="passwordInput">Password</label>
+                <label for="passwordInput" class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 transition-colors cursor-text"
                     :class="password ? (isDark ? 'border-primary/40' : 'border-primary/50 shadow-sm') : ''">
                     <span class="material-icons text-lg"
                         :class="password ? 'text-primary' : (isDark ? 'text-white/40' : 'text-gray-400')">lock</span>
-                    <input v-model="password" @keyup.enter="handleLogin" :type="showPwd ? 'text' : 'password'"
+                    <input id="passwordInput" v-model="password" @keyup.enter="handleLogin" :type="showPwd ? 'text' : 'password'"
                         placeholder="••••••••" :disabled="isAnyLoading"
                         class="flex-1 min-w-0 bg-transparent border-none outline-none font-medium text-lg placeholder-opacity-30 disabled:opacity-50"
                         :class="isDark ? 'text-white placeholder-white/30' : 'text-gray-900 placeholder-gray-400'"
                         autocomplete="current-password" />
-                    <button @click="showPwd = !showPwd"
-                        class="shrink-0 p-0 leading-none transition-colors active:scale-90 rounded-full"
+                    <button type="button" @click.stop.prevent="showPwd = !showPwd"
+                        class="shrink-0 p-0 leading-none transition-colors active:scale-90 rounded-full relative z-10"
                         :disabled="isAnyLoading"
                         :class="isDark ? 'text-white/40 hover:text-primary' : 'text-gray-400 hover:text-primary'">
                         <span class="material-icons text-lg leading-none">{{ showPwd ? 'visibility' : 'visibility_off'
                             }}</span>
                     </button>
-                </div>
+                </label>
             </div>
 
             <!-- Error -->

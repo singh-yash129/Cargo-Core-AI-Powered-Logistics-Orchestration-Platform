@@ -1,4 +1,5 @@
 <template>
+  <Teleport to="body">
   <Transition name="loading-fade">
     <div v-if="visible" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
       style="background: #0F1115;">
@@ -66,6 +67,7 @@
       </div>
     </div>
   </Transition>
+  </Teleport>
 </template>
 
 <script setup>

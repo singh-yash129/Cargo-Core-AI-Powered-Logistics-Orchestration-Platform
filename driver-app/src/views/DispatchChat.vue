@@ -79,13 +79,13 @@
         <div class="screen-footer border-t"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
             <div class="flex items-center gap-3 px-4 py-3">
-                <div class="flex-1 flex items-center gap-2 rounded-2xl border px-4 py-2.5"
+                <label for="chatInput" class="flex-1 flex items-center gap-2 rounded-2xl border px-4 py-2.5 cursor-text"
                     :class="isDark ? 'bg-surface-dark/50 border-white/8' : 'bg-white border-gray-200 shadow-sm'">
-                    <input v-model="inputText" placeholder="Message dispatcher…" type="text"
+                    <input id="chatInput" v-model="inputText" placeholder="Message dispatcher…" type="text"
                         class="flex-1 text-sm bg-transparent outline-none"
                         :class="isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'"
                         @keyup.enter="handleSend" />
-                </div>
+                </label>
                 <button @click="handleSend" :disabled="!inputText.trim()"
                     class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95"
                     :class="inputText.trim() ? 'bg-primary text-background-dark' : isDark ? 'bg-surface-dark text-gray-600' : 'bg-gray-100 text-gray-400'">
