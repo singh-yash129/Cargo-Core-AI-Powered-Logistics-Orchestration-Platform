@@ -3,12 +3,18 @@ import { createRouter, createWebHistory } from 'vue-router';
 const routes = [
   {
     path: '/',
-    redirect: '/login',
+    name: 'LandingHome',
+    component: () => import('../pages/LandingHome.vue'),
+  },
+  {
+    path: '/login-hub',
+    name: 'MainLoginHub',
+    component: () => import('../pages/MainLoginHub.vue'),
   },
   {
     path: '/login',
-    name: 'MainLoginHub',
-    component: () => import('../pages/MainLoginHub.vue'),
+    name: 'Login',
+    component: () => import('../pages/Login.vue'),
   },
   {
     path: '/login/:role',

@@ -318,7 +318,10 @@ const handleRoleSelect = (roleId) => {
     toast.info('AI Support is publicly accessible — Coming soon!');
     return;
   }
-  router.push(`/login/${roleId}`);
+  router.push({
+    path: '/login',
+    query: { role: roleId },
+  });
 };
 </script>
 
