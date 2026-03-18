@@ -35,6 +35,7 @@
             <div v-if="!showOtpStage">
                 <h3 class="text-sm font-bold mb-3">Additional Notes (Optional)</h3>
                 <textarea v-model="notes" rows="3" placeholder="Enter any specific details..."
+                    inputmode="text" enterkeyhint="done"
                     class="w-full rounded-xl border p-3 text-sm outline-none transition-colors"
                     :class="isDark ? 'bg-surface-dark/50 border-white/10 text-white focus:border-red-500/50' : 'bg-white border-gray-200 text-gray-900 focus:border-red-500/50 block shadow-sm'"></textarea>
             </div>
@@ -74,8 +75,10 @@
                 </div>
                 <div class="flex gap-3 justify-center">
                     <input v-for="(digit, idx) in 4" :key="idx" type="tel" maxlength="1" v-model="otp[idx]"
+                        inputmode="numeric" enterkeyhint="next"
                         ref="otpInputs" @input="handleOtpInput(idx, $event)" @keydown="handleOtpKeydown(idx, $event)"
                         class="w-14 h-14 text-center text-2xl font-black rounded-2xl border outline-none transition-colors"
+                        style="pointer-events: auto; touch-action: manipulation;"
                         :class="isDark ? 'bg-surface-dark border-white/10 text-white focus:border-red-500' : 'bg-white border-gray-200 text-gray-900 focus:border-red-500 shadow-sm'" />
                 </div>
                 <p class="text-center text-xs" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Resend OTP in 28s</p>

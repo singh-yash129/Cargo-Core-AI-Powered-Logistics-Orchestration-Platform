@@ -28,17 +28,20 @@
                 <div>
                     <label class="block text-xs uppercase tracking-wider font-bold mb-2"
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">Odometer (km)</label>
-                    <label for="returnOdometer" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
+                    <div @click="focusOdometer" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
                         <span class="material-icons text-primary text-sm">speed</span>
-                        <input id="returnOdometer" v-model.number="odometer" type="number"
+                        <input ref="odometerRef" id="returnOdometer" v-model.number="odometer" type="number"
+                            inputmode="numeric" enterkeyhint="done"
                             class="flex-1 bg-transparent border-none outline-none text-xl font-black"
+                            style="pointer-events: auto; touch-action: manipulation;"
                             :class="isDark ? 'text-white' : 'text-gray-900'" />
-                    </label>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs uppercase tracking-wider font-bold mb-2"
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">Return Notes (optional)</label>
                     <textarea v-model="notes" rows="2" placeholder="Any issues to report..."
+                        inputmode="text" enterkeyhint="send"
                         class="w-full glass-input rounded-xl px-4 py-3 text-sm outline-none resize-none"
                         :class="isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'"></textarea>
                 </div>
@@ -93,6 +96,9 @@ const uiStore = useUiStore()
 const driverStore = useDriverStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const { scanDocument, isCapturing } = useCamera()
+
+const odometerRef = ref(null)
+const focusOdometer = () => { odometerRef.value?.focus() }
 
 const fuelLevel = ref(62)
 const odometer = ref(48277)

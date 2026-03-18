@@ -101,19 +101,22 @@
                 <!-- Bottom action area -->
                 <div class="flex flex-col gap-3 shrink-0 mb-2">
                     <!-- Manual entry -->
-                    <label for="manualVehicleId" class="glass-input rounded-2xl flex items-center px-5 py-5 gap-3 cursor-text">
+                    <div @click="focusVehicleInput" class="glass-input rounded-2xl flex items-center px-5 py-5 gap-3 cursor-text"
+                        :class="manualId ? (isDark ? 'border-primary/40' : 'border-primary/50') : ''">
                         <span class="material-icons text-xl shrink-0"
                             :class="manualId ? 'text-primary' : isDark ? 'text-white/30' : 'text-gray-400'">local_shipping</span>
-                        <input id="manualVehicleId" v-model="manualId" @keyup.enter="handleManualLookup" type="text"
+                        <input ref="vehicleInputRef" id="manualVehicleId" v-model="manualId" @keyup.enter="handleManualLookup" type="text"
                             placeholder="e.g. CC-TRK-042"
                             class="flex-1 min-w-0 bg-transparent border-none outline-none font-mono font-bold text-lg disabled:opacity-50"
                             :class="isDark ? 'text-white placeholder-white/30' : 'text-gray-900 placeholder-gray-400'"
-                            style="text-transform: uppercase;" autocomplete="off" />
-                        <button v-if="manualId" @click.prevent="handleManualLookup"
+                            inputmode="text" enterkeyhint="search"
+                            style="text-transform: uppercase; pointer-events: auto; touch-action: manipulation;"
+                            autocomplete="off" />
+                        <button v-if="manualId" @click.stop.prevent="handleManualLookup"
                             class="shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center active:scale-90">
                             <span class="material-icons text-base text-background-dark">arrow_forward</span>
                         </button>
-                    </label>
+                    </div>
 
                     <!-- Error -->
                     <p v-if="lookupError"
@@ -299,6 +302,11 @@ const uiStore = useUiStore()
 const driverStore = useDriverStore()
 const { scanQrCode, isCapturing } = useCamera()
 const { notify } = useLocalNotifications()
+const vehicleInputRef = ref(null)
+const focusVehicleInput = () => {
+    if (vehicleInputRef.value) vehicleInputRef.value.focus()
+}
+
 const isDark = computed(() => uiStore.theme !== 'light')
 
 // ── Phase state: 'scan' → 'confirm' → 'success' ──────────────────

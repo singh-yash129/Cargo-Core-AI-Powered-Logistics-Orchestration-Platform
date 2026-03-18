@@ -39,30 +39,31 @@
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-2 ml-1"
                     :class="isDark ? 'text-primary/80' : 'text-primary'" for="driverIdInput">Driver ID</label>
-                <label for="driverIdInput" class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 transition-colors cursor-text"
+                <div @click="focusDriverInput" class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 transition-colors cursor-text"
                     :class="driverId ? (isDark ? 'border-primary/40' : 'border-primary/50 shadow-sm') : ''">
                     <span class="material-icons text-lg"
                         :class="driverId ? 'text-primary' : (isDark ? 'text-white/40' : 'text-gray-400')">badge</span>
-                    <input id="driverIdInput" v-model="driverId" @keyup.enter="handleLogin" type="text" placeholder="e.g. DRV-2049"
-                        :disabled="isAnyLoading"
+                    <input ref="driverIdRef" id="driverIdInput" v-model="driverId" @keyup.enter="handleLogin" type="text" placeholder="e.g. DRV-2049"
+                        :disabled="isAnyLoading" inputmode="text" enterkeyhint="done"
                         class="flex-1 min-w-0 bg-transparent border-none outline-none font-medium text-lg placeholder-opacity-30 disabled:opacity-50"
-                        style="text-transform: uppercase; user-select: auto; -webkit-user-select: auto;"
+                        style="text-transform: uppercase; pointer-events: auto; touch-action: manipulation;"
                         :class="isDark ? 'text-white placeholder-white/30' : 'text-gray-900 placeholder-gray-400'"
                         autocomplete="username" />
-                </label>
+                </div>
             </div>
 
             <!-- Password -->
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-2 ml-1"
                     :class="isDark ? 'text-primary/80' : 'text-primary'" for="passwordInput">Password</label>
-                <label for="passwordInput" class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 transition-colors cursor-text"
-                    :class="password ? (isDark ? 'border-primary/40' : 'border-primary/50 shadow-sm') : ''">
+                <div @click="focusPasswordInput" class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 transition-colors cursor-text"
+                    :class="password ? (isDark ? 'border-primary/40' : 'primary/50 shadow-sm') : ''">
                     <span class="material-icons text-lg"
                         :class="password ? 'text-primary' : (isDark ? 'text-white/40' : 'text-gray-400')">lock</span>
-                    <input id="passwordInput" v-model="password" @keyup.enter="handleLogin" :type="showPwd ? 'text' : 'password'"
+                    <input ref="passwordRef" id="passwordInput" v-model="password" @keyup.enter="handleLogin" :type="showPwd ? 'text' : 'password'"
                         placeholder="••••••••" :disabled="isAnyLoading"
                         class="flex-1 min-w-0 bg-transparent border-none outline-none font-medium text-lg placeholder-opacity-30 disabled:opacity-50"
+                        style="pointer-events: auto; touch-action: manipulation;"
                         :class="isDark ? 'text-white placeholder-white/30' : 'text-gray-900 placeholder-gray-400'"
                         autocomplete="current-password" />
                     <button type="button" @click.stop.prevent="showPwd = !showPwd"
@@ -72,7 +73,7 @@
                         <span class="material-icons text-lg leading-none">{{ showPwd ? 'visibility' : 'visibility_off'
                             }}</span>
                     </button>
-                </label>
+                </div>
             </div>
 
             <!-- Error -->
@@ -129,6 +130,8 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useUiStore } from '../stores/uiStore.js'
+import { Keyboard } from '@capacitor/keyboard'
+import { Capacitor } from '@capacitor/core'
 
 const router = useRouter()
 const driverStore = useDriverStore()
@@ -140,6 +143,27 @@ const showPwd = ref(false)
 const loading = ref(false)
 const loadingHelp = ref(false)
 const error = ref('')
+
+const driverIdRef = ref(null)
+const passwordRef = ref(null)
+
+const focusDriverInput = async () => {
+    if (driverIdRef.value && !isAnyLoading.value) {
+        driverIdRef.value.focus()
+        if (Capacitor.isNativePlatform()) {
+            await Keyboard.show()
+        }
+    }
+}
+
+const focusPasswordInput = async () => {
+    if (passwordRef.value && !isAnyLoading.value) {
+        passwordRef.value.focus()
+        if (Capacitor.isNativePlatform()) {
+            await Keyboard.show()
+        }
+    }
+}
 
 const isDark = computed(() => uiStore.theme !== 'light')
 const isAnyLoading = computed(() => loading.value || loadingHelp.value)

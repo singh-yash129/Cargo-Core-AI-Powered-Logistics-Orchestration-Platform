@@ -79,13 +79,15 @@
         <div class="screen-footer border-t"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
             <div class="flex items-center gap-3 px-4 py-3">
-                <label for="chatInput" class="flex-1 flex items-center gap-2 rounded-2xl border px-4 py-2.5 cursor-text"
+                <div @click="focusChatInput" class="flex-1 flex items-center gap-2 rounded-2xl border px-4 py-2.5 cursor-text"
                     :class="isDark ? 'bg-surface-dark/50 border-white/8' : 'bg-white border-gray-200 shadow-sm'">
-                    <input id="chatInput" v-model="inputText" placeholder="Message dispatcher…" type="text"
+                    <input ref="chatInputRef" id="chatInput" v-model="inputText" placeholder="Message dispatcher…" type="text"
+                        inputmode="text" enterkeyhint="send"
                         class="flex-1 text-sm bg-transparent outline-none"
+                        style="pointer-events: auto; touch-action: manipulation;"
                         :class="isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'"
                         @keyup.enter="handleSend" />
-                </label>
+                </div>
                 <button @click="handleSend" :disabled="!inputText.trim()"
                     class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95"
                     :class="inputText.trim() ? 'bg-primary text-background-dark' : isDark ? 'bg-surface-dark text-gray-600' : 'bg-gray-100 text-gray-400'">
@@ -104,8 +106,10 @@ const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 const chatBody = ref(null)
+const chatInputRef = ref(null)
 const inputText = ref('')
 const isTyping = ref(false)
+const focusChatInput = () => { chatInputRef.value?.focus() }
 
 const suggestions = ['Current ETA?', 'Request re-route', 'Need backup crew', 'COD discrepancy']
 

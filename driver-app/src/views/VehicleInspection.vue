@@ -36,16 +36,17 @@
                             </p>
                         </div>
 
-                        <label for="inspFuelLiters" class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 mb-3 cursor-text">
+                        <div @click="() => fuelInputRef?.focus()" class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 mb-3 cursor-text">
                             <span class="material-icons text-lg"
                                 :class="fuelLiters ? 'text-primary' : isDark ? 'text-white/30' : 'text-gray-400'">opacity</span>
                             <input id="inspFuelLiters" v-model.number="fuelLiters" type="number" inputmode="decimal" min="0"
                                 :max="TANK_CAPACITY" :placeholder="`0 – ${TANK_CAPACITY}`"
                                 class="flex-1 min-w-0 bg-transparent border-none outline-none font-black text-2xl"
+                                style="pointer-events: auto; touch-action: manipulation;"
                                 :class="isDark ? 'text-white placeholder-white/20' : 'text-gray-900 placeholder-gray-300'"
-                                @input="clampFuel" ref="fuelInputRef" />
+                                @input="clampFuel" ref="fuelInputRef" enterkeyhint="done" />
                             <span class="text-sm font-bold" :class="isDark ? 'text-gray-400' : 'text-gray-500'">L</span>
-                        </label>
+                        </div>
 
                         <!-- Auto-calculated % -->
                         <div class="rounded-2xl p-4 border text-center mb-5"
@@ -75,17 +76,18 @@
                             </p>
                         </div>
 
-                        <label for="inspOdometerKm" class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 mb-5 cursor-text">
+                        <div @click="() => odometerInputRef?.focus()" class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 mb-5 cursor-text">
                             <span class="material-icons text-lg"
                                 :class="odometerKm ? 'text-primary' : isDark ? 'text-white/30' : 'text-gray-400'">straighten</span>
                             <input id="inspOdometerKm" v-model.number="odometerKm" type="number" inputmode="numeric"
                                 placeholder="e.g. 48230"
                                 class="flex-1 min-w-0 bg-transparent border-none outline-none font-black text-2xl"
+                                style="pointer-events: auto; touch-action: manipulation;"
                                 :class="isDark ? 'text-white placeholder-white/20' : 'text-gray-900 placeholder-gray-300'"
-                                ref="odometerInputRef" />
+                                enterkeyhint="done" ref="odometerInputRef" />
                             <span class="text-sm font-bold"
                                 :class="isDark ? 'text-gray-400' : 'text-gray-500'">km</span>
-                        </label>
+                        </div>
                     </template>
 
                     <!-- Buttons -->

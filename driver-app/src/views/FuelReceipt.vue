@@ -20,31 +20,37 @@
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider mb-2"
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">Amount (₹)</label>
-                    <label for="fuelAmount" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
+                    <div @click="focusAmount" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
                         <span class="text-primary font-bold">₹</span>
-                        <input id="fuelAmount" v-model="amount" type="number" placeholder="0"
+                        <input ref="amountRef" id="fuelAmount" v-model="amount" type="number" placeholder="0"
+                            inputmode="decimal" enterkeyhint="next"
                             class="flex-1 bg-transparent border-none outline-none text-xl font-black"
+                            style="pointer-events: auto; touch-action: manipulation;"
                             :class="isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'" />
-                    </label>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider mb-2"
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">Liters</label>
-                    <label for="fuelLiters" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
+                    <div @click="focusLiters" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
                         <span class="material-icons text-primary text-sm">local_gas_station</span>
-                        <input id="fuelLiters" v-model="liters" type="number" placeholder="0.0"
+                        <input ref="litersRef" id="fuelLiters" v-model="liters" type="number" placeholder="0.0"
+                            inputmode="decimal" enterkeyhint="next"
                             class="flex-1 bg-transparent border-none outline-none text-xl font-black"
+                            style="pointer-events: auto; touch-action: manipulation;"
                             :class="isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'" />
-                    </label>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider mb-2"
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">Station Name</label>
-                    <label for="fuelStation" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
-                        <input id="fuelStation" v-model="station" type="text" placeholder="e.g. HP Petrol Pump, Andheri"
+                    <div @click="focusStation" class="glass-input rounded-xl flex items-center px-4 py-3 gap-2 cursor-text">
+                        <input ref="stationRef" id="fuelStation" v-model="station" type="text" placeholder="e.g. HP Petrol Pump, Andheri"
+                            inputmode="text" enterkeyhint="done"
                             class="flex-1 bg-transparent border-none outline-none text-sm"
+                            style="pointer-events: auto; touch-action: manipulation;"
                             :class="isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'" />
-                    </label>
+                    </div>
                 </div>
 
                 <!-- Photo upload -->
@@ -100,6 +106,13 @@ const amount = ref('')
 const liters = ref('')
 const station = ref('')
 const receiptPhoto = ref('')
+
+const amountRef = ref(null)
+const litersRef = ref(null)
+const stationRef = ref(null)
+const focusAmount = () => { amountRef.value?.focus() }
+const focusLiters = () => { litersRef.value?.focus() }
+const focusStation = () => { stationRef.value?.focus() }
 const captureLabel = computed(() => {
     if (isCapturing.value) return 'Opening camera...'
     if (receiptPhoto.value) return 'Receipt photo captured ✓'
