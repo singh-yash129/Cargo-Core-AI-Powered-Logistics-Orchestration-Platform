@@ -17,12 +17,13 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useUiStore } from './stores/uiStore.js'
 import { useSafeArea } from './composables/useSafeArea.js'
 import SyncBanner from './components/SyncBanner.vue'
 import RouteToast from './components/RouteToast.vue'
 import AppLoader from './components/AppLoader.vue'
+import { requestAppPermissions } from './composables/usePermissions.js'
 
 const uiStore = useUiStore()
 
@@ -32,6 +33,10 @@ uiStore.initTheme()
 
 // Configure Android StatusBar to be transparent and overlay the WebView.
 useSafeArea()
+
+// Request native permissions at boot (Camera, Location).
+// Skips if already granted; retries with explanation if denied.
+onMounted(() => { requestAppPermissions() })
 
 const themeClass = computed(() =>
   uiStore.theme === 'light' ? 'light bg-background-light text-gray-900' : 'dark bg-background-dark text-white'

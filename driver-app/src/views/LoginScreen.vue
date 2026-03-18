@@ -130,8 +130,6 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useUiStore } from '../stores/uiStore.js'
-import { Keyboard } from '@capacitor/keyboard'
-import { Capacitor } from '@capacitor/core'
 
 const router = useRouter()
 const driverStore = useDriverStore()
@@ -150,18 +148,26 @@ const passwordRef = ref(null)
 const focusDriverInput = async () => {
     if (driverIdRef.value && !isAnyLoading.value) {
         driverIdRef.value.focus()
-        if (Capacitor.isNativePlatform()) {
-            await Keyboard.show()
-        }
+        try {
+            const { Capacitor } = await import('@capacitor/core')
+            if (Capacitor.isNativePlatform()) {
+                const { Keyboard } = await import('@capacitor/keyboard')
+                await Keyboard.show()
+            }
+        } catch { /* web fallback — ignore */ }
     }
 }
 
 const focusPasswordInput = async () => {
     if (passwordRef.value && !isAnyLoading.value) {
         passwordRef.value.focus()
-        if (Capacitor.isNativePlatform()) {
-            await Keyboard.show()
-        }
+        try {
+            const { Capacitor } = await import('@capacitor/core')
+            if (Capacitor.isNativePlatform()) {
+                const { Keyboard } = await import('@capacitor/keyboard')
+                await Keyboard.show()
+            }
+        } catch { /* web fallback — ignore */ }
     }
 }
 

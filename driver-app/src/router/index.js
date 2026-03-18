@@ -260,6 +260,33 @@ const routes = [
         ]
     },
 
+    // ── Camera Screens (full-screen native, no nav, no auth flow guard) ──
+    {
+        path: '/camera',
+        component: () => import('../layouts/CameraLayout.vue'),
+        meta: { cameraScreen: true },
+        children: [
+            {
+                path: 'qr',
+                name: 'camera-qr',
+                component: () => import('../components/scanners/PremiumQrScanner.vue'),
+                meta: { cameraScreen: true }
+            },
+            {
+                path: 'photo',
+                name: 'camera-photo',
+                component: () => import('../components/scanners/PremiumCameraView.vue'),
+                meta: { cameraScreen: true }
+            },
+            {
+                path: 'ocr',
+                name: 'camera-ocr',
+                component: () => import('../components/scanners/PremiumOcrScanner.vue'),
+                meta: { cameraScreen: true }
+            },
+        ]
+    },
+
     // ── Fallback ─────────────────────────────────────────────────────────
     {
         path: '/:pathMatch(.*)*',
@@ -285,6 +312,9 @@ router.beforeEach((to, from, next) => {
     if (to.name !== 'splash' && from.name !== undefined) {
         uiStore.setLoading(true)
     }
+
+    // Camera screens bypass all auth and flow guards
+    if (to.meta.cameraScreen) return next()
 
     if (to.meta.requiresAuth && !driverStore.isAuthenticated) {
         return next({ name: 'login' })
