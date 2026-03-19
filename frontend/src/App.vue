@@ -13,7 +13,6 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLoading from './components/AppLoading.vue'
-import DriverLayout from './layouts/DriverLayout.vue'
 import DesktopLayout from './layouts/DesktopLayout.vue'
 import BlankLayout from './layouts/BlankLayout.vue'
 import LogisticLayout from './layouts/LogisticLayout.vue'
@@ -65,8 +64,7 @@ const layout = computed(() => {
   const layoutName = route.meta.layout || 'blank'
 
   switch (layoutName) {
-    case 'driver':
-      return DriverLayout
+
     case 'desktop':
       return DesktopLayout
     case 'logistic':
