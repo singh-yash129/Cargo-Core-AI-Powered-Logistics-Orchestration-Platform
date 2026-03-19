@@ -11,13 +11,16 @@ from app.schemas.auth import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
     MessageResponse,
+    OTPVerifiedResponse,
     RefreshTokenRequest,
     ResetPasswordRequest,
+    SendOTPRequest,
     TokenResponse,
     UserLogin,
     UserProfile,
     UserProfileUpdate,
     UserRegister,
+    VerifyOTPRequest,
 )
 from app.services import auth_service
 from app.utils.redis import get_redis
@@ -164,3 +167,28 @@ async def reset_password(
 ):
     await auth_service.reset_password(db, redis, data)
     return MessageResponse(message="Password has been reset successfully")
+
+
+@router.post(
+    "/send-otp",
+    response_model=MessageResponse,
+    summary="Send email verification OTP for signup",
+)
+async def send_otp(
+    data: SendOTPRequest,
+    redis: Annotated[Redis, Depends(get_redis)],
+):
+    await auth_service.send_signup_otp(redis, data)
+    return MessageResponse(message=f"OTP sent to {data.email}")
+
+
+@router.post(
+    "/verify-otp",
+    response_model=OTPVerifiedResponse,
+    summary="Verify email OTP before completing signup",
+)
+async def verify_otp(
+    data: VerifyOTPRequest,
+    redis: Annotated[Redis, Depends(get_redis)],
+):
+    return await auth_service.verify_signup_otp(redis, data)

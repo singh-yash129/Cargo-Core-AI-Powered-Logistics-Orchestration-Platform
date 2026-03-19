@@ -2,6 +2,7 @@
 fastapi
 uvicorn[standard]
 pydantic-settings
+pydantic[email]
 python-multipart
 
 # ─── Database ─────────────────────────────────────────────────────────────────
@@ -26,6 +27,10 @@ loguru
 pytest
 pytest-asyncio
 httpx
+
+# ─── AI / Gemini ──────────────────────────────────────────────────────────────
+google-genai
+sqlparse
 
 # ─── Dev / Linting ────────────────────────────────────────────────────────────
 ruff
