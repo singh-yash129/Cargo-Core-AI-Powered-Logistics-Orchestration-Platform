@@ -168,6 +168,38 @@ const routes = [
                 meta: { requiresAuth: true, hideNav: true }
             },
 
+            // ── Parcel Pickup Flow ──────────────────────
+            {
+                path: 'pickup-arrival/:id',
+                name: 'pickup-arrival',
+                component: () => import('../views/PickupArrival.vue'),
+                meta: { requiresAuth: true, hideNav: true }
+            },
+            {
+                path: 'pickup-scanning/:id',
+                name: 'pickup-scanning',
+                component: () => import('../views/ItemScanning.vue'),
+                meta: { requiresAuth: true, hideNav: true }
+            },
+            {
+                path: 'pickup-signature/:id',
+                name: 'pickup-signature',
+                component: () => import('../views/PickupSignature.vue'),
+                meta: { requiresAuth: true, hideNav: true }
+            },
+            {
+                path: 'warehouse-return',
+                name: 'warehouse-return',
+                component: () => import('../views/WarehouseReturn.vue'),
+                meta: { requiresAuth: true, hideNav: true }
+            },
+            {
+                path: 'unload-verification',
+                name: 'unload-verification',
+                component: () => import('../views/UnloadVerification.vue'),
+                meta: { requiresAuth: true, hideNav: true }
+            },
+
             // ── Financial ────────────────────────────────
             {
                 path: 'wallet',

@@ -40,6 +40,122 @@
                     :class="isDark ? 'bg-primary/30' : 'bg-primary/10'"></div>
             </div>
 
+            <!-- Active Job Card (New - Shows Job Type & State) -->
+            <div v-if="jobStore.jobType" class="rounded-3xl p-6 relative border overflow-hidden min-h-[200px]"
+                :class="isDark ? 'bg-surface-dark/60 border-white/10' : 'bg-white border-gray-100 shadow-xl'">
+                <!-- Multiple Background Glows -->
+                <div class="absolute top-0 right-0 w-40 h-40 blur-3xl opacity-30"
+                    :class="jobStore.jobType === 'PARCEL_DELIVERY' ? 'bg-green-500' : jobStore.jobType === 'PARCEL_PICKUP' ? 'bg-blue-500' : 'bg-purple-500'">
+                </div>
+                <div class="absolute bottom-0 left-0 w-32 h-32 blur-3xl opacity-20 bg-primary"></div>
+
+                <div class="relative">
+                    <!-- Header Section -->
+                    <div class="flex items-start justify-between mb-5">
+                        <div class="flex-1 min-w-0">
+                            <!-- Job Type & State Badges -->
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
+                                    :class="jobStore.jobType === 'PARCEL_DELIVERY' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : jobStore.jobType === 'PARCEL_PICKUP' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'">
+                                    <span class="material-icons text-xs">{{ jobStore.jobType === 'HOUSE_SHIFT' ? 'moving' : jobStore.jobType === 'PARCEL_PICKUP' ? 'assignment_return' : 'local_shipping' }}</span>
+                                    {{ jobStore.jobTypeLabel }}
+                                </div>
+                                <div class="px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border"
+                                    :class="isDark ? 'bg-primary/10 text-primary border-primary/20' : 'bg-primary/15 text-primary border-primary/30'">
+                                    {{ jobStore.stateLabel }}
+                                </div>
+                            </div>
+
+                            <!-- Job ID -->
+                            <p class="text-3xl font-black mb-2 tracking-tight">{{ jobStore.jobData.manifestId || jobStore.jobData.jobId }}</p>
+
+                            <!-- Metadata -->
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <div class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg"
+                                    :class="isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-600'">
+                                    <span class="material-icons text-xs">local_shipping</span>
+                                    {{ jobStore.jobData.vehicleId }}
+                                </div>
+                                <div class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg"
+                                    :class="isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-600'">
+                                    <span class="material-icons text-xs">schedule</span>
+                                    Started {{ new Date(jobStore.jobData.assignedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Icon Badge -->
+                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center border shrink-0"
+                            :class="jobStore.jobType === 'PARCEL_DELIVERY' ? 'bg-green-500/15 border-green-500/30' : jobStore.jobType === 'PARCEL_PICKUP' ? 'bg-blue-500/15 border-blue-500/30' : 'bg-purple-500/15 border-purple-500/30'">
+                            <span class="material-icons text-4xl"
+                                :class="jobStore.jobType === 'PARCEL_DELIVERY' ? 'text-green-400' : jobStore.jobType === 'PARCEL_PICKUP' ? 'text-blue-400' : 'text-purple-400'">
+                                {{ jobStore.jobType === 'HOUSE_SHIFT' ? 'moving' : jobStore.jobType === 'PARCEL_PICKUP' ? 'assignment_return' : 'local_shipping' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar (for Delivery/Pickup only) -->
+                    <div v-if="jobStore.jobType !== 'HOUSE_SHIFT' && jobStore.totalStops > 0" class="mt-5 p-4 rounded-2xl"
+                        :class="isDark ? 'bg-black/30 border border-white/5' : 'bg-gray-50 border border-gray-100'">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-black uppercase tracking-widest" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Route Progress</span>
+                            <span class="text-lg font-black text-primary">{{ jobStore.completedStopsCount }} / {{ jobStore.totalStops }}</span>
+                        </div>
+                        <div class="w-full h-2.5 rounded-full overflow-hidden" :class="isDark ? 'bg-gray-800' : 'bg-gray-200'">
+                            <div class="h-full rounded-full bg-gradient-to-r from-primary to-primary-dark transition-all duration-500"
+                                :style="`width: ${jobStore.progressPercent}%`"></div>
+                        </div>
+                        <div class="flex items-center justify-between mt-2">
+                            <span class="text-[10px] font-semibold" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+                                {{ Math.round(jobStore.progressPercent) }}% Complete
+                            </span>
+                            <span class="text-[10px] font-semibold" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+                                {{ jobStore.totalStops - jobStore.completedStopsCount }} Remaining
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- No Job Assigned State -->
+            <div v-else class="rounded-3xl p-10 border text-center relative overflow-hidden min-h-[200px] flex flex-col items-center justify-center"
+                :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-gray-100 shadow-lg'">
+                <!-- Background Pattern -->
+                <div class="absolute inset-0 opacity-5">
+                    <div class="absolute top-0 left-0 w-full h-full"
+                        style="background-image: radial-gradient(circle, currentColor 1px, transparent 1px); background-size: 20px 20px;"></div>
+                </div>
+
+                <!-- Animated Glow -->
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full blur-3xl opacity-20 bg-primary animate-pulse"></div>
+
+                <div class="relative">
+                    <!-- Icon -->
+                    <div class="w-24 h-24 mx-auto rounded-3xl flex items-center justify-center mb-5 relative"
+                        :class="isDark ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-white/5' : 'bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-200'">
+                        <span class="material-icons text-5xl"
+                            :class="isDark ? 'text-gray-600' : 'text-gray-400'">assignment_outlined</span>
+                        <div class="absolute -top-1 -right-1 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center border-2"
+                            :class="isDark ? 'border-background-dark' : 'border-background-light'">
+                            <span class="material-icons text-white text-xs">schedule</span>
+                        </div>
+                    </div>
+
+                    <!-- Text -->
+                    <h3 class="font-black text-2xl mb-2">No Active Job</h3>
+                    <p class="text-sm mb-4 max-w-xs mx-auto leading-relaxed" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                        Waiting for job assignment from dispatch
+                    </p>
+
+                    <!-- Demo Mode Hint -->
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-semibold"
+                        :class="isDark ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-primary/10 border-primary/30 text-primary'">
+                        <span class="material-icons text-sm">science</span>
+                        Use demo mode to test flows
+                    </div>
+                </div>
+            </div>
+
             <!-- Driver Greeting Card -->
             <div class="rounded-3xl p-5 relative border"
                 :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
@@ -140,27 +256,34 @@
                 <button @click="beginRoute"
                     class="w-full rounded-2xl overflow-hidden relative group active:scale-[0.98] transition-transform shadow-glow h-14 flex items-center justify-center gap-3">
                     <div class="absolute inset-0 bg-gradient-to-r from-primary to-primary-dark"></div>
-                    <span class="relative material-icons text-2xl text-background-dark">play_arrow</span>
-                    <span class="relative text-xl font-black uppercase tracking-wide text-background-dark">Begin
-                        Route</span>
+                    <span class="relative material-icons text-2xl text-background-dark">{{ jobStore.jobType ? 'arrow_forward' : 'play_arrow' }}</span>
+                    <span class="relative text-xl font-black uppercase tracking-wide text-background-dark">{{ nextActionLabel }}</span>
                 </button>
             </div>
         </div>
+
+        <!-- Job Type Selector (Demo Mode) -->
+        <JobTypeSelector />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
-import { dummyManifest } from '../utils/dummyData.js'
+import { useJobStore } from '../stores/jobStore.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
+import { dummyManifest, dummyParcelDeliveryJob } from '../utils/dummyData.js'
+import JobTypeSelector from '../components/JobTypeSelector.vue'
 
 const router = useRouter()
 const driverStore = useDriverStore()
 const uiStore = useUiStore()
 const routeStore = useRouteStore()
+const jobStore = useJobStore()
+const { navigateToCurrentState, getNextActionLabel } = useFlowRouter()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 const currentTime = ref('')
@@ -175,6 +298,18 @@ onMounted(() => {
     updateTime()
     setInterval(updateTime, 30000)
     routeStore.loadManifest(dummyManifest)
+
+    // Load default parcel delivery job if no job exists
+    if (!jobStore.jobType) {
+        jobStore.loadJob(dummyParcelDeliveryJob)
+    }
+})
+
+onUnmounted(() => {
+    // Cleanup if tracking
+    if (jobStore.isTracking) {
+        jobStore.stopSimulatedTracking()
+    }
 })
 
 function updateTime() {
@@ -185,18 +320,30 @@ function updateTime() {
     currentDate.value = now.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-const quickStats = [
-    { label: 'Stops', value: '7', color: '' },
+const quickStats = computed(() => [
+    { label: 'Stops', value: String(jobStore.totalStops || 7), color: '' },
     { label: 'Rating', value: '4.9★', color: 'text-accent-gold' },
     { label: 'On-Time', value: '96%', color: 'text-primary' },
     { label: '₹ Today', value: '1.8K', color: 'text-primary' },
-]
-const manifestMetrics = [
-    { label: 'Stops', icon: 'place', value: '7', sub: 'On Schedule' },
+])
+
+const manifestMetrics = computed(() => [
+    {
+        label: 'Stops',
+        icon: 'place',
+        value: String(jobStore.totalStops || 7),
+        sub: `${jobStore.completedStopsCount} completed`
+    },
     { label: 'Est. Time', icon: 'schedule', value: '5h 20m', sub: 'Ends 1:20 PM' },
     { label: 'Distance', icon: 'timeline', value: '47 km', sub: 'Total Route' },
-    { label: 'Crew', icon: 'group', value: '3', sub: 'Assigned' },
-]
+    {
+        label: jobStore.jobType === 'HOUSE_SHIFT' ? 'Crew' : 'Parcels',
+        icon: jobStore.jobType === 'HOUSE_SHIFT' ? 'group' : 'inventory_2',
+        value: jobStore.jobType === 'HOUSE_SHIFT' ? '5' : '12',
+        sub: jobStore.jobType === 'HOUSE_SHIFT' ? 'Assigned' : 'To Deliver'
+    },
+])
+
 const quickActions = [
     { label: 'Crew', icon: 'group', route: '/crew', bg: 'bg-accent-blue/15', color: 'text-accent-blue' },
     { label: 'Wallet', icon: 'payments', route: '/wallet', bg: 'bg-primary/15', color: 'text-primary' },
@@ -207,5 +354,17 @@ const quickActions = [
     { label: 'Crisis', icon: 'emergency', route: '/crisis', bg: 'bg-red-500/15', color: 'text-red-400' },
     { label: 'Summary', icon: 'summarize', route: '/shift-summary', bg: 'bg-accent-blue/15', color: 'text-accent-blue' },
 ]
-function beginRoute() { router.push('/manifest') }
+
+function beginRoute() {
+    if (jobStore.jobType) {
+        navigateToCurrentState()
+    } else {
+        router.push('/manifest')
+    }
+}
+
+const nextActionLabel = computed(() => {
+    if (!jobStore.jobType) return 'Begin Route'
+    return getNextActionLabel()
+})
 </script>

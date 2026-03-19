@@ -37,11 +37,21 @@
         </div>
 
         <!-- ── Footer + capture button ────────────── -->
-        <div class="h-40 bg-gradient-to-t from-black to-transparent z-10 shrink-0 flex items-center justify-center pb-6">
-            <button @touchstart="captureAndExtract" @click="captureAndExtract" :disabled="extracting"
-                class="relative w-20 h-20 rounded-full border-4 border-primary text-primary flex items-center justify-center group active:scale-90 transition-all outline-none overflow-hidden bg-black/40 backdrop-blur-md"
+        <div class="h-40 bg-gradient-to-t from-black to-transparent z-10 shrink-0 flex items-center justify-center pb-6 relative">
+            <!-- Camera Initializing Indicator -->
+            <div v-if="initializingCamera" class="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full text-white text-xs font-bold border border-white/20 flex items-center gap-2">
+                <span class="material-icons text-sm animate-spin">sync</span>
+                Initializing camera...
+            </div>
+
+            <button @touchstart="captureAndExtract" @click="captureAndExtract" :disabled="extracting || !cameraReady"
+                class="relative w-20 h-20 rounded-full border-4 flex items-center justify-center group transition-all outline-none overflow-hidden bg-black/40 backdrop-blur-md"
+                :class="[
+                    cameraReady && !extracting ? 'border-primary text-primary active:scale-90' : 'border-white/30 text-white/30 opacity-50 cursor-not-allowed'
+                ]"
                 style="pointer-events: auto; touch-action: manipulation;">
                 <span v-if="extracting" class="material-icons animate-spin">autorenew</span>
+                <span v-else-if="initializingCamera" class="material-icons text-2xl">hourglass_empty</span>
                 <span v-else class="material-icons text-3xl">text_snippet</span>
             </button>
         </div>
@@ -70,21 +80,48 @@ const isNative = Capacitor.isNativePlatform()
 const extracting = ref(false)
 const showingFlash = ref(false)
 const torchOn = ref(false)
+const cameraReady = ref(false)
+const initializingCamera = ref(false)
+const cameraStopped = ref(false)
 
 onMounted(async () => {
-    if (!isNative) return
+    if (!isNative) {
+        cameraReady.value = true
+        return
+    }
+
     document.documentElement.classList.add('camera-active')
-    await CameraPreview.start({
-        position: 'rear',
-        toBack: true,
-        enableZoom: true,
-    }).catch(e => console.error('CameraPreview OCR start error', e))
+    initializingCamera.value = true
+    cameraStopped.value = false
+
+    try {
+        await CameraPreview.start({
+            position: 'rear',
+            toBack: true,
+            enableZoom: true,
+        })
+
+        // Give the camera a moment to fully initialize (especially important on emulators)
+        await new Promise(resolve => setTimeout(resolve, 300))
+
+        cameraReady.value = true
+    } catch (e) {
+        console.error('CameraPreview OCR start error', e)
+        cameraReady.value = true // Allow fallback to mock data
+    } finally {
+        initializingCamera.value = false
+    }
 })
 
-onUnmounted(() => stopCamera())
+onUnmounted(async () => {
+    // Only stop if not already stopped
+    if (!cameraStopped.value) {
+        await stopCamera()
+    }
+})
 
 async function captureAndExtract() {
-    if (extracting.value) return
+    if (extracting.value || !cameraReady.value) return
     extracting.value = true
     showingFlash.value = true
     await Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {})
@@ -105,15 +142,24 @@ async function captureAndExtract() {
             throw new Error(CameraError.NO_TEXT_EXTRACTED)
         }
 
+        // Stop camera first and wait for full cleanup
         await stopCamera()
+
+        // Deliver result and navigate
         store.deliver({ text: extractedText, base64: base64Pic })
+
+        // Small delay to ensure store state is updated before navigation
+        await new Promise(resolve => setTimeout(resolve, 50))
         router.back()
     } catch (e) {
         console.error('OCR capture error:', e?.message || String(e))
         alert('Emulator capture failed. Simulating odometer read for testing.')
         await stopCamera()
         store.deliver('123,456') // Mock odometer
+        await new Promise(resolve => setTimeout(resolve, 50))
         router.back()
+    } finally {
+        extracting.value = false
     }
 }
 
@@ -123,14 +169,28 @@ async function toggleTorch() {
 }
 
 async function stopCamera() {
-    if (!isNative) return
-    document.documentElement.classList.remove('camera-active')
-    await CameraPreview.stop().catch(() => {})
+    if (!isNative || cameraStopped.value) return
+
+    cameraStopped.value = true // Prevent multiple stops
+
+    try {
+        document.documentElement.classList.remove('camera-active')
+        await CameraPreview.stop()
+
+        // Give the camera a moment to fully release (critical for emulators)
+        await new Promise(resolve => setTimeout(resolve, 200))
+    } catch (e) {
+        console.error('Camera stop error:', e)
+        // Force cleanup even if stop fails
+        await new Promise(resolve => setTimeout(resolve, 200))
+    }
 }
 
 async function onClose() {
     await stopCamera()
     store.cancel()
+    // Ensure cleanup before navigation
+    await new Promise(resolve => setTimeout(resolve, 50))
     router.back()
 }
 </script>

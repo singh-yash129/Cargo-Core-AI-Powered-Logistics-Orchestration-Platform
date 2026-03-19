@@ -2,21 +2,52 @@
     <div class="screen-layout" :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
 
         <!-- ── HEADER ───────────────────────────────── -->
-        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b" :class="isDark ? 'border-white/5' : 'border-gray-100'">
-            <div class="flex items-center justify-between mb-2">
-                <button @click="$router.back()" class="w-10 h-10 rounded-full flex items-center justify-center border"
-                    :class="isDark ? 'bg-surface-dark border-white/5 text-gray-400' : 'bg-white border-gray-200 shadow-sm'">
+        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b relative overflow-hidden" :class="isDark ? 'border-white/5' : 'border-gray-100'">
+            <!-- Background Glow -->
+            <div class="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-20 pointer-events-none"
+                :class="isDark ? 'bg-primary/30' : 'bg-primary/20'"></div>
+
+            <div class="flex items-center justify-between mb-3 relative z-10">
+                <button @click="$router.back()" class="w-10 h-10 rounded-full flex items-center justify-center border transition-all active:scale-95"
+                    :class="isDark ? 'bg-surface-dark border-white/5 text-gray-400 hover:border-white/10' : 'bg-white border-gray-200 shadow-sm hover:shadow'">
                     <span class="material-icons text-xl">arrow_back</span>
                 </button>
-                <span class="text-xs font-bold px-3 py-1.5 rounded-full border"
-                    :class="isDark ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-primary/10 border-primary/30 text-primary'">
-                    {{ clockedIn }} / {{ crew.length }} Clocked In
-                </span>
+                <div class="flex items-center gap-2">
+                    <!-- Live Sync Indicator -->
+                    <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-bold"
+                        :class="isDark ? 'bg-surface-dark/50 border-white/5 text-gray-400' : 'bg-white border-gray-200 text-gray-500'">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                        </span>
+                        LIVE SYNC
+                    </div>
+                    <!-- Attendance Badge -->
+                    <span class="text-xs font-black px-3 py-1.5 rounded-full border flex items-center gap-1.5"
+                        :class="isDark ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-primary/10 border-primary/30 text-primary'">
+                        <span class="material-icons text-xs">group</span>
+                        {{ clockedIn }} / {{ crew.length }}
+                    </span>
+                </div>
             </div>
-            <p class="text-xs font-bold uppercase tracking-wider text-primary mb-0.5">Crew Management</p>
-            <h1 class="text-2xl font-black tracking-tight">Your Team</h1>
-            <p class="text-sm mt-0.5" :class="isDark ? 'text-gray-400' : 'text-gray-500'">House Shift · 14B Andheri West
-            </p>
+            <div class="relative z-10">
+                <p class="text-xs font-black uppercase tracking-widest text-primary mb-1 flex items-center gap-2">
+                    <span class="material-icons text-sm">groups</span>
+                    Crew Management
+                </p>
+                <h1 class="text-3xl font-black tracking-tight mb-1">Your Team</h1>
+                <div class="flex items-center gap-2 mt-1.5">
+                    <div class="flex items-center gap-1.5 text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                        <span class="material-icons text-sm">location_on</span>
+                        <span class="font-semibold">14B Andheri West</span>
+                    </div>
+                    <span :class="isDark ? 'text-gray-700' : 'text-gray-300'">•</span>
+                    <div class="flex items-center gap-1.5 text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                        <span class="material-icons text-sm">local_shipping</span>
+                        <span class="font-semibold">House Shift</span>
+                    </div>
+                </div>
+            </div>
         </header>
 
         <!-- ── REPORT MODAL ───────────────────────── -->
@@ -74,96 +105,182 @@
         <!-- ── SCROLLABLE BODY ───────────────────────── -->
         <div class="screen-body flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
 
-            <!-- Crew Clock-In Cards -->
-            <div class="space-y-3">
-                <div v-for="member in crew" :key="member.id" class="rounded-2xl p-4 border flex items-center gap-4"
-                    :class="member.checkInTime
-                        ? isDark ? 'bg-primary/8 border-primary/20' : 'bg-primary/8 border-primary/30'
-                        : isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'">
-                    <img :src="member.photo" :alt="member.name" class="w-14 h-14 rounded-2xl object-cover border-2"
-                        :class="member.checkInTime ? 'border-primary' : isDark ? 'border-gray-700' : 'border-gray-200'" />
-                    <div class="flex-1 min-w-0">
-                        <p class="font-bold">{{ member.name }}</p>
-                        <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ member.role }} · {{
-                            member.id }}</p>
-                        <div v-if="member.checkInTime" class="flex items-center gap-1 mt-1">
-                            <span class="material-icons text-primary text-xs">check_circle</span>
-                            <span class="text-xs text-primary font-semibold">Clocked in {{ member.checkInTime }}</span>
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-3 gap-3">
+                <div class="rounded-2xl p-4 border relative overflow-hidden"
+                    :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
+                    <div class="absolute top-0 right-0 w-16 h-16 rounded-full blur-2xl opacity-20 bg-primary"></div>
+                    <div class="relative">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center mb-2"
+                            :class="isDark ? 'bg-primary/15' : 'bg-primary/10'">
+                            <span class="material-icons text-primary text-sm">check_circle</span>
                         </div>
-                    </div>
-                    <div class="flex flex-col gap-2 items-end">
-                        <template v-if="!member.checkInTime">
-
-                            <!-- Status & Report Buttons Row -->
-                            <div class="flex items-center gap-2">
-                                <!-- Show Reported status badge if reported -->
-                                <div v-if="member.reportedReason"
-                                    class="text-xs px-3 py-1.5 rounded-lg border font-semibold flex items-center gap-1 cursor-help"
-                                    :class="isDark ? 'border-amber-500/30 text-amber-400 bg-amber-500/10' : 'border-amber-200 text-amber-600 bg-amber-50'">
-                                    <span class="material-icons text-[10px]">info</span>
-                                    {{ member.reportedReason }}
-                                </div>
-
-                                <!-- Show Report button ONLY if not reported yet -->
-                                <button v-else @click.stop="openReportModal(member)"
-                                    class="text-xs px-3 py-1.5 rounded-lg border font-semibold transition-all active:scale-[0.97]"
-                                    :class="isDark ? 'border-red-500/30 text-red-400 bg-red-500/8 hover:bg-red-500/15' : 'border-red-200 text-red-500 bg-red-50 hover:bg-red-100'">
-                                    Report
-                                </button>
-                            </div>
-
-                            <!-- ALWAYS Show Clock In if not checked in -->
-                            <button @click="clockIn(member)"
-                                class="px-4 py-2 rounded-xl font-bold text-sm text-background-dark active:scale-[0.97]"
-                                style="background: #1CE783;">
-                                {{ member.reportedReason ? 'Arrived Now' : 'Clock In' }}
-                            </button>
-
-                        </template>
+                        <p class="text-2xl font-black text-primary">{{ clockedIn }}</p>
+                        <p class="text-[9px] uppercase font-bold tracking-wider mt-0.5"
+                            :class="isDark ? 'text-gray-500' : 'text-gray-400'">Clocked In</p>
                     </div>
                 </div>
 
+                <div class="rounded-2xl p-4 border relative overflow-hidden"
+                    :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
+                    <div class="absolute top-0 right-0 w-16 h-16 rounded-full blur-2xl opacity-20 bg-amber-500"></div>
+                    <div class="relative">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center mb-2"
+                            :class="isDark ? 'bg-amber-500/15' : 'bg-amber-500/10'">
+                            <span class="material-icons text-amber-400 text-sm">schedule</span>
+                        </div>
+                        <p class="text-2xl font-black" :class="pendingCount > 0 ? 'text-amber-400' : isDark ? 'text-gray-500' : 'text-gray-400'">{{ pendingCount }}</p>
+                        <p class="text-[9px] uppercase font-bold tracking-wider mt-0.5"
+                            :class="isDark ? 'text-gray-500' : 'text-gray-400'">Pending</p>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl p-4 border relative overflow-hidden"
+                    :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
+                    <div class="absolute top-0 right-0 w-16 h-16 rounded-full blur-2xl opacity-20 bg-red-500"></div>
+                    <div class="relative">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center mb-2"
+                            :class="isDark ? 'bg-red-500/15' : 'bg-red-500/10'">
+                            <span class="material-icons text-red-400 text-sm">warning</span>
+                        </div>
+                        <p class="text-2xl font-black" :class="noShows > 0 ? 'text-red-400' : isDark ? 'text-gray-500' : 'text-gray-400'">{{ noShows }}</p>
+                        <p class="text-[9px] uppercase font-bold tracking-wider mt-0.5"
+                            :class="isDark ? 'text-gray-500' : 'text-gray-400'">Issues</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Header -->
+            <div class="flex items-center justify-between px-1">
+                <h2 class="text-xs font-black uppercase tracking-widest" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                    Team Members
+                </h2>
+                <span class="text-xs font-semibold" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+                    {{ crew.length }} total
+                </span>
+            </div>
+
+            <!-- Crew Clock-In Cards -->
+            <div class="space-y-3">
+                <div v-for="(member, index) in crew" :key="member.id"
+                    class="rounded-2xl p-4 border relative overflow-hidden transition-all duration-300"
+                    :class="member.checkInTime
+                        ? isDark ? 'bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30 shadow-lg shadow-primary/10' : 'bg-gradient-to-br from-primary/10 to-primary/5 border-primary/40 shadow-xl'
+                        : isDark ? 'bg-surface-dark/40 border-white/8 hover:border-white/15' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'">
+
+                    <!-- Background Effects -->
+                    <div v-if="member.checkInTime" class="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-30 bg-primary"></div>
+
+                    <div class="flex items-center gap-4 relative">
+                        <!-- Avatar with Status Ring -->
+                        <div class="relative">
+                            <div v-if="member.checkInTime" class="absolute inset-0 rounded-2xl bg-primary/30 animate-pulse"></div>
+                            <img :src="member.photo" :alt="member.name" class="w-16 h-16 rounded-2xl object-cover border-2 relative z-10"
+                                :class="member.checkInTime ? 'border-primary shadow-lg shadow-primary/30' : isDark ? 'border-gray-700' : 'border-gray-200'" />
+                            <div v-if="member.checkInTime" class="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full border-2 flex items-center justify-center z-20"
+                                :class="isDark ? 'border-background-dark' : 'border-background-light'">
+                                <span class="material-icons text-[10px] text-background-dark">check</span>
+                            </div>
+                            <div v-else-if="member.reportedReason" class="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-500 rounded-full border-2 flex items-center justify-center z-20"
+                                :class="isDark ? 'border-background-dark' : 'border-background-light'">
+                                <span class="material-icons text-[10px] text-white">priority_high</span>
+                            </div>
+                        </div>
+
+                        <!-- Member Info -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <p class="font-black text-base truncate">{{ member.name }}</p>
+                                <span v-if="member.checkInTime" class="material-icons text-primary text-sm animate-bounce">verified</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-xs font-semibold px-2 py-0.5 rounded-md"
+                                    :class="isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-600'">
+                                    {{ member.role }}
+                                </span>
+                                <span class="text-[10px] font-mono" :class="isDark ? 'text-gray-600' : 'text-gray-400'">{{ member.id }}</span>
+                            </div>
+
+                            <!-- Status -->
+                            <div v-if="member.checkInTime" class="flex items-center gap-1.5 mt-2">
+                                <span class="material-icons text-primary text-xs">schedule</span>
+                                <span class="text-xs text-primary font-bold">{{ member.checkInTime }}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider"
+                                    :class="isDark ? 'bg-primary/15 text-primary' : 'bg-primary/20 text-primary'">
+                                    Active
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex flex-col gap-2 items-end">
+                            <template v-if="!member.checkInTime">
+                                <!-- Report Status or Button -->
+                                <div v-if="member.reportedReason"
+                                    class="text-[10px] px-2.5 py-1.5 rounded-lg border font-black uppercase tracking-wider flex items-center gap-1"
+                                    :class="isDark ? 'border-amber-500/30 text-amber-400 bg-amber-500/15' : 'border-amber-300 text-amber-700 bg-amber-100'">
+                                    <span class="material-icons text-xs">info</span>
+                                    {{ member.reportedReason }}
+                                </div>
+
+                                <button v-else @click.stop="openReportModal(member)"
+                                    class="text-[10px] px-3 py-1.5 rounded-lg border font-bold uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1"
+                                    :class="isDark ? 'border-red-500/30 text-red-400 bg-red-500/10 hover:bg-red-500/20' : 'border-red-200 text-red-600 bg-red-50 hover:bg-red-100'">
+                                    <span class="material-icons text-xs">flag</span>
+                                    Report
+                                </button>
+
+                                <!-- Clock In Button -->
+                                <button @click="clockIn(member)"
+                                    class="px-5 py-2.5 rounded-xl font-black text-sm text-background-dark active:scale-95 transition-transform shadow-lg flex items-center gap-2"
+                                    style="background: linear-gradient(135deg, #1CE783 0%, #00D170 100%);">
+                                    <span class="material-icons text-base">login</span>
+                                    {{ member.reportedReason ? 'Override' : 'Clock In' }}
+                                </button>
+                            </template>
+
+                            <!-- Clocked In Badge -->
+                            <div v-else class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm bg-primary text-background-dark">
+                                <span class="material-icons text-base">how_to_reg</span>
+                                Ready
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </div>
 
         <!-- ── STICKY FOOTER ────────────────────────── -->
-        <div class="screen-footer shrink-0 px-5 py-4 border-t flex flex-col gap-4"
+        <div class="screen-footer shrink-0 px-5 py-4 border-t flex flex-col gap-3 relative"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
 
-            <!-- Attendance Summary -->
-            <div class="rounded-2xl p-4 border"
-                :class="isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'">
-                <h3 class="text-xs font-bold uppercase tracking-widest mb-3"
-                    :class="isDark ? 'text-gray-400' : 'text-gray-500'">
-                    Attendance Summary</h3>
-                <div class="grid grid-cols-3 gap-3 text-center">
-                    <div>
-                        <p class="text-2xl font-black text-primary">{{ clockedIn }}</p>
-                        <p class="text-[10px] uppercase" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Clocked
-                            In
-                        </p>
-                    </div>
-                    <div>
-                        <p class="text-2xl font-black">{{ crew.length - clockedIn }}</p>
-                        <p class="text-[10px] uppercase" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Pending
-                        </p>
-                    </div>
-                    <div>
-                        <p class="text-2xl font-black text-accent-gold">{{ noShows }}</p>
-                        <p class="text-[10px] uppercase" :class="isDark ? 'text-gray-400' : 'text-gray-500'">No-Show
-                        </p>
-                    </div>
+            <!-- Progress Bar -->
+            <div class="rounded-xl p-3 border"
+                :class="isDark ? 'bg-surface-dark/50 border-white/8' : 'bg-white border-gray-100'">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-black uppercase tracking-widest" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                        Team Readiness
+                    </span>
+                    <span class="text-sm font-black" :class="clockedIn === crew.length ? 'text-primary' : isDark ? 'text-gray-400' : 'text-gray-500'">
+                        {{ Math.round((clockedIn / crew.length) * 100) }}%
+                    </span>
+                </div>
+                <div class="w-full h-2 rounded-full overflow-hidden" :class="isDark ? 'bg-gray-800' : 'bg-gray-200'">
+                    <div class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-primary to-primary-dark"
+                        :style="`width: ${(clockedIn / crew.length) * 100}%`"></div>
                 </div>
             </div>
 
+            <!-- Action Button -->
             <button @click="proceedToLoad" :disabled="pendingCount > 0"
-                class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-lg active:scale-[0.98]"
+                class="w-full rounded-2xl h-14 flex items-center justify-center gap-3 font-black text-base active:scale-[0.98] transition-all relative overflow-hidden"
                 :class="pendingCount === 0
-                    ? 'bg-primary text-background-dark shadow-glow'
+                    ? 'bg-gradient-to-r from-primary to-primary-dark text-background-dark shadow-glow'
                     : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
-                <span class="material-icons">{{ pendingCount === 0 ? 'check' : 'group' }}</span>
-                {{ pendingCount === 0 ? 'All Accounted For · Proceed' : `${pendingCount} crew pending` }}
+                <div v-if="pendingCount === 0" class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                <span class="material-icons text-xl relative z-10">{{ pendingCount === 0 ? 'check_circle' : 'group' }}</span>
+                <span class="relative z-10">{{ pendingCount === 0 ? 'All Set · Begin Loading' : `Waiting for ${pendingCount} crew member${pendingCount > 1 ? 's' : ''}` }}</span>
             </button>
         </div>
     </div>
@@ -234,5 +351,18 @@ function proceedToLoad() {
 .fade-scale-leave-to {
     opacity: 0;
     transform: scale(0.95);
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.animate-shimmer {
+    animation: shimmer 2s infinite;
 }
 </style>

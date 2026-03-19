@@ -30,6 +30,7 @@ import SyncBanner from './components/SyncBanner.vue'
 import RouteToast from './components/RouteToast.vue'
 import AppLoader from './components/AppLoader.vue'
 import { requestAppPermissions } from './composables/usePermissions.js'
+import { offlineSyncEngine } from './services/offlineSync.js'
 
 const uiStore = useUiStore()
 
@@ -42,7 +43,11 @@ useSafeArea()
 
 // Request native permissions at boot (Camera, Location).
 // Skips if already granted; retries with explanation if denied.
-onMounted(() => { requestAppPermissions() })
+onMounted(() => {
+  requestAppPermissions()
+  // Initialize offline sync engine — sets up network listener, restores persisted queue
+  offlineSyncEngine.init()
+})
 
 const themeClass = computed(() =>
   uiStore.theme === 'light' ? 'light bg-background-light text-gray-900' : 'dark bg-background-dark text-white'
