@@ -129,6 +129,13 @@ async function captureReceipt() {
 
 function submit() {
     uiStore.showToast('Fuel receipt submitted ✓', 'success')
+    
+    // Clear state before leaving so KeepAlive cache doesn't hold stale data
+    amount.value = ''
+    liters.value = ''
+    station.value = ''
+    receiptPhoto.value = ''
+    
     router.back()
 }
 </script>

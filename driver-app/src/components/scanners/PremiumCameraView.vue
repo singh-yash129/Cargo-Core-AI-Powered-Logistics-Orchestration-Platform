@@ -68,6 +68,8 @@ import { Capacitor } from '@capacitor/core'
 import { CameraPreview } from '@capacitor-community/camera-preview'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { useCameraBridgeStore } from '../../stores/cameraBridgeStore.js'
+import { normalizeCameraResult, isValidBase64 } from '../../utils/cameraUtils.js'
+import { CameraError, MockCameraData } from '../../utils/cameraConstants.js'
 
 const store = useCameraBridgeStore()
 const router = useRouter()
@@ -98,15 +100,20 @@ async function takePicture() {
 
     try {
         const result = await CameraPreview.capture({ quality: 90 })
-        const base64Pic = result.value
+        const base64Pic = normalizeCameraResult(result)
+
+        if (!isValidBase64(base64Pic)) {
+            throw new Error(CameraError.NO_IMAGE_DATA)
+        }
+
         await stopCamera()
         store.deliver(base64Pic)
         router.back()
     } catch (e) {
+        console.error('Photo capture error:', e?.message || String(e))
         alert('Emulator camera capture failed. Simulating photo for testing.')
         await stopCamera()
-        // Mock 1x1 transparent PNG
-        store.deliver('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
+        store.deliver(MockCameraData.TRANSPARENT_PNG)
         router.back()
     }
 }

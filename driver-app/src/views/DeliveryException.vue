@@ -201,6 +201,14 @@ function submitException() {
 
     notify({ title: 'Exception Reported', body: `Stop ${stopId.value} — ${selectedReason.value}`, type: 'warning', route: '/manifest' })
     uiStore.showToast('Exception Report Submitted', 'error', 2000)
+    
+    // Clear state before leaving
+    selectedReason.value = ''
+    notes.value = ''
+    photoUrl.value = null
+    showOtpStage.value = false
+    otp.value = ['', '', '', '']
+    
     router.replace('/manifest')
 }
 </script>

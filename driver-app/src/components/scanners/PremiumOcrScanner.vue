@@ -61,6 +61,8 @@ import { CameraPreview } from '@capacitor-community/camera-preview'
 import { Ocr } from '@capacitor-community/image-to-text'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { useCameraBridgeStore } from '../../stores/cameraBridgeStore.js'
+import { normalizeCameraResult, extractOcrText, isValidBase64 } from '../../utils/cameraUtils.js'
+import { CameraError, MockCameraData } from '../../utils/cameraConstants.js'
 
 const store = useCameraBridgeStore()
 const router = useRouter()
@@ -90,13 +92,24 @@ async function captureAndExtract() {
 
     try {
         const captured = await CameraPreview.capture({ quality: 90 })
-        const base64Pic = captured.value
+        const base64Pic = normalizeCameraResult(captured)
+
+        if (!isValidBase64(base64Pic)) {
+            throw new Error(CameraError.NO_IMAGE_DATA)
+        }
+
         const ocrResult = await Ocr.detectText({ base64Image: base64Pic })
-        const extractedText = ocrResult.textElements.map(el => el.text).join(' ')
+        const extractedText = extractOcrText(ocrResult)
+
+        if (!extractedText) {
+            throw new Error(CameraError.NO_TEXT_EXTRACTED)
+        }
+
         await stopCamera()
         store.deliver({ text: extractedText, base64: base64Pic })
         router.back()
     } catch (e) {
+        console.error('OCR capture error:', e?.message || String(e))
         alert('Emulator capture failed. Simulating odometer read for testing.')
         await stopCamera()
         store.deliver('123,456') // Mock odometer

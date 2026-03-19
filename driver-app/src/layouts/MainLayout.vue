@@ -30,8 +30,14 @@
     <!-- Page render slot: fills remaining height precisely -->
     <main class="page-container">
       <RouterView v-slot="{ Component }">
+        <!-- 
+          KeepAlive ensures that when the user jumps to a full-screen CameraLayout 
+          route and comes back, the page's form data is still intact! 
+        -->
         <Transition name="route" mode="out-in">
-          <component :is="Component" :key="$route.path" />
+          <KeepAlive :max="10">
+            <component :is="Component" :key="$route.path" />
+          </KeepAlive>
         </Transition>
       </RouterView>
     </main>

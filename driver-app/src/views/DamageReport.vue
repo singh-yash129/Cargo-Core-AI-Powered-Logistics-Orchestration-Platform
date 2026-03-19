@@ -106,6 +106,12 @@ async function captureDamagePhoto() {
 
 function submit() {
     uiStore.showToast('Damage report submitted ✓', 'warning')
+    
+    // Clear state before leaving
+    selectedType.value = ''
+    description.value = ''
+    photos.value = []
+    
     router.back()
 }
 </script>

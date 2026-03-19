@@ -288,6 +288,7 @@ import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useCamera } from '../composables/useCamera.js'
 import { dummyInspection } from '../utils/dummyData.js'
+import { extractNumbersFromText } from '../utils/cameraUtils.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -346,7 +347,7 @@ async function removePhoto() {
         const result = await scanOdometer('Scan odometer')
         if (result) {
             photoUrl.value = result.base64 || 'data:image/jpeg;base64,MOCK'
-            odometerKm.value = result.text.replace(/[^0-9]/g, '') || 48230
+            odometerKm.value = extractNumbersFromText(result.text) || 48230
         } else {
             cancelDetail()
         }
@@ -475,7 +476,7 @@ async function handleItemClick(item) {
         photoUrl.value = (result.base64 && !result.base64.startsWith('MOCK'))
             ? `data:image/jpeg;base64,${result.base64}`
             : 'https://images.unsplash.com/photo-1627883287040-e2ef6cb90b21?auto=format&fit=crop&q=80&w=400&h=200'
-        odometerKm.value = result.text.replace(/[^0-9]/g, '') || 48230 // OCR result
+        odometerKm.value = extractNumbersFromText(result.text) || 48230 // OCR result
         detailModal.value = true
         await nextTick()
         odometerInputRef.value?.focus()

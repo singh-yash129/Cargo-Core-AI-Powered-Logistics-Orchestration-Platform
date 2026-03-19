@@ -11,8 +11,14 @@
     <RouteToast />
     <AppLoader :visible="uiStore.isLoading" />
 
-    <!-- Renders PublicLayout or MainLayout depending on route -->
-    <RouterView />
+    <!-- Renders PublicLayout or MainLayout or CameraLayout depending on route -->
+    <!-- Wrapped in KeepAlive so pulling up the full-screen camera doesn't wipe your current app state! -->
+    <!-- ONLY caching MainLayout to ensure native Camera processes in CameraLayout properly cleanup and restart on Android! -->
+    <RouterView v-slot="{ Component }">
+      <KeepAlive include="MainLayout">
+        <component :is="Component" />
+      </KeepAlive>
+    </RouterView>
   </div>
 </template>
 
