@@ -38,17 +38,19 @@
         <!-- ── STICKY FOOTER ────────────────────────── -->
         <div class="screen-footer px-5 py-4 border-t flex flex-col gap-2"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
-            <button @click="proceed"
+            <!-- Primary: go to delivery detail page -->
+            <button @click="$router.push('/delivery/' + stopId)"
                 class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-background-dark shadow-glow active:scale-[0.98] transition-all"
                 style="background: linear-gradient(135deg, #1CE783, #15b86a);">
-                <span class="material-icons">play_arrow</span>
-                Begin Service
-            </button>
-            <button @click="$router.push('/delivery/' + stopId)"
-                class="w-full rounded-2xl h-12 border font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                :class="isDark ? 'bg-surface-dark/30 border-white/5 text-white' : 'bg-white border-gray-200 text-gray-700 shadow-sm'">
-                <span class="material-icons text-sm">list_alt</span>
+                <span class="material-icons">list_alt</span>
                 View Delivery Details
+            </button>
+            <!-- Secondary: skip detail, go straight to checklist -->
+            <button @click="proceed"
+                class="w-full rounded-2xl h-11 border font-semibold flex items-center justify-center gap-2 text-sm transition-all active:scale-[0.98]"
+                :class="isDark ? 'bg-surface-dark/30 border-white/5 text-gray-400' : 'bg-white border-gray-200 text-gray-500 shadow-sm'">
+                <span class="material-icons text-sm">skip_next</span>
+                Skip to Checklist
             </button>
         </div>
     </div>
