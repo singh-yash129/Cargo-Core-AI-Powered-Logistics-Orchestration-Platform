@@ -54,13 +54,18 @@ class InventoryResponse(BaseModel):
 class InventoryMovementResponse(BaseModel):
     id: UUID
     item_id: UUID
+    warehouse_id: UUID
     movement_type: str
     quantity: int
     reference_order_id: UUID | None
+    reference_order_tracking: str | None = None
     performed_by: UUID | None
+    performed_by_name: str | None = None
+    item_sku: str
+    item_name: str
+    item_category: str | None = None
+    item_unit: str
     created_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class InventoryListResponse(BaseModel):
@@ -72,8 +77,21 @@ class InventoryListResponse(BaseModel):
 
 class PickingListItem(BaseModel):
     sku: str
+    item_name: str
     required_quantity: int
     available_quantity: int
+    shortage_quantity: int
+    unit: str = "pcs"
+    scan_code: str
+    zone: str | None = None
+    aisle: str | None = None
+    section: str | None = None
+    rack: str | None = None
+    shelf: str | None = None
+    bin: str | None = None
+    cell: str | None = None
+    location_path: str
+    is_fully_available: bool
 
 
 class PickingListResponse(BaseModel):

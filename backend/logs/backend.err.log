@@ -1,73 +1,681 @@
-INFO:     Started server process [30732]
+INFO:     Will watch for changes in these directories: ['C:\\Users\\pruth\\Downloads\\Login Signup Flow Design\\backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [6060] using WatchFiles
+INFO:     Started server process [26764]
 INFO:     Waiting for application startup.
-2026-03-18 11:19:14.881 | WARNING  | app.main:lifespan:27 - GEMINI_API_KEY is not set. AI chatbot endpoints will return 503.
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-2026-03-18 11:19:30.954 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/health', 'status_code': 200, 'duration_ms': 1.08, 'client': '127.0.0.1'}
-2026-03-18 11:19:56.509 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/health', 'status_code': 200, 'duration_ms': 1.17, 'client': '127.0.0.1'}
-2026-03-18 11:19:56.821 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/favicon.ico', 'status_code': 404, 'duration_ms': 1.16, 'client': '127.0.0.1'}
-2026-03-18 11:20:28.872 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/dashboard', 'status_code': 401, 'duration_ms': 15.79, 'client': '127.0.0.1'}
-2026-03-18 11:20:43.558 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 3.52, 'client': '127.0.0.1'}
-2026-03-18 11:32:32.992 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/profile', 'status_code': 404, 'duration_ms': 2.13, 'client': '127.0.0.1'}
-2026-03-18 11:32:38.417 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/dashboard', 'status_code': 401, 'duration_ms': 1.69, 'client': '127.0.0.1'}
-2026-03-18 11:38:02.204 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/health', 'status_code': 200, 'duration_ms': 1.33, 'client': '127.0.0.1'}
-2026-03-18 11:38:57.139 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/dashboard', 'status_code': 401, 'duration_ms': 2.67, 'client': '127.0.0.1'}
-2026-03-18 11:39:01.485 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 3.39, 'client': '127.0.0.1'}
-2026-03-18 11:39:08.664 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 4.22, 'client': '127.0.0.1'}
-2026-03-18 11:42:35.004 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 1.84, 'client': '127.0.0.1'}
-2026-03-18 11:42:55.496 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 3.49, 'client': '127.0.0.1'}
-2026-03-18 11:43:08.293 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 2.35, 'client': '127.0.0.1'}
-2026-03-18 11:43:34.433 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 5.41, 'client': '127.0.0.1'}
-2026-03-18 11:44:49.910 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/health', 'status_code': 200, 'duration_ms': 0.38, 'client': '127.0.0.1'}
-2026-03-18 11:45:34.676 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 2.28, 'client': '127.0.0.1'}
-2026-03-18 11:45:43.910 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/quotes', 'status_code': 404, 'duration_ms': 0.73, 'client': '127.0.0.1'}
-2026-03-18 11:54:30.131 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/health', 'status_code': 200, 'duration_ms': 0.43, 'client': '127.0.0.1'}
-2026-03-18 11:55:41.602 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/profile', 'status_code': 404, 'duration_ms': 1.32, 'client': '127.0.0.1'}
-2026-03-18 11:56:50.829 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 9.09, 'client': '127.0.0.1'}
-2026-03-18 11:57:10.886 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/tracking', 'status_code': 404, 'duration_ms': 0.81, 'client': '127.0.0.1'}
-2026-03-18 11:57:21.693 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/quotes', 'status_code': 404, 'duration_ms': 0.63, 'client': '127.0.0.1'}
-2026-03-18 11:57:34.057 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 1.7, 'client': '127.0.0.1'}
-2026-03-18 11:58:34.927 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 2.15, 'client': '127.0.0.1'}
-2026-03-18 11:58:34.939 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/payments', 'status_code': 404, 'duration_ms': 2.41, 'client': '127.0.0.1'}
-2026-03-18 11:58:54.612 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/profile', 'status_code': 404, 'duration_ms': 0.87, 'client': '127.0.0.1'}
-2026-03-18 11:58:55.905 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 1.57, 'client': '127.0.0.1'}
-2026-03-18 11:58:55.909 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/payments', 'status_code': 404, 'duration_ms': 0.83, 'client': '127.0.0.1'}
-2026-03-18 11:58:56.799 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/tracking', 'status_code': 404, 'duration_ms': 1.24, 'client': '127.0.0.1'}
-2026-03-18 11:58:58.639 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/quotes', 'status_code': 404, 'duration_ms': 0.95, 'client': '127.0.0.1'}
-2026-03-18 11:58:59.650 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 2.6, 'client': '127.0.0.1'}
-2026-03-18 11:59:41.978 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/tracking', 'status_code': 404, 'duration_ms': 1.42, 'client': '127.0.0.1'}
-2026-03-18 11:59:55.697 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 401, 'duration_ms': 1.96, 'client': '127.0.0.1'}
-2026-03-18 11:59:55.702 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/payments', 'status_code': 404, 'duration_ms': 0.7, 'client': '127.0.0.1'}
-2026-03-18 12:00:36.588 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/profile', 'status_code': 404, 'duration_ms': 1.22, 'client': '127.0.0.1'}
-2026-03-18 12:10:54.626 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/profile', 'status_code': 404, 'duration_ms': 2.96, 'client': '127.0.0.1'}
-2026-03-18 12:11:48.749 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/profile', 'status_code': 404, 'duration_ms': 1.65, 'client': '127.0.0.1'}
-2026-03-18 12:12:03.368 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/dashboard', 'status_code': 401, 'duration_ms': 2.93, 'client': '127.0.0.1'}
-2026-03-18 12:12:05.742 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/dashboard', 'status_code': 401, 'duration_ms': 3.99, 'client': '127.0.0.1'}
-2026-03-18 12:12:06.536 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/dashboard', 'status_code': 401, 'duration_ms': 1.35, 'client': '127.0.0.1'}
-2026-03-18 12:12:07.156 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/dashboard', 'status_code': 401, 'duration_ms': 2.09, 'client': '127.0.0.1'}
-2026-03-18 12:12:50.100 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/health', 'status_code': 404, 'duration_ms': 0.64, 'client': '127.0.0.1'}
-2026-03-18 12:13:10.083 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/docs', 'status_code': 200, 'duration_ms': 1.49, 'client': '127.0.0.1'}
-2026-03-18 12:14:06.953 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/google-login', 'status_code': 409, 'duration_ms': 874.53, 'client': '127.0.0.1'}
-2026-03-18 12:14:39.197 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 739.51, 'client': '127.0.0.1'}
-2026-03-18 12:15:02.098 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 401, 'duration_ms': 585.95, 'client': '127.0.0.1'}
-2026-03-18 12:15:11.050 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 401, 'duration_ms': 815.94, 'client': '127.0.0.1'}
-2026-03-18 12:15:28.684 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/google-login', 'status_code': 409, 'duration_ms': 329.7, 'client': '127.0.0.1'}
-2026-03-18 12:15:44.726 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 401, 'duration_ms': 979.59, 'client': '127.0.0.1'}
-2026-03-18 12:15:52.904 | INFO     | app.services.auth_service:forgot_password:315 - [DEV] Password reset OTP for pruthviprasad5555@gmail.com: 168838
-2026-03-18 12:15:58.067 | INFO     | app.utils.email:send_email:35 - [EMAIL] Sent 'Password Reset - Cargo Core' to pruthviprasad5555@gmail.com
-2026-03-18 12:15:58.090 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/forgot-password', 'status_code': 200, 'duration_ms': 5414.58, 'client': '127.0.0.1'}
-2026-03-18 12:15:58.522 | INFO     | app.services.auth_service:forgot_password:315 - [DEV] Password reset OTP for pruthviprasad5555@gmail.com: 513501
-2026-03-18 12:16:03.037 | INFO     | app.utils.email:send_email:35 - [EMAIL] Sent 'Password Reset - Cargo Core' to pruthviprasad5555@gmail.com
-2026-03-18 12:16:03.062 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/forgot-password', 'status_code': 200, 'duration_ms': 4971.02, 'client': '127.0.0.1'}
-2026-03-18 12:16:36.891 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/reset-password', 'status_code': 400, 'duration_ms': 4.29, 'client': '127.0.0.1'}
-2026-03-18 12:16:56.213 | INFO     | app.services.auth_service:reset_password:361 - Password reset completed for user: pruthviprasad5555@gmail.com
-2026-03-18 12:16:56.214 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/reset-password', 'status_code': 200, 'duration_ms': 836.72, 'client': '127.0.0.1'}
-2026-03-18 12:17:10.511 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 863.17, 'client': '127.0.0.1'}
-2026-03-18 12:17:10.775 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/dashboard', 'status_code': 200, 'duration_ms': 106.09, 'client': '127.0.0.1'}
-2026-03-18 12:17:34.227 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 200, 'duration_ms': 120.85, 'client': '127.0.0.1'}
-2026-03-18 12:17:37.057 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/quotes', 'status_code': 404, 'duration_ms': 1.85, 'client': '127.0.0.1'}
-2026-03-18 12:17:40.026 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/tracking', 'status_code': 404, 'duration_ms': 0.71, 'client': '127.0.0.1'}
-2026-03-18 12:17:41.419 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/orders', 'status_code': 200, 'duration_ms': 80.78, 'client': '127.0.0.1'}
-2026-03-18 12:17:41.433 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/payments', 'status_code': 404, 'duration_ms': 0.73, 'client': '127.0.0.1'}
-2026-03-18 12:17:43.889 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/profile', 'status_code': 404, 'duration_ms': 2.57, 'client': '127.0.0.1'}
-2026-03-18 12:21:09.339 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/profile', 'status_code': 404, 'duration_ms': 0.78, 'client': '127.0.0.1'}
+2026-03-18 22:17:29.394 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/health', 'status_code': 200, 'duration_ms': 1.0, 'client': '127.0.0.1'}
+2026-03-18 22:20:26.593 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/google-login', 'status_code': 200, 'duration_ms': 685.65, 'client': '127.0.0.1'}
+2026-03-18 22:20:26.803 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/customer/dashboard', 'status_code': 200, 'duration_ms': 77.69, 'client': '127.0.0.1'}
+2026-03-18 22:21:01.429 | INFO     | app.services.auth_service:forgot_password:319 - [DEV] Password reset requested for non-existent email: pruthviprasad5555@gmail.com
+2026-03-18 22:21:01.429 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/forgot-password', 'status_code': 200, 'duration_ms': 95.73, 'client': '127.0.0.1'}
+2026-03-18 22:28:24.592 | INFO     | app.services.auth_service:send_signup_otp:390 - [DEV] Signup OTP for 9365maxwell@gmail.com: 406270
+2026-03-18 22:28:29.449 | INFO     | app.utils.email:send_email:35 - [EMAIL] Sent 'Your Cargo Core Verification Code' to 9365maxwell@gmail.com
+2026-03-18 22:28:29.454 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/send-otp', 'status_code': 200, 'duration_ms': 4909.17, 'client': '127.0.0.1'}
+2026-03-18 22:29:17.279 | INFO     | app.services.auth_service:verify_signup_otp:421 - Email verified via OTP: 9365maxwell@gmail.com
+2026-03-18 22:29:17.281 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/verify-otp', 'status_code': 200, 'duration_ms': 11.67, 'client': '127.0.0.1'}
+2026-03-18 22:29:18.226 | INFO     | app.services.auth_service:register_user:166 - New user registered: 9365maxwell@gmail.com (role=VENDOR)
+2026-03-18 22:29:18.232 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/register', 'status_code': 201, 'duration_ms': 901.43, 'client': '127.0.0.1'}
+2026-03-18 22:29:37.338 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 770.67, 'client': '127.0.0.1'}
+2026-03-18 22:29:38.743 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/vendor/dashboard', 'status_code': 200, 'duration_ms': 584.69, 'client': '127.0.0.1'}
+2026-03-18 22:29:39.951 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/vendor/shipments', 'status_code': 200, 'duration_ms': 1786.59, 'client': '127.0.0.1'}
+2026-03-18 22:29:40.008 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/vendor/recurring-rules', 'status_code': 200, 'duration_ms': 1152.63, 'client': '127.0.0.1'}
+2026-03-18 22:29:40.102 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/vendor/api-keys', 'status_code': 200, 'duration_ms': 1353.12, 'client': '127.0.0.1'}
+2026-03-18 22:29:40.117 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/vendor/team-members', 'status_code': 200, 'duration_ms': 1368.27, 'client': '127.0.0.1'}
+2026-03-18 22:29:40.169 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/vendor/settings', 'status_code': 200, 'duration_ms': 1419.6, 'client': '127.0.0.1'}
+2026-03-18 22:29:40.209 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/vendor/damage-reports', 'status_code': 200, 'duration_ms': 1459.41, 'client': '127.0.0.1'}
+2026-03-18 22:29:40.269 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/vendor/bulk-uploads', 'status_code': 200, 'duration_ms': 226.47, 'client': '127.0.0.1'}
+2026-03-18 22:29:40.290 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/api/v1/vendor/support-tickets', 'status_code': 200, 'duration_ms': 187.12, 'client': '127.0.0.1'}
+WARNING:  WatchFiles detected changes in 'app\services\auth_service.py'. Reloading...
+2026-03-18 23:38:31.499 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/health', 'status_code': 200, 'duration_ms': 14.97, 'client': '127.0.0.1'}
+2026-03-18 23:39:09.224 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 401, 'duration_ms': 93.19, 'client': '127.0.0.1'}
+2026-03-18 23:39:22.747 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 401, 'duration_ms': 54.32, 'client': '127.0.0.1'}
+2026-03-18 23:40:17.054 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 639.39, 'client': '127.0.0.1'}
+2026-03-18 23:41:49.488 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 757.95, 'client': '127.0.0.1'}
+2026-03-18 23:42:01.374 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 957.39, 'client': '127.0.0.1'}
+2026-03-18 23:42:04.176 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 1021.72, 'client': '127.0.0.1'}
+2026-03-18 23:47:51.236 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 664.78, 'client': '127.0.0.1'}
+2026-03-18 23:48:24.238 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/health', 'status_code': 200, 'duration_ms': 2.63, 'client': '127.0.0.1'}
+2026-03-18 23:50:23.186 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'GET', 'path': '/health', 'status_code': 200, 'duration_ms': 0.66, 'client': '127.0.0.1'}
+2026-03-18 23:54:12.531 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 1510.88, 'client': '127.0.0.1'}
+2026-03-18 23:54:57.481 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 401, 'duration_ms': 104.89, 'client': '127.0.0.1'}
+2026-03-18 23:55:17.119 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 401, 'duration_ms': 33.76, 'client': '127.0.0.1'}
+2026-03-18 23:55:24.720 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 401, 'duration_ms': 43.46, 'client': '127.0.0.1'}
+2026-03-18 23:55:45.552 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 401, 'duration_ms': 55.26, 'client': '127.0.0.1'}
+2026-03-18 23:56:14.949 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 701.43, 'client': '127.0.0.1'}
+2026-03-18 23:56:40.258 | INFO     | app.middleware.logging_middleware:dispatch:22 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 1332.83, 'client': '127.0.0.1'}
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26764]
+WARNING:  WatchFiles detected changes in 'app\main.py'. Reloading...
+Process SpawnProcess-2:
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 314, in _bootstrap
+    self.run()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\_subprocess.py", line 76, in subprocess_started
+    target(sockets=sockets)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 60, in run
+    self.config.setup_event_loop()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\config.py", line 511, in setup_event_loop
+    loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\importer.py", line 21, in import_from_string
+    module = importlib.import_module(module_str)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1310, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1322, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 1262, in _find_spec
+  File "<frozen importlib._bootstrap_external>", line 1524, in find_spec
+  File "<frozen importlib._bootstrap_external>", line 1498, in _get_spec
+  File "<frozen importlib._bootstrap_external>", line 1616, in find_spec
+KeyboardInterrupt
+INFO:     Started server process [28752]
+INFO:     Waiting for application startup.
+2026-03-18 23:58:09.542 | INFO     | app.services.auth_service:ensure_logistic_manager_account:133 - Bootstrapped existing Logistics Manager account: logisticmanager@gmail.com
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app\models\logistics.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [28752]
+WARNING:  WatchFiles detected changes in 'app\schemas\logistics.py'. Reloading...
+INFO:     Started server process [32272]
+INFO:     Waiting for application startup.
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 684, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 78, in serve
+    await self.startup(sockets=sockets)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 89, in startup
+    await self.lifespan.startup()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\lifespan\on.py", line 54, in startup
+    await self.startup_event.wait()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\locks.py", line 212, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 677, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\main.py", line 36, in lifespan
+    await ensure_logistic_manager_account(session)
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\services\auth_service.py", line 118, in ensure_logistic_manager_account
+    role = await _get_role_by_name(db, "LOGISTIC_MANAGER")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\services\auth_service.py", line 95, in _get_role_by_name
+    result = await db.execute(select(Role).where(Role.name == name))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 463, in execute
+    result = await greenlet_spawn(
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\session.py", line 2365, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\session.py", line 2241, in _execute_internal
+    conn = self._connection_for_bind(bind)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\session.py", line 2110, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 2, in _connection_for_bind
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\state_changes.py", line 139, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\session.py", line 1189, in _connection_for_bind
+    conn = bind.connect()
+           ^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 3274, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\pool\base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\pool\base.py", line 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\pool\impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\pool\base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 961, in connect
+    await_only(creator_fn(*arg, **kw)),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\asyncpg\connection.py", line 2443, in connect
+    return await connect_utils._connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\asyncpg\connect_utils.py", line 1218, in _connect
+    conn = await _connect_addr(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\asyncpg\connect_utils.py", line 1054, in _connect_addr
+    return await __connect_addr(params, True, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\asyncpg\connect_utils.py", line 1099, in __connect_addr
+    tr, pr = await connector
+             ^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\asyncpg\connect_utils.py", line 969, in _create_ssl_connection
+    tr, pr = await loop.create_connection(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 1077, in create_connection
+    infos = await self._ensure_resolved(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 1453, in _ensure_resolved
+    return await loop.getaddrinfo(host, port, family=family, type=type,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 898, in getaddrinfo
+    return await self.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+Process SpawnProcess-4:
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 684, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 78, in serve
+    await self.startup(sockets=sockets)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 89, in startup
+    await self.lifespan.startup()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\lifespan\on.py", line 54, in startup
+    await self.startup_event.wait()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\locks.py", line 212, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 314, in _bootstrap
+    self.run()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\_subprocess.py", line 76, in subprocess_started
+    target(sockets=sockets)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 61, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+INFO:     Started server process [34984]
+INFO:     Waiting for application startup.
+2026-03-19 00:08:14.989 | INFO     | app.services.auth_service:ensure_logistic_manager_account:133 - Bootstrapped existing Logistics Manager account: logisticmanager@gmail.com
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app\services\logistics_service.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [34984]
+WARNING:  WatchFiles detected changes in 'app\services\logistics_service.py', 'app\main.py', 'app\routers\logistics.py'. Reloading...
+Process SpawnProcess-6:
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 314, in _bootstrap
+    self.run()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\_subprocess.py", line 76, in subprocess_started
+    target(sockets=sockets)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 61, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 684, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 68, in serve
+    config.load()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\config.py", line 467, in load
+    self.loaded_app = import_from_string(self.app)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\importer.py", line 21, in import_from_string
+    module = importlib.import_module(module_str)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 994, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\main.py", line 15, in <module>
+    from app.routers import logistics as logistics_router
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\routers\logistics.py", line 157
+    db: Annotated[AsyncSession, Depends(get_db)],
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: parameter without a default follows parameter with a default
+WARNING:  WatchFiles detected changes in 'app\models\__init__.py', 'alembic\env.py'. Reloading...
+Process SpawnProcess-7:
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 314, in _bootstrap
+    self.run()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\_subprocess.py", line 73, in subprocess_started
+    config.configure_logging()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\config.py", line 393, in configure_logging
+    logging.config.dictConfig(self.log_config)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\logging\config.py", line 912, in dictConfig
+    dictConfigClass(config).configure()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\logging\config.py", line 581, in configure
+    handler = self.configure_handler(handlers[name])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\logging\config.py", line 846, in configure_handler
+    result = factory(**kwargs)
+             ^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1132, in __init__
+    Handler.__init__(self)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 935, in __init__
+    self.level = _checkLevel(level)
+                 ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 208, in _checkLevel
+    def _checkLevel(level):
+    
+KeyboardInterrupt
+Process SpawnProcess-8:
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 314, in _bootstrap
+    self.run()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\_subprocess.py", line 76, in subprocess_started
+    target(sockets=sockets)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 61, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 684, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 68, in serve
+    config.load()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\config.py", line 467, in load
+    self.loaded_app = import_from_string(self.app)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\importer.py", line 21, in import_from_string
+    module = importlib.import_module(module_str)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 994, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\main.py", line 15, in <module>
+    from app.routers import logistics as logistics_router
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\routers\logistics.py", line 157
+    db: Annotated[AsyncSession, Depends(get_db)],
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: parameter without a default follows parameter with a default
+WARNING:  WatchFiles detected changes in 'alembic\versions\007_create_logistics_manager_tables.py'. Reloading...
+Process SpawnProcess-9:
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 314, in _bootstrap
+    self.run()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\_subprocess.py", line 76, in subprocess_started
+    target(sockets=sockets)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 61, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 684, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\server.py", line 68, in serve
+    config.load()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\config.py", line 467, in load
+    self.loaded_app = import_from_string(self.app)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\importer.py", line 21, in import_from_string
+    module = importlib.import_module(module_str)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 994, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\main.py", line 15, in <module>
+    from app.routers import logistics as logistics_router
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\routers\logistics.py", line 157
+    db: Annotated[AsyncSession, Depends(get_db)],
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: parameter without a default follows parameter with a default
+WARNING:  WatchFiles detected changes in 'app\routers\logistics.py', 'alembic\versions\007_create_logistics_manager_tables.py'. Reloading...
+INFO:     Started server process [13600]
+INFO:     Waiting for application startup.
+2026-03-19 00:19:19.338 | INFO     | app.services.auth_service:ensure_logistic_manager_account:133 - Bootstrapped existing Logistics Manager account: logisticmanager@gmail.com
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 521, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 768, in _prepare
+    prepared_stmt = await self._connection.prepare(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\asyncpg\connection.py", line 638, in prepare
+    return await self._prepare(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\asyncpg\connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\asyncpg\connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedTableError: relation "logistics_driver_profiles" does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 2115, in _exec_insertmany_context
+    dialect.do_execute(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\default.py", line 942, in do_execute
+    cursor.execute(statement, parameters)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 580, in execute
+    self._adapt_connection.await_(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 558, in _prepare_and_execute
+    self._handle_exception(error)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 508, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 792, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedTableError'>: relation "logistics_driver_profiles" does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 677, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\main.py", line 39, in lifespan
+    await ensure_logistics_seed_data(session, manager_user)
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\services\logistics_service.py", line 195, in ensure_logistics_seed_data
+    await db.flush()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 802, in flush
+    await greenlet_spawn(self.sync_session.flush, objects=objects)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 203, in greenlet_spawn
+    result = context.switch(value)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\session.py", line 4353, in flush
+    self._flush(objects)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\session.py", line 4488, in _flush
+    with util.safe_reraise():
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\session.py", line 4449, in _flush
+    flush_context.execute()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\persistence.py", line 1143, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 1416, in execute
+    return meth(
+           ^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\sql\elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 1638, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 1841, in _execute_context
+    return self._exec_insertmany_context(dialect, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 2123, in _exec_insertmany_context
+    self._handle_dbapi_exception(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 2352, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 2115, in _exec_insertmany_context
+    dialect.do_execute(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\default.py", line 942, in do_execute
+    cursor.execute(statement, parameters)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 580, in execute
+    self._adapt_connection.await_(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 558, in _prepare_and_execute
+    self._handle_exception(error)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 508, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 792, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedTableError'>: relation "logistics_driver_profiles" does not exist
+[SQL: INSERT INTO logistics_driver_profiles (id, user_id, warehouse_id, status, current_location, current_job, efficiency_score, avatar_color, chat_history) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::INTEGER, $8::VARCHAR, $9::JSONB), ($10::UUID, $11::UUID, $12::UUID, $13::VARCHAR, $14::VARCHAR, $15::VARCHAR, $16::INTEGER, $17::VARCHAR, $18::JSONB) RETURNING logistics_driver_profiles.created_at, logistics_driver_profiles.updated_at, logistics_driver_profiles.id]
+[parameters: (UUID('21d5e1d8-a833-4172-a1f0-bcd1343cec67'), UUID('7930d46b-be7a-468c-9138-e2f793dd176a'), UUID('42ed28d3-ec07-4a28-bdf1-03695599dddc'), 'breakdown', 'Route 4B', 'Delivery #9982', 85, 'bg-gray-700', '[{"id": 1, "text": "Dispatch, engine light just came on.", "sender": "driver", "time": "09:15 AM"}, {"id": 2, "text": "Copy that David. Sending mobile mechanic.", "sender": "dispatch", "time": "09:16 AM"}]', UUID('bd9344bb-d52e-4cf2-87d1-8c9e58ab584a'), UUID('7bb7f683-dede-4c37-b18e-b82441b4c910'), UUID('0205064e-cfee-40c9-9802-b23968907487'), 'deviation', 'Sector 7', 'Delivery #9991', 92, 'bg-gray-700', '[{"id": 1, "text": "Traffic on Route 9 is blocked.", "sender": "driver", "time": "10:42 AM"}, {"id": 2, "text": "Reroute approved. Follow the AI map.", "sender": "dispatch", "time": "10:43 AM"}]')]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+ERROR:    Application startup failed. Exiting.
+WARNING:  WatchFiles detected changes in 'alembic\versions\007_create_logistics_manager_tables.py'. Reloading...
+INFO:     Started server process [30540]
+INFO:     Waiting for application startup.
+2026-03-19 00:20:24.754 | INFO     | app.services.auth_service:ensure_logistic_manager_account:133 - Bootstrapped existing Logistics Manager account: logisticmanager@gmail.com
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 521, in _prepare_and_execute
+    prepared_stmt, attributes = await adapt_connection._prepare(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 768, in _prepare
+    prepared_stmt = await self._connection.prepare(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\asyncpg\connection.py", line 638, in prepare
+    return await self._prepare(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\asyncpg\connection.py", line 657, in _prepare
+    stmt = await self._get_statement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\asyncpg\connection.py", line 443, in _get_statement
+    statement = await self._protocol.prepare(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "asyncpg/protocol/protocol.pyx", line 165, in prepare
+asyncpg.exceptions.UndefinedTableError: relation "logistics_driver_profiles" does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 2115, in _exec_insertmany_context
+    dialect.do_execute(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\default.py", line 942, in do_execute
+    cursor.execute(statement, parameters)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 580, in execute
+    self._adapt_connection.await_(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 558, in _prepare_and_execute
+    self._handle_exception(error)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 508, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 792, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.ProgrammingError: <class 'asyncpg.exceptions.UndefinedTableError'>: relation "logistics_driver_profiles" does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 677, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\main.py", line 39, in lifespan
+    await ensure_logistics_seed_data(session, manager_user)
+  File "C:\Users\pruth\Downloads\Login Signup Flow Design\backend\app\services\logistics_service.py", line 195, in ensure_logistics_seed_data
+    await db.flush()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 802, in flush
+    await greenlet_spawn(self.sync_session.flush, objects=objects)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 203, in greenlet_spawn
+    result = context.switch(value)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\session.py", line 4353, in flush
+    self._flush(objects)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\session.py", line 4488, in _flush
+    with util.safe_reraise():
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\session.py", line 4449, in _flush
+    flush_context.execute()
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\orm\persistence.py", line 1143, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 1416, in execute
+    return meth(
+           ^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\sql\elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 1638, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 1841, in _execute_context
+    return self._exec_insertmany_context(dialect, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 2123, in _exec_insertmany_context
+    self._handle_dbapi_exception(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 2352, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\base.py", line 2115, in _exec_insertmany_context
+    dialect.do_execute(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\engine\default.py", line 942, in do_execute
+    cursor.execute(statement, parameters)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 580, in execute
+    self._adapt_connection.await_(
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 558, in _prepare_and_execute
+    self._handle_exception(error)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 508, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "C:\Users\pruth\AppData\Local\Programs\Python\Python312\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py", line 792, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedTableError'>: relation "logistics_driver_profiles" does not exist
+[SQL: INSERT INTO logistics_driver_profiles (id, user_id, warehouse_id, status, current_location, current_job, efficiency_score, avatar_color, chat_history) VALUES ($1::UUID, $2::UUID, $3::UUID, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::INTEGER, $8::VARCHAR, $9::JSONB), ($10::UUID, $11::UUID, $12::UUID, $13::VARCHAR, $14::VARCHAR, $15::VARCHAR, $16::INTEGER, $17::VARCHAR, $18::JSONB) RETURNING logistics_driver_profiles.created_at, logistics_driver_profiles.updated_at, logistics_driver_profiles.id]
+[parameters: (UUID('480f3a1a-418d-46e1-828f-986a176f667c'), UUID('c84095dd-38cf-4b68-8753-618507a9ecfd'), UUID('b040d109-90ad-421c-946c-a1fd7969af96'), 'breakdown', 'Route 4B', 'Delivery #9982', 85, 'bg-gray-700', '[{"id": 1, "text": "Dispatch, engine light just came on.", "sender": "driver", "time": "09:15 AM"}, {"id": 2, "text": "Copy that David. Sending mobile mechanic.", "sender": "dispatch", "time": "09:16 AM"}]', UUID('8179caa5-2045-453f-9f3f-f7fa46a44d94'), UUID('e7b800a1-335e-4108-bbec-8e05d1d2cc2f'), UUID('acc89117-f987-47cd-a681-4a7a929646c2'), 'deviation', 'Sector 7', 'Delivery #9991', 92, 'bg-gray-700', '[{"id": 1, "text": "Traffic on Route 9 is blocked.", "sender": "driver", "time": "10:42 AM"}, {"id": 2, "text": "Reroute approved. Follow the AI map.", "sender": "dispatch", "time": "10:43 AM"}]')]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+ERROR:    Application startup failed. Exiting.

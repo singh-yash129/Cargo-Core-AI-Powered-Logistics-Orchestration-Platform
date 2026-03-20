@@ -410,28 +410,31 @@ function processUpload() {
     }, 1500)
 }
 
-function confirmCreateNow() {
-    store.addBulkUpload({
+async function confirmCreateNow() {
+    await store.addBulkUpload({
         filename: pendingUpload.value.filename,
         orders: pendingUpload.value.detectedRows,
         status: 'Processed',
         errors: 0,
+        fileSizeKb: Number(pendingUpload.value.fileSize || 0),
     })
     showConfirmModal.value = false
     selectedFile.value = null
     showToast(`${pendingUpload.value.detectedRows} shipments created successfully!`)
 }
 
-function confirmScheduleLater() {
+async function confirmScheduleLater() {
     if (!scheduleDate.value || !scheduleTime.value) {
         showToast('Please select a date and time')
         return
     }
-    store.addBulkUpload({
+    await store.addBulkUpload({
         filename: pendingUpload.value.filename,
         orders: pendingUpload.value.detectedRows,
         status: 'Scheduled',
         errors: 0,
+        fileSizeKb: Number(pendingUpload.value.fileSize || 0),
+        scheduledFor: `${scheduleDate.value} ${scheduleTime.value}`,
     })
     showConfirmModal.value = false
     showSchedulePicker.value = false
@@ -450,12 +453,11 @@ function viewUploadDetail(u) {
     viewingUpload.value = u
 }
 
-function retryUpload(u) {
-    u.status = 'Processing'
+async function retryUpload(u) {
+    await store.updateBulkUpload(u.id, { status: 'Processing', errors: u.errors })
     viewingUpload.value = null
     setTimeout(() => {
-        u.status = 'Processed'
-        u.errors = 0
+        store.updateBulkUpload(u.id, { status: 'Processed', errors: 0 })
         showToast(`${u.filename} reprocessed successfully`)
     }, 1500)
 }

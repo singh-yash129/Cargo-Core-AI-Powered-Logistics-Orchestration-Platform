@@ -229,7 +229,12 @@ const handleGoToLogin = () => {
   const rawRole = authStore.pendingRole || authStore.currentUser?.role || '';
   const role = rawRole === 'INDIVIDUAL' ? 'customer' : String(rawRole).toLowerCase();
   authStore.logout();
-  router.push(role ? { path: '/login', query: { role } } : '/login');
+  if (role === 'customer' || role === 'vendor') {
+    router.replace(`/login/${role}`);
+    return;
+  }
+
+  router.replace('/login-hub');
 };
 
 onMounted(() => {

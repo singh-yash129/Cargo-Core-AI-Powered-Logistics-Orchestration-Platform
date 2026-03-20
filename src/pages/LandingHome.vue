@@ -232,7 +232,7 @@
                     <ul class="space-y-4 text-gray-400 text-sm">
                         <li><router-link to="/signup"
                                 class="hover:text-cyan-400 transition-colors">Register</router-link></li>
-                        <li><router-link to="/login" class="hover:text-cyan-400 transition-colors">Login</router-link>
+                        <li><router-link to="/login-hub" class="hover:text-cyan-400 transition-colors">Login</router-link>
                         </li>
                     </ul>
                 </div>

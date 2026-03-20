@@ -26,8 +26,9 @@ async def list_labourers(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    warehouse_id: UUID | None = Query(default=None),
 ):
-    return await labour_service.list_labourers(db, page, page_size)
+    return await labour_service.list_labourers(db, page, page_size, warehouse_id)
 
 
 @router.post("", response_model=LabourerResponse, status_code=status.HTTP_201_CREATED)

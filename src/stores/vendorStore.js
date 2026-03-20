@@ -1,272 +1,615 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
-let orderCounter = 9930
+const API_BASE = 'http://localhost:8000/api/v1'
 
-function generateOrderId() {
-    orderCounter++
-    return `ORD-${orderCounter}`
+function getAuthHeaders(json = false) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+    return {
+        ...(json ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }
+}
+
+function parseStatusKey(status) {
+    const value = String(status || '').toLowerCase()
+    if (value.includes('transit') || value === 'assigned') return 'transit'
+    if (value === 'delivered' || value === 'closed') return 'delivered'
+    if (value === 'cancelled') return 'cancelled'
+    if (value === 'out_for_delivery') return 'delivery'
+    return 'pending'
+}
+
+function formatStatusLabel(statusKey) {
+    return {
+        pending: 'Pending',
+        transit: 'In Transit',
+        delivery: 'Out for Delivery',
+        delivered: 'Delivered',
+        cancelled: 'Cancelled',
+    }[statusKey] || 'Pending'
+}
+
+function statusProgress(statusKey) {
+    return { pending: 15, transit: 65, delivery: 85, delivered: 100, cancelled: 0 }[statusKey] || 0
+}
+
+function safeDateLabel(value, fallback = 'TBD') {
+    if (!value) return fallback
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime())
+        ? String(value)
+        : parsed.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+}
+
+function safeDateTimeLabel(value, fallback = 'TBD') {
+    if (!value) return fallback
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime())
+        ? String(value)
+        : parsed.toLocaleString('en-US', {
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        })
+}
+
+function routeSummary(pickup, delivery) {
+    return `${pickup || 'Origin'} → ${delivery || 'Destination'}`
 }
 
 export const useVendorStore = defineStore('vendor', () => {
-    // ─── Shipments ───────────────────────────────────────────────
-    const shipments = ref([
-        { id: 'ORD-9922', destination: 'Warehouse A – Chicago', status: 'In Transit', statusKey: 'transit', eta: 'Mar 02, 2026', amount: 1840, pallets: 12, weight: 4500, category: 'Commercial', paymentMode: 'Invoice', driver: 'Raj Patel', driverPhone: '+91 0000000000', vehicle: 'MH-12-AB-1234', progress: 65, pod: null, route: 'Mumbai Hub → Chicago WH', origin: 'Mumbai Hub', driverLat: 19.076, driverLng: 72.877, description: 'Electronic components', packingRequired: true, laborRequired: true, laborCount: 2, createdAt: '2026-02-27 09:00', statusHistory: [{ status: 'Pending', time: '2026-02-27 09:00' }, { status: 'Packed', time: '2026-02-27 14:00' }, { status: 'Dispatched', time: '2026-02-28 08:00' }, { status: 'In Transit', time: '2026-02-28 10:00' }] },
-        { id: 'ORD-9918', destination: 'Store #402 – New York', status: 'Out for Delivery', statusKey: 'delivery', eta: 'Today 3pm', amount: 960, pallets: 5, weight: 1800, category: 'Commercial', paymentMode: 'COD', driver: 'Amit Shah', driverPhone: '+91 0000000000', vehicle: 'MH-12-CD-5678', progress: 88, pod: { photo: 'https://via.placeholder.com/400x250?text=Delivery+Confirmation', timestamp: '2026-03-01 14:30', location: '40.7128° N, 74.0060° W', confirmed: true }, route: 'Mumbai Hub → NY Store #402', origin: 'Mumbai Hub', driverLat: 40.712, driverLng: -74.006, description: 'FMCG Products', packingRequired: false, laborRequired: false, laborCount: 0, createdAt: '2026-02-25 11:00', statusHistory: [{ status: 'Pending', time: '2026-02-25 11:00' }, { status: 'Packed', time: '2026-02-25 16:00' }, { status: 'Dispatched', time: '2026-02-26 07:00' }, { status: 'In Transit', time: '2026-02-26 09:00' }, { status: 'Out for Delivery', time: '2026-03-01 12:00' }] },
-        { id: 'ORD-9905', destination: 'Distribution Centre B', status: 'Delivered', statusKey: 'delivered', eta: 'Feb 28, 2026', amount: 3200, pallets: 20, weight: 9000, category: 'Commercial', paymentMode: 'Invoice', driver: 'Suresh Kumar', driverPhone: '+91 0000000000', vehicle: 'MH-12-EF-9012', progress: 100, pod: { photo: 'https://via.placeholder.com/400x250?text=Proof+of+Delivery', timestamp: '2026-02-28 11:45', location: '34.0522° N, 118.2437° W', confirmed: true }, route: 'Delhi Hub → DC-B', origin: 'Delhi Hub', driverLat: 34.052, driverLng: -118.243, description: 'Bulk warehouse inventory', packingRequired: true, laborRequired: true, laborCount: 4, createdAt: '2026-02-20 08:00', statusHistory: [{ status: 'Pending', time: '2026-02-20 08:00' }, { status: 'Packed', time: '2026-02-20 14:00' }, { status: 'Dispatched', time: '2026-02-21 06:00' }, { status: 'In Transit', time: '2026-02-21 08:00' }, { status: 'Out for Delivery', time: '2026-02-28 09:00' }, { status: 'Delivered', time: '2026-02-28 11:45' }] },
-        { id: 'ORD-9901', destination: 'HQ – Bangalore', status: 'Pending', statusKey: 'pending', eta: 'Mar 05, 2026', amount: 540, pallets: 3, weight: 900, category: 'Commercial', paymentMode: 'Invoice', driver: null, driverPhone: null, vehicle: null, progress: 0, pod: null, route: 'Mumbai Hub → Bangalore HQ', origin: 'Mumbai Hub', driverLat: null, driverLng: null, description: 'Office supplies', packingRequired: false, laborRequired: false, laborCount: 0, createdAt: '2026-03-01 07:00', statusHistory: [{ status: 'Pending', time: '2026-03-01 07:00' }] },
-        { id: 'ORD-9888', destination: 'Retail Cluster – Pune', status: 'Cancelled', statusKey: 'cancelled', eta: '—', amount: 720, pallets: 4, weight: 1200, category: 'Commercial', paymentMode: 'Invoice', driver: null, driverPhone: null, vehicle: null, progress: 0, pod: null, route: 'Mumbai Hub → Pune Retail', origin: 'Mumbai Hub', driverLat: null, driverLng: null, description: 'Retail merchandise', packingRequired: true, laborRequired: false, laborCount: 0, createdAt: '2026-02-15 10:00', statusHistory: [{ status: 'Pending', time: '2026-02-15 10:00' }, { status: 'Cancelled', time: '2026-02-16 09:00' }] },
-    ])
+    const initialized = ref(false)
+    const loading = ref(false)
+    const error = ref('')
 
-    // ─── Packing Materials Catalog ───────────────────────────────
-    const packingMaterials = ref([
-        { id: 1, name: 'Standard Boxes', unitPrice: 45, available: 500, icon: 'inventory_2' },
-        { id: 2, name: 'Wooden Crates', unitPrice: 350, available: 120, icon: 'deployed_code' },
-        { id: 3, name: 'Bubble Wrap (roll)', unitPrice: 80, available: 200, icon: 'bubble_chart' },
-        { id: 4, name: 'Packing Tape (roll)', unitPrice: 25, available: 800, icon: 'straighten' },
-        { id: 5, name: 'Specialized Containers', unitPrice: 1200, available: 30, icon: 'package_2' },
-        { id: 6, name: 'Protective Foam', unitPrice: 150, available: 100, icon: 'shield' },
-    ])
+    const dashboard = ref(null)
+    const shipments = ref([])
+    const invoices = ref([])
+    const damageReports = ref([])
+    const recurringRules = ref([])
+    const bulkUploads = ref([])
+    const tickets = ref([])
+    const notifications = ref([])
 
-    // ─── Company Settings ────────────────────────────────────────
     const companySettings = ref({
-        companyName: 'Acme Logistics Inc.',
-        taxId: 'GSTIN-27AABCU9603R1ZM',
-        contactPerson: 'Jane Doe',
-        phone: '+91 0000000000',
-        email: 'contact@acmelogistics.com',
-        address: '45, Trade Park, Mumbai - 400001',
+        companyName: '',
+        taxId: '',
+        contactPerson: '',
+        phone: '',
+        email: '',
+        address: '',
         logo: null,
-        teamMembers: [
-            { id: 1, name: 'Jane Doe', role: 'Admin', email: 'jane@acmelogistics.com', status: 'Active' },
-            { id: 2, name: 'Rohan Mehta', role: 'Operations', email: 'rohan@acmelogistics.com', status: 'Active' },
-            { id: 3, name: 'Priya Sharma', role: 'Finance', email: 'priya@acmelogistics.com', status: 'Invited' },
-        ],
-        notifications: { email: true, sms: true, push: true, orderUpdates: true, invoiceAlerts: true, promotions: false },
-        apiKeys: [
-            { id: 1, name: 'Production Key', key: 'vnd_live_xxxx...xxxx', created: 'Jan 15, 2026', lastUsed: 'Today', status: 'Active' },
-            { id: 2, name: 'Staging Key', key: 'vnd_test_yyyy...yyyy', created: 'Feb 01, 2026', lastUsed: 'Yesterday', status: 'Active' },
-        ],
+        teamMembers: [],
+        notifications: {
+            email: true,
+            sms: true,
+            push: true,
+            orderUpdates: true,
+            invoiceAlerts: true,
+            promotions: false,
+        },
+        apiKeys: [],
     })
 
-    // ─── Damage Reports ──────────────────────────────────────────
-    const damageReports = ref([
-        { id: 'DMG-001', orderId: 'ORD-9905', description: 'Minor dent on package #3', severity: 'Low', photos: ['https://via.placeholder.com/200x150?text=Damage+1'], status: 'Under Review', createdAt: 'Feb 28, 2026', resolution: null },
+    const packingMaterials = ref([
+        { id: 1, name: 'Standard Boxes', unitPrice: 45, available: 0, icon: 'inventory_2' },
+        { id: 2, name: 'Wooden Crates', unitPrice: 350, available: 0, icon: 'deployed_code' },
+        { id: 3, name: 'Bubble Wrap (roll)', unitPrice: 80, available: 0, icon: 'bubble_chart' },
+        { id: 4, name: 'Packing Tape (roll)', unitPrice: 25, available: 0, icon: 'straighten' },
     ])
 
-    // ─── Invoices ────────────────────────────────────────────────
-    const invoices = ref([
-        { id: 'INV-2026-001', orderId: 'ORD-9905', date: 'Feb 28, 2026', dueDate: 'Mar 28, 2026', amount: 3200, paid: 0, status: 'Unpaid' },
-        { id: 'INV-2026-002', orderId: 'ORD-9888', date: 'Feb 20, 2026', dueDate: 'Feb 20, 2026', amount: 720, paid: 0, status: 'Overdue' },
-        { id: 'INV-2026-003', orderId: 'ORD-9801', date: 'Feb 15, 2026', dueDate: 'Mar 15, 2026', amount: 4500, paid: 4500, status: 'Paid' },
-        { id: 'INV-2026-004', orderId: 'ORD-9750', date: 'Feb 10, 2026', dueDate: 'Mar 10, 2026', amount: 1800, paid: 900, status: 'Partial' },
-    ])
+    const walletBalance = ref(0)
 
-    // ─── Recurring Rules ─────────────────────────────────────────
-    const recurringRules = ref([
-        { id: 1, name: 'Weekly Restock – NY Store', description: 'Standard inventory replenishment for downtown branch.', frequency: 'Every Monday', route: 'Hub A → Store #402', details: '12 Pallets • General Goods', nextRun: 'Mar 07, 2026', active: true, pallets: 12, weight: 4500, destination: 'Store #402 – New York', pickupHub: 'Mumbai Hub' },
-        { id: 2, name: 'Monthly Supplies – HQ', description: 'Office supplies and pantry restock.', frequency: '1st of Month', route: 'Hub B → Corporate HQ', details: '5 Boxes', nextRun: 'Apr 01, 2026', active: true, pallets: 5, weight: 800, destination: 'Corporate HQ – Bangalore', pickupHub: 'Delhi Hub' },
-        { id: 3, name: 'Daily Grocery – Fresh', description: 'Perishable goods, refrigerated transport.', frequency: 'Daily @ 5 AM', route: 'Hub C → Distribution C', details: 'Refrigerated Truck', nextRun: 'Mar 02, 2026', active: false, pallets: 8, weight: 2000, destination: 'Distribution Centre C', pickupHub: 'Pune Hub' },
-    ])
+    const analyticsData = computed(() => ({
+        monthly: dashboard.value?.analytics?.monthly || [],
+        onTime: Number(dashboard.value?.analytics?.on_time || 0),
+        avgTransit: Number(dashboard.value?.analytics?.avg_transit_days || 0),
+        costPerMile: Number(dashboard.value?.analytics?.avg_order_value || 0),
+        successRate: Number(dashboard.value?.analytics?.success_rate || 0),
+    }))
 
-    // ─── Bulk Upload Log ─────────────────────────────────────────
-    const bulkUploads = ref([
-        { id: 1, filename: 'mar_orders_batch_01.csv', date: 'Today, 10:00 AM', orders: 45, status: 'Processed', errors: 0 },
-        { id: 2, filename: 'feb_restock.xlsx', date: 'Feb 28, 2026', orders: 120, status: 'Failed', errors: 2 },
-        { id: 3, filename: 'jan_commercial_batch.csv', date: 'Jan 30, 2026', orders: 200, status: 'Processed', errors: 0 },
-    ])
+    const activeShipments = computed(() => shipments.value.filter((s) => ['transit', 'delivery'].includes(s.statusKey)))
+    const pendingShipments = computed(() => shipments.value.filter((s) => s.statusKey === 'pending'))
+    const deliveredShipments = computed(() => shipments.value.filter((s) => s.statusKey === 'delivered'))
+    const overdueInvoices = computed(() => invoices.value.filter((invoice) => invoice.status === 'Overdue'))
+    const totalOverdue = computed(() => overdueInvoices.value.reduce((sum, invoice) => sum + (invoice.amount - invoice.paid), 0))
+    const totalUnpaid = computed(() => invoices.value.filter((invoice) => invoice.status !== 'Paid').length)
+    const totalPaidThisMonth = computed(() => invoices.value.filter((invoice) => invoice.status === 'Paid').reduce((sum, invoice) => sum + invoice.paid, 0))
+    const creditBalance = computed(() => Number(dashboard.value?.stats?.credit_balance || walletBalance.value || 0))
+    const shipmentsWithPod = computed(() => shipments.value.filter((shipment) => shipment.pod?.confirmed))
+    const unreadNotificationsCount = computed(() => notifications.value.filter((item) => !item.read).length)
 
-    // ─── Support Tickets ─────────────────────────────────────────
-    const tickets = ref([
-        { id: 'TK-1029', subject: 'Shipment ORD-9901 delayed', description: 'The shipment has not moved for 48 hours. Need urgent update.', orderId: 'ORD-9901', created: '2 hours ago', priority: 'High', status: 'In Progress', replies: [{ from: 'Support Agent', message: 'We are investigating. You will hear back within 1 hour.', time: '1 hour ago' }] },
-        { id: 'TK-0992', subject: 'Invoice INV-2026-002 dispute', description: 'The overdue invoice amount seems incorrect. Request review.', orderId: null, created: 'Yesterday', priority: 'Medium', status: 'Resolved', replies: [{ from: 'Support Agent', message: 'Reviewed and corrected. Please check your invoices section.', time: '6 hours ago' }] },
-    ])
+    function normalizeShipment(raw) {
+        const statusKey = parseStatusKey(raw.status_key || raw.status)
+        const trackingCode = raw.tracking_code || String(raw.id)
+        const pickup = raw.pickup_addr || 'Origin'
+        const delivery = raw.delivery_addr || 'Destination'
+        const amount = Number(raw.amount ?? raw.cost?.total ?? 0)
+        const delivered = statusKey === 'delivered'
 
-    // ─── Analytics Data ──────────────────────────────────────────
-    const analyticsData = ref({
-        monthly: [
-            { month: 'Oct', spend: 20000, orders: 48 },
-            { month: 'Nov', spend: 32000, orders: 72 },
-            { month: 'Dec', spend: 25000, orders: 58 },
-            { month: 'Jan', spend: 45000, orders: 104 },
-            { month: 'Feb', spend: 38000, orders: 88 },
-            { month: 'Mar', spend: 45200, orders: 124 },
-        ],
-        onTime: 95.4,
-        avgTransit: 3.2,
-        costPerMile: 2.45,
-        successRate: 99.2,
-    })
-
-    // ─── Computed ────────────────────────────────────────────────
-    const activeShipments = computed(() => shipments.value.filter(s => ['transit', 'delivery'].includes(s.statusKey)))
-    const pendingShipments = computed(() => shipments.value.filter(s => s.statusKey === 'pending'))
-    const deliveredShipments = computed(() => shipments.value.filter(s => s.statusKey === 'delivered'))
-    const overdueInvoices = computed(() => invoices.value.filter(i => i.status === 'Overdue'))
-    const totalOverdue = computed(() => overdueInvoices.value.reduce((a, i) => a + (i.amount - i.paid), 0))
-    const totalUnpaid = computed(() => invoices.value.filter(i => i.status !== 'Paid').length)
-    const totalPaidThisMonth = computed(() => invoices.value.filter(i => i.status === 'Paid').reduce((a, i) => a + i.paid, 0))
-    const creditBalance = computed(() => 12450)
-    const shipmentsWithPod = computed(() => shipments.value.filter(s => s.pod && s.pod.confirmed))
-
-    // ─── Actions ─────────────────────────────────────────────────
-    function createShipment(data) {
-        const id = generateOrderId()
-        const now = new Date()
-        const newShipment = {
-            id,
-            destination: data.destination,
-            status: 'Pending',
-            statusKey: 'pending',
-            eta: data.pickupDate ? new Date(new Date(data.pickupDate).getTime() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'TBD',
-            amount: data.quotedPrice || 0,
-            pallets: data.palletCount || 0,
-            weight: data.weight || 0,
-            category: data.category || 'Commercial',
-            paymentMode: data.paymentMode || 'Invoice',
-            driver: null, driverPhone: null, vehicle: null, progress: 0, pod: null,
-            route: `${data.pickupHub || 'Mumbai Hub'} → ${data.destination}`,
-            origin: data.pickupHub || 'Mumbai Hub',
-            driverLat: null, driverLng: null,
-            description: data.description || '',
-            packingRequired: data.packingRequired || false,
-            laborRequired: data.laborRequired || false,
-            laborCount: data.laborCount || 0,
-            createdAt: now.toISOString().replace('T', ' ').substring(0, 16),
-            statusHistory: [{ status: 'Pending', time: now.toISOString().replace('T', ' ').substring(0, 16) }],
+        return {
+            id: trackingCode,
+            backendId: raw.id,
+            trackingCode,
+            origin: pickup,
+            destination: delivery,
+            route: routeSummary(pickup, delivery),
+            status: raw.status_label || formatStatusLabel(statusKey),
+            statusKey,
+            eta: raw.eta_label || safeDateLabel(raw.scheduled_at, safeDateLabel(raw.created_at)),
+            amount,
+            pallets: 0,
+            weight: 0,
+            category: raw.cargo_type || 'Commercial',
+            paymentMode: raw.payment_mode || 'Invoice',
+            paymentStatus: raw.payment_status || 'pending',
+            driver: null,
+            driverPhone: null,
+            vehicle: raw.vehicle_type || null,
+            progress: Number(raw.progress ?? statusProgress(statusKey)),
+            pod: delivered ? {
+                photo: null,
+                timestamp: safeDateTimeLabel(raw.scheduled_at || raw.created_at),
+                location: delivery,
+                signedBy: 'Receiver',
+                confirmed: true,
+            } : null,
+            originAddress: pickup,
+            destinationAddress: delivery,
+            driverLat: null,
+            driverLng: null,
+            description: raw.cargo_type || '',
+            packingRequired: Number(raw.cost?.packing || 0) > 0,
+            laborRequired: Number(raw.labor_count || 0) > 0,
+            laborCount: Number(raw.labor_count || 0),
+            createdAt: safeDateTimeLabel(raw.created_at),
+            statusHistory: (raw.status_history || []).map((item) => ({
+                status: item.status,
+                time: item.time,
+            })),
+            cost: {
+                base: Number(raw.cost?.base || 0),
+                vehicle: Number(raw.cost?.vehicle || 0),
+                labor: Number(raw.cost?.labor || 0),
+                materials: Number(raw.cost?.materials || 0),
+                packing: Number(raw.cost?.packing || 0),
+                platformFee: Number(raw.cost?.platform_fee || 0),
+                taxes: Number(raw.cost?.taxes || 0),
+                total: amount,
+            },
         }
-        shipments.value.unshift(newShipment)
-        invoices.value.unshift({
-            id: `INV-${id.replace('ORD-', '2026-')}`,
-            orderId: id,
-            date: now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-            amount: data.quotedPrice || 0,
-            paid: 0,
-            status: 'Unpaid',
+    }
+
+    function normalizeInvoice(raw) {
+        return {
+            id: raw.id,
+            orderId: raw.tracking_code,
+            backendOrderId: raw.order_id,
+            date: raw.date,
+            dueDate: raw.due_date,
+            amount: Number(raw.amount || 0),
+            paid: Number(raw.paid || 0),
+            status: raw.status || 'Unpaid',
+        }
+    }
+
+    function rebuildNotifications() {
+        const shipmentNotifications = shipments.value.slice(0, 4).map((shipment, index) => ({
+            id: `shipment-${shipment.id}`,
+            title: `Shipment ${shipment.status}`,
+            message: `${shipment.id} for ${shipment.destination}`,
+            time: shipment.eta || shipment.createdAt,
+            read: index > 1,
+            type: shipment.statusKey === 'cancelled' ? 'alert' : shipment.statusKey === 'delivered' ? 'success' : 'warning',
+        }))
+
+        const invoiceNotifications = overdueInvoices.value.slice(0, 2).map((invoice) => ({
+            id: `invoice-${invoice.id}`,
+            title: 'Invoice Due',
+            message: `${invoice.id} is ${invoice.status.toLowerCase()}.`,
+            time: invoice.dueDate,
+            read: false,
+            type: invoice.status === 'Overdue' ? 'alert' : 'warning',
+        }))
+
+        notifications.value = [...invoiceNotifications, ...shipmentNotifications]
+    }
+
+    async function fetchDashboardSummary() {
+        const response = await fetch(`${API_BASE}/vendor/dashboard`, {
+            headers: getAuthHeaders(),
         })
-        return newShipment
-    }
 
-    function updateShipmentAddress(id, newAddress) {
-        const s = shipments.value.find(s => s.id === id)
-        if (s && s.statusKey !== 'delivered' && s.statusKey !== 'cancelled') {
-            s.destination = newAddress
-            s.route = `${s.origin} → ${newAddress}`
-            s.statusHistory.push({ status: 'Address Updated', time: new Date().toISOString().replace('T', ' ').substring(0, 16) })
-            return true
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to load vendor dashboard.')
         }
-        return false
+
+        const data = await response.json()
+        dashboard.value = data
+        walletBalance.value = Number(data.stats?.credit_balance || 0)
+        invoices.value = (data.invoices?.invoices || []).map(normalizeInvoice)
+        rebuildNotifications()
+        return data
     }
 
-    function rescheduleShipment(id, newDate) {
-        const s = shipments.value.find(s => s.id === id)
-        if (s && s.statusKey !== 'delivered' && s.statusKey !== 'cancelled') {
-            s.eta = newDate
-            s.statusHistory.push({ status: 'Rescheduled', time: new Date().toISOString().replace('T', ' ').substring(0, 16) })
-            return true
+    async function fetchShipments() {
+        const response = await fetch(`${API_BASE}/vendor/shipments`, {
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to load shipments.')
         }
-        return false
+
+        const data = await response.json()
+        shipments.value = (data.shipments || []).map(normalizeShipment)
+        rebuildNotifications()
+        return data
     }
 
-    function cancelShipment(id) {
-        const s = shipments.value.find(s => s.id === id)
-        if (s && s.statusKey !== 'delivered' && s.statusKey !== 'cancelled') {
-            s.status = 'Cancelled'
-            s.statusKey = 'cancelled'
-            s.progress = 0
-            s.statusHistory.push({ status: 'Cancelled', time: new Date().toISOString().replace('T', ' ').substring(0, 16) })
-            return true
+    async function fetchSettings() {
+        const response = await fetch(`${API_BASE}/vendor/settings`, {
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to load vendor settings.')
         }
-        return false
+
+        const data = await response.json()
+        companySettings.value = {
+            ...companySettings.value,
+            companyName: data.settings?.company_name || '',
+            taxId: data.settings?.tax_id || '',
+            contactPerson: data.settings?.contact_person || data.settings?.company_name || '',
+            phone: data.settings?.phone || '',
+            email: data.settings?.email || '',
+            address: data.settings?.address || '',
+            notifications: {
+                email: !!data.settings?.notification_prefs?.email,
+                sms: !!data.settings?.notification_prefs?.sms,
+                push: !!data.settings?.notification_prefs?.push,
+                orderUpdates: !!data.settings?.notification_prefs?.orderUpdates,
+                invoiceAlerts: !!data.settings?.notification_prefs?.invoiceAlerts,
+                promotions: !!data.settings?.notification_prefs?.promotions,
+            },
+        }
+        return data
     }
 
-    function payInvoice(id, amount) {
-        const inv = invoices.value.find(i => i.id === id)
-        if (!inv) return false
-        inv.paid = Math.min(inv.paid + amount, inv.amount)
-        inv.status = inv.paid >= inv.amount ? 'Paid' : inv.paid > 0 ? 'Partial' : inv.status
+    async function fetchDamageReports() {
+        const response = await fetch(`${API_BASE}/vendor/damage-reports`, {
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to load damage reports.')
+        }
+
+        const data = await response.json()
+        damageReports.value = (data.reports || []).map((report) => ({
+            id: report.id,
+            orderId: report.order_id,
+            description: report.description,
+            severity: 'Medium',
+            photos: report.photos || [],
+            status: report.status,
+            createdAt: report.created_at,
+            resolution: null,
+        }))
+        return data
+    }
+
+    async function fetchTeamMembers() {
+        const response = await fetch(`${API_BASE}/vendor/team-members`, {
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to load team members.')
+        }
+
+        companySettings.value.teamMembers = await response.json()
+        return companySettings.value.teamMembers
+    }
+
+    async function fetchApiKeys() {
+        const response = await fetch(`${API_BASE}/vendor/api-keys`, {
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to load API keys.')
+        }
+
+        companySettings.value.apiKeys = await response.json()
+        return companySettings.value.apiKeys
+    }
+
+    async function fetchRecurringRules() {
+        const response = await fetch(`${API_BASE}/vendor/recurring-rules`, {
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to load recurring rules.')
+        }
+
+        const data = await response.json()
+        recurringRules.value = data.map((rule) => ({
+            id: rule.id,
+            name: rule.name,
+            description: rule.description,
+            frequency: rule.frequency,
+            route: rule.route,
+            details: rule.details,
+            nextRun: rule.next_run,
+            active: !!rule.active,
+        }))
+        return recurringRules.value
+    }
+
+    async function fetchBulkUploads() {
+        const response = await fetch(`${API_BASE}/vendor/bulk-uploads`, {
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to load bulk uploads.')
+        }
+
+        bulkUploads.value = await response.json()
+        return bulkUploads.value
+    }
+
+    async function fetchTickets() {
+        const response = await fetch(`${API_BASE}/vendor/support-tickets`, {
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to load support tickets.')
+        }
+
+        const data = await response.json()
+        tickets.value = data.map((ticket) => ({
+            id: ticket.id,
+            backendId: ticket.id.replace(/^TK-/, '').toLowerCase(),
+            subject: ticket.subject,
+            description: ticket.description,
+            orderId: ticket.order_id,
+            created: ticket.created,
+            priority: ticket.priority,
+            status: ticket.status,
+            replies: (ticket.replies || []).map((reply) => ({
+                from: reply.from_name,
+                message: reply.message,
+                time: reply.time,
+            })),
+        }))
+        return tickets.value
+    }
+
+    async function initializeVendorData(force = false) {
+        if (initialized.value && !force) return
+        loading.value = true
+        error.value = ''
+
+        try {
+            await Promise.all([
+                fetchDashboardSummary(),
+                fetchShipments(),
+                fetchSettings(),
+                fetchDamageReports(),
+                fetchTeamMembers(),
+                fetchApiKeys(),
+                fetchRecurringRules(),
+                fetchBulkUploads(),
+                fetchTickets(),
+            ])
+            initialized.value = true
+        } catch (err) {
+            error.value = err.message || 'Failed to initialize vendor data.'
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function refreshVendorData() {
+        await initializeVendorData(true)
+    }
+
+    async function createShipment(data) {
+        const pickupAddr = data.pickupType === 'doorstep'
+            ? [data.pickupAddress, data.pickupCity, data.pickupPincode].filter(Boolean).join(', ')
+            : data.pickupHub || 'Origin Hub'
+
+        const deliveryAddr = [data.destination, data.destinationCity, data.pincode].filter(Boolean).join(', ')
+        const scheduledAt = data.pickupDate ? new Date(data.pickupDate).toISOString() : null
+        const total = Number(data.quotedPrice || 0)
+        const materialsAmount = 0
+        const packingAmount = data.packingRequired ? 200 : 0
+        const laborAmount = data.laborRequired ? Number(data.laborCount || 0) * 250 : 0
+        const baseAmount = Math.max(total - packingAmount - laborAmount, 0)
+
+        const response = await fetch(`${API_BASE}/orders`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({
+                order_type: 'VENDOR',
+                pickup_addr: pickupAddr,
+                delivery_addr: deliveryAddr,
+                cargo_type: data.description || data.category || 'Commercial Shipment',
+                vehicle_type: data.category || 'commercial',
+                labor_count: Number(data.laborCount || 0),
+                base_amount: baseAmount,
+                vehicle_amount: 0,
+                labor_amount: laborAmount,
+                materials_amount: materialsAmount,
+                packing_amount: packingAmount,
+                platform_fee: 0,
+                tax_amount: 0,
+                total_amount: total,
+                payment_mode: data.paymentMode || 'Invoice',
+                payment_status: 'pending',
+                service_time_block: data.timeWindow || null,
+                scheduled_at: scheduledAt,
+            }),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to create shipment.')
+        }
+
+        await refreshVendorData()
+        const created = await response.json()
+        const normalized = shipments.value.find((shipment) => shipment.backendId === created.id) || normalizeShipment({
+            ...created,
+            amount: created.total_amount,
+            status_label: 'Pending',
+            status_key: 'pending',
+            progress: 15,
+            eta_label: safeDateLabel(created.scheduled_at, safeDateLabel(created.created_at)),
+            cost: {
+                base: created.base_amount,
+                vehicle: created.vehicle_amount,
+                labor: created.labor_amount,
+                materials: created.materials_amount,
+                packing: created.packing_amount,
+                platform_fee: created.platform_fee,
+                taxes: created.tax_amount,
+                total: created.total_amount,
+            },
+            status_history: [{ status: 'Created', time: safeDateTimeLabel(created.created_at) }],
+        })
+
+        notifications.value.unshift({
+            id: `created-${normalized.id}-${Date.now()}`,
+            title: 'Shipment Created',
+            message: `${normalized.id} created successfully.`,
+            time: 'Just now',
+            read: false,
+            type: 'success',
+        })
+        return normalized
+    }
+
+    async function updateShipmentAddress(id, newAddress) {
+        const shipment = shipments.value.find((item) => item.id === id || item.backendId === id)
+        if (!shipment?.backendId) return false
+
+        const response = await fetch(`${API_BASE}/orders/${shipment.backendId}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({ delivery_addr: newAddress }),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to update shipment address.')
+        }
+
+        await refreshVendorData()
         return true
     }
 
-    function addTicket(ticket) {
-        const tid = `TK-${1030 + tickets.value.length}`
-        tickets.value.unshift({ id: tid, ...ticket, created: 'Just now', status: 'Open', replies: [] })
-        return tid
-    }
+    async function rescheduleShipment(id, newDate) {
+        const shipment = shipments.value.find((item) => item.id === id || item.backendId === id)
+        if (!shipment?.backendId) return false
 
-    function replyTicket(ticketId, message) {
-        const t = tickets.value.find(t => t.id === ticketId)
-        if (t) {
-            t.replies.push({ from: 'You', message, time: 'Just now' })
-            if (t.status === 'Resolved') t.status = 'Re-opened'
-        }
-    }
-
-    function resolveTicket(id) {
-        const t = tickets.value.find(t => t.id === id)
-        if (t) t.status = 'Resolved'
-    }
-
-    function addRecurringRule(rule) {
-        const id = Math.max(0, ...recurringRules.value.map(r => r.id)) + 1
-        recurringRules.value.push({ id, ...rule, active: true })
-        return id
-    }
-
-    function updateRecurringRule(id, updates) {
-        const idx = recurringRules.value.findIndex(r => r.id === id)
-        if (idx >= 0) recurringRules.value[idx] = { ...recurringRules.value[idx], ...updates }
-    }
-
-    function toggleRecurringRule(id) {
-        const r = recurringRules.value.find(r => r.id === id)
-        if (r) r.active = !r.active
-    }
-
-    function deleteRecurringRule(id) {
-        recurringRules.value = recurringRules.value.filter(r => r.id !== id)
-    }
-
-    function addBulkUpload(upload) {
-        bulkUploads.value.unshift({ id: Date.now(), date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }), status: 'Processed', errors: 0, ...upload })
-    }
-
-    // COD Payment recording
-    function recordCODPayment(orderId, amount) {
-        const s = shipments.value.find(s => s.id === orderId)
-        if (!s) return
-        s.codPaid = amount
-        const inv = invoices.value.find(i => i.orderId === orderId)
-        if (inv) payInvoice(inv.id, amount)
-    }
-
-    // Damage Report
-    function reportDamage(orderId, report) {
-        const s = shipments.value.find(s => s.id === orderId)
-        if (s) s.damageReport = report
-        const dmgId = `DMG-${String(damageReports.value.length + 1).padStart(3, '0')}`
-        damageReports.value.unshift({
-            id: dmgId,
-            orderId,
-            description: report.description || '',
-            severity: report.severity || 'Medium',
-            photos: report.photos || [],
-            status: 'Under Review',
-            createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-            resolution: null,
+        const parsed = new Date(newDate)
+        const scheduledAt = Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
+        const response = await fetch(`${API_BASE}/orders/${shipment.backendId}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({ scheduled_at: scheduledAt }),
         })
-        // Auto-create support ticket for damage
-        addTicket({ subject: `Damage Report for ${orderId}`, description: report.description, orderId, priority: 'High' })
-        return dmgId
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to reschedule shipment.')
+        }
+
+        await refreshVendorData()
+        return true
     }
 
-    // Pricing engine
+    async function cancelShipment(id) {
+        const shipment = shipments.value.find((item) => item.id === id || item.backendId === id)
+        if (!shipment?.backendId) return false
+
+        const response = await fetch(`${API_BASE}/orders/${shipment.backendId}/cancel`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({ reason: 'Cancelled by vendor' }),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to cancel shipment.')
+        }
+
+        await refreshVendorData()
+        return true
+    }
+
+    function payInvoice(id, amount) {
+        const invoice = invoices.value.find((item) => item.id === id)
+        if (!invoice) return false
+        const nextPaid = Math.min(invoice.amount, invoice.paid + amount)
+        invoice.paid = nextPaid
+        invoice.status = nextPaid >= invoice.amount ? 'Paid' : 'Partial'
+        return true
+    }
+
+    function recordCODPayment(orderId, amount) {
+        const invoice = invoices.value.find((item) => item.orderId === orderId)
+        if (invoice) payInvoice(invoice.id, amount)
+    }
+
+    async function reportDamage(orderIdOrPayload, reportPayload) {
+        const orderId = typeof orderIdOrPayload === 'object' ? orderIdOrPayload.shipmentId : orderIdOrPayload
+        const payload = typeof orderIdOrPayload === 'object' ? orderIdOrPayload : reportPayload
+
+        const shipment = shipments.value.find((item) => item.id === orderId || item.backendId === orderId)
+        const response = await fetch(`${API_BASE}/vendor/damage-reports`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({
+                order_id: shipment?.backendId || '',
+                description: payload?.description || '',
+                photos: payload?.photos || [],
+            }),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to submit damage report.')
+        }
+
+        await fetchDamageReports()
+        return true
+    }
+
     function calculateQuote(pallets, weight, laborCount, packingRequired, materials) {
         const base = pallets * 120 + weight * 0.08
         const labor = laborCount * 250
         const packing = packingRequired ? 200 : 0
-        const materialsTotal = materials ? materials.reduce((a, m) => a + m.qty * m.unitPrice, 0) : 0
+        const materialsTotal = materials ? materials.reduce((sum, material) => sum + material.qty * material.unitPrice, 0) : 0
         const total = base + labor + packing + materialsTotal
         return {
             baseTransport: Math.round(base),
@@ -277,39 +620,336 @@ export const useVendorStore = defineStore('vendor', () => {
         }
     }
 
-    // Settings
-    function updateCompanySettings(updates) {
-        Object.assign(companySettings.value, updates)
+    async function updateCompanySettings(updates) {
+        const response = await fetch(`${API_BASE}/vendor/settings`, {
+            method: 'PUT',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({
+                company_name: updates.companyName,
+                tax_id: updates.taxId,
+                contact_person: updates.contactPerson,
+                phone: updates.phone,
+                email: updates.email || companySettings.value.email,
+                address: updates.address ?? companySettings.value.address,
+                notification_prefs: companySettings.value.notifications,
+            }),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to update company settings.')
+        }
+
+        await fetchSettings()
+        return true
     }
 
-    function addTeamMember(member) {
-        const id = Math.max(0, ...companySettings.value.teamMembers.map(m => m.id)) + 1
-        companySettings.value.teamMembers.push({ id, ...member, status: 'Invited' })
+    async function addTeamMember(member) {
+        const response = await fetch(`${API_BASE}/vendor/team-members`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(member),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to add team member.')
+        }
+
+        await fetchTeamMembers()
+        return response.json()
     }
 
-    function removeTeamMember(id) {
-        companySettings.value.teamMembers = companySettings.value.teamMembers.filter(m => m.id !== id)
+    async function removeTeamMember(id) {
+        const response = await fetch(`${API_BASE}/vendor/team-members/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to remove team member.')
+        }
+
+        await fetchTeamMembers()
     }
 
-    function generateApiKey(name) {
-        const id = Math.max(0, ...companySettings.value.apiKeys.map(k => k.id)) + 1
-        const key = `vnd_${name.toLowerCase().replace(/\s/g, '_')}_${Math.random().toString(36).substring(2, 10)}`
-        companySettings.value.apiKeys.push({ id, name, key, created: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }), lastUsed: 'Never', status: 'Active' })
+    async function generateApiKey(name) {
+        const response = await fetch(`${API_BASE}/vendor/api-keys`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({ name }),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to generate API key.')
+        }
+
+        const key = await response.json()
+        await fetchApiKeys()
+        return key
     }
 
-    function revokeApiKey(id) {
-        const k = companySettings.value.apiKeys.find(k => k.id === id)
-        if (k) k.status = 'Revoked'
+    async function revokeApiKey(id) {
+        const response = await fetch(`${API_BASE}/vendor/api-keys/${id}/revoke`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to revoke API key.')
+        }
+
+        await fetchApiKeys()
+    }
+
+    async function addRecurringRule(rule) {
+        const response = await fetch(`${API_BASE}/vendor/recurring-rules`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({
+                name: rule.name,
+                description: rule.description || '',
+                frequency: rule.frequency,
+                route: rule.route,
+                details: rule.details,
+                next_run: rule.nextRun,
+                active: rule.active ?? true,
+            }),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to create recurring rule.')
+        }
+
+        await fetchRecurringRules()
+        return response.json()
+    }
+
+    async function updateRecurringRule(id, updates) {
+        const response = await fetch(`${API_BASE}/vendor/recurring-rules/${id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({
+                name: updates.name,
+                description: updates.description || '',
+                frequency: updates.frequency,
+                route: updates.route,
+                details: updates.details,
+                next_run: updates.nextRun,
+                active: updates.active ?? true,
+            }),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to update recurring rule.')
+        }
+
+        await fetchRecurringRules()
+    }
+
+    async function toggleRecurringRule(id) {
+        const response = await fetch(`${API_BASE}/vendor/recurring-rules/${id}/toggle`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to toggle recurring rule.')
+        }
+
+        await fetchRecurringRules()
+    }
+
+    async function deleteRecurringRule(id) {
+        const response = await fetch(`${API_BASE}/vendor/recurring-rules/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to delete recurring rule.')
+        }
+
+        await fetchRecurringRules()
+    }
+
+    async function addBulkUpload(upload) {
+        const response = await fetch(`${API_BASE}/vendor/bulk-uploads`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({
+                filename: upload.filename || upload.fileName || 'upload.csv',
+                file_size_kb: Number(upload.fileSizeKb || 0),
+                orders: Number(upload.orders || 0),
+                status: upload.status || 'Processed',
+                errors: Number(upload.errors || 0),
+                scheduled_for: upload.scheduledFor || null,
+            }),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to save bulk upload.')
+        }
+
+        await fetchBulkUploads()
+    }
+
+    async function updateBulkUpload(id, updates) {
+        const response = await fetch(`${API_BASE}/vendor/bulk-uploads/${id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(updates),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to update bulk upload.')
+        }
+
+        await fetchBulkUploads()
+    }
+
+    async function addTicket(ticket) {
+        const response = await fetch(`${API_BASE}/vendor/support-tickets`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({
+                subject: ticket.subject,
+                description: ticket.description || ticket.message,
+                priority: ticket.priority || 'Medium',
+                shipment_id: ticket.shipmentId || ticket.orderId || null,
+            }),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to create support ticket.')
+        }
+
+        await fetchTickets()
+        return response.json()
+    }
+
+    async function replyTicket(ticketId, message) {
+        const ticket = tickets.value.find((item) => item.id === ticketId || item.backendId === ticketId)
+        const backendId = ticket?.backendId || ticketId
+        const response = await fetch(`${API_BASE}/vendor/support-tickets/${backendId}/reply`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({ message }),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to reply to ticket.')
+        }
+
+        await fetchTickets()
+    }
+
+    async function resolveTicket(id) {
+        const ticket = tickets.value.find((item) => item.id === id || item.backendId === id)
+        const backendId = ticket?.backendId || id
+        const response = await fetch(`${API_BASE}/vendor/support-tickets/${backendId}/resolve`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to resolve ticket.')
+        }
+
+        await fetchTickets()
+    }
+
+    function addFunds(amount) {
+        if (amount > 0) walletBalance.value += amount
+    }
+
+    function markNotificationRead(id) {
+        const notification = notifications.value.find((item) => item.id === id)
+        if (notification) notification.read = true
+    }
+
+    function markAllNotificationsRead() {
+        notifications.value.forEach((item) => { item.read = true })
+    }
+
+    function clearNotifications() {
+        notifications.value = []
     }
 
     return {
-        shipments, invoices, recurringRules, bulkUploads, tickets, analyticsData,
-        packingMaterials, companySettings, damageReports,
-        activeShipments, pendingShipments, deliveredShipments, shipmentsWithPod,
-        overdueInvoices, totalOverdue, totalUnpaid, totalPaidThisMonth, creditBalance,
-        createShipment, updateShipmentAddress, rescheduleShipment, cancelShipment,
-        payInvoice, recordCODPayment, reportDamage, addTicket, replyTicket, resolveTicket,
-        addRecurringRule, updateRecurringRule, toggleRecurringRule, deleteRecurringRule, addBulkUpload, calculateQuote,
-        updateCompanySettings, addTeamMember, removeTeamMember, generateApiKey, revokeApiKey,
+        initialized,
+        loading,
+        error,
+        dashboard,
+        shipments,
+        invoices,
+        recurringRules,
+        bulkUploads,
+        tickets,
+        analyticsData,
+        packingMaterials,
+        companySettings,
+        damageReports,
+        notifications,
+        unreadNotificationsCount,
+        walletBalance,
+        activeShipments,
+        pendingShipments,
+        deliveredShipments,
+        shipmentsWithPod,
+        overdueInvoices,
+        totalOverdue,
+        totalUnpaid,
+        totalPaidThisMonth,
+        creditBalance,
+        initializeVendorData,
+        refreshVendorData,
+        fetchDashboardSummary,
+        fetchShipments,
+        fetchSettings,
+        fetchDamageReports,
+        fetchTeamMembers,
+        fetchApiKeys,
+        fetchRecurringRules,
+        fetchBulkUploads,
+        fetchTickets,
+        createShipment,
+        updateShipmentAddress,
+        rescheduleShipment,
+        cancelShipment,
+        payInvoice,
+        recordCODPayment,
+        reportDamage,
+        addTicket,
+        replyTicket,
+        resolveTicket,
+        addRecurringRule,
+        updateRecurringRule,
+        toggleRecurringRule,
+        deleteRecurringRule,
+        addBulkUpload,
+        updateBulkUpload,
+        calculateQuote,
+        updateCompanySettings,
+        addTeamMember,
+        removeTeamMember,
+        generateApiKey,
+        revokeApiKey,
+        addFunds,
+        markNotificationRead,
+        markAllNotificationsRead,
+        clearNotifications,
     }
 })

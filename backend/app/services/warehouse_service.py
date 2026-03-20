@@ -1,17 +1,24 @@
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.inventory import InventoryItem
-from app.models.labour import Labourer
-from app.models.order import Order
+from app.models.inventory import InventoryItem, InventoryMovement
+from app.models.labour import Labourer, LabourAttendance
+from app.models.order import DamageReport, Order, OrderItem
 from app.models.user import User
 from app.models.warehouse import Warehouse
 from app.schemas.warehouse import (
+    ChartData,
+    ChartDataset,
+    CriticalSkuItem,
     FloorPlanUpdate,
+    PickingQueueItem,
+    RecentReturnItem,
     WarehouseCreate,
+    WarehouseDashboardResponse,
     WarehouseKPIResponse,
     WarehouseListResponse,
     WarehouseResponse,
@@ -46,6 +53,14 @@ async def list_warehouses(db: AsyncSession, page: int, page_size: int) -> Wareho
 
 
 async def create_warehouse(db: AsyncSession, data: WarehouseCreate) -> WarehouseResponse:
+    existing = (
+        await db.execute(
+            select(Warehouse).where(func.lower(Warehouse.name) == data.name.strip().lower())
+        )
+    ).scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Warehouse with this name already exists")
+
     warehouse = Warehouse(**data.model_dump())
     db.add(warehouse)
     await db.flush()
@@ -64,6 +79,16 @@ async def update_warehouse(
     data: WarehouseUpdate,
 ) -> WarehouseResponse:
     warehouse = await _get_warehouse(db, warehouse_id)
+
+    if data.name and data.name.strip().lower() != warehouse.name.lower():
+        existing = (
+            await db.execute(
+                select(Warehouse).where(func.lower(Warehouse.name) == data.name.strip().lower())
+            )
+        ).scalar_one_or_none()
+        if existing:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Warehouse with this name already exists")
+
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(warehouse, key, value)
 
@@ -132,3 +157,484 @@ async def get_warehouse_kpis(db: AsyncSession, warehouse_id: UUID) -> WarehouseK
         labour_count=labour_count,
         order_count=order_count,
     )
+
+
+async def get_warehouse_dashboard(db: AsyncSession, warehouse_id: UUID) -> WarehouseDashboardResponse:
+    """Get comprehensive dashboard data for a warehouse."""
+    await _get_warehouse(db, warehouse_id)
+
+    # Calculate total inventory value (using average cost estimation)
+    inventory_items = (
+        await db.execute(
+            select(InventoryItem).where(InventoryItem.warehouse_id == warehouse_id)
+        )
+    ).scalars().all()
+
+    # Estimate value at ₹100 per unit average (simplified)
+    total_inventory_value = sum(item.quantity_on_hand for item in inventory_items) * 100.0
+
+    # Get inventory value from a week ago for comparison
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    inventory_movements_week = (
+        await db.execute(
+            select(InventoryMovement)
+            .join(InventoryItem, InventoryMovement.item_id == InventoryItem.id)
+            .where(
+                InventoryItem.warehouse_id == warehouse_id,
+                InventoryMovement.created_at >= week_ago
+            )
+        )
+    ).scalars().all()
+
+    # Calculate change percentage (simplified calculation)
+    net_movement = sum(
+        m.quantity if (m.movement_type or '').upper() in ['INBOUND', 'RETURN', 'RESTOCK', 'ADJUSTMENT'] else -m.quantity
+        for m in inventory_movements_week
+    )
+    value_change = (net_movement * 100.0) / (total_inventory_value or 1)
+    inventory_value_change_percent = round(value_change, 1)
+
+    # Get orders data
+    all_orders = (
+        await db.execute(
+            select(Order).where(Order.warehouse_id == warehouse_id)
+        )
+    ).scalars().all()
+
+    # Pending orders (PENDING, PICKING, PACKING status)
+    pending_statuses = ['PENDING', 'PICKING', 'PACKING', 'CONFIRMED']
+    pending_orders = [o for o in all_orders if o.status in pending_statuses]
+
+    # Ready for dispatch
+    ready_for_dispatch = len([o for o in all_orders if o.status in ['PACKED', 'READY']])
+
+    # Labor stats
+    all_laborers = (
+        await db.execute(
+            select(Labourer).where(Labourer.warehouse_id == warehouse_id)
+        )
+    ).scalars().all()
+
+    total_labor = len(all_laborers)
+    active_labor = len([l for l in all_laborers if l.is_active])
+
+    # Critical SKUs (low stock)
+    critical_items = (
+        await db.execute(
+            select(InventoryItem).where(
+                InventoryItem.warehouse_id == warehouse_id,
+                InventoryItem.quantity_on_hand <= InventoryItem.safety_stock
+            )
+        )
+    ).scalars().all()
+
+    critical_skus = [
+        CriticalSkuItem(
+            id=item.sku,
+            name=item.name,
+            current=item.quantity_on_hand,
+            min=item.safety_stock,
+            sku=item.sku
+        )
+        for item in critical_items
+    ]
+
+    # Picking queue (orders with PICKING or PENDING status with assigned laborers)
+    picking_queue_orders = (
+        await db.execute(
+            select(Order, func.count(OrderItem.id).label('item_count'))
+            .join(OrderItem, Order.id == OrderItem.order_id, isouter=True)
+            .where(
+                Order.warehouse_id == warehouse_id,
+                Order.status.in_(['PENDING', 'PICKING', 'PACKING', 'CONFIRMED'])
+            )
+            .group_by(Order.id)
+            .order_by(Order.created_at.desc())
+            .limit(20)
+        )
+    ).all()
+
+    picking_queue = []
+    for order, item_count in picking_queue_orders:
+        # Get assigned user if any
+        assigned_name = None
+        assigned_initials = ""
+        if order.assigned_driver_id:
+            assigned_user = (
+                await db.execute(select(User).where(User.id == order.assigned_driver_id))
+            ).scalar_one_or_none()
+            if assigned_user:
+                assigned_name = assigned_user.name
+                assigned_initials = "".join([word[0].upper() for word in assigned_name.split()[:2]])
+
+        # Determine progress and priority
+        progress = 0
+        if order.status == 'PICKING':
+            progress = 50
+        elif order.status == 'PACKING':
+            progress = 75
+        elif order.status == 'PACKED':
+            progress = 100
+
+        priority = 'High' if order.order_type == 'EXPRESS' else 'Normal'
+
+        # Determine zone from inventory items
+        zone = 'A-01'  # Default
+        if item_count > 0:
+            first_item = (
+                await db.execute(
+                    select(OrderItem).where(OrderItem.order_id == order.id).limit(1)
+                )
+            ).scalar_one_or_none()
+            if first_item:
+                inv_item = (
+                    await db.execute(
+                        select(InventoryItem).where(
+                            InventoryItem.warehouse_id == warehouse_id,
+                            InventoryItem.sku == first_item.sku
+                        )
+                    )
+                ).scalar_one_or_none()
+                if inv_item and inv_item.aisle:
+                    zone = inv_item.aisle
+
+        picking_queue.append(
+            PickingQueueItem(
+                id=order.tracking_code,
+                order_id=str(order.id),
+                items=item_count or 0,
+                zone=zone,
+                priority=priority,
+                assigned=assigned_name,
+                assignedInitials=assigned_initials,
+                progress=progress,
+                status=order.status.title().replace('_', ' '),
+                tracking_code=order.tracking_code
+            )
+        )
+
+    # Recent returns (from damage reports)
+    recent_damage_reports = (
+        await db.execute(
+            select(DamageReport)
+            .where(DamageReport.created_at >= datetime.now(timezone.utc) - timedelta(days=1))
+            .order_by(desc(DamageReport.created_at))
+            .limit(5)
+        )
+    ).scalars().all()
+
+    recent_returns = [
+        RecentReturnItem(
+            id=report.reference_code,
+            description=report.description[:50] + '...' if len(report.description) > 50 else report.description,
+            action='Scrap' if report.status == 'rejected' else 'Restock',
+            created_at=report.created_at
+        )
+        for report in recent_damage_reports
+    ]
+
+    # Chart data - Throughput (hourly picks for today)
+    today = datetime.now(timezone.utc).date()
+    today_start = datetime.combine(today, datetime.min.time()).replace(tzinfo=timezone.utc)
+
+    # Get hourly movement data for outbound picks
+    hourly_picks = []
+    for hour in range(8):  # 8 hours
+        hour_start = today_start + timedelta(hours=6 + hour)
+        hour_end = hour_start + timedelta(hours=1)
+
+        pick_count = (
+            await db.execute(
+                select(func.coalesce(func.sum(InventoryMovement.quantity), 0))
+                .join(InventoryItem, InventoryMovement.item_id == InventoryItem.id)
+                .where(
+                    InventoryItem.warehouse_id == warehouse_id,
+                    func.upper(InventoryMovement.movement_type).in_(['OUTBOUND', 'PICK', 'ISSUE']),
+                    InventoryMovement.created_at >= hour_start,
+                    InventoryMovement.created_at < hour_end
+                )
+            )
+        ).scalar_one()
+
+        hourly_picks.append(int(pick_count) if pick_count else 0)
+
+    throughput_chart = ChartData(
+        labels=['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00'],
+        datasets=[ChartDataset(
+            label='Items Picked',
+            data=hourly_picks,
+            borderColor='#14b8a6',
+            backgroundColor='rgba(20, 184, 166, 0.1)',
+            borderWidth=2,
+            tension=0.4,
+            fill=True
+        )]
+    )
+
+    # Orders vs Returns (last 7 days)
+    daily_orders = []
+    daily_returns = []
+    day_labels = []
+
+    for i in range(7):
+        day = today - timedelta(days=6 - i)
+        day_start = datetime.combine(day, datetime.min.time()).replace(tzinfo=timezone.utc)
+        day_end = day_start + timedelta(days=1)
+
+        day_labels.append(day.strftime('%a'))
+
+        order_count = (
+            await db.execute(
+                select(func.count(Order.id))
+                .where(
+                    Order.warehouse_id == warehouse_id,
+                    Order.created_at >= day_start,
+                    Order.created_at < day_end
+                )
+            )
+        ).scalar_one()
+
+        return_count = (
+            await db.execute(
+                select(func.count(DamageReport.id))
+                .where(
+                    DamageReport.created_at >= day_start,
+                    DamageReport.created_at < day_end
+                )
+            )
+        ).scalar_one()
+
+        daily_orders.append(order_count)
+        daily_returns.append(return_count)
+
+    orders_returns_chart = ChartData(
+        labels=day_labels,
+        datasets=[
+            ChartDataset(
+                label='Outbound Orders',
+                data=daily_orders,
+                backgroundColor='#3b82f6',
+                borderRadius=4
+            ),
+            ChartDataset(
+                label='Inbound Returns',
+                data=daily_returns,
+                backgroundColor='#fb7185',
+                borderRadius=4
+            )
+        ]
+    )
+
+    # Stock composition (by category)
+    category_counts = (
+        await db.execute(
+            select(
+                InventoryItem.category,
+                func.sum(InventoryItem.quantity_on_hand).label('total_qty')
+            )
+            .where(InventoryItem.warehouse_id == warehouse_id)
+            .group_by(InventoryItem.category)
+        )
+    ).all()
+
+    total_inventory = sum(row.total_qty for row in category_counts) or 1
+
+    # Default categories if none exist
+    if not category_counts:
+        stock_packaging_chart = ChartData(
+            labels=['No Data'],
+            datasets=[ChartDataset(
+                label='Inventory',
+                data=[100],
+                backgroundColor=['#10b981'],
+                borderWidth=1,
+                borderColor='#1f2937',
+                hoverOffset=4
+            )]
+        )
+    else:
+        stock_packaging_chart = ChartData(
+            labels=[row.category or 'Uncategorized' for row in category_counts],
+            datasets=[ChartDataset(
+                label='Inventory',
+                data=[round((row.total_qty / total_inventory) * 100, 1) for row in category_counts],
+                backgroundColor=['#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#3b82f6', '#ec4899'],
+                borderWidth=1,
+                borderColor='#1f2937',
+                hoverOffset=4
+            )]
+        )
+
+    # Active staff distribution (warehouse workers vs drivers)
+    active_staff_chart = ChartData(
+        labels=['Warehouse Floor Staff', 'Active Delivery Drivers'],
+        datasets=[ChartDataset(
+            label='Active Staff',
+            data=[active_labor, 0],  # TODO: Add driver count when driver model is available
+            backgroundColor=['#eab308', '#0ea5e9'],
+            borderWidth=0,
+            hoverOffset=6
+        )]
+    )
+
+    # Labor distribution by task
+    assigned_laborers = len([l for l in all_laborers if l.assigned_order_id])
+    idle_laborers = active_labor - assigned_laborers
+
+    # Simplified distribution
+    picking_labor = int(assigned_laborers * 0.5)
+    packing_labor = int(assigned_laborers * 0.3)
+    receiving_labor = int(assigned_laborers * 0.2)
+
+    labor_distribution_chart = ChartData(
+        labels=['Picking (Zone A)', 'Packing', 'Receiving', 'Idle'],
+        datasets=[ChartDataset(
+            label='Labor',
+            data=[picking_labor, packing_labor, receiving_labor, idle_laborers],
+            backgroundColor=['#14b8a6', '#3b82f6', '#a855f7', '#eab308'],
+            borderWidth=0,
+            hoverOffset=6
+        )]
+    )
+
+    # Calculate average pick time (simplified - based on recent completed orders)
+    completed_orders_today = (
+        await db.execute(
+            select(Order)
+            .where(
+                Order.warehouse_id == warehouse_id,
+                Order.status.in_(['PACKED', 'READY', 'DISPATCHED']),
+                Order.updated_at >= today_start
+            )
+        )
+    ).scalars().all()
+
+    # Simplified avg: assume 10-15 minutes per order
+    avg_pick_time = 12 if len(completed_orders_today) > 0 else 10
+
+    # Next truck estimate (simplified)
+    next_truck_minutes = 15  # TODO: Connect to actual dispatch schedule
+
+    # Efficiency insight (analyze recent activity)
+    efficiency_insight = "All zones operating at normal efficiency."
+    if active_labor < total_labor * 0.5:
+        efficiency_insight = f"Labor utilization at {round((active_labor/total_labor)*100)}%. Consider scheduling more staff."
+    elif len(critical_skus) > 5:
+        efficiency_insight = f"{len(critical_skus)} SKUs below safety stock. Restock orders recommended."
+
+    return WarehouseDashboardResponse(
+        total_inventory_value=round(total_inventory_value, 2),
+        inventory_value_change_percent=inventory_value_change_percent,
+        pending_orders_count=len(pending_orders),
+        avg_pick_time_minutes=avg_pick_time,
+        ready_for_dispatch=ready_for_dispatch,
+        next_truck_minutes=next_truck_minutes,
+        active_labor=active_labor,
+        total_labor=total_labor,
+        critical_skus=critical_skus,
+        picking_queue=picking_queue,
+        recent_returns=recent_returns,
+        throughput_chart=throughput_chart,
+        orders_returns_chart=orders_returns_chart,
+        stock_packaging_chart=stock_packaging_chart,
+        active_staff_chart=active_staff_chart,
+        labor_distribution_chart=labor_distribution_chart,
+        efficiency_insight=efficiency_insight
+    )
+
+
+async def mark_order_complete(db: AsyncSession, warehouse_id: UUID, order_id: UUID) -> None:
+    """Mark an order as complete (PACKED status)."""
+    await _get_warehouse(db, warehouse_id)
+
+    order = (
+        await db.execute(
+            select(Order).where(Order.id == order_id, Order.warehouse_id == warehouse_id)
+        )
+    ).scalar_one_or_none()
+
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    order.status = 'PACKED'
+    db.add(order)
+    await db.flush()
+
+
+async def reassign_order(db: AsyncSession, warehouse_id: UUID, order_id: UUID) -> None:
+    """Reassign order to an available laborer."""
+    await _get_warehouse(db, warehouse_id)
+
+    order = (
+        await db.execute(
+            select(Order).where(Order.id == order_id, Order.warehouse_id == warehouse_id)
+        )
+    ).scalar_one_or_none()
+
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    # Find an available laborer (not currently assigned)
+    available_laborer = (
+        await db.execute(
+            select(Labourer).where(
+                Labourer.warehouse_id == warehouse_id,
+                Labourer.is_active == True,
+                Labourer.assigned_order_id == None
+            ).limit(1)
+        )
+    ).scalar_one_or_none()
+
+    if available_laborer:
+        # Unassign from any current laborer
+        current_assigned = (
+            await db.execute(
+                select(Labourer).where(Labourer.assigned_order_id == order_id)
+            )
+        ).scalar_one_or_none()
+        if current_assigned:
+            current_assigned.assigned_order_id = None
+            db.add(current_assigned)
+
+        # Assign to new laborer
+        available_laborer.assigned_order_id = order.id
+        db.add(available_laborer)
+
+        # Update order status to PICKING if it was pending
+        if order.status in ['PENDING', 'CONFIRMED']:
+            order.status = 'PICKING'
+        db.add(order)
+
+    await db.flush()
+
+
+async def process_restock(db: AsyncSession, warehouse_id: UUID) -> None:
+    """Process restock for all critical SKUs (auto-replenish to safety stock * 2)."""
+    await _get_warehouse(db, warehouse_id)
+
+    critical_items = (
+        await db.execute(
+            select(InventoryItem).where(
+                InventoryItem.warehouse_id == warehouse_id,
+                InventoryItem.quantity_on_hand <= InventoryItem.safety_stock
+            )
+        )
+    ).scalars().all()
+
+    for item in critical_items:
+        # Restock to double the safety stock level
+        restock_qty = (item.safety_stock * 2) - item.quantity_on_hand
+        item.quantity_on_hand += restock_qty
+
+        # Create inventory movement record
+        movement = InventoryMovement(
+            item_id=item.id,
+            movement_type='inbound',
+            quantity=restock_qty,
+            reference_order_id=None,
+            performed_by=None
+        )
+        db.add(movement)
+        db.add(item)
+
+    await db.flush()

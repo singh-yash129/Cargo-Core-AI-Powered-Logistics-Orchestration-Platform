@@ -127,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import HeaderWeather from '@/components/HeaderWeather.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'
@@ -150,6 +150,10 @@ function submitAddFunds() {
   store.addFunds(addAmount.value)
   closeFundsModal()
 }
+
+onMounted(() => {
+  store.initializeVendorData().catch(() => {})
+})
 
 watch(route, () => {
   isSidebarOpen.value = false

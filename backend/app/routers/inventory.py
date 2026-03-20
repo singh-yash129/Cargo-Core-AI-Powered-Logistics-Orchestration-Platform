@@ -33,6 +33,15 @@ async def list_inventory(
     return await inventory_service.list_items(db, page, page_size, warehouse_id)
 
 
+@router.get("/categories", response_model=list[str])
+async def list_inventory_categories(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+    warehouse_id: UUID | None = Query(default=None),
+):
+    return await inventory_service.list_categories(db, warehouse_id)
+
+
 @router.post("", response_model=InventoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_inventory_item(
     data: InventoryCreate,
@@ -87,8 +96,10 @@ async def list_inventory_movements(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     item_id: UUID | None = Query(default=None),
+    warehouse_id: UUID | None = Query(default=None),
+    reference_order_id: UUID | None = Query(default=None),
 ):
-    return await inventory_service.list_movements(db, page, page_size, item_id)
+    return await inventory_service.list_movements(db, page, page_size, item_id, warehouse_id, reference_order_id)
 
 
 @router.get("/low-stock", response_model=list[InventoryResponse])

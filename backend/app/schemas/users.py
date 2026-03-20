@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 class UserAdminCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
+    username: str | None = Field(default=None, min_length=3, max_length=64)
     email: EmailStr
     phone: str | None = Field(default=None, max_length=20)
     password: str = Field(..., min_length=8)
@@ -30,6 +31,7 @@ class AssignWarehouseRequest(BaseModel):
 class UserAdminResponse(BaseModel):
     id: UUID
     name: str
+    username: str
     email: str
     phone: str | None
     role: str

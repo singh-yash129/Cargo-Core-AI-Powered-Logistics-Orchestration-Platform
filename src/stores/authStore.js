@@ -1,10 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { apiUrl } from '@/config/api';
 
 export const useAuthStore = defineStore('auth', () => {
-  const currentUser = ref(null);
-  const isAuthenticated = ref(false);
-  const authToken = ref(null);
+  const savedUser = JSON.parse(localStorage.getItem('auth_user') || 'null');
+  const savedToken = localStorage.getItem('auth_token');
+
+  const currentUser = ref(savedUser);
+  const isAuthenticated = ref(!!savedToken);
+  const authToken = ref(savedToken);
   const pendingEmail = ref('');
   const pendingRole = ref('');
   const pendingFlow = ref('');
@@ -14,6 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
   const otpError = ref('');
   const resetError = ref('');
   const isLoading = ref(false);
+  const currentWarehouse = ref(null);
 
   const userRole = computed(() => currentUser.value?.role ?? '');
   const userName = computed(() => currentUser.value?.name ?? '');
@@ -23,10 +28,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (role === 'INDIVIDUAL') return 'Customer';
     if (role === 'VENDOR') return 'Vendor';
-    if (role === 'manager') return 'Logistics Manager';
-    if (role === 'warehouse') return 'Warehouse Manager';
-    if (role === 'dispatcher') return 'Dispatcher';
-    if (role === 'driver') return 'Driver';
+    if (role === 'LOGISTIC_MANAGER' || role === 'manager') return 'Logistics Manager';
+    if (role === 'WAREHOUSE_MANAGER' || role === 'warehouse') return 'Warehouse Manager';
+    if (role === 'DISPATCHER' || role === 'dispatcher') return 'Dispatcher';
+    if (role === 'DRIVER' || role === 'driver') return 'Driver';
+    if (role === 'AI_AGENT' || role === 'support') return 'AI Support';
 
     return role;
   });
@@ -34,7 +40,75 @@ export const useAuthStore = defineStore('auth', () => {
   function getDashboardRoute(role = currentUser.value?.role) {
     if (role === 'INDIVIDUAL') return '/individual/dashboard';
     if (role === 'VENDOR') return '/vendor/dashboard';
+    if (role === 'LOGISTIC_MANAGER' || role === 'manager') return '/logistic/dashboard';
+    if (role === 'WAREHOUSE_MANAGER' || role === 'warehouse') return '/warehouse/dashboard';
+    if (role === 'DISPATCHER' || role === 'dispatcher') return '/dispatcher/dashboard';
+    if (role === 'DRIVER' || role === 'driver') return '/driver/dashboard';
     return '/dashboard';
+  }
+
+  function persistCurrentUser(user) {
+    currentUser.value = user;
+    localStorage.setItem('auth_user', JSON.stringify(user));
+  }
+
+  async function ensureWarehouseContext() {
+    if (!authToken.value || !currentUser.value) return null;
+
+    let profile = currentUser.value;
+    const cachedWarehouseId = currentUser.value?.warehouse_id ?? null;
+
+    try {
+      const profileResp = await fetch(apiUrl('api/v1/auth/me'), {
+        headers: { Authorization: `Bearer ${authToken.value}` },
+      });
+
+      if (profileResp.ok) {
+        const refreshedProfile = await profileResp.json();
+        profile = {
+          ...currentUser.value,
+          ...refreshedProfile,
+          warehouse_id: refreshedProfile.warehouse_id ?? cachedWarehouseId,
+        };
+        persistCurrentUser(profile);
+      }
+    } catch (_) {
+      // Keep using cached auth data if the profile refresh fails.
+    }
+
+    if (profile?.role !== 'WAREHOUSE_MANAGER') {
+      currentWarehouse.value = null;
+      return null;
+    }
+
+    try {
+      const listResp = await fetch(apiUrl('api/v1/warehouses?page=1&page_size=100'), {
+        headers: { Authorization: `Bearer ${authToken.value}` },
+      });
+
+      if (!listResp.ok) return null;
+
+      const data = await listResp.json();
+      const warehouses = data.items || [];
+      const linkedWarehouse = warehouses.find((warehouse) =>
+        warehouse.id === profile.warehouse_id || warehouse.manager_id === profile.id
+      ) || (
+        warehouses.length === 1 ? warehouses[0] : null
+      );
+
+      currentWarehouse.value = linkedWarehouse;
+
+      if (linkedWarehouse && profile.warehouse_id !== linkedWarehouse.id) {
+        persistCurrentUser({
+          ...currentUser.value,
+          warehouse_id: linkedWarehouse.id,
+        });
+      }
+
+      return linkedWarehouse;
+    } catch (_) {
+      return null;
+    }
   }
 
   async function login(emailOrPhone, password) {
@@ -42,7 +116,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginError.value = '';
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+      const response = await fetch(apiUrl('api/v1/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailOrPhone, password }),
@@ -63,6 +137,10 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('auth_token', data.access_token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
 
+      if (data.user.role === 'WAREHOUSE_MANAGER') {
+        await ensureWarehouseContext();
+      }
+
       return {
         success: true,
         message: `Welcome back, ${data.user.name}!`,
@@ -82,7 +160,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       if (pendingFlow.value === 'signup') {
-        const verifyResp = await fetch('http://localhost:8000/api/v1/auth/verify-otp', {
+        const verifyResp = await fetch(apiUrl('api/v1/auth/verify-otp'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: pendingEmail.value, otp: otp }),
@@ -94,7 +172,7 @@ export const useAuthStore = defineStore('auth', () => {
           return { success: false, message: otpError.value };
         }
 
-        const registerResp = await fetch('http://localhost:8000/api/v1/auth/register', {
+        const registerResp = await fetch(apiUrl('api/v1/auth/register'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(pendingRegistrationData.value),
@@ -113,6 +191,8 @@ export const useAuthStore = defineStore('auth', () => {
         currentUser.value = {
           name: payload.name,
           email: payload.email,
+          phone: payload.phone,
+          address: payload.address,
           role: payload.role
         };
         authToken.value = data.access_token;
@@ -148,11 +228,12 @@ export const useAuthStore = defineStore('auth', () => {
         name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'New User',
         email: userData.email,
         phone: userData.phone || null,
+        address: userData.address || null,
         password: userData.password,
         role: mappedRole
       };
 
-      const response = await fetch('http://localhost:8000/api/v1/auth/send-otp', {
+      const response = await fetch(apiUrl('api/v1/auth/send-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: payload.email }),
@@ -185,7 +266,7 @@ export const useAuthStore = defineStore('auth', () => {
     resetError.value = '';
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/forgot-password', {
+      const response = await fetch(apiUrl('api/v1/auth/forgot-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -212,7 +293,7 @@ export const useAuthStore = defineStore('auth', () => {
     resetError.value = '';
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/reset-password', {
+      const response = await fetch(apiUrl('api/v1/auth/reset-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -242,6 +323,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated.value = false;
     authToken.value = null;
     currentUser.value = null;
+    currentWarehouse.value = null;
     pendingEmail.value = '';
     pendingRole.value = '';
     pendingFlow.value = '';
@@ -255,7 +337,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginError.value = '';
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/google-login', {
+      const response = await fetch(apiUrl('api/v1/auth/google-login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential, role }),
@@ -274,6 +356,10 @@ export const useAuthStore = defineStore('auth', () => {
       authToken.value = data.access_token;
       localStorage.setItem('auth_token', data.access_token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
+
+      if (data.user.role === 'WAREHOUSE_MANAGER') {
+        await ensureWarehouseContext();
+      }
 
       return {
         success: true,
@@ -312,6 +398,7 @@ export const useAuthStore = defineStore('auth', () => {
     userRoleLabel,
     userName,
     userEmail,
+    currentWarehouse,
     login,
     verifyOTP,
     signup,
@@ -319,6 +406,7 @@ export const useAuthStore = defineStore('auth', () => {
     resetPassword,
     logout,
     googleLogin,
+    ensureWarehouseContext,
     getDashboardRoute,
     clearErrors,
   };

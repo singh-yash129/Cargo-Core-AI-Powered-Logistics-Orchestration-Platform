@@ -46,14 +46,6 @@
             <div class="hidden sm:block">
               <HeaderWeather />
             </div>
-            <NotificationPopover
-              :notifications="store.notifications"
-              :unread-count="store.unreadNotificationsCount"
-              @mark-read="store.markNotificationRead"
-              @mark-all-read="store.markAllNotificationsRead"
-              @clear-all="store.clearNotifications"
-            />
-            <div class="hidden sm:block h-6 w-px bg-gray-200 dark:bg-white/10 mx-1" />
             <router-link
               to="/individual/book-move"
               class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm shadow-sm"
@@ -133,7 +125,6 @@ import { computed, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import HeaderWeather from '@/components/HeaderWeather.vue'
 import IndividualSidebar from '@/IV-components/IndividualSidebar.vue'
-import NotificationPopover from '@/components/NotificationPopover.vue'
 import { useIndividualStore } from '@/stores/individualStore'
 
 const store = useIndividualStore()

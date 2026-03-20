@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.labour import LabourAttendance, Labourer
 from app.schemas.labour import (
@@ -19,26 +20,65 @@ from app.schemas.labour import (
 
 
 async def _get_labourer(db: AsyncSession, labourer_id: UUID) -> Labourer:
-    result = await db.execute(select(Labourer).where(Labourer.id == labourer_id))
+    result = await db.execute(
+        select(Labourer)
+        .options(
+            selectinload(Labourer.user),
+            selectinload(Labourer.assigned_order),
+        )
+        .where(Labourer.id == labourer_id)
+    )
     labourer = result.scalar_one_or_none()
     if not labourer:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Labourer not found")
     return labourer
 
 
-async def list_labourers(db: AsyncSession, page: int, page_size: int) -> LabourerListResponse:
-    total = (await db.execute(select(func.count(Labourer.id)))).scalar_one()
-    rows = (
-        await db.execute(
-            select(Labourer)
-            .order_by(Labourer.created_at.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
+def _to_labourer_response(labourer: Labourer) -> LabourerResponse:
+    return LabourerResponse(
+        id=labourer.id,
+        user_id=labourer.user_id,
+        warehouse_id=labourer.warehouse_id,
+        assigned_order_id=labourer.assigned_order_id,
+        assigned_order_tracking=labourer.assigned_order.tracking_code if labourer.assigned_order else None,
+        assigned_order_substatus=labourer.assigned_order.warehouse_substatus if labourer.assigned_order else None,
+        skill_tags=labourer.skill_tags,
+        is_active=labourer.is_active,
+        name=labourer.user.name if labourer.user else None,
+        email=labourer.user.email if labourer.user else None,
+        created_at=labourer.created_at,
+    )
+
+
+async def list_labourers(
+    db: AsyncSession,
+    page: int,
+    page_size: int,
+    warehouse_id: UUID | None = None,
+) -> LabourerListResponse:
+    total_query = select(func.count(Labourer.id))
+    data_query = (
+        select(Labourer)
+        .options(
+            selectinload(Labourer.user),
+            selectinload(Labourer.assigned_order),
         )
+        .order_by(Labourer.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+
+    if warehouse_id:
+        total_query = total_query.where(Labourer.warehouse_id == warehouse_id)
+        data_query = data_query.where(Labourer.warehouse_id == warehouse_id)
+
+    total = (await db.execute(total_query)).scalar_one()
+    rows = (
+        await db.execute(data_query)
     ).scalars().all()
 
     return LabourerListResponse(
-        items=[LabourerResponse.model_validate(row) for row in rows],
+        items=[_to_labourer_response(row) for row in rows],
         total=total,
         page=page,
         page_size=page_size,
@@ -53,13 +93,13 @@ async def create_labourer(db: AsyncSession, data: LabourerCreate) -> LabourerRes
     labourer = Labourer(**data.model_dump(), is_active=True)
     db.add(labourer)
     await db.flush()
-    await db.refresh(labourer)
-    return LabourerResponse.model_validate(labourer)
+    labourer = await _get_labourer(db, labourer.id)
+    return _to_labourer_response(labourer)
 
 
 async def get_labourer_detail(db: AsyncSession, labourer_id: UUID) -> LabourerResponse:
     labourer = await _get_labourer(db, labourer_id)
-    return LabourerResponse.model_validate(labourer)
+    return _to_labourer_response(labourer)
 
 
 async def update_labourer(
@@ -73,8 +113,8 @@ async def update_labourer(
 
     db.add(labourer)
     await db.flush()
-    await db.refresh(labourer)
-    return LabourerResponse.model_validate(labourer)
+    labourer = await _get_labourer(db, labourer.id)
+    return _to_labourer_response(labourer)
 
 
 async def assign_labourer(db: AsyncSession, labourer_id: UUID, order_id: UUID) -> AssignLabourResponse:

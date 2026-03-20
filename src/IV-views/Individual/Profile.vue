@@ -26,11 +26,7 @@
                     Joined {{ formatJoinDate(store.user.joiningDate) }}</div>
 
                 <div class="mt-6 mb-6 space-y-3 text-sm text-left px-2">
-                    <div class="flex justify-between border-b border-gray-100 dark:border-white/5 pb-2">
-                        <span class="text-gray-500">Alt Phone</span>
-                        <span class="font-medium text-gray-900 dark:text-white">{{ store.user.altPhone || 'Not Provided'
-                            }}</span>
-                    </div>
+
                 </div>
 
                 <div class="grid grid-cols-2 gap-3 mb-6">
@@ -98,12 +94,6 @@
                             <input v-model="form.phone" type="tel"
                                 class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all" />
                         </div>
-                        <div>
-                            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">Alternative
-                                Phone (Optional)</label>
-                            <input v-model="form.altPhone" type="tel"
-                                class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all" />
-                        </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">Primary
                                 Address</label>
@@ -144,8 +134,9 @@
                 enter-to-class="translate-y-0 opacity-100" leave-active-class="transition duration-200 ease-in"
                 leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-4 opacity-0">
                 <div v-if="toast.show"
-                    class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-xl bg-green-600 text-white border border-green-500 max-w-sm">
-                    <span class="material-symbols-outlined">check_circle</span>
+                    class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-xl text-white border max-w-sm"
+                    :class="toast.type === 'error' ? 'bg-red-600 border-red-500' : 'bg-green-600 border-green-500'">
+                    <span class="material-symbols-outlined">{{ toast.type === 'error' ? 'error' : 'check_circle' }}</span>
                     <span class="text-sm font-medium">{{ toast.message }}</span>
                 </div>
             </transition>
@@ -170,7 +161,6 @@ const form = reactive({
     name: store.user.name,
     email: store.user.email,
     phone: store.user.phone,
-    altPhone: store.user.altPhone || '',
     address: store.user.address || '',
 })
 
@@ -179,13 +169,15 @@ async function saveProfile() {
         name: form.name,
         email: form.email,
         phone: form.phone,
-        altPhone: form.altPhone,
         address: form.address
     })
     if (result.success) {
-        showToast('Profile updated successfully!')
+        showToast('Profile updated successfully!', 'success')
     } else {
-        showToast(result.message || 'Failed to update profile.')
+        let errMsg = result.message || 'Failed to update profile.'
+        if (Array.isArray(errMsg)) errMsg = errMsg.map(e => e.msg).join(', ')
+        else if (typeof errMsg === 'object') errMsg = JSON.stringify(errMsg)
+        showToast(errMsg, 'error')
     }
 }
 
@@ -265,8 +257,13 @@ function selectAvatar(emoji) {
     showToast('Avatar updated!')
 }
 
-const toast = reactive({ show: false, message: '' })
-function showToast(msg) { toast.show = true; toast.message = msg; setTimeout(() => { toast.show = false }, 3000) }
+const toast = reactive({ show: false, message: '', type: 'success' })
+function showToast(msg, type = 'success') { 
+    toast.show = true; 
+    toast.message = msg; 
+    toast.type = type;
+    setTimeout(() => { toast.show = false }, 3000) 
+}
 
 function formatJoinDate(dateString) {
     if (!dateString) return 'Recently'
@@ -287,7 +284,6 @@ onMounted(async () => {
     form.name = store.user.name
     form.email = store.user.email
     form.phone = store.user.phone
-    form.altPhone = store.user.altPhone || ''
     form.address = store.user.address || ''
 })
 </script>

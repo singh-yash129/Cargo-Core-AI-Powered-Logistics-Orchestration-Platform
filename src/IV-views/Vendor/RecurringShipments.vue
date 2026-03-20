@@ -160,8 +160,8 @@ const form = ref({ ...defaultForm })
 
 const activeCount = computed(() => store.recurringRules.filter(r => r.active).length)
 
-function toggleRule(rule) {
-    store.toggleRecurringRule(rule.id)
+async function toggleRule(rule) {
+    await store.toggleRecurringRule(rule.id)
     showToast(rule.active ? `"${rule.name}" paused` : `"${rule.name}" activated`)
 }
 
@@ -177,13 +177,13 @@ function openEditModal(rule) {
     showFormModal.value = true
 }
 
-function submitForm() {
+async function submitForm() {
     if (!form.value.name || !form.value.route || !form.value.details) return
     if (editingRule.value) {
-        Object.assign(editingRule.value, form.value)
+        await store.updateRecurringRule(editingRule.value.id, { ...form.value, active: editingRule.value.active })
         showToast('Schedule updated')
     } else {
-        store.recurringRules.push({ id: Date.now(), ...form.value, active: true })
+        await store.addRecurringRule({ ...form.value, active: true })
         showToast('Schedule created')
     }
     showFormModal.value = false
@@ -194,10 +194,9 @@ function confirmDelete(rule) {
     showDeleteModal.value = true
 }
 
-function executeDelete() {
+async function executeDelete() {
     if (!deletingRule.value) return
-    const idx = store.recurringRules.findIndex(r => r.id === deletingRule.value.id)
-    if (idx !== -1) store.recurringRules.splice(idx, 1)
+    await store.deleteRecurringRule(deletingRule.value.id)
     showDeleteModal.value = false
     showToast('Schedule deleted')
     deletingRule.value = null

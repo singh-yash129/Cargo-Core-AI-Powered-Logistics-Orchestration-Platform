@@ -14,8 +14,10 @@ SELF_SERVICE_ROLES = Literal["INDIVIDUAL", "VENDOR"]
 
 class UserRegister(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
+    username: str | None = Field(default=None, min_length=3, max_length=64)
     email: EmailStr
     phone: str | None = Field(default=None, max_length=20)
+    address: str | None = Field(default=None)
     password: str = Field(..., min_length=8)
     role: SELF_SERVICE_ROLES = Field(
         default="INDIVIDUAL",
@@ -24,14 +26,13 @@ class UserRegister(BaseModel):
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str = Field(..., min_length=3, max_length=255, description="Email address or username")
     password: str
 
 
 class UserProfileUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=255)
     phone: str | None = Field(default=None, max_length=20)
-    alt_phone: str | None = Field(default=None, max_length=20)
     date_of_birth: str | None = None
     address: str | None = None
 
@@ -82,9 +83,12 @@ class LoginResponse(BaseModel):
 class UserProfile(BaseModel):
     id: UUID
     name: str
+    username: str
     email: str
     phone: str | None
+    address: str | None
     role: str
+    warehouse_id: UUID | None = None
     is_active: bool
     created_at: datetime
 

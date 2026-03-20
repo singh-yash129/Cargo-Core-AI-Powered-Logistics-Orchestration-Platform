@@ -454,7 +454,7 @@
             <p class="text-white/60 text-sm">
               Already have an account?
               <button
-                @click="router.push('/login')"
+                @click="goToSignIn"
                 class="text-[#00C4FF] hover:text-[#00D4FF] font-semibold transition-colors duration-300"
               >
                 Sign in
@@ -561,6 +561,15 @@ const toggleService = (service) => {
   } else {
     formData.services.push(service);
   }
+};
+
+const goToSignIn = () => {
+  if (formData.role === 'customer' || formData.role === 'vendor') {
+    router.push(`/login/${formData.role}`);
+    return;
+  }
+
+  router.push('/login-hub');
 };
 
 const handleFileUpload = (event) => {
@@ -764,6 +773,7 @@ const handleNext = async () => {
       phone: formData.phone,
       password: formData.password,
       company: formData.companyName || undefined,
+      address: [formData.address, formData.city, formData.state, formData.zipCode, formData.country].filter(Boolean).join(', '),
     });
 
     isLoading.value = false;
@@ -804,7 +814,7 @@ const handleBack = () => {
   if (currentStep.value > 1) {
     currentStep.value--;
   } else {
-    router.push('/login');
+    goToSignIn();
   }
 };
 </script>

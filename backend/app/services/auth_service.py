@@ -3,14 +3,13 @@ auth_service.py
 All authentication business logic.  Routers should only call these functions —
 no direct DB or Redis access in routers.
 """
-import os
 import secrets
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from loguru import logger
 from redis.asyncio import Redis
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import Role, User
@@ -35,6 +34,7 @@ from app.schemas.auth import (
 from app.config import get_settings
 from app.utils.hashing import hash_password, verify_password
 from app.utils.jwt import create_access_token, create_refresh_token, decode_token
+from app.utils.username import generate_unique_username, normalize_username
 
 # Redis key prefixes
 _BLACKLIST_PREFIX = "blacklist:"
@@ -78,9 +78,12 @@ def _to_profile(user: User) -> UserProfile:
     return UserProfile(
         id=user.id,
         name=user.name,
+        username=user.username,
         email=user.email,
         phone=user.phone,
+        address=user.address,
         role=user.role.name,
+        warehouse_id=user.warehouse_id,
         is_active=user.is_active,
         created_at=user.created_at,
     )
@@ -88,6 +91,19 @@ def _to_profile(user: User) -> UserProfile:
 
 async def _get_user_by_email(db: AsyncSession, email: str) -> User | None:
     result = await db.execute(select(User).where(User.email == email))
+    return result.scalar_one_or_none()
+
+
+async def _get_user_by_identifier(db: AsyncSession, identifier: str) -> User | None:
+    normalized = identifier.strip().lower()
+    result = await db.execute(
+        select(User).where(
+            or_(
+                User.email == normalized,
+                User.username == normalize_username(normalized),
+            )
+        )
+    )
     return result.scalar_one_or_none()
 
 
@@ -107,6 +123,49 @@ async def _get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
         select(User).where(User.id == uid)
     )
     return result.scalar_one_or_none()
+
+
+async def ensure_logistic_manager_account(db: AsyncSession) -> User:
+    """Create or normalize the reserved Logistics Manager admin account."""
+    admin_email = "logisticmanager@gmail.com"
+    admin_username = "logisticmanager"
+    admin_password = "12345678"
+    admin_name = "Logistics Manager"
+
+    role = await _get_role_by_name(db, "LOGISTIC_MANAGER")
+    if not role:
+        raise RuntimeError("Required role 'LOGISTIC_MANAGER' does not exist")
+
+    user = await _get_user_by_email(db, admin_email)
+    password_hash = hash_password(admin_password)
+
+    if user:
+        user.name = admin_name
+        user.username = admin_username
+        user.role_id = role.id
+        user.password_hash = password_hash
+        user.is_active = True
+        db.add(user)
+        await db.flush()
+        await db.refresh(user, attribute_names=["role"])
+        logger.info("Bootstrapped existing Logistics Manager account: {}", admin_email)
+        return user
+
+    user = User(
+        name=admin_name,
+        username=admin_username,
+        email=admin_email,
+        phone="",
+        address="",
+        password_hash=password_hash,
+        role_id=role.id,
+        is_active=True,
+    )
+    db.add(user)
+    await db.flush()
+    await db.refresh(user, attribute_names=["role"])
+    logger.info("Created bootstrap Logistics Manager account: {}", admin_email)
+    return user
 
 
 # ── public service functions ──────────────────────────────────────────────────
@@ -150,8 +209,10 @@ async def register_user(db: AsyncSession, data: UserRegister) -> TokenResponse:
 
     user = User(
         name=data.name,
+        username=await generate_unique_username(db, data.username or data.email.split("@")[0]),
         email=data.email.lower(),
         phone=data.phone,
+        address=data.address,
         password_hash=hash_password(data.password),
         role_id=role.id,
     )
@@ -167,13 +228,13 @@ async def register_user(db: AsyncSession, data: UserRegister) -> TokenResponse:
 
 async def login_user(db: AsyncSession, data: UserLogin) -> LoginResponse:
     """Authenticate credentials and return JWT token pair with user profile."""
-    user = await _get_user_by_email(db, data.email.lower())
+    user = await _get_user_by_identifier(db, data.email)
 
     # Constant-time check so timing attacks can't enumerate accounts
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Incorrect username/email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -188,7 +249,7 @@ async def login_user(db: AsyncSession, data: UserLogin) -> LoginResponse:
 
 
 async def refresh_tokens(
-    db: AsyncSession, redis: Redis, data: RefreshTokenRequest
+    db: AsyncSession, redis: Redis | None, data: RefreshTokenRequest
 ) -> TokenResponse:
     """Validate a refresh token and issue a new token pair."""
     payload = decode_token(data.refresh_token)
@@ -199,9 +260,9 @@ async def refresh_tokens(
             detail="Invalid token type",
         )
 
-    # Check blacklist
+    # Check blacklist (skip gracefully if Redis is unavailable)
     jti = payload.get("jti", "")
-    if await redis.get(f"{_BLACKLIST_PREFIX}{jti}"):
+    if redis and await redis.get(f"{_BLACKLIST_PREFIX}{jti}"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
@@ -218,7 +279,7 @@ async def refresh_tokens(
     return _build_token_response(user)
 
 
-async def logout_user(redis: Redis, access_token: str) -> None:
+async def logout_user(redis: Redis | None, access_token: str) -> None:
     """Blacklist the access token in Redis for the remainder of its lifetime."""
     payload = decode_token(access_token)
     jti = payload.get("jti")
@@ -227,15 +288,17 @@ async def logout_user(redis: Redis, access_token: str) -> None:
     if not jti or not exp:
         return  # malformed token — nothing to blacklist
 
-    ttl = int(exp - datetime.now(timezone.utc).timestamp())
-    if ttl > 0:
-        await redis.setex(f"{_BLACKLIST_PREFIX}{jti}", ttl, "1")
-
-    logger.info(f"Token blacklisted: jti={jti} ttl={max(ttl, 0)}s")
+    if redis:
+        ttl = int(exp - datetime.now(timezone.utc).timestamp())
+        if ttl > 0:
+            await redis.setex(f"{_BLACKLIST_PREFIX}{jti}", ttl, "1")
+        logger.info(f"Token blacklisted: jti={jti} ttl={max(ttl, 0)}s")
+    else:
+        logger.warning(f"Redis unavailable — token NOT blacklisted: jti={jti}")
 
 
 async def get_current_user_from_token(
-    db: AsyncSession, redis: Redis, token: str
+    db: AsyncSession, redis: Redis | None, token: str
 ) -> User:
     """Validate access token, check blacklist, and return the User model."""
     payload = decode_token(token)
@@ -246,8 +309,9 @@ async def get_current_user_from_token(
             detail="Invalid token type",
         )
 
+    # Check blacklist only when Redis is available
     jti = payload.get("jti", "")
-    if await redis.get(f"{_BLACKLIST_PREFIX}{jti}"):
+    if redis and await redis.get(f"{_BLACKLIST_PREFIX}{jti}"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
@@ -275,8 +339,6 @@ async def update_profile(
         user.name = data.name
     if data.phone is not None:
         user.phone = data.phone
-    if data.alt_phone is not None:
-        user.alt_phone = data.alt_phone
     if data.date_of_birth is not None:
         user.date_of_birth = date.fromisoformat(data.date_of_birth) if data.date_of_birth else None
     if data.address is not None:
@@ -302,7 +364,7 @@ async def change_password(
     logger.info(f"Password changed for user: {user.email}")
 
 
-async def forgot_password(db: AsyncSession, redis: Redis, data: ForgotPasswordRequest) -> None:
+async def forgot_password(db: AsyncSession, redis: Redis | None, data: ForgotPasswordRequest) -> None:
     """
     Generate a 6-digit OTP for password reset and send via email.
     The OTP is stored in Redis with a 10-minute TTL.
@@ -331,7 +393,7 @@ async def forgot_password(db: AsyncSession, redis: Redis, data: ForgotPasswordRe
 
 
 async def reset_password(
-    db: AsyncSession, redis: Redis, data: ResetPasswordRequest
+    db: AsyncSession, redis: Redis | None, data: ResetPasswordRequest
 ) -> None:
     """Validate the OTP and update the user's password hash."""
     redis_key = f"{_RESET_OTP_PREFIX}{data.email.lower()}"
@@ -369,7 +431,7 @@ async def reset_password(
     logger.info(f"Password reset completed for user: {user.email}")
 
 
-async def send_signup_otp(db: AsyncSession, redis: Redis, data: SendOTPRequest) -> None:
+async def send_signup_otp(db: AsyncSession, redis: Redis | None, data: SendOTPRequest) -> None:
     """Generate a 6-digit OTP, store in Redis, and send via email."""
     import random
     from app.utils.email import send_email, otp_email_html
@@ -393,7 +455,7 @@ async def send_signup_otp(db: AsyncSession, redis: Redis, data: SendOTPRequest) 
     )
 
 
-async def verify_signup_otp(redis: Redis, data: VerifyOTPRequest) -> OTPVerifiedResponse:
+async def verify_signup_otp(redis: Redis | None, data: VerifyOTPRequest) -> OTPVerifiedResponse:
     """Verify the signup OTP sent to the user's email."""
     key = f"{_OTP_PREFIX}{data.email.lower()}"
     stored_otp = await redis.get(key)
@@ -434,7 +496,11 @@ async def google_login_or_register(db: AsyncSession, redis: Redis, data: GoogleL
             data.credential,
             google_requests.Request(),
             settings.google_client_id,
+            clock_skew_in_seconds=10,
         )
+
+        if not idinfo.get("email_verified", False):
+            raise HTTPException(status_code=400, detail="Google account email is not verified")
         
         email = idinfo['email']
         name = idinfo.get('name', email.split('@')[0])
@@ -445,10 +511,9 @@ async def google_login_or_register(db: AsyncSession, redis: Redis, data: GoogleL
         user = result.scalars().first()
 
         if user:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail='An account with this email already exists. Please sign in with your password.',
-            )
+            # Allow existing users to log in with Google
+            await db.refresh(user, attribute_names=["role"])
+            return _build_login_response(user)
         else:
             # register flow
             role_result = await db.execute(select(Role).where(Role.name == data.role.upper()))
@@ -460,7 +525,10 @@ async def google_login_or_register(db: AsyncSession, redis: Redis, data: GoogleL
             hashed_pwd = hash_password(dummy_password)
             user = User(
                 name=name,
+                username=await generate_unique_username(db, email.split('@')[0]),
                 email=email,
+                phone="",
+                address="",
                 password_hash=hashed_pwd,
                 role_id=role.id,
                 is_active=True
@@ -472,5 +540,11 @@ async def google_login_or_register(db: AsyncSession, redis: Redis, data: GoogleL
         return _build_login_response(user)
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail='Invalid Google token')
+        logger.warning(
+            "Google token verification failed: {} | client_id={} | token_prefix={}",
+            str(e),
+            settings.google_client_id,
+            data.credential[:24] if data.credential else "",
+        )
+        raise HTTPException(status_code=400, detail=f"Invalid Google token: {str(e)}")
 

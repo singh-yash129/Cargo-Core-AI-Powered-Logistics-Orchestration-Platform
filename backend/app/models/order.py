@@ -15,6 +15,7 @@ class Order(Base):
     tracking_code: Mapped[str] = mapped_column(String(32), nullable=False, unique=True, index=True)
     order_type: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="DRAFT", index=True)
+    warehouse_substatus: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
 
     customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     warehouse_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=True)
@@ -41,6 +42,12 @@ class Order(Base):
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancel_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Picking timestamps
+    picking_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    picking_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    packing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    packing_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -51,6 +58,7 @@ class Order(Base):
 
     warehouse = relationship("Warehouse", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    picked_items = relationship("PickedItem", back_populates="order", cascade="all, delete-orphan")
 
 
 class OrderItem(Base):
@@ -67,6 +75,32 @@ class OrderItem(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     order = relationship("Order", back_populates="items")
+
+
+class PickedItem(Base):
+    """Tracks individual items as they are picked (supports partial picking)."""
+    __tablename__ = "picked_items"
+    __table_args__ = (UniqueConstraint("order_id", "sku", name="uq_picked_items_order_id_sku"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=False, index=True)
+    sku: Mapped[str] = mapped_column(String(64), nullable=False)
+    quantity_picked: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    quantity_required: Mapped[int] = mapped_column(Integer, nullable=False)
+    picked_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    location: Mapped[str | None] = mapped_column(String(200), nullable=True)  # aisle/shelf/bin info
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    order = relationship("Order", back_populates="picked_items")
+    picker = relationship("User", foreign_keys=[picked_by])
 
 
 class CustomerQuote(Base):

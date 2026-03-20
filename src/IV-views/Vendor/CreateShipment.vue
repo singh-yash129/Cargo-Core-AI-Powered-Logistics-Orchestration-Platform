@@ -1099,9 +1099,9 @@ const filteredShipments = computed(() => {
     return list
 })
 
-function submitShipment() {
+async function submitShipment() {
     if (!formValid.value) return
-    const s = store.createShipment({ ...form, quotedPrice: quote.value.total })
+    const s = await store.createShipment({ ...form, quotedPrice: quote.value.total })
     confirmedOrderId.value = s.id
     showConfirmModal.value = true
 }

@@ -142,7 +142,7 @@
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Related Shipment (optional)</label>
                         <select v-model="newTicket.shipmentId" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
                             <option value="" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">None</option>
-                            <option v-for="s in store.shipments" :key="s.id" :value="s.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ s.id }} — {{ s.origin }} → {{ s.destination }}</option>
+                            <option v-for="s in store.shipments" :key="s.id" :value="s.backendId" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ s.id }} — {{ s.origin }} → {{ s.destination }}</option>
                         </select>
                     </div>
                     <div>
@@ -288,9 +288,9 @@ function openCreateModal() {
     showCreateModal.value = true
 }
 
-function submitTicket() {
+async function submitTicket() {
     if (!newTicket.value.subject || !newTicket.value.message) return
-    store.addTicket({
+    await store.addTicket({
         subject: newTicket.value.subject,
         priority: newTicket.value.priority,
         shipmentId: newTicket.value.shipmentId || null,
@@ -305,14 +305,14 @@ function openTicketDetail(t) {
     replyText.value = ''
 }
 
-function sendReply() {
+async function sendReply() {
     if (!replyText.value.trim() || !detailTicket.value) return
-    store.replyTicket(detailTicket.value.id, replyText.value.trim())
+    await store.replyTicket(detailTicket.value.id, replyText.value.trim())
     replyText.value = ''
 }
 
-function markResolved(t) {
-    store.resolveTicket(t.id)
+async function markResolved(t) {
+    await store.resolveTicket(t.id)
     showToast(`Ticket ${t.id} resolved`)
 }
 

@@ -80,6 +80,11 @@ class OrderResponse(BaseModel):
     tracking_code: str
     order_type: str
     status: str
+    warehouse_substatus: str | None = None
+    picking_started_at: datetime | None = None
+    picking_completed_at: datetime | None = None
+    packing_started_at: datetime | None = None
+    packing_completed_at: datetime | None = None
     customer_id: UUID
     warehouse_id: UUID | None
     assigned_driver_id: UUID | None

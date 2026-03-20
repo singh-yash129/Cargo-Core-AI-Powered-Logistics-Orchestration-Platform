@@ -154,11 +154,11 @@
 
                 <div class="glass-panel p-5 rounded-xl">
                     <div class="flex items-center justify-between mb-3">
-                        <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Cost / Mile</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Avg. Order Value</span>
                         <span class="material-symbols-outlined text-purple-400 text-[18px]">paid</span>
                     </div>
-                    <div class="text-3xl font-bold text-gray-900 dark:text-white">${{ store.analyticsData.costPerMile }}</div>
-                    <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Stable across routes</div>
+                    <div class="text-3xl font-bold text-gray-900 dark:text-white">${{ store.analyticsData.costPerMile.toLocaleString() }}</div>
+                    <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Based on live shipment totals</div>
                 </div>
             </div>
         </div>

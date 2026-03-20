@@ -239,7 +239,7 @@ const handleResetPassword = async () => {
 
   if (result.success) {
     toast.success('Password reset successfully! Please log in with your new password.');
-    setTimeout(() => router.push('/login'), 1800);
+    setTimeout(() => router.replace('/login'), 1800);
   } else {
     errorMessage.value = result.message;
     toast.error(result.message);

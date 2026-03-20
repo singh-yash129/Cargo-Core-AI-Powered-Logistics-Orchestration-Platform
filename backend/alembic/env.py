@@ -16,6 +16,7 @@ import app.models.warehouse  # noqa: F401
 import app.models.order  # noqa: F401
 import app.models.inventory  # noqa: F401
 import app.models.labour  # noqa: F401
+import app.models.logistics  # noqa: F401
 
 # Alembic Config object
 config = context.config

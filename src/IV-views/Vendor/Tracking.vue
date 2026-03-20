@@ -1110,35 +1110,35 @@ const severityClass = sev => ({
     High: 'border-red-500 bg-red-500/10 text-red-600 dark:text-red-400',
 }[sev])
 
-function updateAddress() {
+async function updateAddress() {
     if (!selected.value || !newAddress.value.trim()) return
-    store.updateShipmentAddress(selected.value.id, newAddress.value.trim())
+    await store.updateShipmentAddress(selected.value.id, newAddress.value.trim())
     showAddressModal.value = false
     newAddress.value = ''
     showToast('Address updated successfully')
 }
 
-function reschedule() {
+async function reschedule() {
     if (!selected.value || !newDate.value) return
     const formatted = new Date(newDate.value).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-    store.rescheduleShipment(selected.value.id, formatted)
+    await store.rescheduleShipment(selected.value.id, formatted)
     showRescheduleModal.value = false
     newDate.value = ''
     rescheduleReason.value = ''
     showToast('Delivery rescheduled')
 }
 
-function handleCancel() {
+async function handleCancel() {
     if (!selected.value) return
     if (confirm(`Cancel shipment ${selected.value.id}? This action cannot be undone.`)) {
-        store.cancelShipment(selected.value.id)
+        await store.cancelShipment(selected.value.id)
         showToast('Shipment cancelled')
     }
 }
 
-function submitDamage() {
+async function submitDamage() {
     if (!selected.value || !damageForm.description.trim()) return
-    store.reportDamage(selected.value.id, { ...damageForm, photos: [] })
+    await store.reportDamage(selected.value.id, { ...damageForm, photos: [] })
     showDamageModal.value = false
     damageForm.severity = 'Medium'
     damageForm.description = ''

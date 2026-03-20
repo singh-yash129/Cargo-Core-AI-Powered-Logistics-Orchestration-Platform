@@ -2,12 +2,13 @@ import uuid
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.order import Order, OrderItem
 from app.models.user import User
+from app.models.warehouse import Warehouse
 from app.schemas.orders import (
     CancelOrderRequest,
     OrderAssignRequest,
@@ -29,6 +30,7 @@ ORDER_STATUSES = {
     "CLOSED",
     "CANCELLED",
 }
+TERMINAL_ORDER_STATUSES = {"CLOSED", "CANCELLED"}
 ALLOWED_TRANSITIONS = {
     "DRAFT": {"CONFIRMED", "CANCELLED"},
     "CONFIRMED": {"ASSIGNED", "CANCELLED"},
@@ -54,6 +56,49 @@ def _tracking_code() -> str:
     return f"QC-{uuid.uuid4().hex[:10].upper()}"
 
 
+async def _resolve_warehouse_id(
+    db: AsyncSession,
+    warehouse_id: UUID | None,
+) -> UUID:
+    if warehouse_id:
+        warehouse = (
+            await db.execute(
+                select(Warehouse).where(Warehouse.id == warehouse_id, Warehouse.is_active.is_(True))
+            )
+        ).scalar_one_or_none()
+        if not warehouse:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Active warehouse not found",
+            )
+        return warehouse.id
+
+    selected_warehouse_id = (
+        await db.execute(
+            select(Warehouse.id)
+            .outerjoin(
+                Order,
+                and_(
+                    Order.warehouse_id == Warehouse.id,
+                    Order.status.not_in(TERMINAL_ORDER_STATUSES),
+                ),
+            )
+            .where(Warehouse.is_active.is_(True))
+            .group_by(Warehouse.id, Warehouse.created_at)
+            .order_by(func.count(Order.id).asc(), Warehouse.created_at.asc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+    if not selected_warehouse_id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="No active warehouses available for assignment",
+        )
+
+    return selected_warehouse_id
+
+
 def _validate_transition(current_status: str, next_status: str) -> None:
     if next_status not in ALLOWED_TRANSITIONS.get(current_status, set()):
         raise HTTPException(
@@ -68,6 +113,11 @@ def _to_order_response(order: Order) -> OrderResponse:
         tracking_code=order.tracking_code,
         order_type=order.order_type,
         status=order.status,
+        warehouse_substatus=order.warehouse_substatus,
+        picking_started_at=order.picking_started_at,
+        picking_completed_at=order.picking_completed_at,
+        packing_started_at=order.packing_started_at,
+        packing_completed_at=order.packing_completed_at,
         customer_id=order.customer_id,
         warehouse_id=order.warehouse_id,
         assigned_driver_id=order.assigned_driver_id,
@@ -101,12 +151,14 @@ async def create_order(db: AsyncSession, data: OrderCreate, user: User) -> Order
     if order_type not in ORDER_TYPES:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid order_type")
 
+    warehouse_id = await _resolve_warehouse_id(db, data.warehouse_id)
+
     order = Order(
         tracking_code=_tracking_code(),
         order_type=order_type,
         status="DRAFT",
         customer_id=user.id,
-        warehouse_id=data.warehouse_id,
+        warehouse_id=warehouse_id,
         pickup_addr=data.pickup_addr,
         delivery_addr=data.delivery_addr,
         cargo_type=data.cargo_type,
@@ -206,6 +258,8 @@ async def confirm_order(db: AsyncSession, order_id: UUID) -> OrderResponse:
     order = await _get_order(db, order_id)
     _validate_transition(order.status, "CONFIRMED")
     order.status = "CONFIRMED"
+    # Set initial warehouse substatus so order appears in warehouse picking queue
+    order.warehouse_substatus = "AWAITING_PICK"
     db.add(order)
     await db.flush()
     await db.refresh(order, attribute_names=["items"])

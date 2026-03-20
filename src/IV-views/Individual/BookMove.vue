@@ -2,7 +2,20 @@
     <div class="space-y-6">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Book a Move</h2>
 
+        <!-- AI Pre-fill Banner -->
+        <Transition enter-active-class="transition-all duration-500" enter-from-class="opacity-0 -translate-y-2" leave-active-class="transition-all duration-300" leave-to-class="opacity-0 -translate-y-2">
+            <div v-if="aiPrefillApplied"
+                class="flex items-center gap-3 px-4 py-3 bg-purple-50 dark:bg-purple-500/10 border border-purple-300 dark:border-purple-500/30 rounded-xl">
+                <span class="material-symbols-outlined text-purple-500">psychology</span>
+                <div>
+                    <p class="text-sm font-bold text-purple-700 dark:text-purple-300">✨ AI Estimator pre-filled your booking!</p>
+                    <p class="text-xs text-purple-600 dark:text-purple-400">Vehicle, labor count, cargo type and packing materials were auto-selected based on your room scan. You can adjust anything below.</p>
+                </div>
+            </div>
+        </Transition>
+
         <!-- Move Type Toggle -->
+
         <div class="glass-panel p-4 rounded-xl">
             <div class="flex gap-2 p-1 bg-gray-100 dark:bg-white/5 rounded-lg w-fit">
                 <button @click="moveType = 'house-shift'"
@@ -104,8 +117,12 @@
                                 <div class="relative">
                                     <span
                                         class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-green-500 text-lg">trip_origin</span>
-                                    <input v-model="form.pickup" type="text" placeholder="Enter pickup location"
-                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all" />
+                                    <button type="button" @click="openMapPicker('pickup')"
+                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-left text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all flex items-center justify-between"
+                                        title="Select pickup on map">
+                                        <span :class="form.pickup ? '' : 'text-gray-400'">{{ form.pickup || 'Select pickup on map' }}</span>
+                                        <span class="material-symbols-outlined text-xl text-gray-400">map</span>
+                                    </button>
                                 </div>
                             </div>
                             <div>
@@ -115,8 +132,12 @@
                                 <div class="relative">
                                     <span
                                         class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-red-500 text-lg">location_on</span>
-                                    <input v-model="form.destination" type="text" placeholder="Enter destination"
-                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all" />
+                                    <button type="button" @click="openMapPicker('destination')"
+                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-left text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all flex items-center justify-between"
+                                        title="Select destination on map">
+                                        <span :class="form.destination ? '' : 'text-gray-400'">{{ form.destination || 'Select destination on map' }}</span>
+                                        <span class="material-symbols-outlined text-xl text-gray-400">map</span>
+                                    </button>
                                 </div>
                             </div>
                             <div>
@@ -321,8 +342,12 @@
                                 <div class="relative">
                                     <span
                                         class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-green-500 text-lg">trip_origin</span>
-                                    <input v-model="form.pickup" type="text" placeholder="Pickup location"
-                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 outline-none" />
+                                    <button type="button" @click="openMapPicker('pickup')"
+                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-left text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all flex items-center justify-between"
+                                        title="Select pickup on map">
+                                        <span :class="form.pickup ? '' : 'text-gray-400'">{{ form.pickup || 'Select pickup on map' }}</span>
+                                        <span class="material-symbols-outlined text-xl text-gray-400">map</span>
+                                    </button>
                                 </div>
                             </div>
                             <div>
@@ -332,8 +357,12 @@
                                 <div class="relative">
                                     <span
                                         class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-red-500 text-lg">location_on</span>
-                                    <input v-model="form.destination" type="text" placeholder="Delivery location"
-                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 outline-none" />
+                                    <button type="button" @click="openMapPicker('destination')"
+                                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-left text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all flex items-center justify-between"
+                                        title="Select destination on map">
+                                        <span :class="form.destination ? '' : 'text-gray-400'">{{ form.destination || 'Select destination on map' }}</span>
+                                        <span class="material-symbols-outlined text-xl text-gray-400">map</span>
+                                    </button>
                                 </div>
                             </div>
                             <div>
@@ -394,6 +423,16 @@
 
                     <!-- House Shift Pricing -->
                     <template v-if="moveType === 'house-shift'">
+                        <!-- Distance badge -->
+                        <div v-if="distanceKm" class="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20">
+                            <span class="material-symbols-outlined text-green-500 text-sm">route</span>
+                            <span class="text-xs font-bold text-green-700 dark:text-green-400">{{ distanceKm }} km</span>
+                            <span class="text-xs text-gray-500">(road estimate)</span>
+                        </div>
+                        <div v-else class="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                            <span class="material-symbols-outlined text-amber-500 text-sm">info</span>
+                            <span class="text-xs text-amber-700 dark:text-amber-400">Select pickup &amp; destination to get exact pricing</span>
+                        </div>
                         <div class="space-y-3 mb-4">
                             <div class="flex justify-between text-sm"><span
                                     class="text-gray-500 dark:text-gray-400">Base Fare</span><span
@@ -415,6 +454,12 @@
                                     class="text-gray-500 dark:text-gray-400">Materials</span><span
                                     class="text-gray-900 dark:text-white font-mono">₹{{
                                     materialsCostTotal.toLocaleString() }}</span></div>
+                            <div class="flex justify-between text-sm"><span
+                                    class="text-gray-500 dark:text-gray-400">Platform Fee</span><span
+                                    class="text-gray-900 dark:text-white font-mono">₹{{ quote.platformFee.toLocaleString() }}</span></div>
+                            <div class="flex justify-between text-sm"><span
+                                    class="text-gray-500 dark:text-gray-400">GST (18%)</span><span
+                                    class="text-gray-900 dark:text-white font-mono">₹{{ quote.taxes.toLocaleString() }}</span></div>
                         </div>
                         <div class="border-t border-gray-200 dark:border-white/10 pt-4 mb-2">
                             <div class="flex justify-between items-end">
@@ -434,14 +479,24 @@
 
                     <!-- Small Package Pricing -->
                     <template v-else>
+                        <!-- Distance badge -->
+                        <div v-if="distanceKm" class="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+                            <span class="material-symbols-outlined text-blue-500 text-sm">route</span>
+                            <span class="text-xs font-bold text-blue-700 dark:text-blue-400">{{ distanceKm }} km</span>
+                            <span class="text-xs text-gray-500">(road estimate)</span>
+                        </div>
+                        <div v-else class="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                            <span class="material-symbols-outlined text-amber-500 text-sm">info</span>
+                            <span class="text-xs text-amber-700 dark:text-amber-400">Select pickup &amp; destination for delivery fee</span>
+                        </div>
                         <div class="space-y-3 mb-4">
                             <div class="flex justify-between text-sm"><span
                                     class="text-gray-500 dark:text-gray-400">Base (by weight)</span><span
                                     class="text-gray-900 dark:text-white font-mono">₹{{ pkgBase.toLocaleString()
                                     }}</span></div>
                             <div class="flex justify-between text-sm"><span
-                                    class="text-gray-500 dark:text-gray-400">Pickup Fee</span><span
-                                    class="text-gray-900 dark:text-white font-mono">₹50</span></div>
+                                    class="text-gray-500 dark:text-gray-400">Delivery Fee{{ distanceKm ? ' (' + distanceKm + ' km × ₹12)' : '' }}</span><span
+                                    class="text-gray-900 dark:text-white font-mono">₹{{ pkgDeliveryFee.toLocaleString() }}</span></div>
                         </div>
                         <div class="border-t border-gray-200 dark:border-white/10 pt-4 mb-4">
                             <div class="flex justify-between items-end">
@@ -589,16 +644,28 @@
                 </template>
             </BaseModal>
         </Teleport>
+
+        <!-- Map Picker Modal -->
+        <MapPicker 
+            :isOpen="showMapPicker" 
+            :title="mapPickerTitle"
+            @close="showMapPicker = false"
+            @select="handleMapSelect"
+        />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useIndividualStore } from '@/stores/individualStore'
 import BaseModal from '@/components/BaseModal.vue'
+import MapPicker from '@/components/MapPicker.vue'
 
 const store = useIndividualStore()
 const moveType = ref('house-shift')
+
+// Show AI prefill banner temporarily
+const aiPrefillApplied = ref(false)
 
 const form = reactive({
     cargoType: 'Household Goods', pickup: '', destination: '', date: '',
@@ -606,6 +673,54 @@ const form = reactive({
     materials: { boxes: 10, bubbleWrap: 2, plasticCrates: 0, blankets: 4, wardrobeBoxes: 0, tape: 3 },
     instructions: '', paymentMode: 'Full Payment', isDummyPayment: false,
 })
+
+// Coordinates from MapPicker for distance calculation
+const pickupCoords = ref(null)   // { lat, lon }
+const destCoords   = ref(null)   // { lat, lon }
+
+// Haversine formula — straight-line km; road multiplier 1.35x for realistic estimate
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) ** 2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+// Live distance (road estimate). Returns null until both ends are selected.
+const distanceKm = computed(() => {
+    if (!pickupCoords.value || !destCoords.value) return null
+    const straight = haversineKm(
+        pickupCoords.value.lat, pickupCoords.value.lon,
+        destCoords.value.lat,   destCoords.value.lon
+    )
+    return Math.max(1, Math.round(straight * 1.35 * 10) / 10)  // minimum 1 km
+})
+
+// Map picker state
+const showMapPicker = ref(false)
+const mapPickerType = ref('pickup') // 'pickup' or 'destination'
+const mapPickerTitle = computed(() => 
+    mapPickerType.value === 'pickup' ? 'Select Pickup Location' : 'Select Destination Location'
+)
+
+function openMapPicker(type) {
+    mapPickerType.value = type
+    showMapPicker.value = true
+}
+
+function handleMapSelect(data) {
+    if (mapPickerType.value === 'pickup') {
+        form.pickup = data.address
+        pickupCoords.value = { lat: data.lat, lon: data.lon }
+    } else {
+        form.destination = data.address
+        destCoords.value = { lat: data.lat, lon: data.lon }
+    }
+    showMapPicker.value = false
+}
 
 const pkg = reactive({ description: '', weight: 2.5, preferredDate: '', packageType: 'Document' })
 
@@ -637,12 +752,15 @@ const selectedVehicle = computed(() => store.vehicleTypes.find(v => v.key === fo
 const serviceTimeBlock = computed(() => { const v = selectedVehicle.value; return v?.key === 'hcv' ? '4-5 hours' : v?.key === 'lcv' ? '3-4 hours' : v?.key === 'tempo' ? '2-3 hours' : '1-2 hours' })
 
 const materialsCostTotal = computed(() => { let t = 0; for (const mat of store.materialsCatalog) { t += (form.materials[mat.key] || 0) * mat.price }; return t })
-const quote = computed(() => store.calculateQuote(15, form.laborCount, form.packingRequired, materialsCostTotal.value, form.vehicleType))
+// Use real distance if both locations selected, otherwise fall back to 10 km minimum
+const effectiveDistanceKm = computed(() => distanceKm.value ?? 10)
+const quote = computed(() => store.calculateQuote(effectiveDistanceKm.value, form.laborCount, form.packingRequired, materialsCostTotal.value, form.vehicleType))
 const totalCost = computed(() => quote.value.total)
 
-// Small Package pricing
+// Small Package pricing — base by weight + ₹12/km delivery fee
 const pkgBase = computed(() => Math.round((pkg.weight || 1) * 120))
-const pkgTotal = computed(() => pkgBase.value + 50)
+const pkgDeliveryFee = computed(() => distanceKm.value ? Math.round(distanceKm.value * 12) : 50)
+const pkgTotal = computed(() => pkgBase.value + pkgDeliveryFee.value)
 const estimatedDelivery = computed(() => {
     if (!pkg.preferredDate) return null
     const d = new Date(pkg.preferredDate); d.setDate(d.getDate() + 2)
@@ -685,38 +803,45 @@ function processPaymentAndConfirm() {
     }, 1500)
 }
 
-function confirmBooking() {
-    const order = store.createOrder({
-        moveType: moveType.value, cargoType: moveType.value === 'house-shift' ? form.cargoType : pkg.packageType,
-        pickup: form.pickup, destination: form.destination,
-        date: moveType.value === 'house-shift' ? form.date : pkg.preferredDate,
-        timeWindow: moveType.value === 'house-shift' ? form.timeWindow : 'Auto-Scheduled',
-        laborCount: moveType.value === 'house-shift' ? form.laborCount : 0,
-        packingRequired: moveType.value === 'house-shift' ? form.packingRequired : false,
-        vehicleType: moveType.value === 'house-shift' ? form.vehicleType : 'mini-truck',
-        materials: moveType.value === 'house-shift' ? { ...form.materials } : {},
-        cost: moveType.value === 'house-shift' ? { ...quote.value } : { base: pkgBase.value, labor: 0, materials: 0, packing: 0, vehicle: 0, total: pkgTotal.value },
-        paymentMode: form.paymentMode, isDummyPayment: false,
-        preferredPickupDate: moveType.value === 'small-package' ? pkg.preferredDate : null,
-        estimatedDelivery: moveType.value === 'small-package' ? estimatedDelivery.value : null,
-        paymentStatus: form.paymentMode === 'COD' ? 'pending' : (form.paymentMode === 'Partial' ? 'partial' : 'paid'),
-    })
-    
-    // Add payment record if paid
-    if (form.paymentMode !== 'COD') {
-        store.payments.push({
-            id: 'PAY-' + Math.floor(1000 + Math.random() * 9000),
-            orderId: order.id,
-            amount: paymentAmount.value,
-            date: new Date().toLocaleDateString('en-IN'),
-            status: 'completed',
-            mode: 'Card / UPI',
-            isDummy: false
+async function confirmBooking() {
+    try {
+        const order = await store.createOrder({
+            moveType: moveType.value, cargoType: moveType.value === 'house-shift' ? form.cargoType : pkg.packageType,
+            pickup: form.pickup, destination: form.destination,
+            date: moveType.value === 'house-shift' ? form.date : pkg.preferredDate,
+            timeWindow: moveType.value === 'house-shift' ? form.timeWindow : 'Auto-Scheduled',
+            laborCount: moveType.value === 'house-shift' ? form.laborCount : 0,
+            packingRequired: moveType.value === 'house-shift' ? form.packingRequired : false,
+            vehicleType: moveType.value === 'house-shift' ? form.vehicleType : 'mini-truck',
+            materials: moveType.value === 'house-shift' ? { ...form.materials } : {},
+            cost: moveType.value === 'house-shift' ? { ...quote.value } : { base: pkgBase.value, labor: 0, materials: 0, packing: 0, vehicle: 0, total: pkgTotal.value },
+            paymentMode: form.paymentMode, isDummyPayment: false,
+            preferredPickupDate: moveType.value === 'small-package' ? pkg.preferredDate : null,
+            estimatedDelivery: moveType.value === 'small-package' ? estimatedDelivery.value : null,
+            paymentStatus: form.paymentMode === 'COD' ? 'pending' : (form.paymentMode === 'Partial' ? 'partial' : 'paid'),
         })
+
+        // Add payment record if paid
+        if (form.paymentMode !== 'COD') {
+            store.payments.push({
+                id: 'PAY-' + Math.floor(1000 + Math.random() * 9000),
+                orderId: order.id,
+                amount: paymentAmount.value,
+                date: new Date().toLocaleDateString('en-IN'),
+                status: 'completed',
+                mode: 'Card / UPI',
+                isDummy: false
+            })
+        }
+
+        confirmedOrderId.value = order.id
+        showConfirmModal.value = true
+        showToast('Order created successfully!', 'success')
+    } catch (error) {
+        console.error('Failed to create order:', error)
+        const msg = error?.message || 'Failed to create order. Please try again.'
+        showToast(msg.length > 80 ? msg.substring(0, 80) + '…' : msg, 'error')
     }
-    
-    confirmedOrderId.value = order.id
-    showConfirmModal.value = true
 }
 
 function saveQuote() {
@@ -738,6 +863,7 @@ function resetForm() {
     form.materials = { boxes: 10, bubbleWrap: 2, plasticCrates: 0, blankets: 4, wardrobeBoxes: 0, tape: 3 }
     form.instructions = ''; form.paymentMode = 'Full Payment'; form.isDummyPayment = false
     pkg.description = ''; pkg.weight = 2.5; pkg.preferredDate = ''; pkg.packageType = 'Document'
+    pickupCoords.value = null; destCoords.value = null
     showToast('Form reset.', 'success')
 }
 </script>

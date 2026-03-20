@@ -314,9 +314,9 @@ function openAddressModal(s) {
     showAddressModal.value = true
 }
 
-function submitAddressUpdate() {
+async function submitAddressUpdate() {
     if (!newAddress.value.trim() || !addressOrder.value) return
-    store.updateShipmentAddress(addressOrder.value.id, newAddress.value.trim())
+    await store.updateShipmentAddress(addressOrder.value.id, newAddress.value.trim())
     showAddressModal.value = false
     showToast('Address updated')
 }
@@ -328,9 +328,9 @@ function openRescheduleModal(s) {
     showRescheduleModal.value = true
 }
 
-function submitReschedule() {
+async function submitReschedule() {
     if (!newDate.value || !rescheduleOrder.value) return
-    store.rescheduleShipment(rescheduleOrder.value.id, newDate.value)
+    await store.rescheduleShipment(rescheduleOrder.value.id, newDate.value)
     showRescheduleModal.value = false
     showToast('Shipment rescheduled')
 }
@@ -342,16 +342,16 @@ function openDamageModal(s) {
     showDamageModal.value = true
 }
 
-function submitDamageReport() {
+async function submitDamageReport() {
     if (!damageDescription.value.trim() || !damageOrder.value) return
-    store.reportDamage({ shipmentId: damageOrder.value.id, severity: damageSeverity.value, description: damageDescription.value.trim() })
+    await store.reportDamage({ shipmentId: damageOrder.value.id, severity: damageSeverity.value, description: damageDescription.value.trim() })
     showDamageModal.value = false
     showToast('Damage reported — reverse logistics ticket created')
 }
 
-function cancelOrder(s) {
+async function cancelOrder(s) {
     if (!confirm(`Cancel order ${s.id}?`)) return
-    store.cancelShipment(s.id)
+    await store.cancelShipment(s.id)
     showToast(`Order ${s.id} cancelled`)
 }
 

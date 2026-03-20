@@ -157,8 +157,10 @@ def _to_user_profile(user: User) -> UserProfile:
     return UserProfile(
         id=user.id,
         name=user.name,
+        username=user.username,
         email=user.email,
         phone=user.phone,
+        address=user.address,
         role=user.role.name,
         is_active=user.is_active,
         created_at=user.created_at,

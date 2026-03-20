@@ -106,9 +106,12 @@ async def get_me(
     return UserProfile(
         id=current_user.id,
         name=current_user.name,
+        username=current_user.username,
         email=current_user.email,
         phone=current_user.phone,
+        address=current_user.address,
         role=current_user.role.name,
+        warehouse_id=current_user.warehouse_id,
         is_active=current_user.is_active,
         created_at=current_user.created_at,
     )

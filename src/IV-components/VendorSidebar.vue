@@ -98,6 +98,6 @@ const vendorMetrics = computed(() => ([
 
 async function handleLogout() {
   await authStore.logout()
-  router.push('/login')
+  router.replace('/login')
 }
 </script>

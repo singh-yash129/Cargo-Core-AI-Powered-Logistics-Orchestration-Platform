@@ -21,8 +21,12 @@ class LabourerResponse(BaseModel):
     user_id: UUID
     warehouse_id: UUID
     assigned_order_id: UUID | None
+    assigned_order_tracking: str | None = None
+    assigned_order_substatus: str | None = None
     skill_tags: list[str] | None
     is_active: bool
+    name: str | None = None
+    email: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

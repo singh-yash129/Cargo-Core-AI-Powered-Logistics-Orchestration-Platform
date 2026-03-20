@@ -1,0 +1,772 @@
+from collections import OrderedDict
+from datetime import datetime, timedelta
+import uuid
+
+from fastapi import HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.models.order import DamageReport as DamageReportModel
+from app.models.order import Order
+from app.models.user import User
+from app.models.vendor import (
+    VendorApiKey,
+    VendorBulkUpload,
+    VendorRecurringRule,
+    VendorSupportReply,
+    VendorSupportTicket,
+    VendorTeamMember,
+)
+from app.schemas.auth import UserProfile
+from app.schemas.vendor import (
+    VendorAnalytics,
+    VendorApiKeyCreate,
+    VendorApiKeyResponse,
+    VendorBulkUploadCreate,
+    VendorBulkUploadResponse,
+    VendorBulkUploadUpdate,
+    VendorDamageReport,
+    VendorDamageReportCreate,
+    VendorDamageReportsResponse,
+    VendorDashboardResponse,
+    VendorInvoiceRecord,
+    VendorInvoiceSummary,
+    VendorMonthlyPoint,
+    VendorRecurringRuleCreate,
+    VendorRecurringRuleResponse,
+    VendorSettings,
+    VendorSettingsResponse,
+    VendorShipmentCost,
+    VendorShipmentHistoryItem,
+    VendorShipmentSummary,
+    VendorShipmentsResponse,
+    VendorStats,
+    VendorSupportReplyCreate,
+    VendorSupportReplyResponse,
+    VendorSupportTicketCreate,
+    VendorSupportTicketResponse,
+    VendorTeamMemberCreate,
+    VendorTeamMemberResponse,
+)
+
+
+def _ensure_vendor(user: User) -> None:
+    if user.role.name != "VENDOR":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Vendor endpoints are only available for vendor users",
+        )
+
+
+def _profile(user: User) -> UserProfile:
+    return UserProfile(
+        id=user.id,
+        name=user.name,
+        username=user.username,
+        email=user.email,
+        phone=user.phone,
+        address=user.address,
+        role=user.role.name,
+        is_active=user.is_active,
+        created_at=user.created_at,
+    )
+
+
+def _status_key(value: str) -> str:
+    mapping = {
+        "DRAFT": "pending",
+        "CONFIRMED": "pending",
+        "ASSIGNED": "transit",
+        "IN_TRANSIT": "transit",
+        "DELIVERED": "delivered",
+        "CLOSED": "delivered",
+        "CANCELLED": "cancelled",
+    }
+    return mapping.get(value.upper(), value.lower())
+
+
+def _status_label(value: str) -> str:
+    mapping = {
+        "pending": "Pending",
+        "transit": "In Transit",
+        "delivered": "Delivered",
+        "cancelled": "Cancelled",
+    }
+    return mapping.get(_status_key(value), value.replace("_", " ").title())
+
+
+def _progress(value: str) -> int:
+    mapping = {"pending": 15, "transit": 65, "delivered": 100, "cancelled": 0}
+    return mapping.get(_status_key(value), 0)
+
+
+def _eta_label(order: Order) -> str:
+    if order.status in {"DELIVERED", "CLOSED"}:
+        return "Delivered"
+    if order.status == "CANCELLED":
+        return "Cancelled"
+    if order.scheduled_at:
+        return order.scheduled_at.strftime("%b %d, %Y")
+    return order.created_at.strftime("%b %d, %Y")
+
+
+def _history(order: Order) -> list[VendorShipmentHistoryItem]:
+    created = order.created_at.strftime("%Y-%m-%d %H:%M")
+    items = [VendorShipmentHistoryItem(status="Created", time=created)]
+    if order.status in {"CONFIRMED", "ASSIGNED", "IN_TRANSIT", "DELIVERED", "CLOSED"}:
+        items.append(VendorShipmentHistoryItem(status="Confirmed", time=created))
+    if order.status in {"ASSIGNED", "IN_TRANSIT", "DELIVERED", "CLOSED"}:
+        items.append(VendorShipmentHistoryItem(status="Assigned", time=created))
+    if order.status in {"IN_TRANSIT", "DELIVERED", "CLOSED"}:
+        items.append(VendorShipmentHistoryItem(status="In Transit", time=created))
+    if order.status in {"DELIVERED", "CLOSED"}:
+        items.append(VendorShipmentHistoryItem(status="Delivered", time=created))
+    if order.status == "CANCELLED":
+        items.append(
+            VendorShipmentHistoryItem(
+                status=f"Cancelled: {order.cancel_reason or 'No reason provided'}",
+                time=created,
+            )
+        )
+    return items
+
+
+def _shipment(order: Order) -> VendorShipmentSummary:
+    return VendorShipmentSummary(
+        id=order.id,
+        tracking_code=order.tracking_code,
+        status=order.status,
+        status_label=_status_label(order.status),
+        status_key=_status_key(order.status),
+        pickup_addr=order.pickup_addr,
+        delivery_addr=order.delivery_addr,
+        cargo_type=order.cargo_type,
+        vehicle_type=order.vehicle_type,
+        payment_mode=order.payment_mode,
+        payment_status=order.payment_status,
+        labor_count=order.labor_count,
+        amount=order.total_amount,
+        scheduled_at=order.scheduled_at,
+        created_at=order.created_at,
+        eta_label=_eta_label(order),
+        progress=_progress(order.status),
+        cost=VendorShipmentCost(
+            base=order.base_amount,
+            vehicle=order.vehicle_amount,
+            labor=order.labor_amount,
+            materials=order.materials_amount,
+            packing=order.packing_amount,
+            platform_fee=order.platform_fee,
+            taxes=order.tax_amount,
+            total=order.total_amount,
+        ),
+        status_history=_history(order),
+    )
+
+
+def _invoice_status(order: Order, now: datetime) -> str:
+    if order.payment_status == "paid":
+        return "Paid"
+    due_date = order.created_at + timedelta(days=30)
+    if due_date.date() < now.date():
+        return "Overdue"
+    if order.payment_status == "partial":
+        return "Partial"
+    return "Unpaid"
+
+
+def _invoice_record(order: Order, now: datetime) -> VendorInvoiceRecord:
+    invoice_status = _invoice_status(order, now)
+    paid = order.total_amount if invoice_status == "Paid" else 0
+    return VendorInvoiceRecord(
+        id=f"INV-{order.tracking_code}",
+        order_id=order.id,
+        tracking_code=order.tracking_code,
+        date=order.created_at.strftime("%b %d, %Y"),
+        due_date=(order.created_at + timedelta(days=30)).strftime("%b %d, %Y"),
+        amount=order.total_amount,
+        paid=paid,
+        status=invoice_status,
+    )
+
+
+async def _orders_for_vendor(db: AsyncSession, user: User) -> list[Order]:
+    return (
+        await db.execute(
+            select(Order).where(Order.customer_id == user.id).order_by(Order.created_at.desc())
+        )
+    ).scalars().all()
+
+
+def _monthly_points(orders: list[Order]) -> list[VendorMonthlyPoint]:
+    now = datetime.now()
+    month_buckets: OrderedDict[str, dict[str, float | int]] = OrderedDict()
+    for offset in range(5, -1, -1):
+        month = ((now.month - offset - 1) % 12) + 1
+        year = now.year + ((now.month - offset - 1) // 12)
+        month_key = datetime(year, month, 1).strftime("%b")
+        month_buckets[month_key] = {"spend": 0.0, "orders": 0}
+
+    for order in orders:
+        month_key = order.created_at.strftime("%b")
+        if month_key in month_buckets:
+            month_buckets[month_key]["orders"] += 1
+            month_buckets[month_key]["spend"] += order.total_amount
+
+    return [
+        VendorMonthlyPoint(month=month, spend=float(values["spend"]), orders=int(values["orders"]))
+        for month, values in month_buckets.items()
+    ]
+
+
+def _analytics(orders: list[Order]) -> VendorAnalytics:
+    total = len(orders)
+    delivered = sum(1 for order in orders if _status_key(order.status) == "delivered")
+    cancelled = sum(1 for order in orders if _status_key(order.status) == "cancelled")
+    successful = max(total - cancelled, 0)
+    avg_order_value = sum(order.total_amount for order in orders) / total if total else 0
+
+    transit_days = []
+    for order in orders:
+        if order.scheduled_at:
+            transit_days.append(abs((order.scheduled_at - order.created_at).days) or 1)
+
+    on_time = round((delivered / successful) * 100, 1) if successful else 0
+    success_rate = round((successful / total) * 100, 1) if total else 0
+
+    return VendorAnalytics(
+        monthly=_monthly_points(orders),
+        on_time=on_time,
+        avg_transit_days=round(sum(transit_days) / len(transit_days), 1) if transit_days else 0,
+        avg_order_value=round(avg_order_value, 2),
+        success_rate=success_rate,
+    )
+
+
+def _invoice_summary(orders: list[Order]) -> VendorInvoiceSummary:
+    now = datetime.now()
+    invoices = [_invoice_record(order, now) for order in orders if order.total_amount > 0]
+    total_overdue = sum(invoice.amount - invoice.paid for invoice in invoices if invoice.status == "Overdue")
+    total_unpaid = sum(1 for invoice in invoices if invoice.status != "Paid")
+    current_month = now.strftime("%Y-%m")
+    total_paid_this_month = sum(
+        invoice.paid
+        for invoice in invoices
+        if invoice.status == "Paid" and datetime.strptime(invoice.date, "%b %d, %Y").strftime("%Y-%m") == current_month
+    )
+    return VendorInvoiceSummary(
+        invoices=invoices,
+        total_overdue=total_overdue,
+        total_unpaid=total_unpaid,
+        total_paid_this_month=total_paid_this_month,
+        credit_balance=0,
+    )
+
+
+def _bulk_upload_response(upload: VendorBulkUpload) -> VendorBulkUploadResponse:
+    return VendorBulkUploadResponse(
+        id=upload.id,
+        filename=upload.filename,
+        date=upload.created_at.strftime("%b %d, %Y"),
+        orders=upload.orders,
+        status=upload.status,
+        errors=upload.errors,
+    )
+
+
+def _api_key_response(api_key: VendorApiKey) -> VendorApiKeyResponse:
+    return VendorApiKeyResponse(
+        id=api_key.id,
+        name=api_key.name,
+        key=api_key.key_value,
+        created=api_key.created_at.strftime("%b %d, %Y"),
+        last_used=api_key.last_used_at.strftime("%b %d, %Y") if api_key.last_used_at else "Never",
+        status=api_key.status,
+    )
+
+
+def _ticket_response(ticket: VendorSupportTicket) -> VendorSupportTicketResponse:
+    return VendorSupportTicketResponse(
+        id=f"TK-{str(ticket.id).split('-')[0].upper()}",
+        subject=ticket.subject,
+        description=ticket.description,
+        order_id=str(ticket.order_id) if ticket.order_id else None,
+        created=ticket.created_at.strftime("%b %d, %Y"),
+        priority=ticket.priority,
+        status=ticket.status,
+        replies=[
+            VendorSupportReplyResponse(
+                from_name=reply.from_name,
+                message=reply.message,
+                time=reply.created_at.strftime("%b %d, %Y %I:%M %p"),
+            )
+            for reply in ticket.replies
+        ],
+    )
+
+
+async def get_vendor_dashboard(db: AsyncSession, user: User) -> VendorDashboardResponse:
+    _ensure_vendor(user)
+    orders = await _orders_for_vendor(db, user)
+    analytics = _analytics(orders)
+    invoices = _invoice_summary(orders)
+    status_keys = [_status_key(order.status) for order in orders]
+    current_month = datetime.now().strftime("%Y-%m")
+
+    monthly_spend = sum(
+        order.total_amount
+        for order in orders
+        if order.created_at.strftime("%Y-%m") == current_month
+    )
+
+    stats = VendorStats(
+        total_shipments=len(orders),
+        active_shipments=sum(1 for key in status_keys if key == "transit"),
+        pending_shipments=sum(1 for key in status_keys if key == "pending"),
+        delivered_shipments=sum(1 for key in status_keys if key == "delivered"),
+        cancelled_shipments=sum(1 for key in status_keys if key == "cancelled"),
+        monthly_spend=monthly_spend,
+        outstanding_amount=sum(invoice.amount - invoice.paid for invoice in invoices.invoices if invoice.status != "Paid"),
+        paid_this_month=invoices.total_paid_this_month,
+        credit_balance=0,
+    )
+
+    return VendorDashboardResponse(
+        profile=_profile(user),
+        stats=stats,
+        recent_shipments=[_shipment(order) for order in orders[:5]],
+        analytics=analytics,
+        invoices=invoices,
+    )
+
+
+async def get_vendor_shipments(db: AsyncSession, user: User) -> VendorShipmentsResponse:
+    _ensure_vendor(user)
+    orders = await _orders_for_vendor(db, user)
+    return VendorShipmentsResponse(shipments=[_shipment(order) for order in orders])
+
+
+async def get_vendor_settings(user: User) -> VendorSettingsResponse:
+    _ensure_vendor(user)
+    return VendorSettingsResponse(
+        settings=VendorSettings(
+            company_name=user.name,
+            tax_id="",
+            contact_person=user.name,
+            phone=user.phone,
+            email=user.email,
+            address=user.address,
+            notification_prefs={
+                "email": user.notifications_email,
+                "sms": user.notifications_sms,
+                "push": user.notifications_push,
+                "orderUpdates": user.notifications_push,
+                "invoiceAlerts": user.notifications_email,
+                "promotions": user.notifications_promo,
+            },
+        )
+    )
+
+
+async def update_vendor_settings(
+    db: AsyncSession, user: User, data: VendorSettings
+) -> VendorSettingsResponse:
+    _ensure_vendor(user)
+    user.name = data.company_name or user.name
+    user.phone = data.phone
+    user.address = data.address
+    user.notifications_email = data.notification_prefs.get("email", True)
+    user.notifications_sms = data.notification_prefs.get("sms", bool(user.phone))
+    user.notifications_push = data.notification_prefs.get("push", True)
+    user.notifications_promo = data.notification_prefs.get("promotions", False)
+    db.add(user)
+    await db.flush()
+    return await get_vendor_settings(user)
+
+
+async def get_vendor_damage_reports(
+    db: AsyncSession, user: User
+) -> VendorDamageReportsResponse:
+    _ensure_vendor(user)
+    reports = (
+        await db.execute(
+            select(DamageReportModel)
+            .where(DamageReportModel.customer_id == user.id)
+            .order_by(DamageReportModel.created_at.desc())
+        )
+    ).scalars().all()
+    return VendorDamageReportsResponse(
+        reports=[
+            VendorDamageReport(
+                id=report.reference_code,
+                order_id=str(report.order_id) if report.order_id else "",
+                description=report.description,
+                photos=report.photos or [],
+                status=report.status,
+                qr_code=report.qr_code,
+                created_at=report.created_at.isoformat(),
+            )
+            for report in reports
+        ]
+    )
+
+
+async def create_vendor_damage_report(
+    db: AsyncSession, user: User, data: VendorDamageReportCreate
+) -> VendorDamageReport:
+    _ensure_vendor(user)
+    report = DamageReportModel(
+        reference_code=f"VDR-{uuid.uuid4().hex[:6].upper()}",
+        customer_id=user.id,
+        order_id=uuid.UUID(data.order_id) if data.order_id else None,
+        description=data.description,
+        photos=data.photos,
+        status="reported",
+        qr_code=f"QR-{uuid.uuid4().hex[:8].upper()}",
+    )
+    db.add(report)
+    await db.flush()
+    return VendorDamageReport(
+        id=report.reference_code,
+        order_id=str(report.order_id) if report.order_id else "",
+        description=report.description,
+        photos=report.photos or [],
+        status=report.status,
+        qr_code=report.qr_code,
+        created_at=report.created_at.isoformat() if report.created_at else datetime.now().isoformat(),
+    )
+
+
+async def list_team_members(db: AsyncSession, user: User) -> list[VendorTeamMemberResponse]:
+    _ensure_vendor(user)
+    rows = (
+        await db.execute(
+            select(VendorTeamMember)
+            .where(VendorTeamMember.vendor_id == user.id)
+            .order_by(VendorTeamMember.created_at.desc())
+        )
+    ).scalars().all()
+    return [VendorTeamMemberResponse.model_validate(row) for row in rows]
+
+
+async def create_team_member(
+    db: AsyncSession, user: User, data: VendorTeamMemberCreate
+) -> VendorTeamMemberResponse:
+    _ensure_vendor(user)
+    member = VendorTeamMember(
+        vendor_id=user.id,
+        name=data.name,
+        email=data.email.lower(),
+        role=data.role,
+        status="Invited",
+    )
+    db.add(member)
+    await db.flush()
+    await db.refresh(member)
+    return VendorTeamMemberResponse.model_validate(member)
+
+
+async def delete_team_member(db: AsyncSession, user: User, member_id: uuid.UUID) -> None:
+    _ensure_vendor(user)
+    member = (
+        await db.execute(
+            select(VendorTeamMember).where(
+                VendorTeamMember.id == member_id,
+                VendorTeamMember.vendor_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team member not found")
+    await db.delete(member)
+
+
+async def list_api_keys(db: AsyncSession, user: User) -> list[VendorApiKeyResponse]:
+    _ensure_vendor(user)
+    rows = (
+        await db.execute(
+            select(VendorApiKey)
+            .where(VendorApiKey.vendor_id == user.id)
+            .order_by(VendorApiKey.created_at.desc())
+        )
+    ).scalars().all()
+    return [_api_key_response(row) for row in rows]
+
+
+async def create_api_key(
+    db: AsyncSession, user: User, data: VendorApiKeyCreate
+) -> VendorApiKeyResponse:
+    _ensure_vendor(user)
+    api_key = VendorApiKey(vendor_id=user.id, name=data.name)
+    db.add(api_key)
+    await db.flush()
+    await db.refresh(api_key)
+    return _api_key_response(api_key)
+
+
+async def revoke_api_key(db: AsyncSession, user: User, key_id: uuid.UUID) -> VendorApiKeyResponse:
+    _ensure_vendor(user)
+    api_key = (
+        await db.execute(
+            select(VendorApiKey).where(
+                VendorApiKey.id == key_id,
+                VendorApiKey.vendor_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not api_key:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="API key not found")
+    api_key.status = "Revoked"
+    db.add(api_key)
+    await db.flush()
+    await db.refresh(api_key)
+    return _api_key_response(api_key)
+
+
+async def list_recurring_rules(db: AsyncSession, user: User) -> list[VendorRecurringRuleResponse]:
+    _ensure_vendor(user)
+    rows = (
+        await db.execute(
+            select(VendorRecurringRule)
+            .where(VendorRecurringRule.vendor_id == user.id)
+            .order_by(VendorRecurringRule.created_at.desc())
+        )
+    ).scalars().all()
+    return [VendorRecurringRuleResponse.model_validate(row) for row in rows]
+
+
+async def create_recurring_rule(
+    db: AsyncSession, user: User, data: VendorRecurringRuleCreate
+) -> VendorRecurringRuleResponse:
+    _ensure_vendor(user)
+    rule = VendorRecurringRule(
+        vendor_id=user.id,
+        name=data.name,
+        description=data.description,
+        frequency=data.frequency,
+        route=data.route,
+        details=data.details,
+        next_run=data.next_run,
+        active=data.active,
+    )
+    db.add(rule)
+    await db.flush()
+    await db.refresh(rule)
+    return VendorRecurringRuleResponse.model_validate(rule)
+
+
+async def update_recurring_rule(
+    db: AsyncSession, user: User, rule_id: uuid.UUID, data: VendorRecurringRuleCreate
+) -> VendorRecurringRuleResponse:
+    _ensure_vendor(user)
+    rule = (
+        await db.execute(
+            select(VendorRecurringRule).where(
+                VendorRecurringRule.id == rule_id,
+                VendorRecurringRule.vendor_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not rule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurring rule not found")
+    rule.name = data.name
+    rule.description = data.description
+    rule.frequency = data.frequency
+    rule.route = data.route
+    rule.details = data.details
+    rule.next_run = data.next_run
+    rule.active = data.active
+    db.add(rule)
+    await db.flush()
+    await db.refresh(rule)
+    return VendorRecurringRuleResponse.model_validate(rule)
+
+
+async def toggle_recurring_rule(
+    db: AsyncSession, user: User, rule_id: uuid.UUID
+) -> VendorRecurringRuleResponse:
+    _ensure_vendor(user)
+    rule = (
+        await db.execute(
+            select(VendorRecurringRule).where(
+                VendorRecurringRule.id == rule_id,
+                VendorRecurringRule.vendor_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not rule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurring rule not found")
+    rule.active = not rule.active
+    db.add(rule)
+    await db.flush()
+    await db.refresh(rule)
+    return VendorRecurringRuleResponse.model_validate(rule)
+
+
+async def delete_recurring_rule(db: AsyncSession, user: User, rule_id: uuid.UUID) -> None:
+    _ensure_vendor(user)
+    rule = (
+        await db.execute(
+            select(VendorRecurringRule).where(
+                VendorRecurringRule.id == rule_id,
+                VendorRecurringRule.vendor_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not rule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurring rule not found")
+    await db.delete(rule)
+
+
+async def list_bulk_uploads(db: AsyncSession, user: User) -> list[VendorBulkUploadResponse]:
+    _ensure_vendor(user)
+    rows = (
+        await db.execute(
+            select(VendorBulkUpload)
+            .where(VendorBulkUpload.vendor_id == user.id)
+            .order_by(VendorBulkUpload.created_at.desc())
+        )
+    ).scalars().all()
+    return [_bulk_upload_response(row) for row in rows]
+
+
+async def create_bulk_upload(
+    db: AsyncSession, user: User, data: VendorBulkUploadCreate
+) -> VendorBulkUploadResponse:
+    _ensure_vendor(user)
+    upload = VendorBulkUpload(
+        vendor_id=user.id,
+        filename=data.filename,
+        file_size_kb=data.file_size_kb,
+        orders=data.orders,
+        status=data.status,
+        errors=data.errors,
+        scheduled_for=data.scheduled_for,
+    )
+    db.add(upload)
+    await db.flush()
+    await db.refresh(upload)
+    return _bulk_upload_response(upload)
+
+
+async def update_bulk_upload(
+    db: AsyncSession, user: User, upload_id: uuid.UUID, data: VendorBulkUploadUpdate
+) -> VendorBulkUploadResponse:
+    _ensure_vendor(user)
+    upload = (
+        await db.execute(
+            select(VendorBulkUpload).where(
+                VendorBulkUpload.id == upload_id,
+                VendorBulkUpload.vendor_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not upload:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bulk upload not found")
+    if data.status is not None:
+        upload.status = data.status
+    if data.errors is not None:
+        upload.errors = data.errors
+    if data.scheduled_for is not None:
+        upload.scheduled_for = data.scheduled_for
+    db.add(upload)
+    await db.flush()
+    await db.refresh(upload)
+    return _bulk_upload_response(upload)
+
+
+async def list_support_tickets(db: AsyncSession, user: User) -> list[VendorSupportTicketResponse]:
+    _ensure_vendor(user)
+    rows = (
+        await db.execute(
+            select(VendorSupportTicket)
+            .options(selectinload(VendorSupportTicket.replies))
+            .where(VendorSupportTicket.vendor_id == user.id)
+            .order_by(VendorSupportTicket.created_at.desc())
+        )
+    ).scalars().all()
+    return [_ticket_response(row) for row in rows]
+
+
+async def create_support_ticket(
+    db: AsyncSession, user: User, data: VendorSupportTicketCreate
+) -> VendorSupportTicketResponse:
+    _ensure_vendor(user)
+    order_id = uuid.UUID(data.shipment_id) if data.shipment_id else None
+    ticket = VendorSupportTicket(
+        vendor_id=user.id,
+        order_id=order_id,
+        subject=data.subject,
+        description=data.description,
+        priority=data.priority,
+        status="Open",
+    )
+    db.add(ticket)
+    await db.flush()
+    reply = VendorSupportReply(ticket_id=ticket.id, from_name="You", message=data.description)
+    db.add(reply)
+    await db.flush()
+    result = (
+        await db.execute(
+            select(VendorSupportTicket)
+            .options(selectinload(VendorSupportTicket.replies))
+            .where(VendorSupportTicket.id == ticket.id)
+        )
+    ).scalar_one()
+    return _ticket_response(result)
+
+
+async def reply_support_ticket(
+    db: AsyncSession, user: User, ticket_id: uuid.UUID, data: VendorSupportReplyCreate
+) -> VendorSupportTicketResponse:
+    _ensure_vendor(user)
+    ticket = (
+        await db.execute(
+            select(VendorSupportTicket)
+            .options(selectinload(VendorSupportTicket.replies))
+            .where(
+                VendorSupportTicket.id == ticket_id,
+                VendorSupportTicket.vendor_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Support ticket not found")
+    reply = VendorSupportReply(ticket_id=ticket.id, from_name="You", message=data.message)
+    db.add(reply)
+    if ticket.status == "Resolved":
+        ticket.status = "In Progress"
+        db.add(ticket)
+    await db.flush()
+    refreshed = (
+        await db.execute(
+            select(VendorSupportTicket)
+            .options(selectinload(VendorSupportTicket.replies))
+            .where(VendorSupportTicket.id == ticket.id)
+        )
+    ).scalar_one()
+    return _ticket_response(refreshed)
+
+
+async def resolve_support_ticket(
+    db: AsyncSession, user: User, ticket_id: uuid.UUID
+) -> VendorSupportTicketResponse:
+    _ensure_vendor(user)
+    ticket = (
+        await db.execute(
+            select(VendorSupportTicket)
+            .options(selectinload(VendorSupportTicket.replies))
+            .where(
+                VendorSupportTicket.id == ticket_id,
+                VendorSupportTicket.vendor_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Support ticket not found")
+    ticket.status = "Resolved"
+    db.add(ticket)
+    await db.flush()
+    await db.refresh(ticket, attribute_names=["replies"])
+    return _ticket_response(ticket)

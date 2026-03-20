@@ -1,6 +1,6 @@
 <template>
   <Background :image-url="currentRole.background">
-    <Navbar :show-role-info="{ role: currentRole.title, onChangeRole: () => router.push('/login') }" />
+    <Navbar :show-role-info="{ role: currentRole.title, onChangeRole: () => router.push('/login-hub') }" />
     <AIHelpOrb />
 
     <div class="min-h-screen flex items-center justify-center px-8 pt-32 pb-20">
@@ -51,7 +51,7 @@
               <GlassInput
                 v-model="emailOrPhone"
                 type="text"
-                placeholder="Email or Phone"
+                placeholder="Email or Username"
                 :icon="Mail"
                 required
               />
@@ -155,10 +155,18 @@
               v-motion
               :initial="{ opacity: 0, y: 10 }"
               :enter="{ opacity: 1, y: 0, transition: { delay: 900 } }"
+              class="flex justify-center"
             >
+              <GoogleLogin
+                v-if="googleClientId"
+                :callback="handleGoogleCredential"
+                :error="handleGoogleError"
+                :button-config="googleButtonConfig"
+              />
               <button
+                v-else
                 type="button"
-                @click="handleGoogleSignIn"
+                @click="handleMissingGoogleConfig"
                 class="w-full px-6 py-3.5 rounded-lg bg-white hover:bg-white/95 transition-all duration-300 flex items-center justify-center gap-3 group shadow-lg hover:shadow-xl"
               >
                 <svg class="w-5 h-5" viewBox="0 0 24 24">
@@ -263,13 +271,20 @@ import GlassInput from '../components/GlassInput.vue';
 import GlassButton from '../components/GlassButton.vue';
 import { useAuthStore } from '../stores/authStore';
 import { useToast } from '../composables/useToast';
-import { googleOneTap } from 'vue3-google-login';
 
 const authStore = useAuthStore();
 const toast = useToast();
 
 const router = useRouter();
 const route = useRoute();
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const googleButtonConfig = {
+  theme: 'filled_white',
+  size: 'large',
+  text: 'signin_with',
+  shape: 'rectangular',
+  width: 360,
+};
 
 const role = computed(() => route.params.role);
 
@@ -325,35 +340,39 @@ const handleSubmit = async () => {
   isLoading.value = false;
 
   if (result.success) {
-    router.push('/dashboard');
+    toast.success(result.message);
+    router.push(result.redirect || '/dashboard');
   } else {
     toast.error(result.message);
   }
 };
 
-const handleGoogleSignIn = () => {
-  if (roleData.value.id !== 'customer' && roleData.value.id !== 'vendor') {
-    return toast.error('Google Sign-In is only allowed for Customers and Vendors.');
+const handleMissingGoogleConfig = () => {
+  toast.error('Google Sign-In is not configured yet. Add VITE_GOOGLE_CLIENT_ID to the frontend env.');
+};
+
+const handleGoogleCredential = async (response) => {
+  if (!['customer', 'vendor', 'driver'].includes(String(role.value || ''))) {
+    return toast.error('Google Sign-In is only allowed for Customers, Vendors, and Drivers.');
   }
-  
-  googleOneTap()
-    .then(async (response) => {
-      isLoading.value = true;
-      const mappedRole = roleData.value.id.toUpperCase() === 'VENDOR' ? 'VENDOR' : 'INDIVIDUAL';
-      const result = await authStore.googleLogin(response.credential, mappedRole);
-      isLoading.value = false;
-      
-      if (result.success) {
-        toast.success(result.message);
-        router.push('/dashboard');
-      } else {
-        toast.error(result.message);
-      }
-    })
-    .catch((error) => {
-      console.error(error);
-      toast.error('Google Sign-In was cancelled or failed.');
-    });
+
+  isLoading.value = true;
+  const mappedRole = String(role.value).toLowerCase() === 'vendor' ? 'VENDOR' : 'INDIVIDUAL';
+  const result = await authStore.googleLogin(response.credential, mappedRole);
+  isLoading.value = false;
+
+  if (result.success) {
+    toast.success(result.message);
+    router.push(result.redirect || '/dashboard');
+    return;
+  }
+
+  toast.error(result.message);
+};
+
+const handleGoogleError = (error) => {
+  console.error(error);
+  toast.error('Google Sign-In failed. Check the Google client configuration and allowed origins.');
 };
 </script>
 
