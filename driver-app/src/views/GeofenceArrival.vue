@@ -58,11 +58,12 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
 
 const route = useRoute()
-const router = useRouter()
+const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const stopId = computed(() => route.params.id || 'STOP-001')
@@ -80,6 +81,6 @@ onMounted(() => { timer = setInterval(() => seconds.value++, 1000) })
 onUnmounted(() => clearInterval(timer))
 
 function proceed() {
-    router.push('/service-checklist/' + stopId.value)
+    advanceAndNavigate('DELIVERY_IN_PROGRESS')
 }
 </script>

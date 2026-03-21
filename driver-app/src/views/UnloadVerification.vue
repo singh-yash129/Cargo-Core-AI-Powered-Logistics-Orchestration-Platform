@@ -107,13 +107,11 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useCamera } from '../composables/useCamera.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
 
-const router = useRouter()
 const jobStore = useJobStore()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')

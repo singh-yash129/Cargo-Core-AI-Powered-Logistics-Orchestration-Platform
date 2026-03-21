@@ -63,12 +63,12 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useCamera } from '../composables/useCamera.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
 
-const router = useRouter()
+const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
 const driverStore = useDriverStore()
 const isDark = computed(() => uiStore.theme !== 'light')
@@ -97,6 +97,6 @@ async function scanPkg(pkg) {
 
 function proceed() {
     driverStore.loadVerified = true
-    router.push('/gate-exit')
+    advanceAndNavigate('START_ROUTE')
 }
 </script>

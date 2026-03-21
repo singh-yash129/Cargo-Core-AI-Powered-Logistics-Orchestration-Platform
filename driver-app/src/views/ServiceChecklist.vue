@@ -63,12 +63,13 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
 import { dummyChecklist } from '../utils/dummyData.js'
 
 const route = useRoute()
-const router = useRouter()
+const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const stopId = computed(() => route.params.id || 'STOP-001')
@@ -79,6 +80,6 @@ const progressPct = computed(() => Math.round(done.value / checklist.value.lengt
 const allRequiredDone = computed(() => checklist.value.filter(c => c.required).every(c => c.checked))
 
 function proceed() {
-    router.push('/pod/' + stopId.value)
+    advanceAndNavigate('POD_CAPTURE')
 }
 </script>

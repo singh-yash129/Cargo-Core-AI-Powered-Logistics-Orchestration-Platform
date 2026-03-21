@@ -102,13 +102,14 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
 import { useLocalNotifications } from '../composables/useLocalNotifications.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
 
 const route = useRoute()
-const router = useRouter()
+const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
 const routeStore = useRouteStore()
 const { notify } = useLocalNotifications()
@@ -138,6 +139,6 @@ function confirmCOD() {
     })
     notify({ title: 'COD Collected', body: `₹${targetAmount} via ${paymentMethod.value} at ${stopId.value}`, type: 'success' })
     uiStore.showToast(`₹${targetAmount} COD collected ✓`, 'success')
-    router.push('/pod/' + stopId.value)
+    advanceAndNavigate('POD_CAPTURE')
 }
 </script>

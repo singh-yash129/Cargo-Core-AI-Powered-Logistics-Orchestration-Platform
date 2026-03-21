@@ -92,11 +92,11 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
 
-const router = useRouter()
+const { advanceAndNavigate } = useFlowRouter()
 const jobStore = useJobStore()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
@@ -169,30 +169,18 @@ function clearSignature() {
 async function confirmSignature() {
     if (!hasSignature.value) return
 
-    try {
-        // Get signature as base64
-        const signatureData = signatureCanvas.value.toDataURL('image/png')
+    // Get signature as base64
+    const signatureData = signatureCanvas.value.toDataURL('image/png')
 
-        // Update stop with signature
-        stop.value.signature = signatureData
+    // Update stop with signature
+    stop.value.signature = signatureData
 
-        // Transition to next state
-        await jobStore.transition('LOAD_CONFIRM', {
-            signedAt: new Date().toISOString(),
-            signature: signatureData
-        })
+    uiStore.showToast('Signature captured successfully', 'success', 1500)
 
-        uiStore.showToast('Signature captured successfully', 'success', 1500)
-
-        // Check if more stops or go to warehouse
-        if (jobStore.isLastStop) {
-            router.push('/warehouse-return')
-        } else {
-            // Move to next pickup location
-            await jobStore.transition('NEXT_STOP')
-        }
-    } catch (e) {
-        uiStore.showToast(e.message, 'error', 2000)
-    }
+    // Transition to next state via FSM
+    advanceAndNavigate('LOAD_CONFIRM', {
+        signedAt: new Date().toISOString(),
+        signature: signatureData
+    })
 }
 </script>

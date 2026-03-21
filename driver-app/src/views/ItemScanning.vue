@@ -115,10 +115,12 @@ import { useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useCamera } from '../composables/useCamera.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
 
 const router = useRouter()
 const jobStore = useJobStore()
 const uiStore = useUiStore()
+const { advanceAndNavigate } = useFlowRouter()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 const { scanQrCode, isCapturing: isScanning } = useCamera()
@@ -184,19 +186,13 @@ function cancelScanning() {
 async function completeScanning() {
     if (!allItemsScanned.value) return
 
-    try {
-        // Update job store with scanned items
-        stop.value.itemsScanned = scannedItems.value
+    // Update job store with scanned items
+    stop.value.itemsScanned = scannedItems.value
 
-        // Transition to next state
-        await jobStore.transition('PICKUP_SIGNATURE', {
-            itemsScanned: scannedItems.value,
-            scannedAt: new Date().toISOString()
-        })
-
-        router.push(`/pickup-signature/${stop.value.id}`)
-    } catch (e) {
-        uiStore.showToast(e.message, 'error', 2000)
-    }
+    // Transition to next state via FSM
+    advanceAndNavigate('PICKUP_SIGNATURE', {
+        itemsScanned: scannedItems.value,
+        scannedAt: new Date().toISOString()
+    })
 }
 </script>

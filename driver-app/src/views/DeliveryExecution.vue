@@ -142,11 +142,12 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
 
 const route = useRoute()
-const router = useRouter()
+const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const stopId = computed(() => route.params.id || 'STOP-001')
@@ -177,6 +178,6 @@ const parcels = [
 
 // ── Navigation ────────────────────────────────────────────────────────
 function beginService() {
-    router.push('/service-checklist/' + stopId.value)
+    advanceAndNavigate('SERVICE_CHECKLIST')
 }
 </script>

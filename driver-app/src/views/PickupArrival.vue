@@ -118,13 +118,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useGpsTracking } from '../composables/useGpsTracking.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
 import { formatDistance } from '../utils/geofence.js'
 
-const router = useRouter()
+const { advanceAndNavigate } = useFlowRouter()
 const jobStore = useJobStore()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
@@ -170,16 +170,10 @@ onUnmounted(() => {
 async function proceedToScanning() {
     if (!isWithinGeofence.value) return
 
-    // Transition FSM state
-    try {
-        await jobStore.transition('SCAN_ITEMS', {
-            arrivedAt: new Date().toISOString(),
-            location: currentLocation.value
-        })
-
-        router.push(`/pickup-scanning/${stop.value.id}`)
-    } catch (e) {
-        uiStore.showToast(e.message, 'error', 2000)
-    }
+    // Transition FSM state and navigate
+    advanceAndNavigate('SCAN_ITEMS', {
+        arrivedAt: new Date().toISOString(),
+        location: currentLocation.value
+    })
 }
 </script>

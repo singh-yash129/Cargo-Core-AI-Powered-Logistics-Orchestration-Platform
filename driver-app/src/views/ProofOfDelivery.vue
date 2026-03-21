@@ -120,16 +120,19 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 import { useCamera } from '../composables/useCamera.js'
 import { useLocalNotifications } from '../composables/useLocalNotifications.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
 
 const route = useRoute()
-const router = useRouter()
+const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
 const routeStore = useRouteStore()
+const jobStore = useJobStore()
 const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
 const { scanDocument, isCapturing } = useCamera()
@@ -282,7 +285,9 @@ function handleNext() {
         routeStore.completeDelivery(stopId.value)
         routeStore.endDwell(stopId.value)
         notify({ title: 'Delivery Complete', body: `Stop ${stopId.value} delivered successfully`, type: 'delivery', route: '/manifest' })
-        router.push('/manifest')
+        // Use FSM: go to NEXT_STOP if more stops, or COMPLETED if last
+        const nextState = routeStore.isLastStop ? 'COMPLETED' : 'NEXT_STOP'
+        advanceAndNavigate(nextState)
     }
 }
 </script>

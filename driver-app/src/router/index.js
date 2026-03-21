@@ -453,14 +453,11 @@ router.beforeEach((to, from, next) => {
         const dailyStartPages = ['vehicle-binding', 'vehicle-inspection', 'job-type-selection']
 
         if (isHouseShift) {
-            // House Shift: require crew → load → gate
+            // House Shift: require crew → gate (NO load-verify for house shift)
             if (!driverStore.crewCheckedIn && !['crew', ...dailyStartPages].includes(to.name)) {
                 return next({ name: 'crew' })
             }
-            if (!driverStore.loadVerified && !['crew', 'load-verify', ...dailyStartPages].includes(to.name)) {
-                return next({ name: 'load-verify' })
-            }
-            if (!driverStore.gateExited && !['crew', 'load-verify', 'gate-exit', ...dailyStartPages].includes(to.name)) {
+            if (!driverStore.gateExited && !['crew', 'gate-exit', ...dailyStartPages].includes(to.name)) {
                 return next({ name: 'gate-exit' })
             }
         } else {
