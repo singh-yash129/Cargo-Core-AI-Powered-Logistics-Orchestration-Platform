@@ -1,48 +1,54 @@
 # Minutes of Meeting (MoM)
 
-**Date:** YYYY-MM-DD  
-**Time:** HH:MM – HH:MM  
-**Location/Platform:** [e.g., Google Meet / IIT Madras SE Dashboard]  
+**Date:** 2026-03-08  
+**Time:** 07:30 – 09:30  
+**Location/Platform:** Google Meet 
 **Attendees:**  
-- Name 1  
-- Name 2  
-- Name 3  
+- Siddarth S (23f3001439@ds.study.iitm.ac.in)  
+- Yashvardhan (23f2004644@ds.study.iitm.ac.in)
+- Pruthvi Prasad S (23f1002103@ds.study.iitm.ac.in)
+- Gautham Krishna S (23f2000466@ds.study.iitm.ac.in)
 
 ---
 
 ## Agenda
-1. Topic 1  
-2. Topic 2  
-3. Topic 3  
+1. Review full schedule/Gantt (take/export screenshots for PDF)
+2. Finish class diagram + system components description
+3. Finish DB design (ER diagram/schema)
+4. Frontend: demo most linked UI pages (navigable)
+5. Export Kanban board screenshot for PDF
+6. Record meeting minutes
 
 ---
 
 ## Discussion Points
-- **Topic 1:** Key notes, decisions, and clarifications.  
-- **Topic 2:** Key notes, decisions, and clarifications.  
-- **Topic 3:** Key notes, decisions, and clarifications.  
+Schedule & Gantt Review — Full timeline till April 19 reviewed; Gantt chart exported (Draw.io) showing all phases & dependencies. Screenshots captured for PDF.
+System Design — Class diagram finalized (all major classes with appropriate relationships: User, Order, Delivery, Inventory, etc.). System components described (Frontend: React components; Backend: Flask APIs; Database: relational tables).
+Database Design — ER diagram completed (entities: Users, Orders, Routes, Alerts; relationships: one-to-many, many-to-many). Schema draft reviewed and approved.
+Frontend Demo — Yashvardhan demoed most UI pages (Dashboard, Order Tracking, Alerts, Profile) — all pages linked with React Router redirection. Light/Dark mode toggle working. Responsive on mobile/desktop.
+Kanban Board — Trello board screenshot exported (columns: To Do, In Progress, Done; tasks assigned to team members).  
 
 ---
 
 ## Decisions Taken
-- Decision 1  
-- Decision 2  
-- Decision 3  
+1.All diagrams (class + ER) approved — ready for PDF.
+2.UI pages ~90% complete (most important screens done; minor placeholders OK for Milestone 2).
+3.Gantt + Kanban screenshots finalized for report.
 
 ---
 
 ## Action Items
 | Task | Responsible | Deadline | Status |
 |------|-------------|----------|--------|
-| Task 1 | Person A | YYYY-MM-DD | Pending |
-| Task 2 | Person B | YYYY-MM-DD | In Progress |
-| Task 3 | Person C | YYYY-MM-DD | Completed |
+| Final polish class & DB diagrams | All | 2026-03-10 | Pending |
+| Complete any remaining UI page linking | Yashvardhan | 2026-03-12 | Pending |
+| Prepare frontend zip + README draft | Yashvardhan | 2026-03-14 | Pending |
+| Draft PDF sections (diagrams, UI screenshots) | Siddarth | 2026-03-14 | Pending |
 
 ---
 
 ## Next Meeting
-- **Date:** YYYY-MM-DD  
-- **Time:** HH:MM  
+- **Date:** 2026-03-14
+- **Time:** 7:00 PM 
 - **Agenda (Tentative):**  
-  - Item 1  
-  - Item 2  
+  - Milestone 2 polish & Sprint 1 prep
