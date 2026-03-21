@@ -54,7 +54,6 @@ const STATE_ROUTE_MAP = {
         ARRIVE_DEST: '/unloading-inventory',
         UNLOADING_INVENTORY: '/unloading-inventory',
         FINAL_CHECKLIST: '/final-walkthrough',
-        WALKTHROUGH: '/final-walkthrough',
         POC_CAPTURE: '/customer-signoff',
         COMPLETED: '/job-completion',
     }
@@ -203,7 +202,6 @@ export function useFlowRouter() {
             ARRIVE_DEST: 'Start Unloading',
             UNLOADING_INVENTORY: 'Unload Items',
             FINAL_CHECKLIST: 'Final Walkthrough',
-            WALKTHROUGH: 'Customer Sign-off',
             POC_CAPTURE: 'Get Customer Sign-off',
             COMPLETED: 'View Summary',
         }

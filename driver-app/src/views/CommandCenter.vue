@@ -256,7 +256,7 @@
             </div>
 
             <!-- House Shift Summary Card (House Shift only) -->
-            <div v-else-if="jobStore.jobType === 'HOUSE_SHIFT'" class="rounded-2xl p-5 border relative overflow-hidden"
+            <div v-else-if="jobStore.jobType === 'HOUSE_SHIFT'" class="rounded-2xl p-5 border"
                 :class="isDark ? 'bg-surface-dark/30 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
                 <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
                     <div class="absolute top-0 right-0 w-36 h-36 rounded-full blur-3xl opacity-20 bg-purple-500"></div>

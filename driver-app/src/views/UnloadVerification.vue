@@ -111,11 +111,13 @@ import { useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useCamera } from '../composables/useCamera.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
 
 const router = useRouter()
 const jobStore = useJobStore()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+const { advanceAndNavigate } = useFlowRouter()
 
 const { scanQrCode, isCapturing: isScanning } = useCamera()
 
@@ -196,22 +198,15 @@ async function completeUnload() {
     if (!allItemsVerified.value) return
 
     try {
-        // Transition to completed state
-        await jobStore.transition('UNLOAD_VERIFY', {
-            verifiedItems: verifiedItems.value,
-            completedAt: new Date().toISOString()
-        })
-
-        await jobStore.transition('COMPLETED', {
-            completedAt: new Date().toISOString()
-        })
-
         uiStore.showToast('Pickup job completed successfully! 🎉', 'success', 3000)
 
-        // Navigate to dashboard or summary
+        // Use FSM to transition to UNLOAD_VERIFY then COMPLETED via flow router
         setTimeout(() => {
-            router.push('/dashboard')
-        }, 1500)
+            advanceAndNavigate('UNLOAD_VERIFY', {
+                verifiedItems: verifiedItems.value,
+                completedAt: new Date().toISOString()
+            })
+        }, 500)
     } catch (e) {
         uiStore.showToast(e.message, 'error', 2000)
     }

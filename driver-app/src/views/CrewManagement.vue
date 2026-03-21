@@ -280,7 +280,7 @@
                     : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
                 <div v-if="pendingCount === 0" class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
                 <span class="material-icons text-xl relative z-10">{{ pendingCount === 0 ? 'check_circle' : 'group' }}</span>
-                <span class="relative z-10">{{ pendingCount === 0 ? 'All Set · Begin Loading' : `Waiting for ${pendingCount} crew member${pendingCount > 1 ? 's' : ''}` }}</span>
+                <span class="relative z-10">{{ pendingCount === 0 ? 'All Set · Proceed to Gate Exit' : `Waiting for ${pendingCount} crew member${pendingCount > 1 ? 's' : ''}` }}</span>
             </button>
         </div>
     </div>
@@ -337,7 +337,7 @@ function submitReport() {
 
 function proceedToLoad() {
     driverStore.crewCheckedIn = true
-    router.push('/load-verify')
+    router.push('/gate-exit')
 }
 </script>
 

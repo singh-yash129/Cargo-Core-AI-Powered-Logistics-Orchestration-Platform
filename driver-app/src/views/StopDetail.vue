@@ -97,7 +97,7 @@
         <!-- ── STICKY FOOTER ────────────────────────── -->
         <div class="screen-footer px-5 py-4 border-t flex flex-col gap-2"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
-            <button @click="$router.push('/geofence-arrival/' + stop.id)"
+            <button @click="startDelivery"
                 class="w-full rounded-2xl h-13 flex items-center justify-center gap-2 font-bold text-background-dark shadow-glow active:scale-[0.98]"
                 style="background: linear-gradient(135deg, #1CE783, #15b86a); height: 52px;">
                 <span class="material-icons">navigation</span>
@@ -117,11 +117,13 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 import { dummyStops } from '../utils/dummyData.js'
 
 const route = useRoute()
 const router = useRouter()
 const uiStore = useUiStore()
+const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 const stop = computed(() => dummyStops.find(s => s.id === route.params.id) || dummyStops[0])
@@ -137,5 +139,13 @@ const orderDetails = computed(() => [
 function typeBadgeClass(type) {
     const map = { express: 'bg-accent-gold/10 text-accent-gold border-accent-gold/20', move: 'bg-accent-purple/10 text-accent-purple border-accent-purple/20', pickup: 'bg-orange-500/10 text-orange-400 border-orange-500/20', parcel: 'bg-accent-blue/10 text-accent-blue border-accent-blue/20' }
     return map[type] || 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+}
+
+function startDelivery() {
+    if (jobStore.jobType === 'PARCEL_PICKUP') {
+        router.push('/pickup-arrival/' + stop.value.id)
+    } else {
+        router.push('/geofence-arrival/' + stop.value.id)
+    }
 }
 </script>

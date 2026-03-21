@@ -160,6 +160,6 @@ function typeBadgeClass(type) {
 
 function startRoute() {
     routeStore.startRoute()
-    router.push('/gate-exit')
+    router.push('/navigation')
 }
 </script>

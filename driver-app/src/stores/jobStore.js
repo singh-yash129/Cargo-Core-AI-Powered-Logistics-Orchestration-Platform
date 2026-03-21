@@ -60,8 +60,7 @@ export const useJobStore = defineStore('job', () => {
             TRANSIT_TO_DEST: ['ARRIVE_DEST'],
             ARRIVE_DEST: ['UNLOADING_INVENTORY'],
             UNLOADING_INVENTORY: ['FINAL_CHECKLIST'],
-            FINAL_CHECKLIST: ['WALKTHROUGH'],
-            WALKTHROUGH: ['POC_CAPTURE'],
+            FINAL_CHECKLIST: ['POC_CAPTURE'],
             POC_CAPTURE: ['COMPLETED'],
             COMPLETED: []
         }
@@ -140,8 +139,7 @@ export const useJobStore = defineStore('job', () => {
             'TRANSIT_TO_DEST': 'In Transit',
             'ARRIVE_DEST': 'Arrived at Destination',
             'UNLOADING_INVENTORY': 'Unloading',
-            'FINAL_CHECKLIST': 'Final Checklist',
-            'WALKTHROUGH': 'Walkthrough',
+            'FINAL_CHECKLIST': 'Final Walkthrough',
             'POC_CAPTURE': 'Getting Sign-off',
             'NEXT_STOP': 'Moving to Next Stop',
             'DELIVERY_EXCEPTION': 'Exception Reported',

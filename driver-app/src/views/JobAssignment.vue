@@ -2,11 +2,9 @@
     <div class="screen-layout" :class="isDark ? 'bg-background-dark text-white' : 'bg-background-light text-gray-900'">
 
         <!-- Header -->
-        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b"
-            :class="isDark ? 'border-white/5' : 'border-gray-100'">
+        <header class="flex-shrink-0 px-5 pt-5 pb-4 border-b" :class="isDark ? 'border-white/5' : 'border-gray-100'">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full flex items-center justify-center"
-                    :class="jobBgColor">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center" :class="jobBgColor">
                     <span class="material-icons text-white text-lg">{{ jobIcon }}</span>
                 </div>
                 <div>
@@ -28,8 +26,8 @@
             <!-- Job ID Card -->
             <div class="rounded-3xl p-5 border relative overflow-hidden"
                 :class="isDark ? 'bg-surface-dark/60 border-white/10' : 'bg-white border-gray-100 shadow-xl'">
-                <div class="absolute top-0 right-0 w-40 h-40 blur-3xl opacity-20 rounded-full"
-                    :class="jobBgColor"></div>
+                <div class="absolute top-0 right-0 w-40 h-40 blur-3xl opacity-20 rounded-full" :class="jobBgColor">
+                </div>
                 <div class="relative">
                     <div class="flex items-start justify-between mb-3">
                         <div>
@@ -45,8 +43,7 @@
 
                     <!-- Job Stats Grid -->
                     <div class="grid grid-cols-3 gap-3 mt-4">
-                        <div v-for="stat in jobStats" :key="stat.label"
-                            class="rounded-2xl p-3 text-center border"
+                        <div v-for="stat in jobStats" :key="stat.label" class="rounded-2xl p-3 text-center border"
                             :class="isDark ? 'bg-black/20 border-white/5' : 'bg-gray-50 border-gray-100'">
                             <span class="material-icons text-lg mb-1 block" :class="stat.color">{{ stat.icon }}</span>
                             <p class="text-lg font-black">{{ stat.value }}</p>
@@ -62,9 +59,9 @@
                 :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
 
                 <!-- Source -->
-                <div class="p-4 flex items-start gap-3 border-b"
-                    :class="isDark ? 'border-white/5' : 'border-gray-100'">
-                    <div class="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div class="p-4 flex items-start gap-3 border-b" :class="isDark ? 'border-white/5' : 'border-gray-100'">
+                    <div
+                        class="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span class="material-icons text-primary text-sm">warehouse</span>
                     </div>
                     <div>
@@ -80,7 +77,8 @@
 
                 <!-- Destination (if applicable) -->
                 <div v-if="toAddress" class="p-4 flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-full bg-green-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div
+                        class="w-8 h-8 rounded-full bg-green-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span class="material-icons text-green-400 text-sm">place</span>
                     </div>
                     <div>
@@ -103,15 +101,13 @@
                     {{ isHouseShift ? 'Items to Move' : isPickup ? 'Expected Pickups' : 'Delivery Stops' }}
                 </p>
                 <div v-if="isHouseShift" class="space-y-2">
-                    <div v-for="cat in inventoryCategories" :key="cat.name"
-                        class="flex items-center justify-between">
+                    <div v-for="cat in inventoryCategories" :key="cat.name" class="flex items-center justify-between">
                         <span class="text-sm font-semibold">{{ cat.name }}</span>
                         <span class="text-sm font-black" :class="jobTextColor">{{ cat.count }} items</span>
                     </div>
                 </div>
                 <div v-else class="space-y-2">
-                    <div v-for="(stop, i) in previewStops" :key="stop.id"
-                        class="flex items-center gap-3">
+                    <div v-for="(stop, i) in previewStops" :key="stop.id" class="flex items-center gap-3">
                         <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black"
                             :class="isDark ? 'bg-primary/20 text-primary' : 'bg-primary/15 text-primary'">
                             {{ i + 1 }}
@@ -128,16 +124,14 @@
             </div>
 
             <!-- Important Notes -->
-            <div v-if="hasSpecialNotes"
-                class="rounded-2xl border-l-4 border-signal-amber p-4"
+            <div v-if="hasSpecialNotes" class="rounded-2xl border-l-4 border-signal-amber p-4"
                 :class="isDark ? 'bg-signal-amber/5' : 'bg-amber-50'">
                 <div class="flex items-center gap-2 mb-2">
                     <span class="material-icons text-signal-amber text-base">warning</span>
                     <p class="text-xs uppercase font-bold tracking-wider text-signal-amber">Special Notes</p>
                 </div>
                 <ul class="space-y-1">
-                    <li v-for="note in specialNotes" :key="note"
-                        class="text-xs font-medium flex items-start gap-1.5"
+                    <li v-for="note in specialNotes" :key="note" class="text-xs font-medium flex items-start gap-1.5"
                         :class="isDark ? 'text-amber-300' : 'text-amber-800'">
                         <span class="text-signal-amber mt-0.5">•</span>
                         {{ note }}

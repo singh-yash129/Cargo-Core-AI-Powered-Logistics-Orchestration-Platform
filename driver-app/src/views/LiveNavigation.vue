@@ -89,16 +89,23 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
 const routeStore = useRouteStore()
+const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const currentStopId = computed(() => routeStore.currentStop?.id || 'STOP-001')
 
 function handleArrival() {
     routeStore.startDwell(currentStopId.value)
-    router.push(`/geofence-arrival/${currentStopId.value}`)
+    // Route to correct arrival page based on job type
+    if (jobStore.jobType === 'PARCEL_PICKUP') {
+        router.push(`/pickup-arrival/${currentStopId.value}`)
+    } else {
+        router.push(`/geofence-arrival/${currentStopId.value}`)
+    }
 }
 
 const routeStats = [
