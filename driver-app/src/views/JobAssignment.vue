@@ -12,7 +12,7 @@
                     <h1 class="text-xl font-black">{{ jobStore.jobTypeLabel }}</h1>
                 </div>
                 <div class="ml-auto">
-                    <div class="px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider"
+                    <div class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
                         :class="isDark ? 'bg-signal-amber/15 text-signal-amber' : 'bg-amber-50 text-amber-600 border border-amber-200'">
                         Action Required
                     </div>
@@ -24,7 +24,7 @@
         <div class="screen-body flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
 
             <!-- Job ID Card -->
-            <div class="rounded-3xl p-5 border relative overflow-hidden"
+            <div class="rounded-3xl p-5 border"
                 :class="isDark ? 'bg-surface-dark/60 border-white/10' : 'bg-white border-gray-100 shadow-xl'">
                 <div class="absolute top-0 right-0 w-40 h-40 blur-3xl opacity-20 rounded-full" :class="jobBgColor">
                 </div>

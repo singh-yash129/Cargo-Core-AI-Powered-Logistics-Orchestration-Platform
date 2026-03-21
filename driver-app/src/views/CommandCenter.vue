@@ -290,7 +290,7 @@
                         <div class="rounded-xl p-3 border text-center"
                             :class="isDark ? 'bg-black/20 border-white/5' : 'bg-gray-50 border-gray-100'">
                             <span class="material-icons text-purple-400 text-base">timer</span>
-                            <p class="text-lg font-black mt-1">{{ jobStore.stateLabel }}</p>
+                            <p class="text-sm font-black mt-1">{{ jobStore.stateLabel }}</p>
                             <p class="text-[9px] uppercase font-bold" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Phase</p>
                         </div>
                     </div>
