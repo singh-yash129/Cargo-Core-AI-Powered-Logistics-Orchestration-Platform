@@ -29,20 +29,37 @@ import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useNotificationStore } from '../stores/notificationStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 
 const router = useRouter()
 const route = useRoute()
 const uiStore = useUiStore()
 const notificationStore = useNotificationStore()
+const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme === 'dark')
 
-const navItems = computed(() => [
-    { name: 'home', label: 'Home', icon: 'home', route: '/dashboard', badge: null },
-    { name: 'manifest', label: 'Manifest', icon: 'list_alt', route: '/manifest', badge: null },
-    { name: 'navigation', label: 'Navigate', icon: 'near_me', route: '/navigation', badge: null },
-    { name: 'wallet', label: 'Wallet', icon: 'account_balance_wallet', route: '/wallet', badge: null },
-    { name: 'notifications', label: 'Alerts', icon: 'notifications', route: '/notifications', badge: notificationStore.unreadCount > 0 ? notificationStore.unreadCount : null },
-])
+const navItems = computed(() => {
+    const base = [
+        { name: 'home', label: 'Home', icon: 'home', route: '/dashboard', badge: null },
+    ]
+
+    // Tab 2: job-type-specific
+    if (jobStore.jobType === 'HOUSE_SHIFT') {
+        base.push({ name: 'crew', label: 'Crew', icon: 'groups', route: '/crew', badge: null })
+    } else if (jobStore.jobType) {
+        // Delivery or Pickup
+        base.push({ name: 'manifest', label: 'Manifest', icon: 'list_alt', route: '/manifest', badge: null })
+    }
+    // If no job type → skip tab 2 (4 tabs only)
+
+    base.push(
+        { name: 'navigation', label: 'Navigate', icon: 'near_me', route: '/navigation', badge: null },
+        { name: 'wallet', label: 'Wallet', icon: 'account_balance_wallet', route: '/wallet', badge: null },
+        { name: 'notifications', label: 'Alerts', icon: 'notifications', route: '/notifications', badge: notificationStore.unreadCount > 0 ? notificationStore.unreadCount : null },
+    )
+
+    return base
+})
 
 function isActive(r) {
     if (r === '/dashboard') return route.path === '/dashboard' || route.path === '/'

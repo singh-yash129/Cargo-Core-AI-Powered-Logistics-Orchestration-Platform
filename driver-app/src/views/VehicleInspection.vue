@@ -497,7 +497,7 @@ async function handleItemClick(item) {
 
 function handleComplete() {
     driverStore.inspectionDone = true
-    router.push('/crew')
+    router.push('/job-type-selection')
 }
 </script>
 

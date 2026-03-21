@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { useDriverStore } from '../stores/driverStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 
 /**
  * Route Architecture — Two layout shells, zero per-page layout boilerplate.
@@ -67,12 +68,38 @@ const routes = [
                 component: () => import('../views/VehicleInspection.vue'),
                 meta: { requiresAuth: false, hideNav: true }
             },
+            {
+                path: 'job-type-selection',
+                name: 'job-type-selection',
+                component: () => import('../views/JobTypeSelection.vue'),
+                meta: { requiresAuth: false, hideNav: true }
+            },
+
+            // ── Job Assignment & Completion ─────────────
+            {
+                path: 'job-assignment',
+                name: 'job-assignment',
+                component: () => import('../views/JobAssignment.vue'),
+                meta: { requiresAuth: false, hideNav: true }
+            },
+            {
+                path: 'job-completion',
+                name: 'job-completion',
+                component: () => import('../views/JobCompletion.vue'),
+                meta: { requiresAuth: false, hideNav: true }
+            },
 
             // ── Main Dashboard ───────────────────────────
             {
                 path: 'dashboard',
                 name: 'dashboard',
                 component: () => import('../views/CommandCenter.vue'),
+                meta: { requiresAuth: false }
+            },
+            {
+                path: 'house-shift-dashboard',
+                name: 'house-shift-dashboard',
+                component: () => import('../views/HouseShiftDashboard.vue'),
                 meta: { requiresAuth: false }
             },
 
@@ -119,6 +146,44 @@ const routes = [
                 path: 'gate-exit',
                 name: 'gate-exit',
                 component: () => import('../views/GateExit.vue'),
+                meta: { requiresAuth: false, hideNav: true }
+            },
+
+            // ── House Shift Execution ────────────────────
+            {
+                path: 'packing-progress',
+                name: 'packing-progress',
+                component: () => import('../views/PackingProgress.vue'),
+                meta: { requiresAuth: false, hideNav: true }
+            },
+            {
+                path: 'loading-inventory',
+                name: 'loading-inventory',
+                component: () => import('../views/LoadingInventory.vue'),
+                meta: { requiresAuth: false, hideNav: true }
+            },
+            {
+                path: 'transit-mode',
+                name: 'transit-mode',
+                component: () => import('../views/TransitMode.vue'),
+                meta: { requiresAuth: false, hideNav: true }
+            },
+            {
+                path: 'unloading-inventory',
+                name: 'unloading-inventory',
+                component: () => import('../views/UnloadingInventory.vue'),
+                meta: { requiresAuth: false, hideNav: true }
+            },
+            {
+                path: 'final-walkthrough',
+                name: 'final-walkthrough',
+                component: () => import('../views/FinalWalkthrough.vue'),
+                meta: { requiresAuth: false, hideNav: true }
+            },
+            {
+                path: 'customer-signoff',
+                name: 'customer-signoff',
+                component: () => import('../views/CustomerSignOff.vue'),
                 meta: { requiresAuth: false, hideNav: true }
             },
 
@@ -197,6 +262,12 @@ const routes = [
                 path: 'unload-verification',
                 name: 'unload-verification',
                 component: () => import('../views/UnloadVerification.vue'),
+                meta: { requiresAuth: false, hideNav: true }
+            },
+            {
+                path: 'pickup-completion',
+                name: 'pickup-completion',
+                component: () => import('../views/PickupCompletion.vue'),
                 meta: { requiresAuth: false, hideNav: true }
             },
 
@@ -340,6 +411,7 @@ import { useUiStore } from '../stores/uiStore.js'
 router.beforeEach((to, from, next) => {
     const driverStore = useDriverStore()
     const uiStore = useUiStore()
+    const jobStore = useJobStore()
 
     if (to.name !== 'splash' && from.name !== undefined) {
         uiStore.setLoading(true)
@@ -355,7 +427,7 @@ router.beforeEach((to, from, next) => {
         return next({ name: driverStore.preShiftDone ? 'dashboard' : 'pre-shift' })
     }
 
-    // ── Shift flow enforcement ─────────────────────────────────
+    // ── Shift flow enforcement (job-type-aware) ────────────────
     // Pages that are always accessible once authenticated (no flow guard)
     const flowExempt = ['pre-shift', 'settings', 'notifications']
     if (to.meta.requiresAuth && !flowExempt.includes(to.name)) {
@@ -367,21 +439,38 @@ router.beforeEach((to, from, next) => {
         if (!driverStore.vehicleBound && to.name !== 'vehicle-binding') {
             return next({ name: 'vehicle-binding' })
         }
-        // Must inspect before crew+
+        // Must inspect before job type selection+
         if (!driverStore.inspectionDone && !['vehicle-binding', 'vehicle-inspection'].includes(to.name)) {
             return next({ name: 'vehicle-inspection' })
         }
-        // Must check crew before load+
-        if (!driverStore.crewCheckedIn && !['vehicle-binding', 'vehicle-inspection', 'crew'].includes(to.name)) {
-            return next({ name: 'crew' })
+        // Must select job type after inspection
+        if (!driverStore.jobTypeSelected && !['vehicle-binding', 'vehicle-inspection', 'job-type-selection'].includes(to.name)) {
+            return next({ name: 'job-type-selection' })
         }
-        // Must verify load before gate+
-        if (!driverStore.loadVerified && !['vehicle-binding', 'vehicle-inspection', 'crew', 'load-verify'].includes(to.name)) {
-            return next({ name: 'load-verify' })
-        }
-        // Must pass gate before main app
-        if (!driverStore.gateExited && !['vehicle-binding', 'vehicle-inspection', 'crew', 'load-verify', 'gate-exit'].includes(to.name)) {
-            return next({ name: 'gate-exit' })
+
+        // ── Job-type-specific flow guards ──────────────────────
+        const isHouseShift = jobStore.jobType === 'HOUSE_SHIFT'
+        const dailyStartPages = ['vehicle-binding', 'vehicle-inspection', 'job-type-selection']
+
+        if (isHouseShift) {
+            // House Shift: require crew → load → gate
+            if (!driverStore.crewCheckedIn && !['crew', ...dailyStartPages].includes(to.name)) {
+                return next({ name: 'crew' })
+            }
+            if (!driverStore.loadVerified && !['crew', 'load-verify', ...dailyStartPages].includes(to.name)) {
+                return next({ name: 'load-verify' })
+            }
+            if (!driverStore.gateExited && !['crew', 'load-verify', 'gate-exit', ...dailyStartPages].includes(to.name)) {
+                return next({ name: 'gate-exit' })
+            }
+        } else {
+            // Delivery/Pickup: skip crew, require load → gate
+            if (!driverStore.loadVerified && !['load-verify', ...dailyStartPages].includes(to.name)) {
+                return next({ name: 'load-verify' })
+            }
+            if (!driverStore.gateExited && !['load-verify', 'gate-exit', ...dailyStartPages].includes(to.name)) {
+                return next({ name: 'gate-exit' })
+            }
         }
     }
 

@@ -210,8 +210,8 @@
                 </div>
             </div>
 
-            <!-- Today's Manifest Card -->
-            <div class="rounded-2xl p-5 border"
+            <!-- Today's Manifest Card (Delivery/Pickup only) -->
+            <div v-if="jobStore.jobType !== 'HOUSE_SHIFT'" class="rounded-2xl p-5 border"
                 :class="isDark ? 'bg-surface-dark/30 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
                 <div class="flex items-start justify-between mb-4">
                     <div>
@@ -252,6 +252,54 @@
                             <span class="text-xs font-bold">Live Route · 47 km · 5h 20m</span>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- House Shift Summary Card (House Shift only) -->
+            <div v-else-if="jobStore.jobType === 'HOUSE_SHIFT'" class="rounded-2xl p-5 border relative overflow-hidden"
+                :class="isDark ? 'bg-surface-dark/30 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
+                <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                    <div class="absolute top-0 right-0 w-36 h-36 rounded-full blur-3xl opacity-20 bg-purple-500"></div>
+                </div>
+                <div class="relative">
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <p class="text-xs uppercase tracking-widest font-semibold mb-0.5 text-purple-400">House Shift</p>
+                            <p class="text-xl font-bold">{{ jobStore.jobData?.jobId }}</p>
+                            <p class="text-xs mt-0.5" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+                                {{ jobStore.jobData?.sourceLocation?.address?.split(',').slice(0, 2).join(',') }}
+                            </p>
+                        </div>
+                        <div class="p-2 rounded-xl bg-purple-500/15">
+                            <span class="material-icons text-purple-400">moving</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 mb-4">
+                        <div class="rounded-xl p-3 border text-center"
+                            :class="isDark ? 'bg-black/20 border-white/5' : 'bg-gray-50 border-gray-100'">
+                            <span class="material-icons text-purple-400 text-base">groups</span>
+                            <p class="text-lg font-black mt-1">{{ jobStore.jobData?.crewAssigned?.length || 0 }}</p>
+                            <p class="text-[9px] uppercase font-bold" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Crew</p>
+                        </div>
+                        <div class="rounded-xl p-3 border text-center"
+                            :class="isDark ? 'bg-black/20 border-white/5' : 'bg-gray-50 border-gray-100'">
+                            <span class="material-icons text-purple-400 text-base">inventory</span>
+                            <p class="text-lg font-black mt-1">{{ jobStore.jobData?.inventory?.length || 0 }}</p>
+                            <p class="text-[9px] uppercase font-bold" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Items</p>
+                        </div>
+                        <div class="rounded-xl p-3 border text-center"
+                            :class="isDark ? 'bg-black/20 border-white/5' : 'bg-gray-50 border-gray-100'">
+                            <span class="material-icons text-purple-400 text-base">timer</span>
+                            <p class="text-lg font-black mt-1">{{ jobStore.stateLabel }}</p>
+                            <p class="text-[9px] uppercase font-bold" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Phase</p>
+                        </div>
+                    </div>
+                    <button @click="$router.push('/house-shift-dashboard')"
+                        class="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition-all active:scale-[0.97]"
+                        :class="isDark ? 'border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20' : 'border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100'">
+                        <span class="material-icons text-base">dashboard</span>
+                        Open Shift Dashboard →
+                    </button>
                 </div>
             </div>
 
@@ -298,7 +346,7 @@ import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
 import { useJobStore } from '../stores/jobStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
-import { dummyManifest, dummyParcelDeliveryJob } from '../utils/dummyData.js'
+import { dummyManifest } from '../utils/dummyData.js'
 import JobTypeSelector from '../components/JobTypeSelector.vue'
 
 const router = useRouter()
@@ -321,11 +369,6 @@ onMounted(() => {
     updateTime()
     setInterval(updateTime, 30000)
     routeStore.loadManifest(dummyManifest)
-
-    // Load default parcel delivery job if no job exists
-    if (!jobStore.jobType) {
-        jobStore.loadJob(dummyParcelDeliveryJob)
-    }
 })
 
 onUnmounted(() => {
@@ -367,16 +410,37 @@ const manifestMetrics = computed(() => [
     },
 ])
 
-const quickActions = [
-    { label: 'Crew', icon: 'group', route: '/crew', bg: 'bg-accent-blue/15', color: 'text-accent-blue' },
-    { label: 'Wallet', icon: 'payments', route: '/wallet', bg: 'bg-primary/15', color: 'text-primary' },
-    { label: 'Fuel', icon: 'local_gas_station', route: '/fuel-receipt', bg: 'bg-signal-amber/15', color: 'text-signal-amber' },
-    { label: 'AI', icon: 'smart_toy', route: '/voice', bg: 'bg-accent-purple/15', color: 'text-accent-purple' },
-    { label: 'Returns', icon: 'assignment_return', route: '/returns', bg: 'bg-orange-500/15', color: 'text-orange-400' },
-    { label: 'Offline', icon: 'cloud_off', route: '/offline', bg: 'bg-gray-500/15', color: 'text-gray-400' },
-    { label: 'Crisis', icon: 'emergency', route: '/crisis', bg: 'bg-red-500/15', color: 'text-red-400' },
-    { label: 'Summary', icon: 'summarize', route: '/shift-summary', bg: 'bg-accent-blue/15', color: 'text-accent-blue' },
-]
+const quickActions = computed(() => {
+    const actions = []
+    const isHouseShift = jobStore.jobType === 'HOUSE_SHIFT'
+    const isParcel = jobStore.jobType === 'PARCEL_DELIVERY' || jobStore.jobType === 'PARCEL_PICKUP'
+
+    // Crew — House Shift only
+    if (isHouseShift) {
+        actions.push({ label: 'Crew', icon: 'group', route: '/crew', bg: 'bg-accent-blue/15', color: 'text-accent-blue' })
+    }
+
+    // Always visible
+    actions.push(
+        { label: 'Wallet', icon: 'payments', route: '/wallet', bg: 'bg-primary/15', color: 'text-primary' },
+        { label: 'Fuel', icon: 'local_gas_station', route: '/fuel-receipt', bg: 'bg-signal-amber/15', color: 'text-signal-amber' },
+        { label: 'AI', icon: 'smart_toy', route: '/voice', bg: 'bg-accent-purple/15', color: 'text-accent-purple' },
+    )
+
+    // Returns — Delivery/Pickup only
+    if (isParcel) {
+        actions.push({ label: 'Returns', icon: 'assignment_return', route: '/returns', bg: 'bg-orange-500/15', color: 'text-orange-400' })
+    }
+
+    // Always visible
+    actions.push(
+        { label: 'Offline', icon: 'cloud_off', route: '/offline', bg: 'bg-gray-500/15', color: 'text-gray-400' },
+        { label: 'Crisis', icon: 'emergency', route: '/crisis', bg: 'bg-red-500/15', color: 'text-red-400' },
+        { label: 'Summary', icon: 'summarize', route: '/shift-summary', bg: 'bg-accent-blue/15', color: 'text-accent-blue' },
+    )
+
+    return actions
+})
 
 function beginRoute() {
     if (jobStore.jobType) {
