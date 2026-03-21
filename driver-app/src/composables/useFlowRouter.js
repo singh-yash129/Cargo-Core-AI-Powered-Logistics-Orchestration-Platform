@@ -44,7 +44,6 @@ const STATE_ROUTE_MAP = {
     },
     HOUSE_SHIFT: {
         ASSIGNED: '/job-assignment',
-        VEHICLE_CHECK: '/vehicle-inspection',
         CREW_CHECKIN: '/crew',
         START_ROUTE: '/navigation',
         IN_TRANSIT_TO_SOURCE: '/navigation',
@@ -89,7 +88,6 @@ export const FLOW_STEPS = {
     ],
     HOUSE_SHIFT: [
         { state: 'ASSIGNED', label: 'Job', icon: 'assignment' },
-        { state: 'VEHICLE_CHECK', label: 'Vehicle', icon: 'directions_car' },
         { state: 'CREW_CHECKIN', label: 'Crew', icon: 'group' },
         { state: 'ARRIVE_SOURCE', label: 'Source', icon: 'place' },
         { state: 'PACKING', label: 'Pack', icon: 'inventory' },

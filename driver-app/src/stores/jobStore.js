@@ -50,8 +50,7 @@ export const useJobStore = defineStore('job', () => {
         },
         HOUSE_SHIFT: {
             IDLE: ['ASSIGNED'],
-            ASSIGNED: ['VEHICLE_CHECK'],
-            VEHICLE_CHECK: ['CREW_CHECKIN'],
+            ASSIGNED: ['CREW_CHECKIN'],
             CREW_CHECKIN: ['START_ROUTE'],
             START_ROUTE: ['IN_TRANSIT_TO_SOURCE'],
             IN_TRANSIT_TO_SOURCE: ['ARRIVE_SOURCE'],

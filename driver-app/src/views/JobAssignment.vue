@@ -287,7 +287,7 @@ function acceptJob() {
     const nextStates = {
         'PARCEL_DELIVERY': 'VEHICLE_CHECK',
         'PARCEL_PICKUP': 'START_ROUTE',
-        'HOUSE_SHIFT': 'VEHICLE_CHECK',
+        'HOUSE_SHIFT': 'CREW_CHECKIN',
     }
     const nextState = nextStates[jobStore.jobType]
 
