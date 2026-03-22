@@ -43,6 +43,12 @@ Preview the production build locally:
 npm run preview
 ```
 
+## 🧪 Testing Login Credentials
+
+While the backend is in development, you can log in using mock credentials to test the various dashboards (Logistics Manager, Vendor, Customer, etc.). 
+
+👉 **[See `TESTING.md`](./TESTING.md) for the full list of test emails and passwords.**
+
 ## 📁 Project Structure
 
 ```text
