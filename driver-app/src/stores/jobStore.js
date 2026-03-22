@@ -20,8 +20,7 @@ export const useJobStore = defineStore('job', () => {
     const fsmConfig = {
         PARCEL_DELIVERY: {
             IDLE: ['ASSIGNED'],
-            ASSIGNED: ['VEHICLE_CHECK'],
-            VEHICLE_CHECK: ['LOAD_VERIFICATION'],
+            ASSIGNED: ['LOAD_VERIFICATION'],
             LOAD_VERIFICATION: ['START_ROUTE'],
             START_ROUTE: ['IN_TRANSIT'],
             IN_TRANSIT: ['ARRIVED'],
@@ -116,7 +115,6 @@ export const useJobStore = defineStore('job', () => {
         const labels = {
             'IDLE': 'Waiting',
             'ASSIGNED': 'Job Assigned',
-            'VEHICLE_CHECK': 'Vehicle Check',
             'LOAD_VERIFICATION': 'Load Verification',
             'START_ROUTE': 'Starting Route',
             'IN_TRANSIT': 'In Transit',

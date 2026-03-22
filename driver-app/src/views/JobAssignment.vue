@@ -285,7 +285,7 @@ function acceptJob() {
 
     // Determine next state based on job type
     const nextStates = {
-        'PARCEL_DELIVERY': 'VEHICLE_CHECK',
+        'PARCEL_DELIVERY': 'LOAD_VERIFICATION',
         'PARCEL_PICKUP': 'START_ROUTE',
         'HOUSE_SHIFT': 'CREW_CHECKIN',
     }

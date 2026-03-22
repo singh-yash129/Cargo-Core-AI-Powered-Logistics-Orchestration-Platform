@@ -120,7 +120,7 @@ const jobOptions = [
         chipBgLight: 'bg-green-100',
         chipTextLight: 'text-green-700',
         data: dummyParcelDeliveryJob,
-        nextRoute: '/load-verify',
+        nextRoute: '/job-assignment',
     },
     {
         type: 'PARCEL_PICKUP',
@@ -137,7 +137,7 @@ const jobOptions = [
         chipBgLight: 'bg-blue-100',
         chipTextLight: 'text-blue-700',
         data: dummyParcelPickupJob,
-        nextRoute: '/load-verify',
+        nextRoute: '/job-assignment',
     },
     {
         type: 'HOUSE_SHIFT',
@@ -154,7 +154,7 @@ const jobOptions = [
         chipBgLight: 'bg-purple-100',
         chipTextLight: 'text-purple-700',
         data: dummyHouseShiftJob,
-        nextRoute: '/crew',
+        nextRoute: '/job-assignment',
     },
 ]
 

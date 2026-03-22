@@ -450,7 +450,9 @@ router.beforeEach((to, from, next) => {
 
         // ── Job-type-specific flow guards ──────────────────────
         const isHouseShift = jobStore.jobType === 'HOUSE_SHIFT'
-        const dailyStartPages = ['vehicle-binding', 'vehicle-inspection', 'job-type-selection']
+        const isPickup = jobStore.jobType === 'PARCEL_PICKUP'
+        // Add job-assignment to daily start pages to ensure it's accessible right after job selection
+        const dailyStartPages = ['vehicle-binding', 'vehicle-inspection', 'job-type-selection', 'job-assignment']
 
         if (isHouseShift) {
             // House Shift: require crew → gate (NO load-verify for house shift)
@@ -460,8 +462,13 @@ router.beforeEach((to, from, next) => {
             if (!driverStore.gateExited && !['crew', 'gate-exit', ...dailyStartPages].includes(to.name)) {
                 return next({ name: 'gate-exit' })
             }
+        } else if (isPickup) {
+            // Pickup: skip load-verify at start, require gate directly
+            if (!driverStore.gateExited && !['gate-exit', ...dailyStartPages].includes(to.name)) {
+                return next({ name: 'gate-exit' })
+            }
         } else {
-            // Delivery/Pickup: skip crew, require load → gate
+            // Delivery: skip crew, require load → gate
             if (!driverStore.loadVerified && !['load-verify', ...dailyStartPages].includes(to.name)) {
                 return next({ name: 'load-verify' })
             }

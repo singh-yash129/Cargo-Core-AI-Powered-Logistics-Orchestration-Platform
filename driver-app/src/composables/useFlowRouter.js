@@ -16,7 +16,6 @@ import { useUiStore } from '../stores/uiStore.js'
 const STATE_ROUTE_MAP = {
     PARCEL_DELIVERY: {
         ASSIGNED: '/job-assignment',
-        VEHICLE_CHECK: '/vehicle-inspection',
         LOAD_VERIFICATION: '/load-verify',
         START_ROUTE: '/manifest',
         IN_TRANSIT: '/navigation',
@@ -63,7 +62,6 @@ const STATE_ROUTE_MAP = {
 export const FLOW_STEPS = {
     PARCEL_DELIVERY: [
         { state: 'ASSIGNED', label: 'Job', icon: 'assignment' },
-        { state: 'VEHICLE_CHECK', label: 'Vehicle', icon: 'directions_car' },
         { state: 'LOAD_VERIFICATION', label: 'Load', icon: 'inventory_2' },
         { state: 'START_ROUTE', label: 'Route', icon: 'map' },
         { state: 'IN_TRANSIT', label: 'Transit', icon: 'local_shipping' },
@@ -177,7 +175,6 @@ export function useFlowRouter() {
 
         const labels = {
             ASSIGNED: 'View Job Details',
-            VEHICLE_CHECK: 'Start Vehicle Inspection',
             LOAD_VERIFICATION: 'Verify Load',
             CREW_CHECKIN: 'Check In Crew',
             START_ROUTE: 'Start Navigation',
