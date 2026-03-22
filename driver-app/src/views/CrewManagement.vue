@@ -291,11 +291,13 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 import { dummyCrewMembers } from '../utils/dummyData.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
 const driverStore = useDriverStore()
+const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 const crew = ref(dummyCrewMembers.map(m => ({ ...m, reportedReason: null })))
@@ -337,6 +339,16 @@ function submitReport() {
 
 function proceedToLoad() {
     driverStore.crewCheckedIn = true
+
+    // Advance FSM through crew states so dashboard doesn't loop back
+    // ASSIGNED → CREW_CHECKIN → START_ROUTE
+    if (jobStore.jobState === 'ASSIGNED') {
+        jobStore.transition('CREW_CHECKIN')
+    }
+    if (jobStore.jobState === 'CREW_CHECKIN') {
+        jobStore.transition('START_ROUTE')
+    }
+
     router.push('/gate-exit')
 }
 </script>

@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
   <Transition name="loading-fade">
-    <div v-if="visible" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
+    <div v-show="visible" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
       style="background: #0F1115;">
       <!-- Ambient blobs -->
       <div class="absolute inset-0 pointer-events-none overflow-hidden">

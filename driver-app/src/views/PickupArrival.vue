@@ -19,7 +19,7 @@
         <div class="screen-body px-5 py-4 flex flex-col gap-4">
 
             <!-- Geofence Status Card -->
-            <div class="rounded-3xl p-6 border text-center relative overflow-hidden"
+            <div class="rounded-3xl p-6 border text-center"
                 :class="isWithinGeofence ? isDark ? 'bg-green-500/10 border-green-500/30' : 'bg-green-50 border-green-300'
                     : isDark ? 'bg-surface-dark border-white/10' : 'bg-white border-gray-200 shadow-xl'">
 

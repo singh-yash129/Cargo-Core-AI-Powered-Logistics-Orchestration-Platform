@@ -128,18 +128,26 @@ async function captureAndExtract() {
     setTimeout(() => { showingFlash.value = false }, 60)
 
     try {
-        const captured = await CameraPreview.capture({ quality: 90 })
-        const base64Pic = normalizeCameraResult(captured)
+        let base64Pic;
+        let extractedText;
 
-        if (!isValidBase64(base64Pic)) {
-            throw new Error(CameraError.NO_IMAGE_DATA)
-        }
+        if (isNative) {
+            const captured = await CameraPreview.capture({ quality: 90 })
+            base64Pic = normalizeCameraResult(captured)
 
-        const ocrResult = await Ocr.detectText({ base64Image: base64Pic })
-        const extractedText = extractOcrText(ocrResult)
+            if (!isValidBase64(base64Pic)) {
+                throw new Error(CameraError.NO_IMAGE_DATA)
+            }
 
-        if (!extractedText) {
-            throw new Error(CameraError.NO_TEXT_EXTRACTED)
+            const ocrResult = await Ocr.detectText({ base64Image: base64Pic })
+            extractedText = extractOcrText(ocrResult)
+
+            if (!extractedText) {
+                throw new Error(CameraError.NO_TEXT_EXTRACTED)
+            }
+        } else {
+            base64Pic = MockCameraData ? MockCameraData.TRANSPARENT_PNG : ''; // graceful fallback
+            extractedText = '123,456';
         }
 
         // Stop camera first and wait for full cleanup
@@ -153,9 +161,9 @@ async function captureAndExtract() {
         router.back()
     } catch (e) {
         console.error('OCR capture error:', e?.message || String(e))
-        alert('Emulator capture failed. Simulating odometer read for testing.')
+        alert('Capture failed. Simulating odometer read for testing.')
         await stopCamera()
-        store.deliver('123,456') // Mock odometer
+        store.deliver({ text: '123,456', base64: MockCameraData ? MockCameraData.TRANSPARENT_PNG : '' })
         await new Promise(resolve => setTimeout(resolve, 50))
         router.back()
     } finally {

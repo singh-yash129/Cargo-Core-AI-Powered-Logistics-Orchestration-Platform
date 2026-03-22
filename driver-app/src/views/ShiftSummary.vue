@@ -9,17 +9,17 @@
         </header>
 
         <!-- ── SCROLLABLE BODY ───────────────────────── -->
-        <div class="screen-body px-5 py-4 flex flex-col gap-4">
+        <div class="screen-body px-6 py-6 flex flex-col gap-5">
 
             <!-- Score Hero -->
-            <div class="rounded-3xl p-6 text-center relative overflow-hidden"
+            <div class="rounded-3xl py-12 px-8 text-center"
                 :style="isDark
                     ? 'background: linear-gradient(135deg, rgba(28,231,131,0.2), rgba(28,231,131,0.05)); border: 1px solid rgba(28,231,131,0.2);'
                     : 'background: linear-gradient(135deg, rgba(28,231,131,0.12), rgba(28,231,131,0.03)); border: 1px solid rgba(28,231,131,0.2);'">
                 <div
                     class="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none">
                 </div>
-                <p class="text-xs font-bold uppercase tracking-widest text-primary mb-2">Shift Score</p>
+              <p class="text-sm font-bold uppercase tracking-widest text-primary mb-2">Shift Score</p>
                 <div class="text-7xl font-black mb-1"
                     style="background: linear-gradient(135deg, #1CE783, #44a8e9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
                     98</div>
@@ -32,7 +32,7 @@
 
             <!-- Stats Grid -->
             <div class="grid grid-cols-2 gap-3">
-                <div v-for="stat in summaryStats" :key="stat.label" class="rounded-2xl p-4 border"
+                <div v-for="stat in summaryStats" :key="stat.label" class="rounded-2xl p-5 border"
                     :class="isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-xs uppercase font-semibold"

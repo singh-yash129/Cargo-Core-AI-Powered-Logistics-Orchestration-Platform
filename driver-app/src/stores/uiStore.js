@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { Capacitor } from '@capacitor/core'
 
 export const useUiStore = defineStore('ui', () => {
-    const theme = ref('light') // 'dark' | 'light'
+    const theme = ref('dark') // 'dark' | 'light'
     const syncStatus = ref('connected') // 'connected' | 'syncing' | 'offline'
     const offlineQueue = ref([])
     const isLoading = ref(false)

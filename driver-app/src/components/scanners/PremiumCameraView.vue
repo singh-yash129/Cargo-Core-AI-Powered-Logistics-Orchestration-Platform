@@ -137,11 +137,17 @@ async function takePicture() {
     setTimeout(() => { showingFlash.value = false }, 80)
 
     try {
-        const result = await CameraPreview.capture({ quality: 90 })
-        const base64Pic = normalizeCameraResult(result)
+        let base64Pic;
+        if (isNative) {
+            const result = await CameraPreview.capture({ quality: 90 })
+            base64Pic = normalizeCameraResult(result)
 
-        if (!isValidBase64(base64Pic)) {
-            throw new Error(CameraError.NO_IMAGE_DATA)
+            if (!isValidBase64(base64Pic)) {
+                throw new Error(CameraError.NO_IMAGE_DATA)
+            }
+        } else {
+            // Simulate capture for web/emulator
+            base64Pic = MockCameraData.TRANSPARENT_PNG;
         }
 
         // Stop camera first and wait for full cleanup
@@ -155,7 +161,7 @@ async function takePicture() {
         router.back()
     } catch (e) {
         console.error('Photo capture error:', e?.message || String(e))
-        alert('Emulator camera capture failed. Simulating photo for testing.')
+        alert('Camera capture failed. Simulating photo for testing.')
         await stopCamera()
         store.deliver(MockCameraData.TRANSPARENT_PNG)
         await new Promise(resolve => setTimeout(resolve, 50))

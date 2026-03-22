@@ -63,14 +63,16 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 import { useCamera } from '../composables/useCamera.js'
-import { useFlowRouter } from '../composables/useFlowRouter.js'
 
-const { advanceAndNavigate } = useFlowRouter()
+const router = useRouter()
 const uiStore = useUiStore()
 const driverStore = useDriverStore()
+const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const { scanQrCode, isCapturing } = useCamera()
 
@@ -97,6 +99,24 @@ async function scanPkg(pkg) {
 
 function proceed() {
     driverStore.loadVerified = true
-    advanceAndNavigate('START_ROUTE')
+
+    // Advance FSM through pre-job states that were skipped
+    // Delivery: ASSIGNED → VEHICLE_CHECK → LOAD_VERIFICATION → START_ROUTE
+    // Pickup: ASSIGNED → START_ROUTE (direct, no intermediate states)
+    if (jobStore.jobState === 'ASSIGNED' && jobStore.jobType === 'PARCEL_DELIVERY') {
+        jobStore.transition('VEHICLE_CHECK')
+    }
+    if (jobStore.jobState === 'VEHICLE_CHECK') {
+        jobStore.transition('LOAD_VERIFICATION')
+    }
+    if (jobStore.jobState === 'LOAD_VERIFICATION') {
+        jobStore.transition('START_ROUTE')
+    }
+    if (jobStore.jobState === 'ASSIGNED' && jobStore.jobType === 'PARCEL_PICKUP') {
+        jobStore.transition('START_ROUTE')
+    }
+
+    // Gate exit is a physical pre-job step, not an FSM state
+    router.push('/gate-exit')
 }
 </script>
