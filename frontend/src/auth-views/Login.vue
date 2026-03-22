@@ -1,5 +1,5 @@
 <template>
-    <div class="login-view">
+    <div class="login-view animate-view">
         <!-- Header -->
         <div class="login-header">
             <h2 class="login-title">Welcome back</h2>
@@ -257,22 +257,56 @@ async function handleSendOTP() {
     width: 100%;
 }
 
+.animate-view>* {
+    animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.animate-view>*:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.animate-view>*:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.animate-view>*:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.animate-view>*:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+.animate-view>*:nth-child(5) {
+    animation-delay: 0.5s;
+}
+
+@keyframes fade-in-up {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .login-header {
     margin-bottom: 1.5rem;
 }
 
 .login-title {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 1.6rem;
+    font-weight: 800;
     letter-spacing: -0.03em;
     color: #fff;
     margin-bottom: 0.15rem;
-    text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
 }
 
 .login-subtitle {
-    font-size: 0.8rem;
-    color: rgb(255, 255, 255);
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 /* Lockout */
@@ -314,7 +348,8 @@ async function handleSendOTP() {
     display: block;
     font-size: 0.75rem;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.95);
+    color: #fff;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
     margin-bottom: 0.35rem;
 }
 
@@ -329,6 +364,7 @@ async function handleSendOTP() {
     font-size: 0.7rem;
     color: #1CE783;
     text-decoration: none;
+    text-shadow: 0 0 8px rgba(28, 231, 131, 0.3);
 }
 
 .forgot-link:hover {
@@ -341,11 +377,11 @@ async function handleSendOTP() {
     gap: 0.4rem;
     padding: 0 0.75rem;
     height: 42px;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 0.6rem;
     transition: all 0.25s ease;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
 }
 
 .input-wrap:focus-within {
@@ -376,7 +412,7 @@ async function handleSendOTP() {
 }
 
 .auth-input::placeholder {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .auth-input:disabled {

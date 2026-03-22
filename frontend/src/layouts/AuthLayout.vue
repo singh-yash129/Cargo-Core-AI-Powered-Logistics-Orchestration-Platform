@@ -23,7 +23,7 @@
 
     <!-- ══ Split-Panel Auth Card ══════════════ -->
     <div class="auth-container" :class="{ 'auth-container--single': !showTabs }">
-      <div class="auth-glass-card" :class="{ 'card--single': !showTabs }">
+      <div class="auth-glass-card" :class="{ 'card--single': !showTabs, 'has-interacted': hasInteracted }">
 
         <!-- Two-panel mode (Login / Register) -->
         <template v-if="showTabs">
@@ -31,53 +31,55 @@
           <div class="panels-wrapper">
 
             <!-- Left form slot: Login -->
-            <div class="form-panel form-panel--login">
-              <div class="auth-scroll-area">
+            <div class="form-panel form-panel--login"
+              :class="{ 'is-active-form': hasInteracted && activeTab === 'login' }">
+              <div class="auth-scroll-area" v-if="hasInteracted && activeTab === 'login'">
                 <LoginView />
               </div>
             </div>
 
             <!-- Right form slot: Register -->
-            <div class="form-panel form-panel--register">
-              <div class="auth-scroll-area">
+            <div class="form-panel form-panel--register"
+              :class="{ 'is-active-form': hasInteracted && activeTab === 'register' }">
+              <div class="auth-scroll-area" v-if="hasInteracted && activeTab === 'register'">
                 <RegisterView ref="registerRef" />
               </div>
             </div>
           </div>
 
-          <!-- Sliding Promo Overlay -->
-          <div class="promo-overlay" :class="{ 'promo--register': isRegister }">
-            <div class="promo-content">
-              <transition name="promo-fade" mode="out-in">
-                <!-- Login promo (shows when Login is active) -->
-                <div v-if="!isRegister" key="login-promo" class="promo-inner">
-                  <div class="promo-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <line x1="19" y1="8" x2="19" y2="14" />
-                      <line x1="22" y1="11" x2="16" y2="11" />
-                    </svg>
-                  </div>
-                  <h3 class="promo-title">New Here?</h3>
-                  <p class="promo-desc">Create an account and start shipping with Cargo-Core today.</p>
-                  <button class="promo-btn" @click="switchTab('register')">Create Account</button>
+          <!-- 3D Folding Promos Overlay -->
+          <div class="promos-container">
+            <!-- Left Promo (Sign In) -->
+            <div class="promo-panel promo-left" :class="{ 'is-folded': hasInteracted && activeTab === 'login' }">
+              <div class="promo-inner">
+                <div class="promo-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
+                    <polyline points="10 17 15 12 10 7" />
+                    <line x1="15" y1="12" x2="3" y2="12" />
+                  </svg>
                 </div>
+                <h3 class="promo-title">Welcome Back</h3>
+                <p class="promo-desc">Already have an account? Sign in to manage your shipments.</p>
+                <button class="promo-btn" @click="handlePromoClick('login')">Sign In</button>
+              </div>
+            </div>
 
-                <!-- Register promo (shows when Register is active) -->
-                <div v-else key="register-promo" class="promo-inner">
-                  <div class="promo-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
-                      <polyline points="10 17 15 12 10 7" />
-                      <line x1="15" y1="12" x2="3" y2="12" />
-                    </svg>
-                  </div>
-                  <h3 class="promo-title">Welcome Back</h3>
-                  <p class="promo-desc">Already have an account? Sign in to manage your shipments.</p>
-                  <button class="promo-btn" @click="switchTab('login')">Sign In</button>
+            <!-- Right Promo (Create Account) -->
+            <div class="promo-panel promo-right" :class="{ 'is-folded': hasInteracted && activeTab === 'register' }">
+              <div class="promo-inner">
+                <div class="promo-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <line x1="19" y1="8" x2="19" y2="14" />
+                    <line x1="22" y1="11" x2="16" y2="11" />
+                  </svg>
                 </div>
-              </transition>
+                <h3 class="promo-title">New Here?</h3>
+                <p class="promo-desc">Create an account and start shipping with Cargo-Core today.</p>
+                <button class="promo-btn" @click="handlePromoClick('register')">Create Account</button>
+              </div>
             </div>
           </div>
         </template>
@@ -127,6 +129,7 @@ const auth = useAuthStore()
 const activeTab = ref('login')
 const slideDirection = ref('slide-left')
 const registerRef = ref(null)
+const hasInteracted = ref(false)
 
 const routePath = computed(() => route.path)
 const showTabs = computed(() => ['/login', '/register'].includes(routePath.value) && routePath.value !== '/forgot-password')
@@ -156,6 +159,11 @@ function switchTab(tab) {
   slideDirection.value = tab === 'register' ? 'slide-left' : 'slide-right'
   activeTab.value = tab
   router.push(tab === 'register' ? '/register' : '/login')
+}
+
+function handlePromoClick(tab) {
+  hasInteracted.value = true
+  switchTab(tab)
 }
 
 const toast = ref({ show: false, message: '', type: 'info', timer: null })
@@ -308,11 +316,18 @@ onUnmounted(() => {
   position: relative;
   width: 100%;
   height: 520px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid transparent;
   border-radius: 1.25rem;
   overflow: hidden;
   background: transparent;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  transition: border-color 0.8s ease, box-shadow 0.8s ease;
+}
+
+.auth-glass-card.has-interacted {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.01);
 }
 
 .card--single {
@@ -331,29 +346,69 @@ onUnmounted(() => {
   width: 50%;
   height: 100%;
   flex-shrink: 0;
+  background: transparent;
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(8px);
+  transition: opacity 0.8s cubic-bezier(0.19, 1, 0.22, 1),
+    transform 0.8s cubic-bezier(0.19, 1, 0.22, 1),
+    filter 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+  transform: translateY(30px) scale(0.98);
 }
 
-/* ── Promo Sliding Overlay ──────────────────── */
-.promo-overlay {
+.form-panel.is-active-form {
+  opacity: 1;
+  pointer-events: auto;
+  filter: blur(0px);
+  transform: translateY(0) scale(1);
+}
+
+/* ── 3D Folding Promos ──────────────────── */
+.promos-container {
   position: absolute;
-  top: 0;
-  left: 50%;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+  perspective: 1500px;
+  z-index: 5;
+}
+
+.promo-panel {
   width: 50%;
   height: 100%;
-  z-index: 5;
-  background: linear-gradient(135deg, rgba(28, 231, 131, 0.12), rgba(28, 231, 131, 0.03));
-  backdrop-filter: blur(16px);
-  border-left: 1px solid rgba(28, 231, 131, 0.15);
-  transition: left 0.65s cubic-bezier(0.65, 0, 0.35, 1);
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
+  backdrop-filter: blur(0px);
+  transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1),
+    opacity 1s cubic-bezier(0.19, 1, 0.22, 1),
+    filter 1s ease;
+  transform-style: preserve-3d;
 }
 
-.promo--register {
-  left: 0;
-  border-left: none;
-  border-right: 1px solid rgba(28, 231, 131, 0.15);
+.promo-left {
+  transform-origin: left center;
+}
+
+.promo-left.is-folded {
+  transform: translateZ(200px) rotateY(-110deg) scale(0.9);
+  opacity: 0;
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.promo-right {
+  transform-origin: right center;
+}
+
+.promo-right.is-folded {
+  transform: translateZ(200px) rotateY(110deg) scale(0.9);
+  opacity: 0;
+  filter: blur(10px);
+  pointer-events: none;
 }
 
 .promo-content {
@@ -387,15 +442,16 @@ onUnmounted(() => {
 }
 
 .promo-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.65rem;
+  font-weight: 800;
   color: #fff;
-  text-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
+  text-shadow: 0 0 20px rgba(28, 231, 131, 0.4), 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
 .promo-desc {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
   line-height: 1.6;
 }
 
@@ -418,17 +474,6 @@ onUnmounted(() => {
   background: rgba(28, 231, 131, 0.12);
   border-color: #1CE783;
   box-shadow: 0 0 20px rgba(28, 231, 131, 0.2);
-}
-
-/* Promo content fade */
-.promo-fade-enter-active,
-.promo-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.promo-fade-enter-from,
-.promo-fade-leave-to {
-  opacity: 0;
 }
 
 /* ── Scrollable Content ─────────────────────── */
@@ -533,7 +578,7 @@ onUnmounted(() => {
   }
 
   /* On mobile: hide promo, show form full-width with slide */
-  .promo-overlay {
+  .promos-container {
     display: none;
   }
 
@@ -544,13 +589,12 @@ onUnmounted(() => {
   .form-panel {
     width: 100%;
     display: none;
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
   }
 
-  .form-panel--login {
-    display: block;
-  }
-
-  .form-panel--register {
+  .form-panel.is-active-form {
     display: block;
   }
 

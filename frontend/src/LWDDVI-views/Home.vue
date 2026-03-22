@@ -66,7 +66,7 @@
             <div class="w-full md:w-1/2 p-8 relative z-10 h-[60vh] md:h-auto flex flex-col items-center">
                 <!-- Laptop Frame -->
                 <div
-                    class="relative w-full max-w-[800px] aspect-[16/11] bg-[#1a1a1a] rounded-t-2xl p-2 md:p-3 shadow-2xl border-4 border-[#2a2a2a] border-b-0 perspective-1000 group">
+                    class="relative w-full max-w-[960px] aspect-[1920/1200] bg-[#1a1a1a] rounded-t-2xl p-2 md:p-3 shadow-2xl border-4 border-[#2a2a2a] border-b-0 perspective-1000 group">
                     <!-- Screen Bezel/Camera -->
                     <div class="absolute top-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-gray-600 rounded-full z-20">
                     </div>
@@ -75,15 +75,16 @@
                     <div class="relative w-full h-full bg-black rounded-lg overflow-hidden border border-white/5">
                         <div class="relative w-full h-full">
                             <img v-for="(img, index) in logisticImages" :key="index" :src="img"
-                                class="absolute inset-0 w-full h-full object-contain logistic-frame bg-black"
+                                class="absolute inset-0 w-full h-full  logistic-frame bg-black"
                                 :style="{ zIndex: index + 1 }" alt="Logistic Dashboard Screen" />
                         </div>
                     </div>
-                </div>
-                <!-- Laptop Base -->
-                <div
-                    class="w-[120%] h-4 bg-[#252525] rounded-b-xl shadow-xl relative -mt-1 transform perspective-1000 rotate-x-12 origin-top">
-                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-2 bg-[#1a1a1a] rounded-b-lg"></div>
+
+                    <!-- Laptop Base moved inside to align with Frame's exact width -->
+                    <div
+                        class="absolute top-full left-1/2 -translate-x-1/2 w-[115%] h-5 bg-[#252525] border-t border-[#444] rounded-b-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transform perspective-1000 rotate-x-12 origin-top z-30">
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1.5 bg-[#1a1a1a] rounded-b-md"></div>
+                    </div>
                 </div>
             </div>
 
@@ -188,15 +189,18 @@
 
         <!-- Role 5: Driver -->
         <section id="role-driver"
-            class="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 py-20 relative role-section">
+            class="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 py-20 relative role-section driver-section">
             <div class="w-full md:w-1/2 p-8 flex justify-center relative z-10">
-                <!-- Mobile Frame -->
+                <!-- iPhone 13 Pro Mobile Frame (390x844 aspect ratio roughly translates to 300x650) -->
                 <div
-                    class="w-[300px] h-[600px] border-8 border-gray-800 rounded-[3rem] overflow-hidden bg-black relative shadow-[0_0_50px_rgba(255,255,255,0.1)]">
-                    <img src="https://placehold.co/300x600/000/FFF?text=Driver+App"
-                        class="w-full h-full object-cover opacity-80" />
-                    <!-- Island -->
-                    <div class="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-full z-20"></div>
+                    class="w-[300px] h-[650px] border-8 border-gray-800 rounded-[3rem] overflow-hidden bg-black relative shadow-[0_0_50px_rgba(255,255,255,0.1)]">
+                    <div class="relative w-full h-full">
+                        <img v-for="(img, index) in driverImages" :key="index" :src="img"
+                            class="absolute inset-0 w-full h-full object-cover driver-frame bg-black"
+                            :style="{ zIndex: index + 1 }" alt="Driver App Screen" />
+                    </div>
+                    <!-- iPhone 13 Pro Notch (Instead of Island) -->
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-gray-800 rounded-b-3xl z-20 pointer-events-none"></div>
                 </div>
             </div>
             <div class="w-full md:w-1/2 p-8 md:pl-20 text-left">
@@ -248,8 +252,10 @@
                 <div>
                     <h4 class="font-bold text-white mb-6">Learn</h4>
                     <ul class="space-y-4 text-gray-400 text-sm">
-                        <li><a href="#role-logistic" class="hover:text-cyan-400 transition-colors">Logistics Manager</a></li>
-                        <li><a href="#role-warehouse" class="hover:text-cyan-400 transition-colors">Warehouse Manager</a></li>
+                        <li><a href="#role-logistic" class="hover:text-cyan-400 transition-colors">Logistics Manager</a>
+                        </li>
+                        <li><a href="#role-warehouse" class="hover:text-cyan-400 transition-colors">Warehouse
+                                Manager</a></li>
                         <li><a href="#role-dispatcher" class="hover:text-cyan-400 transition-colors">Dispatcher</a></li>
                         <li><a href="#role-ai" class="hover:text-cyan-400 transition-colors">AI Bot</a></li>
                         <li><a href="#role-driver" class="hover:text-cyan-400 transition-colors">Driver</a></li>
@@ -268,9 +274,12 @@
                 <div>
                     <h4 class="font-bold text-white mb-6">Company</h4>
                     <ul class="space-y-4 text-gray-400 text-sm">
-                        <li><router-link to="/contact" class="hover:text-cyan-400 transition-colors">Contact Us</router-link></li>
-                        <li><router-link to="/terms" class="hover:text-cyan-400 transition-colors">Terms</router-link></li>
-                        <li><router-link to="/privacy" class="hover:text-cyan-400 transition-colors">Privacy</router-link></li>
+                        <li><router-link to="/contact" class="hover:text-cyan-400 transition-colors">Contact
+                                Us</router-link></li>
+                        <li><router-link to="/terms" class="hover:text-cyan-400 transition-colors">Terms</router-link>
+                        </li>
+                        <li><router-link to="/privacy"
+                                class="hover:text-cyan-400 transition-colors">Privacy</router-link></li>
                     </ul>
                 </div>
                 <div>
@@ -334,12 +343,27 @@ gsap.registerPlugin(ScrollTrigger, TextPlugin)
 const mainContainer = ref(null)
 
 const logisticImages = [
-    '/images/logistic-screens/control_tower.png',
-    '/images/logistic-screens/fleet_map.png',
-    '/images/logistic-screens/financials.png',
-    '/images/logistic-screens/risk_engine.png',
-    '/images/logistic-screens/driver_compliance.png',
-    '/images/logistic-screens/user_management.png'
+    '/images/logistic-screens/01-dashboard.png',
+    '/images/logistic-screens/02-warehouse-management.png',
+    '/images/logistic-screens/03-user-roles.png',
+    '/images/logistic-screens/04-fleet-drivers.png',
+    '/images/logistic-screens/05-geofencing.png',
+    '/images/logistic-screens/06-finance-payroll.png',
+    '/images/logistic-screens/07-rate-governance.png',
+    '/images/logistic-screens/08-reverse-logistics.png',
+    '/images/logistic-screens/09-reports.png',
+    '/images/logistic-screens/10-ai-intelligence.png',
+    '/images/logistic-screens/11-communication.png',
+    '/images/logistic-screens/12-comparative-viewers.png'
+]
+
+const driverImages = [
+    '/images/mobile-screens/splash.png',
+    '/images/mobile-screens/login.png',
+    '/images/mobile-screens/login-help.png',
+    '/images/mobile-screens/pre-shift.png',
+    '/images/mobile-screens/binding%20scanner.png',
+    '/images/mobile-screens/binding.png'   
 ]
 
 // Preload Spline Scenes for "Instant" feel
@@ -408,6 +432,31 @@ onMounted(() => {
 
     frames.slice(1).forEach((frame, i) => {
         tlLogistic.to(frame, {
+            yPercent: 0,
+            duration: 1,
+            ease: 'power2.out'
+        })
+    })
+
+    // Driver Mobile Image Sequence
+    const driverFrames = gsap.utils.toArray('.driver-frame')
+    if (driverFrames.length > 0) {
+        gsap.set(driverFrames, { yPercent: 100 })
+        gsap.set(driverFrames[0], { yPercent: 0 })
+    }
+
+    const tlDriver = gsap.timeline({
+        scrollTrigger: {
+            trigger: '.driver-section',
+            start: 'top top',
+            end: '+=400%',
+            pin: true,
+            scrub: 1
+        }
+    })
+
+    driverFrames.slice(1).forEach((frame) => {
+        tlDriver.to(frame, {
             yPercent: 0,
             duration: 1,
             ease: 'power2.out'

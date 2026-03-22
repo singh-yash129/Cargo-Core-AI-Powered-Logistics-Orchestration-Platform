@@ -1,1 +1,0 @@
-<template><div class="bg-background-dark text-white min-h-screen p-6"><h1 class="text-2xl font-bold mb-4">Offline Queue</h1><p class="text-gray-400">Pending sync items will appear here</p></div></template>

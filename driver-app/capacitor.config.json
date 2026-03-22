@@ -1,0 +1,32 @@
+{
+    "appId": "com.cargocoredriver.app",
+    "appName": "Cargo-Core Driver",
+    "webDir": "dist",
+
+    "plugins": {
+        "SplashScreen": {
+            "launchShowDuration": 0,
+            "showSpinner": false
+        },
+        "Keyboard": {
+            "resize": "body",
+            "style": "dark"
+        },
+        "StatusBar": {
+            "style": "DARK",
+            "overlaysWebView": true
+        },
+        "Camera": {
+            "iosUsageDescription": "Cargo-Core needs camera access to capture proof of delivery photos and fuel receipts."
+        },
+        "Geolocation": {
+            "iosUsageDescription": "Cargo-Core uses your location to provide navigation and automatic geofence arrival detection."
+        }
+    },
+    "android": {
+        "buildOptions": {
+            "keystorePath": "release.keystore",
+            "keystoreAlias": "key0"
+        }
+    }
+}

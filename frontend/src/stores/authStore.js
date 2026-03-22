@@ -28,7 +28,6 @@ const ROLE_DASHBOARD_MAP = {
     'logistics_manager': '/logistic/dashboard',
     'warehouse_manager': '/warehouse/dashboard',
     'dispatcher': '/dispatcher/dashboard',
-    'driver': '/driver/dashboard',
     'vendor': '/vendor/dashboard',
     'customer': '/individual/dashboard',
     'ai_support': '/ai/dashboard'
@@ -86,8 +85,6 @@ export const useAuthStore = defineStore('auth', () => {
         isAuthenticated.value = true
         localStorage.setItem('auth_user', JSON.stringify(userData))
         localStorage.setItem('auth_token', authToken)
-        // Legacy driver auth compat
-        localStorage.setItem('driverAuthenticated', 'true')
         resetLoginAttempts()
     }
 
@@ -101,7 +98,6 @@ export const useAuthStore = defineStore('auth', () => {
         otpTarget.value = ''
         localStorage.removeItem('auth_user')
         localStorage.removeItem('auth_token')
-        localStorage.removeItem('driverAuthenticated')
     }
 
     function incrementAttempts() {
@@ -419,17 +415,22 @@ export const useAuthStore = defineStore('auth', () => {
             return { success: true, accountStatus: 'suspended' }
         }
 
-        if (password.length < 4) {
-            return { success: false, message: 'Invalid credentials.' }
+        if (password.length < 4 || password !== 'demo123') {
+            return { success: false, message: 'Invalid credentials. Password is demo123' }
         }
 
         // Default: successful login
         const roleMap = {
-            'admin@cargocore.com': 'logistics_manager',
-            'warehouse@cargocore.com': 'warehouse_manager',
-            'dispatch@cargocore.com': 'dispatcher',
-            'driver@cargocore.com': 'driver',
-            'vendor@cargocore.com': 'vendor',
+            'lm001@cargocore.com': 'logistics_manager', // LM001
+            'wm001@cargocore.com': 'warehouse_manager', // WM001
+            'ds001@cargocore.com': 'dispatcher',        // DS001
+            'vd001@cargocore.com': 'vendor',            // VD001
+            'cs001@cargocore.com': 'customer',          // CS001
+            'ai001@cargocore.com': 'ai_support',        // AI001
+        }
+
+        if (!roleMap[email]) {
+            return { success: false, message: 'Invalid credentials. Email not recognized.' }
         }
 
         return {
@@ -440,7 +441,7 @@ export const useAuthStore = defineStore('auth', () => {
                 id: 'usr_' + Math.random().toString(36).substr(2, 9),
                 fullName: 'Demo User',
                 email: email,
-                role: roleMap[email] || 'customer',
+                role: roleMap[email],
                 tfaEnabled: false,
                 avatar: null
             },

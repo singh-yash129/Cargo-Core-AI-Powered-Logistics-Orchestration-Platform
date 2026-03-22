@@ -160,7 +160,7 @@ const resend = async () => {
 
 .forgot-subtitle {
     font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgb(255, 255, 255);
     line-height: 1.6;
     margin: 0;
 }
@@ -176,7 +176,7 @@ const resend = async () => {
 .field-label {
     font-size: 0.72rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgb(255, 255, 255);
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }
@@ -185,14 +185,14 @@ const resend = async () => {
     position: relative;
     display: flex;
     align-items: center;
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 0.6rem;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .input-wrap:focus-within {
-    border-color: rgba(28, 231, 131, 0.6);
+    border-color: rgba(28, 231, 129, 0.828);
     box-shadow: 0 0 0 3px rgba(28, 231, 131, 0.08);
 }
 
@@ -203,7 +203,7 @@ const resend = async () => {
 .input-icon {
     width: 16px;
     height: 16px;
-    color: rgba(28, 231, 131, 0.55);
+    color: rgba(28, 231, 129, 0.809);
     position: absolute;
     left: 0.85rem;
     flex-shrink: 0;
@@ -221,7 +221,7 @@ const resend = async () => {
 }
 
 .auth-input::placeholder {
-    color: rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.814);
 }
 
 .auth-input:disabled {

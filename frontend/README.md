@@ -43,10 +43,27 @@ Preview the production build locally:
 npm run preview
 ```
 
+## 🧪 Testing Login Credentials
+
+While the backend is in development, you can log in using mock credentials to test the various dashboards (Logistics Manager, Vendor, Customer, etc.). 
+
+👉 **[See `TESTING.md`](./TESTING.md) for the full list of test emails and passwords.**
+
 ## 📁 Project Structure
 
 ```text
-  Update the project structure later
+frontend/
+├── src/
+│   ├── assets/             # Global CSS, Spline models, icons, and static assets
+│   ├── layouts/            # Dashboard and public page layout wrappers
+│   ├── router/             # Vue Router configuration
+│   ├── stores/             # Pinia global state management 
+│   ├── utils/              # Helper functions and formatters
+│   ├── components/         # Shared and global UI components
+│   ├── views/              # Shared generic views 
+│   ├── auth-views/         # Login and authentication views
+│   └── [Role]-views/ &     # Dedicated views/components for specific roles 
+│       [Role]-components/  # (e.g. Ai, IV, LWD, LWDDVI)
 ```
 
 ## 🔌 Recommended IDE Setup

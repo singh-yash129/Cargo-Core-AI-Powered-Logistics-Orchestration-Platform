@@ -1,0 +1,405 @@
+// ── Dummy Data for Cargo-Core Driver App ───────────────────────────
+export const dummyDriver = {
+    driverId: 'DRV-2049',
+    name: 'Arjun Sharma',
+    phone: '+91 98765 43210',
+    email: 'arjun.sharma@cargocore.com',
+    rating: 4.9,
+    totalDeliveries: 1247,
+    onTimePercent: 96,
+    fuelEfficiency: '+8%',
+    badge: 'Pro Driver',
+    tier: 'Level 3 – Field Execution',
+    scheduledShifts: 12,
+    earnings: { today: 1840, week: 9200, month: 38500 },
+}
+
+export const dummyVehicle = {
+    vehicleId: 'CC-TRK-042',
+    plateNumber: 'MH 04 AB 2049',
+    type: 'Medium Truck',
+    fuelLevel: 78,
+    range: 312,
+    capacity: 3.5,
+    seats: 2,
+    odometer: 48230,
+    status: 'ready',
+    lastInspection: '2026-03-05',
+    image: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=800&q=80',
+}
+
+export const dummyStops = [
+    {
+        id: 'STOP-001',
+        stopNumber: 1,
+        type: 'move',
+        customerName: 'Priya & Rohit Mehta',
+        address: '14B, Andheri West, Near JVLR, Mumbai 400053',
+        packages: null,
+        moveItems: ['Sofa Set', 'King Bed', 'Dining Table', 'Wardrobe', '28 Boxes'],
+        specialInstructions: 'Fragile glassware in Box #12. Elevator available. 3rd Floor.',
+        timeWindow: '08:30 – 10:30',
+        distance: '2.4 km',
+        cod: false,
+        codAmount: null,
+        status: 'pending',
+        serviceType: 'House Shift',
+        checklistRequired: true,
+        crewRequired: true,
+    },
+    {
+        id: 'STOP-002',
+        stopNumber: 2,
+        type: 'express',
+        customerName: 'TechSoft Pvt. Ltd.',
+        address: '500, Senapati Bapat Marg, Lower Parel, Mumbai 400013',
+        packages: [
+            { id: 'PKG-A1', barcode: 'CC-001-2049', weight: '2.3kg', description: 'Electronics' },
+            { id: 'PKG-A2', barcode: 'CC-002-2049', weight: '1.1kg', description: 'Documents' },
+        ],
+        moveItems: null,
+        specialInstructions: 'Ring reception bell. Ask for Mr. Kapoor.',
+        timeWindow: '10:45 – 11:15',
+        distance: '8.7 km',
+        cod: false,
+        codAmount: null,
+        status: 'pending',
+        serviceType: 'Parcel',
+        checklistRequired: false,
+        crewRequired: false,
+    },
+    {
+        id: 'STOP-003',
+        stopNumber: 3,
+        type: 'parcel',
+        customerName: 'Neha Gupta',
+        address: '22, Bandra East, Turner Road, Mumbai 400050',
+        packages: [
+            { id: 'PKG-B1', barcode: 'CC-003-2049', weight: '3.8kg', description: 'Clothing' },
+        ],
+        moveItems: null,
+        specialInstructions: 'COD ₹450. Collect exact change.',
+        timeWindow: '11:30 – 12:00',
+        distance: '5.2 km',
+        cod: true,
+        codAmount: 450,
+        status: 'pending',
+        serviceType: 'Parcel',
+        checklistRequired: false,
+        crewRequired: false,
+    },
+    {
+        id: 'STOP-004',
+        stopNumber: 4,
+        type: 'pickup',
+        customerName: 'Amazon Returns Hub',
+        address: 'Gate 3, Bhiwandi Warehouse, Thane 421302',
+        packages: [
+            { id: 'PKG-C1', barcode: 'RTN-001', weight: '4.5kg', description: 'Return Item' },
+        ],
+        moveItems: null,
+        specialInstructions: 'Scan return QR at gate. Collect 2 return boxes.',
+        timeWindow: '12:15 – 12:45',
+        distance: '18.3 km',
+        cod: false,
+        codAmount: null,
+        status: 'pending',
+        serviceType: 'Reverse Logistics',
+        checklistRequired: false,
+        crewRequired: false,
+    },
+    {
+        id: 'STOP-005',
+        stopNumber: 5,
+        type: 'parcel',
+        customerName: 'Café Roasters',
+        address: '87, Hill Road, Bandra West, Mumbai 400050',
+        packages: [
+            { id: 'PKG-D1', barcode: 'CC-005-2049', weight: '12.0kg', description: 'Coffee Beans (Bulk)' },
+        ],
+        moveItems: null,
+        specialInstructions: 'Deliver to basement storage. Call on arrival.',
+        timeWindow: '13:00 – 13:30',
+        distance: '7.1 km',
+        cod: true,
+        codAmount: 3200,
+        status: 'pending',
+        serviceType: 'Parcel',
+        checklistRequired: false,
+        crewRequired: false,
+    },
+]
+
+export const dummyManifest = {
+    routeId: 'RT-2049-MAR06',
+    date: 'Thu, Mar 6 2026',
+    shiftId: 'SHIFT-402',
+    totalStops: 7,
+    totalDistance: '47 km',
+    estimatedDuration: '5h 20m',
+    startTime: '08:00',
+    endTime: '13:20',
+    zone: 'Mumbai North-East Hub',
+    assignedCrew: [
+        { id: 'LAB-01', name: 'Ravi Kumar', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=11' },
+        { id: 'LAB-02', name: 'Suresh Patel', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=22' },
+        { id: 'LAB-03', name: 'Dinesh Singh', role: 'Helper', photo: 'https://i.pravatar.cc/40?img=33' },
+        { id: 'LAB-04', name: 'Vikram Yadav', role: 'Loader', photo: 'https://i.pravatar.cc/40?img=44' },
+        { id: 'LAB-05', name: 'Manoj Tiwari', role: 'Helper', photo: 'https://i.pravatar.cc/40?img=55' },
+    ],
+    stops: dummyStops,
+}
+
+export const dummyChecklist = [
+    { id: 'c1', label: 'Kitchen packed & sealed', checked: false, required: true },
+    { id: 'c2', label: 'Fragile items wrapped in bubble wrap', checked: false, required: true },
+    { id: 'c3', label: 'Furniture dismantled', checked: false, required: true },
+    { id: 'c4', label: 'Electronics disconnected & packed', checked: false, required: true },
+    { id: 'c5', label: 'Wardrobes emptied & secured', checked: false, required: false },
+    { id: 'c6', label: 'All boxes sealed & labeled', checked: false, required: true },
+    { id: 'c7', label: 'Before-state photos captured', checked: false, required: true },
+    { id: 'c8', label: 'Customer signature on inventory list', checked: false, required: true },
+]
+
+export const dummyInspection = [
+    { id: 'fuel_level', label: 'Fuel level recorded', icon: 'local_gas_station', value: '', checked: false },
+    { id: 'tire_pressure', label: 'Tire pressure OK – All 4 tires', icon: 'donut_large', value: '', checked: false },
+    { id: 'odometer', label: 'Odometer reading captured', icon: 'speed', value: '', checked: false },
+    { id: 'lights', label: 'Lights & indicators working', icon: 'lightbulb', value: '', checked: false },
+    { id: 'cargo', label: 'Cargo area clean & secure', icon: 'inventory_2', value: '', checked: false },
+    { id: 'brakes', label: 'Brakes responsive', icon: 'commute', value: '', checked: false },
+]
+
+export const dummyCrewMembers = [
+    { id: 'LAB-01', name: 'Ravi Kumar', role: 'Loader', photo: 'https://i.pravatar.cc/80?img=11', status: 'present', checkInTime: null },
+    { id: 'LAB-02', name: 'Suresh Patel', role: 'Loader', photo: 'https://i.pravatar.cc/80?img=22', status: 'present', checkInTime: null },
+    { id: 'LAB-03', name: 'Dinesh Singh', role: 'Helper', photo: 'https://i.pravatar.cc/80?img=33', status: 'present', checkInTime: null },
+    { id: 'LAB-04', name: 'Vikram Yadav', role: 'Loader', photo: 'https://i.pravatar.cc/80?img=44', status: 'present', checkInTime: null },
+    { id: 'LAB-05', name: 'Manoj Tiwari', role: 'Helper', photo: 'https://i.pravatar.cc/80?img=55', status: 'present', checkInTime: null },
+]
+
+export const dummyEarnings = {
+    today: { base: 1200, deliveries: 350, move: 200, tips: 90, total: 1840 },
+    week: { base: 6000, deliveries: 1750, move: 1000, tips: 450, total: 9200 },
+    month: { base: 24000, deliveries: 7000, move: 5500, tips: 2000, total: 38500 },
+    scorecard: {
+        rating: 4.9,
+        onTime: 96,
+        fuelEfficiency: '+8%',
+        routeDeviation: '2%',
+        safetyScore: 98,
+    }
+}
+
+// ── COMPLETE JOB DATA FOR ALL 3 JOB TYPES ──────────────────────────
+
+export const dummyParcelDeliveryJob = {
+    jobId: 'JOB-DEL-2049',
+    jobType: 'PARCEL_DELIVERY',
+    currentState: 'ASSIGNED',
+    manifestId: 'RT-2049-MAR06',
+    vehicleId: 'CC-TRK-042',
+    driverId: 'DRV-2049',
+    assignedAt: '2026-03-19T08:00:00Z',
+    estimatedDuration: 240, // minutes
+    routeDistance: 47.3, // km
+    currentStopIndex: 0,
+    stops: [
+        {
+            id: 'STOP-DEL-001',
+            sequence: 1,
+            stopType: 'delivery',
+            customerName: 'Amit Patel',
+            customerPhone: '+91 98765 11111',
+            address: '14B, Andheri West, Near JVLR, Mumbai 400053',
+            location: { lat: 19.1136, lng: 72.8697 },
+            packages: [
+                { id: 'PKG-A1', barcode: 'CC-DEL-001-2049', weight: '2.3kg', description: 'Electronics', dims: '30x20x15cm' },
+                { id: 'PKG-A2', barcode: 'CC-DEL-002-2049', weight: '1.1kg', description: 'Books', dims: '25x18x10cm' },
+            ],
+            specialInstructions: 'Deliver to reception. Call on arrival. Security PIN: 1234',
+            timeWindow: { start: '09:00', end: '10:00' },
+            cod: false,
+            codAmount: 0,
+            status: 'pending',
+            arrivedAt: null,
+            completedAt: null,
+            pod: null
+        },
+        {
+            id: 'STOP-DEL-002',
+            sequence: 2,
+            stopType: 'delivery',
+            customerName: 'Priya Sharma',
+            customerPhone: '+91 98765 22222',
+            address: '500, Lower Parel, Mumbai 400013',
+            location: { lat: 19.0008, lng: 72.8295 },
+            packages: [
+                { id: 'PKG-B1', barcode: 'CC-DEL-003-2049', weight: '5.2kg', description: 'Kitchen Appliances', dims: '40x35x30cm' },
+            ],
+            specialInstructions: 'COD ₹2,500. UPI preferred. Floor 3, Flat 301',
+            timeWindow: { start: '10:30', end: '11:30' },
+            cod: true,
+            codAmount: 2500,
+            status: 'pending',
+            arrivedAt: null,
+            completedAt: null,
+            pod: null
+        },
+        {
+            id: 'STOP-DEL-003',
+            sequence: 3,
+            stopType: 'delivery',
+            customerName: 'TechNova Solutions',
+            customerPhone: '+91 98765 33333',
+            address: '22, Bandra East, Turner Road, Mumbai 400050',
+            location: { lat: 19.0596, lng: 72.8656 },
+            packages: [
+                { id: 'PKG-C1', barcode: 'CC-DEL-004-2049', weight: '8.5kg', description: 'Office Supplies', dims: '50x40x30cm' },
+                { id: 'PKG-C2', barcode: 'CC-DEL-005-2049', weight: '3.2kg', description: 'Stationery', dims: '30x25x20cm' },
+            ],
+            specialInstructions: 'Commercial delivery. Ask for Mr. Mehta. Invoice required.',
+            timeWindow: { start: '12:00', end: '13:00' },
+            cod: false,
+            codAmount: 0,
+            status: 'pending',
+            arrivedAt: null,
+            completedAt: null,
+            pod: null
+        },
+    ]
+}
+
+export const dummyParcelPickupJob = {
+    jobId: 'JOB-PICK-3051',
+    jobType: 'PARCEL_PICKUP',
+    currentState: 'ASSIGNED',
+    manifestId: 'PICKUP-3051-MAR06',
+    vehicleId: 'CC-VAN-128',
+    driverId: 'DRV-2049',
+    assignedAt: '2026-03-19T08:30:00Z',
+    estimatedDuration: 180, // minutes
+    routeDistance: 32.5, // km
+    currentStopIndex: 0,
+    warehouseLocation: {
+        name: 'Mumbai Central Warehouse',
+        address: 'Gate 5, Goregaon East, Mumbai 400063',
+        location: { lat: 19.1646, lng: 72.8493 }
+    },
+    stops: [
+        {
+            id: 'STOP-PICK-001',
+            sequence: 1,
+            stopType: 'pickup',
+            customerName: 'Rajesh Electronics',
+            customerPhone: '+91 98765 44444',
+            address: '45, M.G. Road, Vile Parle, Mumbai 400057',
+            location: { lat: 19.1075, lng: 72.8263 },
+            expectedItems: 3,
+            itemsScanned: [],
+            specialInstructions: 'Return items: 2 TVs (damaged), 1 Speaker. Get return form signed.',
+            timeWindow: { start: '09:30', end: '10:30' },
+            status: 'pending',
+            arrivedAt: null,
+            completedAt: null,
+            signature: null
+        },
+        {
+            id: 'STOP-PICK-002',
+            sequence: 2,
+            stopType: 'pickup',
+            customerName: 'Fashion Boutique',
+            customerPhone: '+91 98765 55555',
+            address: '78, S.V. Road, Santacruz West, Mumbai 400054',
+            location: { lat: 19.0825, lng: 72.8384 },
+            expectedItems: 5,
+            itemsScanned: [],
+            specialInstructions: 'Collect 5 sealed bags. Check for damage. No signature needed.',
+            timeWindow: { start: '11:00', end: '12:00' },
+            status: 'pending',
+            arrivedAt: null,
+            completedAt: null,
+            signature: null
+        },
+    ]
+}
+
+export const dummyHouseShiftJob = {
+    jobId: 'JOB-SHIFT-8172',
+    jobType: 'HOUSE_SHIFT',
+    currentState: 'ASSIGNED',
+    manifestId: 'SHIFT-8172-MAR06',
+    vehicleId: 'CC-TRK-042',
+    driverId: 'DRV-2049',
+    assignedAt: '2026-03-19T07:00:00Z',
+    estimatedDuration: 420, // 7 hours
+    currentStopIndex: 0,
+    crewRequired: 5,
+    crewAssigned: [
+        { id: 'LAB-01', name: 'Ravi Kumar', role: 'Loader', photo: 'https://i.pravatar.cc/80?img=11', checkedIn: false, checkInTime: null },
+        { id: 'LAB-02', name: 'Suresh Patel', role: 'Loader', photo: 'https://i.pravatar.cc/80?img=22', checkedIn: false, checkInTime: null },
+        { id: 'LAB-03', name: 'Dinesh Singh', role: 'Packer', photo: 'https://i.pravatar.cc/80?img=33', checkedIn: false, checkInTime: null },
+        { id: 'LAB-04', name: 'Vikram Yadav', role: 'Loader', photo: 'https://i.pravatar.cc/80?img=44', checkedIn: false, checkInTime: null },
+        { id: 'LAB-05', name: 'Manoj Tiwari', role: 'Helper', photo: 'https://i.pravatar.cc/80?img=55', checkedIn: false, checkInTime: null },
+    ],
+    sourceLocation: {
+        name: 'Source Address',
+        customerName: 'Rajesh & Priya Mehta',
+        customerPhone: '+91 98765 66666',
+        address: 'A-304, Emerald Heights, Andheri West, Mumbai 400053',
+        location: { lat: 19.1136, lng: 72.8697 },
+        floors: 3,
+        elevator: true,
+        parkingAvailable: true
+    },
+    destinationLocation: {
+        name: 'Destination Address',
+        customerName: 'Rajesh & Priya Mehta',
+        customerPhone: '+91 98765 66666',
+        address: 'B-701, Skyline Towers, Powai, Mumbai 400076',
+        location: { lat: 19.1197, lng: 72.9059 },
+        floors: 7,
+        elevator: true,
+        parkingAvailable: false
+    },
+    inventory: [
+        { id: 'INV-001', category: 'Furniture', item: 'Sofa Set (3-seater)', qty: 1, loaded: false, unloaded: false, packed: false },
+        { id: 'INV-002', category: 'Furniture', item: 'King Size Bed', qty: 1, loaded: false, unloaded: false, packed: false },
+        { id: 'INV-003', category: 'Furniture', item: 'Dining Table with 6 Chairs', qty: 1, loaded: false, unloaded: false, packed: false },
+        { id: 'INV-004', category: 'Furniture', item: 'Wardrobe (4-door)', qty: 2, loaded: false, unloaded: false, packed: false },
+        { id: 'INV-005', category: 'Appliances', item: 'Refrigerator', qty: 1, loaded: false, unloaded: false, packed: false },
+        { id: 'INV-006', category: 'Appliances', item: 'Washing Machine', qty: 1, loaded: false, unloaded: false, packed: false },
+        { id: 'INV-007', category: 'Appliances', item: 'Microwave', qty: 1, loaded: false, unloaded: false, packed: true },
+        { id: 'INV-008', category: 'Electronics', item: 'LED TV (55")', qty: 2, loaded: false, unloaded: false, packed: true },
+        { id: 'INV-009', category: 'Boxes', item: 'Kitchen Items (sealed)', qty: 8, loaded: false, unloaded: false, packed: true },
+        { id: 'INV-010', category: 'Boxes', item: 'Clothes & Linens', qty: 12, loaded: false, unloaded: false, packed: true },
+        { id: 'INV-011', category: 'Boxes', item: 'Books & Decor', qty: 6, loaded: false, unloaded: false, packed: true },
+    ],
+    equipment: [
+        { id: 'EQ-001', name: 'Moving Crates', qty: 20, loaded: true, returned: false },
+        { id: 'EQ-002', name: 'Furniture Dolly', qty: 2, loaded: true, returned: false },
+        { id: 'EQ-003', name: 'Straps & Ropes', qty: 10, loaded: true, returned: false },
+        { id: 'EQ-004', name: 'Bubble Wrap Rolls', qty: 5, loaded: true, returned: false },
+    ],
+    checklist: [
+        { id: 'CL-001', phase: 'packing', task: 'Kitchen packed & sealed', required: true, completed: false },
+        { id: 'CL-002', phase: 'packing', task: 'Fragile items wrapped', required: true, completed: false },
+        { id: 'CL-003', phase: 'packing', task: 'Furniture dismantled', required: true, completed: false },
+        { id: 'CL-004', phase: 'packing', task: 'Electronics disconnected', required: true, completed: false },
+        { id: 'CL-005', phase: 'packing', task: 'Wardrobes emptied', required: false, completed: false },
+        { id: 'CL-006', phase: 'packing', task: 'All boxes labeled', required: true, completed: false },
+        { id: 'CL-007', phase: 'loading', task: 'Inventory count verified', required: true, completed: false },
+        { id: 'CL-008', phase: 'loading', task: 'Heavy items secured', required: true, completed: false },
+        { id: 'CL-009', phase: 'loading', task: 'Load balanced properly', required: true, completed: false },
+        { id: 'CL-010', phase: 'unloading', task: 'All items accounted for', required: true, completed: false },
+        { id: 'CL-011', phase: 'unloading', task: 'No damage during transit', required: true, completed: false },
+        { id: 'CL-012', phase: 'unloading', task: 'Items placed as per customer', required: false, completed: false },
+        { id: 'CL-013', phase: 'final', task: 'Debris cleaned', required: true, completed: false },
+        { id: 'CL-014', phase: 'final', task: 'Customer walkthrough done', required: true, completed: false },
+    ],
+    beforePhotos: [],
+    afterPhotos: [],
+    totalCost: 15000,
+    advancePaid: 7500,
+    balanceDue: 7500
+}

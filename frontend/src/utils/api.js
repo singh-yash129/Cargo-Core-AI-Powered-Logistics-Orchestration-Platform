@@ -55,7 +55,6 @@ api.interceptors.response.use(
             // Token expired or invalid → clear auth state and redirect
             localStorage.removeItem('auth_token')
             localStorage.removeItem('auth_user')
-            localStorage.removeItem('driverAuthenticated')
 
             // Avoid redirect loops
             if (window.location.pathname !== '/login') {
