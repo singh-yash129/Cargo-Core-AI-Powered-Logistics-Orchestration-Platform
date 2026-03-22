@@ -343,12 +343,18 @@ gsap.registerPlugin(ScrollTrigger, TextPlugin)
 const mainContainer = ref(null)
 
 const logisticImages = [
-    '/images/logistic-screens/control_tower.png',
-    '/images/logistic-screens/fleet_map.png',
-    '/images/logistic-screens/financials.png',
-    '/images/logistic-screens/risk_engine.png',
-    '/images/logistic-screens/driver_compliance.png',
-    '/images/logistic-screens/user_management.png'
+    '/images/logistic-screens/01-dashboard.png',
+    '/images/logistic-screens/02-warehouse-management.png',
+    '/images/logistic-screens/03-user-roles.png',
+    '/images/logistic-screens/04-fleet-drivers.png',
+    '/images/logistic-screens/05-geofencing.png',
+    '/images/logistic-screens/06-finance-payroll.png',
+    '/images/logistic-screens/07-rate-governance.png',
+    '/images/logistic-screens/08-reverse-logistics.png',
+    '/images/logistic-screens/09-reports.png',
+    '/images/logistic-screens/10-ai-intelligence.png',
+    '/images/logistic-screens/11-communication.png',
+    '/images/logistic-screens/12-comparative-viewers.png'
 ]
 
 const driverImages = [
