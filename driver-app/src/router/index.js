@@ -54,25 +54,25 @@ const routes = [
                 path: 'pre-shift',
                 name: 'pre-shift',
                 component: () => import('../views/PreShiftSafety.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'vehicle-binding',
                 name: 'vehicle-binding',
                 component: () => import('../views/VehicleBinding.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'vehicle-inspection',
                 name: 'vehicle-inspection',
                 component: () => import('../views/VehicleInspection.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'job-type-selection',
                 name: 'job-type-selection',
                 component: () => import('../views/JobTypeSelection.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Job Assignment & Completion ─────────────
@@ -80,13 +80,13 @@ const routes = [
                 path: 'job-assignment',
                 name: 'job-assignment',
                 component: () => import('../views/JobAssignment.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'job-completion',
                 name: 'job-completion',
                 component: () => import('../views/JobCompletion.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Main Dashboard ───────────────────────────
@@ -94,13 +94,13 @@ const routes = [
                 path: 'dashboard',
                 name: 'dashboard',
                 component: () => import('../views/CommandCenter.vue'),
-                meta: { requiresAuth: false }
+                meta: { requiresAuth: true }
             },
             {
                 path: 'house-shift-dashboard',
                 name: 'house-shift-dashboard',
                 component: () => import('../views/HouseShiftDashboard.vue'),
-                meta: { requiresAuth: false }
+                meta: { requiresAuth: true }
             },
 
             // ── Manifest & Route ─────────────────────────
@@ -108,25 +108,25 @@ const routes = [
                 path: 'manifest',
                 name: 'manifest',
                 component: () => import('../views/ManifestView.vue'),
-                meta: { requiresAuth: false }
+                meta: { requiresAuth: true }
             },
             {
                 path: 'stop/:id',
                 name: 'stop-detail',
                 component: () => import('../views/StopDetail.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'route-progress',
                 name: 'route-progress',
                 component: () => import('../views/RouteProgress.vue'),
-                meta: { requiresAuth: false }
+                meta: { requiresAuth: true }
             },
             {
                 path: 'navigation',
                 name: 'navigation',
                 component: () => import('../views/LiveNavigation.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Load & Crew ──────────────────────────────
@@ -134,19 +134,19 @@ const routes = [
                 path: 'load-verify',
                 name: 'load-verify',
                 component: () => import('../views/LoadVerification.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'crew',
                 name: 'crew',
                 component: () => import('../views/CrewManagement.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'gate-exit',
                 name: 'gate-exit',
                 component: () => import('../views/GateExit.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── House Shift Execution ────────────────────
@@ -154,37 +154,37 @@ const routes = [
                 path: 'packing-progress',
                 name: 'packing-progress',
                 component: () => import('../views/PackingProgress.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'loading-inventory',
                 name: 'loading-inventory',
                 component: () => import('../views/LoadingInventory.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'transit-mode',
                 name: 'transit-mode',
                 component: () => import('../views/TransitMode.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'unloading-inventory',
                 name: 'unloading-inventory',
                 component: () => import('../views/UnloadingInventory.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'final-walkthrough',
                 name: 'final-walkthrough',
                 component: () => import('../views/FinalWalkthrough.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'customer-signoff',
                 name: 'customer-signoff',
                 component: () => import('../views/CustomerSignOff.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Geofence & Deviation ─────────────────────
@@ -192,13 +192,13 @@ const routes = [
                 path: 'geofence-arrival/:id',
                 name: 'geofence-arrival',
                 component: () => import('../views/GeofenceArrival.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'route-deviation',
                 name: 'route-deviation',
                 component: () => import('../views/RouteDeviation.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Delivery Execution ───────────────────────
@@ -206,31 +206,31 @@ const routes = [
                 path: 'delivery/:id',
                 name: 'delivery',
                 component: () => import('../views/DeliveryExecution.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'exception/:id',
                 name: 'exception',
                 component: () => import('../views/DeliveryException.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'service-checklist/:id',
                 name: 'service-checklist',
                 component: () => import('../views/ServiceChecklist.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'pod/:id',
                 name: 'pod',
                 component: () => import('../views/ProofOfDelivery.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'cod/:id',
                 name: 'cod',
                 component: () => import('../views/CODPayment.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Parcel Pickup Flow ──────────────────────
@@ -238,37 +238,37 @@ const routes = [
                 path: 'pickup-arrival/:id',
                 name: 'pickup-arrival',
                 component: () => import('../views/PickupArrival.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'pickup-scanning/:id',
                 name: 'pickup-scanning',
                 component: () => import('../views/ItemScanning.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'pickup-signature/:id',
                 name: 'pickup-signature',
                 component: () => import('../views/PickupSignature.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'warehouse-return',
                 name: 'warehouse-return',
                 component: () => import('../views/WarehouseReturn.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'unload-verification',
                 name: 'unload-verification',
                 component: () => import('../views/UnloadVerification.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'pickup-completion',
                 name: 'pickup-completion',
                 component: () => import('../views/PickupCompletion.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Financial ────────────────────────────────
@@ -276,13 +276,13 @@ const routes = [
                 path: 'wallet',
                 name: 'wallet',
                 component: () => import('../views/DriverWallet.vue'),
-                meta: { requiresAuth: false }
+                meta: { requiresAuth: true }
             },
             {
                 path: 'fuel-receipt',
                 name: 'fuel-receipt',
                 component: () => import('../views/FuelReceipt.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Communication & AI ───────────────────────
@@ -290,13 +290,13 @@ const routes = [
                 path: 'chat',
                 name: 'chat',
                 component: () => import('../views/DispatchChat.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'voice',
                 name: 'voice',
                 component: () => import('../views/VoiceAssistant.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Crisis & Returns ─────────────────────────
@@ -304,19 +304,19 @@ const routes = [
                 path: 'crisis',
                 name: 'crisis',
                 component: () => import('../views/CrisisMode.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'returns',
                 name: 'returns',
                 component: () => import('../views/ReverseLogistics.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'damage-report',
                 name: 'damage-report',
                 component: () => import('../views/DamageReport.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── End of Day ───────────────────────────────
@@ -324,13 +324,13 @@ const routes = [
                 path: 'shift-summary',
                 name: 'shift-summary',
                 component: () => import('../views/ShiftSummary.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'vehicle-return',
                 name: 'vehicle-return',
                 component: () => import('../views/VehicleReturn.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Reports & Safety ─────────────────────────
@@ -338,7 +338,7 @@ const routes = [
                 path: 'audit',
                 name: 'audit',
                 component: () => import('../views/AuditLog.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
 
             // ── Settings & Profile ───────────────────────
@@ -346,19 +346,19 @@ const routes = [
                 path: 'settings',
                 name: 'settings',
                 component: () => import('../views/Settings.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'offline',
                 name: 'offline',
                 component: () => import('../views/OfflineQueue.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
             {
                 path: 'notifications',
                 name: 'notifications',
                 component: () => import('../views/NotificationCenter.vue'),
-                meta: { requiresAuth: false, hideNav: true }
+                meta: { requiresAuth: true, hideNav: true }
             },
         ]
     },
