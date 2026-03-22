@@ -189,15 +189,18 @@
 
         <!-- Role 5: Driver -->
         <section id="role-driver"
-            class="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 py-20 relative role-section">
+            class="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 py-20 relative role-section driver-section">
             <div class="w-full md:w-1/2 p-8 flex justify-center relative z-10">
-                <!-- Mobile Frame -->
+                <!-- iPhone 13 Pro Mobile Frame (390x844 aspect ratio roughly translates to 300x650) -->
                 <div
-                    class="w-[300px] h-[600px] border-8 border-gray-800 rounded-[3rem] overflow-hidden bg-black relative shadow-[0_0_50px_rgba(255,255,255,0.1)]">
-                    <img src="https://placehold.co/300x600/000/FFF?text=Driver+App"
-                        class="w-full h-full object-cover opacity-80" />
-                    <!-- Island -->
-                    <div class="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-full z-20"></div>
+                    class="w-[300px] h-[650px] border-8 border-gray-800 rounded-[3rem] overflow-hidden bg-black relative shadow-[0_0_50px_rgba(255,255,255,0.1)]">
+                    <div class="relative w-full h-full">
+                        <img v-for="(img, index) in driverImages" :key="index" :src="img"
+                            class="absolute inset-0 w-full h-full object-cover driver-frame bg-black"
+                            :style="{ zIndex: index + 1 }" alt="Driver App Screen" />
+                    </div>
+                    <!-- iPhone 13 Pro Notch (Instead of Island) -->
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-gray-800 rounded-b-3xl z-20 pointer-events-none"></div>
                 </div>
             </div>
             <div class="w-full md:w-1/2 p-8 md:pl-20 text-left">
@@ -348,6 +351,15 @@ const logisticImages = [
     '/images/logistic-screens/user_management.png'
 ]
 
+const driverImages = [
+    '/images/mobile-screens/splash.png',
+    '/images/mobile-screens/login.png',
+    '/images/mobile-screens/login-help.png',
+    '/images/mobile-screens/pre-shift.png',
+    '/images/mobile-screens/binding%20scanner.png',
+    '/images/mobile-screens/binding.png'   
+]
+
 // Preload Spline Scenes for "Instant" feel
 const splineScenes = [
     'https://prod.spline.design/dly62PB8Wm4vg4E3/scene.splinecode', // Hero
@@ -414,6 +426,31 @@ onMounted(() => {
 
     frames.slice(1).forEach((frame, i) => {
         tlLogistic.to(frame, {
+            yPercent: 0,
+            duration: 1,
+            ease: 'power2.out'
+        })
+    })
+
+    // Driver Mobile Image Sequence
+    const driverFrames = gsap.utils.toArray('.driver-frame')
+    if (driverFrames.length > 0) {
+        gsap.set(driverFrames, { yPercent: 100 })
+        gsap.set(driverFrames[0], { yPercent: 0 })
+    }
+
+    const tlDriver = gsap.timeline({
+        scrollTrigger: {
+            trigger: '.driver-section',
+            start: 'top top',
+            end: '+=400%',
+            pin: true,
+            scrub: 1
+        }
+    })
+
+    driverFrames.slice(1).forEach((frame) => {
+        tlDriver.to(frame, {
             yPercent: 0,
             duration: 1,
             ease: 'power2.out'
