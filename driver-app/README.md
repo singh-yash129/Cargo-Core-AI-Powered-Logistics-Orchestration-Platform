@@ -71,11 +71,14 @@ npx cap open android
 driver-app/
 ├── android/            # Capacitor native Android shell (Java/Kotlin/Gradle)
 ├── src/
+│   ├── assets/         # Static images, icons, and global CSS
 │   ├── components/     # Reusable Vue components & Native Wrappers (Camera)
 │   ├── composables/    # Modular logic (Permissions, Camera, Geolocation APIs)
 │   ├── layouts/        # Root Layouts (MainLayout, CameraLayout)
 │   ├── router/         # Vue Router configurations
+│   ├── services/       # External service integrations (e.g. Firebase, APIs)
 │   ├── stores/         # Pinia global state management
+│   ├── utils/          # Helper functions and formatting tools
 │   └── views/          # Full-page View components
 └── capacitor.config.js # Native bridge configuration
 ```
