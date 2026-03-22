@@ -66,7 +66,7 @@
             <div class="w-full md:w-1/2 p-8 relative z-10 h-[60vh] md:h-auto flex flex-col items-center">
                 <!-- Laptop Frame -->
                 <div
-                    class="relative w-full max-w-[800px] aspect-[16/11] bg-[#1a1a1a] rounded-t-2xl p-2 md:p-3 shadow-2xl border-4 border-[#2a2a2a] border-b-0 perspective-1000 group">
+                    class="relative w-full max-w-[800px] aspect-[16/10] bg-[#1a1a1a] rounded-t-2xl p-2 md:p-3 shadow-2xl border-4 border-[#2a2a2a] border-b-0 perspective-1000 group">
                     <!-- Screen Bezel/Camera -->
                     <div class="absolute top-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-gray-600 rounded-full z-20">
                     </div>
@@ -79,11 +79,12 @@
                                 :style="{ zIndex: index + 1 }" alt="Logistic Dashboard Screen" />
                         </div>
                     </div>
-                </div>
-                <!-- Laptop Base -->
-                <div
-                    class="w-[120%] h-4 bg-[#252525] rounded-b-xl shadow-xl relative -mt-1 transform perspective-1000 rotate-x-12 origin-top">
-                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-2 bg-[#1a1a1a] rounded-b-lg"></div>
+
+                    <!-- Laptop Base moved inside to align with Frame's exact width -->
+                    <div
+                        class="absolute top-full left-1/2 -translate-x-1/2 w-[115%] h-5 bg-[#252525] border-t border-[#444] rounded-b-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transform perspective-1000 rotate-x-12 origin-top z-30">
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1.5 bg-[#1a1a1a] rounded-b-md"></div>
+                    </div>
                 </div>
             </div>
 
@@ -248,8 +249,10 @@
                 <div>
                     <h4 class="font-bold text-white mb-6">Learn</h4>
                     <ul class="space-y-4 text-gray-400 text-sm">
-                        <li><a href="#role-logistic" class="hover:text-cyan-400 transition-colors">Logistics Manager</a></li>
-                        <li><a href="#role-warehouse" class="hover:text-cyan-400 transition-colors">Warehouse Manager</a></li>
+                        <li><a href="#role-logistic" class="hover:text-cyan-400 transition-colors">Logistics Manager</a>
+                        </li>
+                        <li><a href="#role-warehouse" class="hover:text-cyan-400 transition-colors">Warehouse
+                                Manager</a></li>
                         <li><a href="#role-dispatcher" class="hover:text-cyan-400 transition-colors">Dispatcher</a></li>
                         <li><a href="#role-ai" class="hover:text-cyan-400 transition-colors">AI Bot</a></li>
                         <li><a href="#role-driver" class="hover:text-cyan-400 transition-colors">Driver</a></li>
@@ -268,9 +271,12 @@
                 <div>
                     <h4 class="font-bold text-white mb-6">Company</h4>
                     <ul class="space-y-4 text-gray-400 text-sm">
-                        <li><router-link to="/contact" class="hover:text-cyan-400 transition-colors">Contact Us</router-link></li>
-                        <li><router-link to="/terms" class="hover:text-cyan-400 transition-colors">Terms</router-link></li>
-                        <li><router-link to="/privacy" class="hover:text-cyan-400 transition-colors">Privacy</router-link></li>
+                        <li><router-link to="/contact" class="hover:text-cyan-400 transition-colors">Contact
+                                Us</router-link></li>
+                        <li><router-link to="/terms" class="hover:text-cyan-400 transition-colors">Terms</router-link>
+                        </li>
+                        <li><router-link to="/privacy"
+                                class="hover:text-cyan-400 transition-colors">Privacy</router-link></li>
                     </ul>
                 </div>
                 <div>
