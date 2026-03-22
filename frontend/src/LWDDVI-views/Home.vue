@@ -66,7 +66,7 @@
             <div class="w-full md:w-1/2 p-8 relative z-10 h-[60vh] md:h-auto flex flex-col items-center">
                 <!-- Laptop Frame -->
                 <div
-                    class="relative w-full max-w-[800px] aspect-[16/10] bg-[#1a1a1a] rounded-t-2xl p-2 md:p-3 shadow-2xl border-4 border-[#2a2a2a] border-b-0 perspective-1000 group">
+                    class="relative w-full max-w-[960px] aspect-[1920/1200] bg-[#1a1a1a] rounded-t-2xl p-2 md:p-3 shadow-2xl border-4 border-[#2a2a2a] border-b-0 perspective-1000 group">
                     <!-- Screen Bezel/Camera -->
                     <div class="absolute top-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-gray-600 rounded-full z-20">
                     </div>
@@ -75,7 +75,7 @@
                     <div class="relative w-full h-full bg-black rounded-lg overflow-hidden border border-white/5">
                         <div class="relative w-full h-full">
                             <img v-for="(img, index) in logisticImages" :key="index" :src="img"
-                                class="absolute inset-0 w-full h-full object-contain logistic-frame bg-black"
+                                class="absolute inset-0 w-full h-full  logistic-frame bg-black"
                                 :style="{ zIndex: index + 1 }" alt="Logistic Dashboard Screen" />
                         </div>
                     </div>
