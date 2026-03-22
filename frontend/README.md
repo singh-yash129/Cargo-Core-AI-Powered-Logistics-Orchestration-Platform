@@ -24,6 +24,9 @@ cd frontend
 
 # Install dependencies
 npm install
+
+# If you encounter peer dependency errors, use:
+# npm install --legacy-peer-deps
 ```
 
 ### Development
