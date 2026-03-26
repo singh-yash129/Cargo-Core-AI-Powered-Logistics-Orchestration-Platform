@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { useRates } from '@/composables/useRates'
 
 const API_BASE = 'http://localhost:8000/api/v1'
 
@@ -13,6 +14,7 @@ function getAuthHeaders(json = false) {
 
 function parseStatusKey(status) {
     const value = String(status || '').toLowerCase()
+    if (['warehouse', 'awaiting_pick', 'picking', 'picked', 'packing', 'packed', 'qc_passed'].includes(value)) return 'warehouse'
     if (value.includes('transit') || value === 'assigned') return 'transit'
     if (value === 'delivered' || value === 'closed') return 'delivered'
     if (value === 'cancelled') return 'cancelled'
@@ -23,6 +25,7 @@ function parseStatusKey(status) {
 function formatStatusLabel(statusKey) {
     return {
         pending: 'Pending',
+        warehouse: 'In Warehouse',
         transit: 'In Transit',
         delivery: 'Out for Delivery',
         delivered: 'Delivered',
@@ -31,7 +34,7 @@ function formatStatusLabel(statusKey) {
 }
 
 function statusProgress(statusKey) {
-    return { pending: 15, transit: 65, delivery: 85, delivered: 100, cancelled: 0 }[statusKey] || 0
+    return { pending: 15, warehouse: 35, transit: 65, delivery: 85, delivered: 100, cancelled: 0 }[statusKey] || 0
 }
 
 function safeDateLabel(value, fallback = 'TBD') {
@@ -61,6 +64,7 @@ function routeSummary(pickup, delivery) {
 }
 
 export const useVendorStore = defineStore('vendor', () => {
+    const { rates } = useRates()
     const initialized = ref(false)
     const loading = ref(false)
     const error = ref('')
@@ -73,6 +77,7 @@ export const useVendorStore = defineStore('vendor', () => {
     const bulkUploads = ref([])
     const tickets = ref([])
     const notifications = ref([])
+    const warehouses = ref([])
 
     const companySettings = ref({
         companyName: '',
@@ -111,7 +116,7 @@ export const useVendorStore = defineStore('vendor', () => {
         successRate: Number(dashboard.value?.analytics?.success_rate || 0),
     }))
 
-    const activeShipments = computed(() => shipments.value.filter((s) => ['transit', 'delivery'].includes(s.statusKey)))
+    const activeShipments = computed(() => shipments.value.filter((s) => ['warehouse', 'transit', 'delivery'].includes(s.statusKey)))
     const pendingShipments = computed(() => shipments.value.filter((s) => s.statusKey === 'pending'))
     const deliveredShipments = computed(() => shipments.value.filter((s) => s.statusKey === 'delivered'))
     const overdueInvoices = computed(() => invoices.value.filter((invoice) => invoice.status === 'Overdue'))
@@ -129,6 +134,9 @@ export const useVendorStore = defineStore('vendor', () => {
         const delivery = raw.delivery_addr || 'Destination'
         const amount = Number(raw.amount ?? raw.cost?.total ?? 0)
         const delivered = statusKey === 'delivered'
+        const driverName = raw.assigned_driver_name || raw.driver_name || raw.driver?.name || null
+        const driverPhone = raw.assigned_driver_phone || raw.driver_phone || raw.driver?.phone || null
+        const assignedVehicleCode = raw.assigned_vehicle_code || raw.vehicle_code || null
 
         return {
             id: trackingCode,
@@ -146,9 +154,9 @@ export const useVendorStore = defineStore('vendor', () => {
             category: raw.cargo_type || 'Commercial',
             paymentMode: raw.payment_mode || 'Invoice',
             paymentStatus: raw.payment_status || 'pending',
-            driver: null,
-            driverPhone: null,
-            vehicle: raw.vehicle_type || null,
+            driver: driverName,
+            driverPhone,
+            vehicle: assignedVehicleCode || raw.vehicle_type || null,
             progress: Number(raw.progress ?? statusProgress(statusKey)),
             pod: delivered ? {
                 photo: null,
@@ -159,8 +167,8 @@ export const useVendorStore = defineStore('vendor', () => {
             } : null,
             originAddress: pickup,
             destinationAddress: delivery,
-            driverLat: null,
-            driverLng: null,
+            driverLat: raw.driver_lat || raw.driverLat || null,
+            driverLng: raw.driver_lng || raw.driverLng || null,
             description: raw.cargo_type || '',
             packingRequired: Number(raw.cost?.packing || 0) > 0,
             laborRequired: Number(raw.labor_count || 0) > 0,
@@ -170,6 +178,8 @@ export const useVendorStore = defineStore('vendor', () => {
                 status: item.status,
                 time: item.time,
             })),
+            paidAmount: Number(raw.paid_amount || 0),
+            declaredValue: Number(raw.declared_value || 0),
             cost: {
                 base: Number(raw.cost?.base || 0),
                 vehicle: Number(raw.cost?.vehicle || 0),
@@ -216,6 +226,27 @@ export const useVendorStore = defineStore('vendor', () => {
         }))
 
         notifications.value = [...invoiceNotifications, ...shipmentNotifications]
+    }
+
+    async function fetchWarehouses() {
+        try {
+            const res = await fetch(`${API_BASE}/warehouses`, {
+                headers: getAuthHeaders(),
+            })
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}))
+                console.warn('[vendorStore] fetchWarehouses failed:', res.status, err.detail || '')
+                return
+            }
+            const data = await res.json()
+            warehouses.value = (Array.isArray(data) ? data : data.items || []).map(w => ({
+                id: String(w.id),
+                name: w.name,
+                address: w.address || w.location || '',
+            }))
+        } catch (e) {
+            console.warn('[vendorStore] fetchWarehouses error:', e)
+        }
     }
 
     async function fetchDashboardSummary() {
@@ -418,6 +449,7 @@ export const useVendorStore = defineStore('vendor', () => {
                 fetchRecurringRules(),
                 fetchBulkUploads(),
                 fetchTickets(),
+                fetchWarehouses(),
             ])
             initialized.value = true
         } catch (err) {
@@ -439,10 +471,17 @@ export const useVendorStore = defineStore('vendor', () => {
 
         const deliveryAddr = [data.destination, data.destinationCity, data.pincode].filter(Boolean).join(', ')
         const scheduledAt = data.pickupDate ? new Date(data.pickupDate).toISOString() : null
-        const total = Number(data.quotedPrice || 0)
+        const quote = data.quoteBreakdown || {}
+        const total = Number(quote.total ?? data.quotedPrice ?? 0)
         const materialsAmount = 0
-        const packingAmount = data.packingRequired ? 200 : 0
-        const laborAmount = data.laborRequired ? Number(data.laborCount || 0) * 250 : 0
+        const packingAmount = Number(
+            quote.packingFee
+            ?? (data.packingRequired ? (rates.value.customerPackingFee ?? 200) : 0)
+        )
+        const laborAmount = Number(
+            quote.laborCharges
+            ?? (data.laborRequired ? Number(data.laborCount || 0) * (rates.value.customerLaborRate ?? 250) : 0)
+        )
         const baseAmount = Math.max(total - packingAmount - laborAmount, 0)
 
         const response = await fetch(`${API_BASE}/orders`, {
@@ -463,6 +502,7 @@ export const useVendorStore = defineStore('vendor', () => {
                 platform_fee: 0,
                 tax_amount: 0,
                 total_amount: total,
+                declared_value: Number(data.declaredValue || 0),
                 payment_mode: data.paymentMode || 'Invoice',
                 payment_status: 'pending',
                 service_time_block: data.timeWindow || null,
@@ -567,13 +607,39 @@ export const useVendorStore = defineStore('vendor', () => {
         return true
     }
 
-    function payInvoice(id, amount) {
+    async function payInvoice(id, amount, paymentMethod = 'Bank Transfer') {
         const invoice = invoices.value.find((item) => item.id === id)
         if (!invoice) return false
+
+        // Optimistic update
         const nextPaid = Math.min(invoice.amount, invoice.paid + amount)
+        const prevPaid = invoice.paid
+        const prevStatus = invoice.status
         invoice.paid = nextPaid
         invoice.status = nextPaid >= invoice.amount ? 'Paid' : 'Partial'
-        return true
+
+        try {
+            const res = await fetch(`${API_BASE}/vendor/invoices/${invoice.backendOrderId}/pay`, {
+                method: 'POST',
+                headers: getAuthHeaders(true),
+                body: JSON.stringify({ amount, payment_method: paymentMethod }),
+            })
+            if (!res.ok) {
+                // Rollback on failure
+                invoice.paid = prevPaid
+                invoice.status = prevStatus
+                return false
+            }
+            const updated = await res.json()
+            invoice.paid = updated.paid ?? nextPaid
+            invoice.status = updated.status ?? invoice.status
+            rebuildNotifications()
+            return true
+        } catch {
+            invoice.paid = prevPaid
+            invoice.status = prevStatus
+            return false
+        }
     }
 
     function recordCODPayment(orderId, amount) {
@@ -914,8 +980,10 @@ export const useVendorStore = defineStore('vendor', () => {
         totalUnpaid,
         totalPaidThisMonth,
         creditBalance,
+        warehouses,
         initializeVendorData,
         refreshVendorData,
+        fetchWarehouses,
         fetchDashboardSummary,
         fetchShipments,
         fetchSettings,

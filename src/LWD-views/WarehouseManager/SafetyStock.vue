@@ -136,26 +136,38 @@
                         <th class="p-4">Request ID</th>
                         <th class="p-4">Item</th>
                         <th class="p-4">SKU</th>
-                        <th class="p-4">Qty Requested</th>
+                        <th class="p-4">Qty</th>
                         <th class="p-4">Requested On</th>
                         <th class="p-4">Status</th>
+                        <th class="p-4">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                    <tr v-for="req in restockHistory" :key="req.id"
+                    <tr v-for="req in restockHistory" :key="req.backendId"
                         class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
-                        <td class="p-4 font-mono text-gray-600 dark:text-gray-300">{{ req.id }}</td>
+                        <td class="p-4 font-mono text-gray-600 dark:text-gray-300 text-xs">{{ req.id }}</td>
                         <td class="p-4 text-gray-900 dark:text-white">{{ req.item }}</td>
                         <td class="p-4 font-mono text-xs text-gray-500">{{ req.sku }}</td>
                         <td class="p-4 text-gray-600 dark:text-gray-300">{{ req.qty }}</td>
                         <td class="p-4 text-gray-500 text-xs font-mono">{{ req.requestedOn }}</td>
                         <td class="p-4">
-                            <span class="px-2 py-1 rounded text-[10px] font-bold border" :class="req.statusClass">{{
-                                req.status }}</span>
+                            <span class="px-2 py-1 rounded text-[10px] font-bold border" :class="req.statusClass">{{ req.status }}</span>
+                            <span v-if="req.escalated" class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-500/20 text-orange-500 border border-orange-500/30">ESCALATED</span>
+                        </td>
+                        <td class="p-4">
+                            <div v-if="req.status === 'PENDING'" class="flex gap-2">
+                                <button @click="approveRestock(req)"
+                                    class="px-2 py-1 text-[10px] font-bold rounded bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 border border-green-500/20 transition-colors"
+                                    :disabled="req.processing">✓ Approve</button>
+                                <button @click="rejectRestock(req)"
+                                    class="px-2 py-1 text-[10px] font-bold rounded bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 border border-red-500/20 transition-colors"
+                                    :disabled="req.processing">✗ Reject</button>
+                            </div>
+                            <span v-else class="text-gray-400 dark:text-gray-600 text-xs">—</span>
                         </td>
                     </tr>
                     <tr v-if="restockHistory.length === 0">
-                        <td colspan="6" class="p-8 text-center text-gray-500">No restock requests yet</td>
+                        <td colspan="7" class="p-8 text-center text-gray-500">No restock requests yet</td>
                     </tr>
                 </tbody>
             </table>
@@ -216,6 +228,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
+import { apiUrl } from '@/config/api'
 
 const authStore = useAuthStore()
 const showThresholdModal = ref(false)
@@ -234,48 +247,86 @@ const thresholdOverrides = reactive({})
 async function fetchSafetyStock() {
     loading.value = true
     try {
-        const response = await fetch('http://localhost:8000/api/v1/inventory?page=1&page_size=100', {
-            headers: {
-                'Authorization': `Bearer ${authStore.authToken}`,
-                'Content-Type': 'application/json'
-            }
-        })
+        await authStore.ensureWarehouseContext()
+        const warehouseId = authStore.currentWarehouse?.id || authStore.currentUser?.warehouse_id || ''
+        const invUrl = warehouseId ? `api/v1/inventory?page=1&page_size=100&warehouse_id=${warehouseId}` : 'api/v1/inventory?page=1&page_size=100'
+        const reqUrl = warehouseId ? `api/v1/inventory/restock-requests?page=1&page_size=50&warehouse_id=${warehouseId}` : 'api/v1/inventory/restock-requests?page=1&page_size=50'
 
-        if (!response.ok) throw new Error('Failed to fetch inventory')
+        const [invRes, reqRes] = await Promise.allSettled([
+            fetch(apiUrl(invUrl), {
+                headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
+            }),
+            fetch(apiUrl(reqUrl), {
+                headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
+            })
+        ])
 
-        const data = await response.json()
-        const items = data.items || data || []
+        if (invRes.status === 'fulfilled' && invRes.value.ok) {
+            const data = await invRes.value.json()
+            const items = data.items || data || []
 
-        stockItems.value = items.map(item => {
-            const current = item.quantity || item.stock_quantity || item.quantity_available || 0
-            // Safety threshold = 20% of max capacity or minimum_stock_level from API or default 10
-            const apiThreshold = item.minimum_stock_level || item.safety_stock || item.reorder_point || 0
-            const threshold = thresholdOverrides[item.sku] ?? (apiThreshold || Math.max(10, Math.floor(current * 0.25)))
+            stockItems.value = items.map(item => {
+                const current = item.quantity || item.stock_quantity || item.quantity_available || item.quantity_on_hand || 0
+                const apiThreshold = item.minimum_stock_level || item.safety_stock || item.reorder_point || 0
+                const threshold = thresholdOverrides[item.sku] ?? (apiThreshold || Math.max(10, Math.floor(current * 0.25)))
 
-            let level = 'normal'
-            if (current <= threshold * 0.5) level = 'critical'
-            else if (current <= threshold) level = 'warning'
+                let level = 'normal'
+                if (current <= threshold * 0.5) level = 'critical'
+                else if (current <= threshold) level = 'warning'
 
-            thresholdEdits[item.sku || item.id] = threshold
+                thresholdEdits[item.sku || item.id] = threshold
 
-            return {
-                id: item.id,
-                sku: item.sku || item.id?.slice(0, 8).toUpperCase(),
-                name: item.name || item.product_name || 'Unknown Item',
-                category: item.category || item.product_category || 'General',
-                current,
-                threshold,
-                unit: item.unit || item.unit_of_measure || 'pcs',
-                location: item.location || item.warehouse_location || item.zone || '--',
-                level,
-                restockStatus: 'none',
-            }
-        })
+                return {
+                    id: item.id,
+                    sku: item.sku || item.id?.slice(0, 8).toUpperCase(),
+                    name: item.name || item.product_name || 'Unknown Item',
+                    category: item.category || item.product_category || 'General',
+                    current,
+                    threshold,
+                    unit: item.unit || item.unit_of_measure || 'pcs',
+                    location: item.location || item.warehouse_location || item.zone || '--',
+                    level,
+                    restockStatus: 'none',
+                }
+            })
 
-        // Initialize threshold edits
-        stockItems.value.forEach(item => {
-            if (!thresholdEdits[item.sku]) thresholdEdits[item.sku] = item.threshold
-        })
+            stockItems.value.forEach(item => {
+                if (!thresholdEdits[item.sku]) thresholdEdits[item.sku] = item.threshold
+            })
+        }
+
+        if (reqRes.status === 'fulfilled' && reqRes.value.ok) {
+            const data = await reqRes.value.json()
+            const restocks = Array.isArray(data) ? data : (data.items || [])
+            
+            restockHistory.value = restocks.map(m => {
+                let statusClass = 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                if (m.status === 'APPROVED') {
+                    statusClass = 'bg-green-500/10 text-green-500 border-green-500/20'
+                } else if (m.status === 'REJECTED') {
+                    statusClass = 'bg-red-500/10 text-red-500 border-red-500/20'
+                }
+                const notes = m.manager_notes || ''
+                return {
+                    backendId: m.id,
+                    id: `RST-${(m.id || '').slice(0, 8).toUpperCase()}`,
+                    item: m.item_name || 'Item',
+                    sku: m.item_sku || 'N/A',
+                    qty: m.quantity,
+                    requestedOn: new Date(m.created_at).toLocaleString('en-CA', { hour12: false }).replace(',', ''),
+                    status: m.status || 'PENDING',
+                    statusClass,
+                    escalated: notes.includes('[ESCALATED]'),
+                    processing: false,
+                }
+            })
+
+            // mark items as requested if they have a pending restock
+            restocks.forEach(r => {
+                const item = stockItems.value.find(i => i.id === r.item_id || i.sku === r.item_sku)
+                if (item && r.status === 'PENDING') item.restockStatus = 'requested'
+            })
+        }
 
     } catch (error) {
         console.error('Error fetching safety stock:', error)
@@ -301,18 +352,45 @@ function showSuccess(msg) {
     setTimeout(() => { toastMsg.value = '' }, 2500)
 }
 
-function requestRestock(item) {
+async function requestRestock(item) {
+    if (item.restockStatus === 'requested') return
     item.restockStatus = 'requested'
-    restockHistory.value.unshift({
-        id: `RST-${String(Date.now()).slice(-4)}`,
-        item: item.name,
-        sku: item.sku,
-        qty: item.threshold * 2,
-        requestedOn: new Date().toLocaleString('en-CA', { hour12: false }).replace(',', ''),
-        status: 'Pending',
-        statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-    })
-    showSuccess(`Restock requested for ${item.name}`)
+    
+    try {
+        const qtyToOrder = item.threshold * 2
+        const response = await fetch(apiUrl('api/v1/inventory/restock-requests'), {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authStore.authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                item_id: item.id,
+                quantity: qtyToOrder
+            })
+        })
+
+        if (!response.ok) throw new Error('Failed to request restock')
+        const data = await response.json()
+
+        restockHistory.value.unshift({
+            backendId: data.id,
+            id: `RST-${(data.id || '').slice(0, 8).toUpperCase()}`,
+            item: item.name,
+            sku: item.sku,
+            qty: qtyToOrder,
+            requestedOn: new Date().toLocaleString('en-CA', { hour12: false }).replace(',', ''),
+            status: 'PENDING',
+            statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+            escalated: false,
+            processing: false,
+        })
+        showSuccess(`Restock requested for ${item.name}`)
+    } catch (e) {
+        console.error(e)
+        item.restockStatus = 'none'
+        showSuccess(`Failed to request restock for ${item.name}`)
+    }
 }
 
 function submitAllRestocks() {
@@ -326,10 +404,81 @@ function submitAllRestocks() {
     if (count === 0) showSuccess('All critical items already have restock requests')
 }
 
-function escalateItem(item) {
-    escalateToast.value = item.name
-    setTimeout(() => { escalateToast.value = '' }, 3000)
+async function approveRestock(req) {
+    if (req.processing) return
+    req.processing = true
+    try {
+        const response = await fetch(apiUrl(`api/v1/inventory/restock-requests/${req.backendId}/status`), {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${authStore.authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: 'APPROVED', manager_notes: 'Approved by Warehouse Manager' })
+        })
+        if (!response.ok) throw new Error('Failed to approve')
+        req.status = 'APPROVED'
+        req.statusClass = 'bg-green-500/10 text-green-500 border-green-500/20'
+        // Update the stock card to reflect increased stock
+        await fetchSafetyStock()
+        showSuccess(`✓ Approved — stock updated for ${req.item}`)
+    } catch (e) {
+        console.error(e)
+        showSuccess('Failed to approve request')
+    } finally {
+        req.processing = false
+    }
 }
+
+async function rejectRestock(req) {
+    if (req.processing) return
+    req.processing = true
+    try {
+        const response = await fetch(apiUrl(`api/v1/inventory/restock-requests/${req.backendId}/status`), {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${authStore.authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: 'REJECTED', manager_notes: 'Rejected by Warehouse Manager' })
+        })
+        if (!response.ok) throw new Error('Failed to reject')
+        req.status = 'REJECTED'
+        req.statusClass = 'bg-red-500/10 text-red-500 border-red-500/20'
+        const card = stockItems.value.find(i => i.sku === req.sku)
+        if (card) card.restockStatus = 'none'
+        showSuccess(`✗ Rejected restock for ${req.item}`)
+    } catch (e) {
+        console.error(e)
+        showSuccess('Failed to reject request')
+    } finally {
+        req.processing = false
+    }
+}
+
+async function escalateItem(item) {
+    // Find the pending restock request for this item
+    const req = restockHistory.value.find(r => r.sku === item.sku && r.status === 'PENDING')
+    if (!req?.backendId) {
+        // No pending request — guide user to request restock first
+        showSuccess(`Request restock for ${item.name} first, then escalate`)
+        return
+    }
+    try {
+        const response = await fetch(apiUrl(`api/v1/inventory/restock-requests/${req.backendId}/escalate`), {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${authStore.authToken}` }
+        })
+        if (!response.ok) throw new Error('Failed to escalate')
+        req.escalated = true
+        escalateToast.value = item.name
+        setTimeout(() => { escalateToast.value = '' }, 3000)
+    } catch (e) {
+        console.error(e)
+        showSuccess(`Failed to escalate ${item.name}`)
+    }
+}
+
 
 function saveThresholds() {
     stockItems.value.forEach(item => {

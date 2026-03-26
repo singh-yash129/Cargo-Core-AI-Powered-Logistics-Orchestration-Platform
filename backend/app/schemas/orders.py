@@ -22,6 +22,7 @@ class OrderCreate(BaseModel):
     total_amount: float = Field(default=0, ge=0)
     payment_mode: str | None = None
     payment_status: str = "pending"
+    declared_value: float = Field(default=0, ge=0)
     service_otp: str | None = None
     service_time_block: str | None = None
     scheduled_at: datetime | None = None
@@ -89,6 +90,8 @@ class OrderResponse(BaseModel):
     warehouse_id: UUID | None
     assigned_driver_id: UUID | None
     assigned_vehicle_id: UUID | None
+    assigned_driver_name: str | None = None
+    assigned_vehicle_code: str | None = None
     pickup_addr: str
     delivery_addr: str
     cargo_type: str | None
@@ -104,10 +107,22 @@ class OrderResponse(BaseModel):
     total_amount: float
     payment_mode: str | None
     payment_status: str
+    paid_amount: float = 0
+    declared_value: float = 0
     service_otp: str | None
+    service_otp_sent_at: datetime | None = None
+    service_otp_verified_at: datetime | None = None
     service_time_block: str | None
     scheduled_at: datetime | None
     cancel_reason: str | None
+    cancellation_fee: float = 0
+    wallet_refund_amount: float = 0
+    delivered_at: datetime | None = None
+    delivery_notes: str | None = None
+    pod_photos: list[str] = []
+    pod_signature: str | None = None
+    customer_name: str | None = None
+    customer_phone: str | None = None
     created_at: datetime
     items: list[OrderItemResponse] = []
 
@@ -119,3 +134,57 @@ class OrderListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+# ── Clustering Schemas ────────────────────────────────────────────────────────
+
+class ClusterOrderItem(BaseModel):
+    id: UUID
+    tracking_code: str
+    delivery_addr: str
+    pickup_addr: str
+    cargo_type: str | None = None
+    vehicle_type: str | None = None
+    total_amount: float = 0
+    scheduled_at: datetime | None = None
+    delivery_lat: float | None = None
+    delivery_lng: float | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class OrderCluster(BaseModel):
+    cluster_id: int
+    centroid_lat: float
+    centroid_lng: float
+    orders: list[ClusterOrderItem]
+    total_distance_km: float
+    efficiency_pct: float
+    total_weight: float
+    time_window: str
+    order_count: int
+
+
+class ClusterResponse(BaseModel):
+    clusters: list[OrderCluster]
+    unbatched: list[ClusterOrderItem]
+    total_orders: int
+    estimated_miles_saved_pct: float
+    avg_efficiency_pct: float
+
+
+class BatchAssignment(BaseModel):
+    order_id: UUID
+    driver_id: UUID
+    vehicle_id: UUID | None = None
+
+
+class BatchConfirmRequest(BaseModel):
+    assignments: list[BatchAssignment]
+
+
+class DeliveryOtpSendResponse(BaseModel):
+    message: str
+    email: str
+    sent_at: datetime
+    debug_otp: str | None = None

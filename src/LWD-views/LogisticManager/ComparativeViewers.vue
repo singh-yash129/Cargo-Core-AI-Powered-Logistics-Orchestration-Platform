@@ -114,7 +114,7 @@
                     <div v-if="activeTab === 'financials'" class="space-y-4 animate-fade-in">
                         <div class="bg-green-50 dark:bg-green-900/10 p-4 rounded-xl border border-green-100 dark:border-green-500/20 text-center">
                             <div class="text-xs text-green-600/80 dark:text-green-400/80 uppercase font-bold mb-1">Total Revenue</div>
-                            <div class="text-2xl font-black text-green-700 dark:text-green-400">${{ getDynamicValue(warehouse.id, 15000, 80000).toLocaleString() }}</div>
+                            <div class="text-2xl font-black text-green-700 dark:text-green-400">₹{{ getDynamicValue(warehouse.id, 15000, 80000).toLocaleString() }}</div>
                         </div>
 
                          <!-- Revenue Bar Chart (New) -->
@@ -127,7 +127,7 @@
                                 <span class="text-xs font-bold text-red-600">Pending Dues</span>
                                 <span class="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded-full font-bold">CRITICAL</span>
                             </div>
-                            <div class="text-lg font-bold text-gray-900 dark:text-white">${{ getDynamicValue(warehouse.id, 2000, 12000).toLocaleString() }}</div>
+                            <div class="text-lg font-bold text-gray-900 dark:text-white">₹{{ getDynamicValue(warehouse.id, 2000, 12000).toLocaleString() }}</div>
                         </div>
                     </div>
 

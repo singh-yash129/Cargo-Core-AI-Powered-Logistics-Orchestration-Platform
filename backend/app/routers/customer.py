@@ -19,17 +19,19 @@ from app.schemas.customer import (
     CustomerSettingsResponse,
     CustomerTrackingResponse,
 )
-from app.services import customer_service
+from app.schemas.wallet import WalletSummary
+from app.services import customer_service, wallet_service
 
 router = APIRouter(prefix="/api/v1/customer", tags=["Customer"])
 
 
-@router.get("/dashboard", response_model=CustomerDashboardResponse)
+@router.get("/dashboard")
 async def get_dashboard(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
 ):
-    return await customer_service.get_customer_dashboard(db, current_user)
+    result = await customer_service.get_customer_dashboard(db, current_user)
+    return result.model_dump(mode="json")
 
 
 @router.get("/tracking", response_model=CustomerTrackingResponse)
@@ -103,3 +105,11 @@ async def update_settings(
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     return await customer_service.update_customer_settings(db, current_user, data)
+
+
+@router.get("/wallet", response_model=WalletSummary)
+async def get_wallet(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await wallet_service.get_wallet_summary(db, current_user)

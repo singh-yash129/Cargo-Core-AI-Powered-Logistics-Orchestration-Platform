@@ -2,12 +2,25 @@
     <div class="space-y-6">
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Manifest Center</h2>
-            <button @click="showManifestDetail = !showManifestDetail"
-                class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">
-                <span class="material-symbols-outlined text-[18px]">{{ showManifestDetail ? 'table_view' : 'view_agenda'
-                    }}</span>
-                {{ showManifestDetail ? 'Table View' : 'Detail View' }}
-            </button>
+            <div class="flex gap-2">
+                <button @click="openTripManifestSlip"
+                    :disabled="manifests.length === 0"
+                    class="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">assignment</span>
+                    Trip Manifest
+                </button>
+                <button @click="openSafetyChecklist"
+                    :disabled="manifests.length === 0"
+                    class="bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">health_and_safety</span>
+                    Safety Check
+                </button>
+                <button @click="showManifestDetail = !showManifestDetail"
+                    class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">
+                    <span class="material-symbols-outlined text-[18px]">{{ showManifestDetail ? 'table_view' : 'view_agenda' }}</span>
+                    {{ showManifestDetail ? 'Table View' : 'Detail View' }}
+                </button>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -19,8 +32,7 @@
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Select Hub</label>
                         <select v-model="newManifest.hub"
                             class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm">
-                            <option class="bg-white dark:bg-gray-800">North-East Hub</option>
-                            <option class="bg-white dark:bg-gray-800">South Hub</option>
+                            <option v-for="h in hubOptions" :key="h" class="bg-white dark:bg-gray-800">{{ h }}</option>
                         </select>
                     </div>
                     <div>
@@ -28,19 +40,14 @@
                         <select v-model="newManifest.driver"
                             class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm">
                             <option class="bg-white dark:bg-gray-800" value="">Choose Driver...</option>
-                            <option class="bg-white dark:bg-gray-800">Mike Ross</option>
-                            <option class="bg-white dark:bg-gray-800">Harvey Specter</option>
-                            <option class="bg-white dark:bg-gray-800">Rachel Zane</option>
+                            <option v-for="d in driverOptions" :key="d" class="bg-white dark:bg-gray-800">{{ d }}</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Select Vehicle</label>
                         <select v-model="newManifest.vehicle"
                             class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm">
-                            <option class="bg-white dark:bg-gray-800">Auto-assign best fit</option>
-                            <option class="bg-white dark:bg-gray-800">Van T-15 (1500kg)</option>
-                            <option class="bg-white dark:bg-gray-800">Van T-20 (2000kg)</option>
-                            <option class="bg-white dark:bg-gray-800">Truck XL (5000kg)</option>
+                            <option v-for="v in vehicleOptions" :key="v" class="bg-white dark:bg-gray-800">{{ v }}</option>
                         </select>
                     </div>
                     <div>
@@ -75,12 +82,11 @@
                 <div class="p-6 border-b border-gray-200 dark:border-white/5 flex justify-between">
                     <h3 class="font-bold text-gray-900 dark:text-white">Today's Manifests</h3>
                     <div class="flex gap-2 text-xs">
-                        <span
-                            class="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-500 rounded text-xs font-bold">12
-                            Dispatched</span>
-                        <span
-                            class="px-2 py-1 bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 rounded text-xs font-bold">4
-                            Pending</span>
+                        <span v-if="dispatchedManifests > 0"
+                            class="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-500 rounded text-xs font-bold">{{ dispatchedManifests }} Dispatched</span>
+                        <span v-if="pendingManifests > 0"
+                            class="px-2 py-1 bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 rounded text-xs font-bold">{{ pendingManifests }} Pending</span>
+                        <span v-if="manifests.length === 0" class="px-2 py-1 bg-gray-100 dark:bg-white/5 text-gray-500 rounded text-xs">No manifests yet</span>
                     </div>
                 </div>
 
@@ -289,13 +295,28 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+
+const { openSlipWithData } = useSlipPrinter()
+
+const store = useDispatcherStore()
+onMounted(() => store.initialize().catch(() => {}))
 
 const showManifestDetail = ref(false)
 const selectedManifest = ref(null)
 const manifestGenerated = ref(false)
 const pushToast = ref('')
-const newManifest = reactive({ hub: 'North-East Hub', driver: '', vehicle: 'Auto-assign best fit', crew: 'No crew needed' })
+const newManifest = reactive({ hub: '', driver: '', vehicle: 'Auto-assign best fit', crew: 'No crew needed' })
+
+// Real hub/driver/vehicle options from store
+const hubOptions = computed(() => store.hubs.map(h => h.name))
+const driverOptions = computed(() => store.dispatcherDrivers.map(d => `${d.name} (${d.vehicle || 'No vehicle'})`))
+const vehicleOptions = computed(() => {
+    const veh = store.filteredVehicles.map(v => `${v.code || v.model} (${v.type || ''})`)
+    return ['Auto-assign best fit', ...veh]
+})
 
 const generatedRouteId = computed(() => {
     const d = new Date()
@@ -303,36 +324,12 @@ const generatedRouteId = computed(() => {
     return `RT-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-${String(count).padStart(3, '0')}`
 })
 
-const manifests = ref([
-    {
-        id: 'MAN-9921', driver: 'Mike Ross', vehicle: 'Van T-20', orders: 42, weight: 1250, totalDistance: 145,
-        stopCount: 18, estDuration: '6h 30m', status: 'Dispatched', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20',
-        totalVolume: 8.5, fragileCount: 4, perishableCount: 0, codCount: 6,
-        crew: [{ name: 'Mike Ross', role: 'Driver' }],
-        stops: [
-            { id: 1, location: 'North-East Hub (Depart)', type: 'pickup', orderIds: ['ORD-9921', 'ORD-8843'], eta: '9:00 AM', actualTime: '9:02 AM', completed: true, delayRisk: false, distFromPrev: 0 },
-            { id: 2, location: '42 Oak Street, Downtown', type: 'delivery', orderIds: ['ORD-9921'], eta: '9:45 AM', actualTime: '9:40 AM', completed: true, delayRisk: false, distFromPrev: 12 },
-            { id: 3, location: '88 Park Ave, Midtown', type: 'delivery', orderIds: ['ORD-8843'], eta: '10:15 AM', actualTime: null, completed: false, delayRisk: false, distFromPrev: 8 },
-            { id: 4, location: '120 River Rd, West End', type: 'delivery', orderIds: ['ORD-5541'], eta: '11:00 AM', actualTime: null, completed: false, delayRisk: true, distFromPrev: 15 },
-            { id: 5, location: 'Return to Hub', type: 'pickup', orderIds: [], eta: '12:30 PM', actualTime: null, completed: false, delayRisk: false, distFromPrev: 22 },
-        ]
-    },
-    {
-        id: 'MAN-9922', driver: 'Harvey Specter', vehicle: 'Truck XL', orders: 15, weight: 450, totalDistance: 88,
-        stopCount: 8, estDuration: '4h 15m', status: 'Loading', statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-        totalVolume: 3.2, fragileCount: 1, perishableCount: 2, codCount: 3,
-        crew: [{ name: 'Harvey Specter', role: 'Driver' }, { name: 'John T.', role: 'Loader' }, { name: 'Amit K.', role: 'Loader' }],
-        stops: [
-            { id: 1, location: 'South Hub (Depart)', type: 'pickup', orderIds: ['ORD-1102'], eta: '11:00 AM', actualTime: null, completed: false, delayRisk: false, distFromPrev: 0 },
-            { id: 2, location: '55 Industrial Blvd', type: 'delivery', orderIds: ['ORD-1102'], eta: '12:00 PM', actualTime: null, completed: false, delayRisk: false, distFromPrev: 25 },
-        ]
-    },
-    { id: 'MAN-9923', driver: 'Rachel Zane', vehicle: 'Van T-15', orders: 88, weight: 2100, totalDistance: 65, stopCount: 24, estDuration: '7h', status: 'Dispatched', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20', totalVolume: 6.1, fragileCount: 8, perishableCount: 0, codCount: 12, crew: [{ name: 'Rachel Zane', role: 'Driver' }], stops: [] },
-    { id: 'MAN-9924', driver: '-- Unassigned --', vehicle: '—', orders: 12, weight: 320, totalDistance: 0, stopCount: 0, estDuration: 'TBD', status: 'Draft', statusClass: 'bg-gray-500/10 text-gray-500 border-gray-500/20', totalVolume: 1.8, fragileCount: 0, perishableCount: 0, codCount: 2, crew: [], stops: [] },
-])
+const manifests = ref([])
 
-// Auto-select the first manifest for detail view
-selectedManifest.value = manifests.value[0]
+selectedManifest.value = null
+
+const dispatchedManifests = computed(() => manifests.value.filter(m => m.status === 'Dispatched').length)
+const pendingManifests = computed(() => manifests.value.filter(m => m.status === 'Draft' || m.status === 'Pending').length)
 
 function generateManifest() {
     const id = `MAN-${9924 + manifests.value.length}`
@@ -365,8 +362,40 @@ function pushToDriver(manifest) {
     setTimeout(() => { pushToast.value = '' }, 2500)
 }
 
-function printManifest(manifest) {
+async function printManifest(manifest) {
     manifest.printed = true
-    window.print()
+    await openSlipWithData('tripManifest', manifest, {})
+}
+
+async function openTripManifestSlip() {
+    if (manifests.value.length === 0) return
+    const manifest = selectedManifest.value || manifests.value[0]
+    await openSlipWithData('tripManifest', manifest, {})
+}
+
+async function openSafetyChecklist() {
+    if (manifests.value.length === 0) return
+    const manifest = selectedManifest.value || manifests.value[0]
+
+    // Find the actual driver from store by matching name
+    const driver = store.dispatcherDrivers.find(d => d.name === manifest.driver) || {
+        name: manifest.driver,
+        id: manifest.id,
+        location: store.hubs[0]?.name || '—',
+        stops: manifest.stopCount || 0,
+        vehicle: manifest.vehicle,
+        phone: '—'
+    }
+
+    // Find the actual vehicle from store by matching code
+    const vehicle = store.filteredVehicles.find(v =>
+        v.code === manifest.vehicle || v.licensePlate === manifest.vehicle || v.model === manifest.vehicle
+    ) || {
+        code: manifest.vehicle,
+        type: manifest.vehicle,
+        model: manifest.vehicle
+    }
+
+    await openSlipWithData('vehicleSafetyChecklist', driver, vehicle)
 }
 </script>

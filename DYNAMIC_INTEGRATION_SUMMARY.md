@@ -8,7 +8,7 @@ Successfully converted the Logistics Manager Dashboard from static dummy data to
 
 ### 1. Frontend Changes
 
-#### Created API Utilities (`frontend/src/utils/api.js`)
+#### Created API Utilities (`dummy-frontend/src/utils/api.js`)
 - Generic `apiRequest()` function for HTTP requests with auth tokens
 - Complete `logisticsApi` object with methods for all logistics endpoints:
   - `getBootstrap()` - Load all dashboard data
@@ -22,7 +22,7 @@ Successfully converted the Logistics Manager Dashboard from static dummy data to
   - `updateNotification()`, `markAllNotificationsRead()`, `clearNotifications()` - Notifications
   - `createAlert()`, `resolveAlert()` - Alert management
 
-#### Updated Logistics Store (`frontend/src/stores/logisticStore.js`)
+#### Updated Logistics Store (`dummy-frontend/src/stores/logisticStore.js`)
 - **Removed**: 800+ lines of static dummy data
 - **Added**: Dynamic data loading via `loadBootstrapData()`
 - Integrated all CRUD operations with backend APIs
@@ -30,7 +30,7 @@ Successfully converted the Logistics Manager Dashboard from static dummy data to
 - Maps backend response format to frontend data structures
 - Error handling for all API calls
 
-#### Updated Layout (`frontend/src/layouts/LogisticLayout.vue`)
+#### Updated Layout (`dummy-frontend/src/layouts/LogisticLayout.vue`)
 - Added `onMounted` hook to call `loadBootstrapData()` on app initialization
 - Ensures data is loaded when user enters the logistics dashboard
 
@@ -132,7 +132,7 @@ curl http://localhost:8000/api/v1/logistics/bootstrap \
 
 ### Frontend Testing
 ```bash
-cd frontend
+cd dummy-frontend
 
 # Install dependencies (if needed)
 npm install
@@ -170,9 +170,9 @@ npm run dev
 ## Files Modified
 
 ### Frontend
-- ✅ `frontend/src/utils/api.js` (created)
-- ✅ `frontend/src/stores/logisticStore.js` (replaced with dynamic version)
-- ✅ `frontend/src/layouts/LogisticLayout.vue` (added data loading)
+- ✅ `dummy-frontend/src/utils/api.js` (created)
+- ✅ `dummy-frontend/src/stores/logisticStore.js` (replaced with dynamic version)
+- ✅ `dummy-frontend/src/layouts/LogisticLayout.vue` (added data loading)
 - ✅ `.env` (added API_BASE_URL)
 
 ### Backend
@@ -181,7 +181,7 @@ npm run dev
 - ✅ `backend/alembic/versions/008_add_logistics_daily_stats.py` (migration)
 
 ### Backup
-- ✅ `frontend/src/stores/logisticStore.js.backup` (original static version preserved)
+- ✅ `dummy-frontend/src/stores/logisticStore.js.backup` (original static version preserved)
 
 ## Architecture Improvements
 

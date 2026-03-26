@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { apiUrl } from '@/config/api'
+import { useRates } from '@/composables/useRates'
 
 let orderCounter = 3050
 
@@ -10,6 +11,7 @@ function generateOrderId() {
 }
 
 export const useIndividualStore = defineStore('individual', () => {
+    const { rates } = useRates()
     const authUser = typeof window !== 'undefined'
         ? JSON.parse(localStorage.getItem('auth_user') || 'null')
         : null
@@ -73,7 +75,7 @@ export const useIndividualStore = defineStore('individual', () => {
     // ─── Orders ──────────────────────────────────────────────────
     const orders = ref([])
 
-    const activeOrders = computed(() => orders.value.filter(o => o.status === 'in-transit'))
+    const activeOrders = computed(() => orders.value.filter(o => o.status === 'in-transit' || o.status === 'dispatched'))
     const pendingOrders = computed(() => orders.value.filter(o => o.status === 'pending'))
     const deliveredOrders = computed(() => orders.value.filter(o => o.status === 'delivered'))
     const cancelledOrders = computed(() => orders.value.filter(o => o.status === 'cancelled'))
@@ -115,7 +117,8 @@ export const useIndividualStore = defineStore('individual', () => {
     function normalizeBackendStatus(status) {
         const value = String(status || '').toUpperCase()
         if (value === 'DRAFT' || value === 'CONFIRMED') return 'pending'
-        if (value === 'ASSIGNED' || value === 'IN_TRANSIT') return 'in-transit'
+        if (value === 'ASSIGNED') return 'dispatched'
+        if (value === 'IN_TRANSIT') return 'in-transit'
         if (value === 'DELIVERED' || value === 'CLOSED') return 'delivered'
         if (value === 'CANCELLED') return 'cancelled'
         return value.toLowerCase()
@@ -123,12 +126,18 @@ export const useIndividualStore = defineStore('individual', () => {
 
     function normalizeBackendOrder(order) {
         const status = normalizeBackendStatus(order.status)
+        const warehouseSubstatus = order.warehouse_substatus || ''
+
+        // Build transport log with warehouse operations
+        const transportLog = buildTransportLog(order, status, warehouseSubstatus)
+
         return {
             id: order.tracking_code || String(order.id),
             backendId: order.id,
             trackingCode: order.tracking_code,
             status,
             rawStatus: order.status,
+            warehouseSubstatus,
             moveType: String(order.order_type || '').toUpperCase() === 'INDIVIDUAL' ? 'house-shift' : 'small-package',
             cargoType: order.cargo_type || (String(order.order_type || '').toUpperCase() === 'INDIVIDUAL' ? 'Household Goods' : (order.order_type || 'Order')),
             pickup: order.pickup_addr,
@@ -151,7 +160,7 @@ export const useIndividualStore = defineStore('individual', () => {
             },
             driver: null,
             eta: order.scheduled_at ? new Date(order.scheduled_at).toLocaleString() : 'TBD',
-            progress: status === 'delivered' ? 100 : status === 'in-transit' ? 60 : 0,
+            progress: status === 'delivered' ? 100 : status === 'in-transit' ? 65 : status === 'dispatched' ? 40 : 0,
             paymentMode: order.payment_mode || 'Pending',
             paymentStatus: order.payment_status || (status === 'delivered' ? 'paid' : 'pending'),
             isDummyPayment: false,
@@ -162,37 +171,203 @@ export const useIndividualStore = defineStore('individual', () => {
             dwellTime: { loading: 0, unloading: 0, total: 0 },
             beforeAfterPhotos: {},
             crewCheckin: null,
-            transportLog: [
-                { event: `Order ${order.status}`, time: new Date(order.created_at).toLocaleString(), icon: 'receipt', color: 'green' },
-            ],
+            transportLog,
             pod: null,
             cancellation: order.cancel_reason ? { reason: order.cancel_reason, fee: 0, date: new Date().toISOString() } : null,
         }
     }
 
+    // Build transport log with warehouse operations
+    function buildTransportLog(order, status, warehouseSubstatus) {
+        const log = []
+        const createdTime = order.created_at ? new Date(order.created_at).toLocaleString() : 'N/A'
+
+        // Backfill: confirmed orders with no substatus still show as queued
+        let ws = warehouseSubstatus
+        if (!ws && (order.status === 'CONFIRMED' || ['dispatched', 'in-transit', 'delivered'].includes(status))) {
+            ws = 'AWAITING_PICK'
+        }
+
+        // Order created
+        log.push({ event: 'Order created', time: createdTime, icon: 'receipt_long', color: 'blue' })
+
+        // Order confirmed
+        if (order.status === 'CONFIRMED' || ['dispatched', 'in-transit', 'delivered'].includes(status)) {
+            log.push({ event: 'Order confirmed', time: createdTime, icon: 'check_circle', color: 'green' })
+        }
+
+        // Queued / Awaiting Pick
+        if (['AWAITING_PICK', 'PICKING', 'PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+            log.push({
+                event: 'Queued for Picking',
+                description: "Orders that are queued up and ready, but no one has started picking them yet.",
+                time: order.created_at ? new Date(order.created_at).toLocaleString() : 'Ready',
+                icon: 'hourglass_empty',
+                color: 'amber'
+            })
+        }
+
+        // On Hold
+        if (ws === 'ON_HOLD') {
+            log.push({
+                event: 'Order On Hold',
+                description: "Orders that are blocked. Usually, this means they don't have enough labourers assigned to them yet.",
+                time: new Date().toLocaleString(),
+                icon: 'pause_circle',
+                color: 'red'
+            })
+        }
+
+        // Picking started
+        if (['PICKING', 'PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+            log.push({
+                event: 'Picking started',
+                description: "Orders currently being gathered by your staff from the warehouse shelves.",
+                time: order.picking_started_at ? new Date(order.picking_started_at).toLocaleString() : 'In progress',
+                icon: 'shopping_basket',
+                color: 'blue'
+            })
+        }
+
+        // Picking completed (Picked)
+        if (['PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+            log.push({
+                event: 'Picking completed',
+                description: "Orders where all items are gathered and are waiting to be boxed.",
+                time: order.picking_completed_at ? new Date(order.picking_completed_at).toLocaleString() : 'Completed',
+                icon: 'inventory_2',
+                color: 'cyan'
+            })
+        }
+
+        // Packing started
+        if (['PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+            log.push({
+                event: 'Packing started',
+                description: "Orders currently at a packing station, being boxed and prepped for dispatch.",
+                time: order.packing_started_at ? new Date(order.packing_started_at).toLocaleString() : 'In progress',
+                icon: 'package_2',
+                color: 'amber'
+            })
+        }
+
+        // Packing completed
+        if (['PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+            log.push({
+                event: 'Packing completed',
+                time: order.packing_completed_at ? new Date(order.packing_completed_at).toLocaleString() : 'Completed',
+                icon: 'deployed_code',
+                color: 'green'
+            })
+        }
+
+        // Quality check passed
+        if (['QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+            log.push({
+                event: 'Quality check passed',
+                time: order.qc_passed_at ? new Date(order.qc_passed_at).toLocaleString() : 'Verified',
+                icon: 'verified',
+                color: 'green'
+            })
+        }
+
+        // Ready for dispatch
+        if (['READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws) || status === 'dispatched' || status === 'in-transit') {
+            log.push({
+                event: 'Ready for dispatch',
+                time: order.dispatch_ready_at ? new Date(order.dispatch_ready_at).toLocaleString() : 'Ready',
+                icon: 'local_shipping',
+                color: 'blue'
+            })
+        }
+
+        // Dispatched from warehouse (truck left the dock, driver not yet assigned)
+        if (['ON_DOCK', 'DISPATCHED'].includes(ws)) {
+            log.push({
+                event: 'Dispatched from warehouse',
+                description: 'Your shipment has left the warehouse and is awaiting driver assignment.',
+                time: order.dispatched_at ? new Date(order.dispatched_at).toLocaleString() : 'Dispatched',
+                icon: 'output',
+                color: 'blue'
+            })
+        }
+
+        // Driver assigned (dispatcher assigned a driver + vehicle)
+        if (status === 'dispatched' || status === 'in-transit') {
+            log.push({
+                event: 'Driver assigned',
+                description: 'A driver and vehicle have been assigned to your shipment.',
+                time: order.dispatched_at ? new Date(order.dispatched_at).toLocaleString() : 'Assigned',
+                icon: 'person_pin_circle',
+                color: 'blue'
+            })
+        }
+
+        // Shipment in transit (vehicle is on the road)
+        if (status === 'in-transit') {
+            log.push({
+                event: 'Shipment in transit',
+                description: 'Your shipment is on its way to the destination.',
+                time: order.dispatched_at ? new Date(order.dispatched_at).toLocaleString() : 'On the way',
+                icon: 'local_shipping',
+                color: 'green'
+            })
+        }
+
+        // Delivered
+        if (status === 'delivered') {
+            log.push({
+                event: 'Delivery completed',
+                time: order.delivered_at ? new Date(order.delivered_at).toLocaleString() : 'Delivered',
+                icon: 'where_to_vote',
+                color: 'green'
+            })
+        }
+
+        return log
+    }
+
     function normalizeTrackingOrder(order) {
+        const status = order.ui_status || normalizeBackendStatus(order.status)
+        const warehouseSubstatus = order.warehouse_substatus || ''
+
+        // Enrich order with warehouse timestamps for buildTransportLog
+        const enriched = {
+            ...order,
+            picking_started_at: order.picking_started_at || null,
+            picking_completed_at: order.picking_completed_at || null,
+            packing_started_at: order.packing_started_at || null,
+            packing_completed_at: order.packing_completed_at || null,
+            qc_passed_at: order.qc_passed_at || null,
+            dispatched_at: order.dispatched_at || null,
+        }
+
+        // Always rebuild transport log locally so warehouse steps always appear correctly.
+        const transportLog = buildTransportLog(enriched, status, warehouseSubstatus)
+
         return {
             id: order.tracking_code || String(order.id),
             backendId: order.id,
             trackingCode: order.tracking_code,
-            status: order.ui_status || normalizeBackendStatus(order.status),
+            status,
             rawStatus: order.status,
+            warehouseSubstatus,
             moveType: 'house-shift',
-            cargoType: 'Household Goods',
+            cargoType: order.cargo_type || 'Household Goods',
             pickup: order.pickup_addr,
             destination: order.delivery_addr,
             date: order.scheduled_at ? new Date(order.scheduled_at).toLocaleDateString('en-CA') : new Date(order.created_at).toLocaleDateString('en-CA'),
             timeWindow: order.scheduled_at ? new Date(order.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBD',
-            laborCount: 0,
+            laborCount: order.labor_count || 0,
             packingRequired: false,
-            vehicleType: 'assigned',
+            vehicleType: order.vehicle_type || 'assigned',
             materials: {},
             cost: { base: 0, labor: 0, materials: 0, packing: 0, vehicle: 0, platformFee: 0, taxes: 0, total: 0 },
-            driver: null,
+            driver: order.driver || null,
             eta: order.eta_label || 'TBD',
             progress: order.progress ?? 0,
             paymentMode: 'Pending',
-            paymentStatus: order.ui_status === 'delivered' ? 'paid' : 'pending',
+            paymentStatus: status === 'delivered' ? 'paid' : 'pending',
             isDummyPayment: false,
             rating: null,
             feedback: '',
@@ -200,8 +375,14 @@ export const useIndividualStore = defineStore('individual', () => {
             serviceTimeBlock: order.scheduled_at ? new Date(order.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBD',
             dwellTime: { loading: 0, unloading: 0, total: 0 },
             beforeAfterPhotos: {},
-            crewCheckin: null,
-            transportLog: order.transport_log || [],
+            crewCheckin: order.crew_checkin || null,
+            transportLog,
+            picking_started_at: enriched.picking_started_at,
+            picking_completed_at: enriched.picking_completed_at,
+            packing_started_at: enriched.packing_started_at,
+            packing_completed_at: enriched.packing_completed_at,
+            qc_passed_at: enriched.qc_passed_at,
+            dispatched_at: enriched.dispatched_at,
             pod: null,
             cancellation: null,
         }
@@ -266,6 +447,7 @@ export const useIndividualStore = defineStore('individual', () => {
             if (status && status !== 'all') {
                 const backendStatusMap = {
                     pending: 'CONFIRMED',
+                    dispatched: 'ASSIGNED',
                     'in-transit': 'IN_TRANSIT',
                     delivered: 'DELIVERED',
                     cancelled: 'CANCELLED',
@@ -630,14 +812,14 @@ export const useIndividualStore = defineStore('individual', () => {
     }
 
     // ─── Materials Catalog ───────────────────────────────────────
-    const materialsCatalog = ref([
-        { key: 'boxes', name: 'Carton Boxes (Large)', price: 60, icon: 'inventory_2', unit: 'pcs' },
-        { key: 'bubbleWrap', name: 'Bubble Wrap Rolls', price: 120, icon: 'bubble_chart', unit: 'rolls' },
-        { key: 'plasticCrates', name: 'Plastic Crates', price: 200, icon: 'deployed_code', unit: 'pcs' },
+    const materialsCatalog = computed(() => ([
+        { key: 'boxes', name: 'Carton Boxes (Large)', price: rates.value.materials?.box ?? 50, icon: 'inventory_2', unit: 'pcs' },
+        { key: 'bubbleWrap', name: 'Bubble Wrap Rolls', price: rates.value.materials?.bubbleWrap ?? 20, icon: 'bubble_chart', unit: 'rolls' },
+        { key: 'plasticCrates', name: 'Plastic Crates', price: rates.value.materials?.crate ?? 200, icon: 'deployed_code', unit: 'pcs' },
         { key: 'blankets', name: 'Padded Blankets', price: 80, icon: 'bed', unit: 'pcs' },
         { key: 'wardrobeBoxes', name: 'Wardrobe Boxes', price: 350, icon: 'checkroom', unit: 'pcs' },
         { key: 'tape', name: 'Packing Tape', price: 40, icon: 'straighten', unit: 'rolls' },
-    ])
+    ]))
 
     // ─── Actions ─────────────────────────────────────────────────
 
@@ -666,6 +848,16 @@ export const useIndividualStore = defineStore('individual', () => {
             scheduled_at: data.date ? new Date(data.date).toISOString() : null,
         }
 
+        // SKU mapping for packing materials (must match inventory items in warehouse)
+        const MATERIAL_SKU_MAP = {
+            boxes: 'PKG-CARTON',
+            bubbleWrap: 'PKG-BUBBLE-WRAP',
+            plasticCrates: 'PKG-PLASTIC-CRATE',
+            blankets: 'PKG-BLANKET',
+            wardrobeBoxes: 'PKG-WARDROBE-BOX',
+            tape: 'PKG-TAPE',
+        }
+
         try {
             const token = localStorage.getItem('auth_token')
             const response = await fetch(apiUrl('api/v1/orders'), {
@@ -683,6 +875,33 @@ export const useIndividualStore = defineStore('individual', () => {
             }
 
             const backendOrder = await response.json()
+
+            // Submit packing materials as OrderItems (so warehouse inventory check works)
+            const materialItems = Object.entries(data.materials || {})
+                .filter(([, qty]) => qty > 0)
+                .map(([key, qty]) => ({
+                    sku: MATERIAL_SKU_MAP[key] || `PKG-${key.toUpperCase()}`,
+                    quantity: qty,
+                    box_count: null,
+                    estimated_volume: null,
+                }))
+
+            if (materialItems.length > 0) {
+                try {
+                    await fetch(apiUrl(`api/v1/orders/${backendOrder.id}/items`), {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                        },
+                        body: JSON.stringify(materialItems),
+                    })
+                } catch (itemErr) {
+                    // Non-fatal: order is created, materials just won't show in picking list
+                    console.warn('Could not attach packing material items to order:', itemErr)
+                }
+            }
+
             const normalizedOrder = normalizeBackendOrder(backendOrder)
 
             // Add to local state immediately for instant UI feedback
@@ -710,6 +929,7 @@ export const useIndividualStore = defineStore('individual', () => {
         }
     }
 
+
     function updateOrder(id, updates) {
         const idx = orders.value.findIndex(o => o.id === id)
         if (idx !== -1) Object.assign(orders.value[idx], updates)
@@ -722,6 +942,8 @@ export const useIndividualStore = defineStore('individual', () => {
         let reason = ''
         if (order.status === 'pending') {
             fee = 0; reason = 'Cancelled before dispatch — No fee'
+        } else if (order.status === 'dispatched') {
+            fee = Math.round(order.cost.total * 0.05); reason = 'Cancelled after driver assigned — 5% fee'
         } else if (order.status === 'in-transit' && order.progress < 30) {
             fee = Math.round(order.cost.total * 0.10); reason = 'Cancelled after dispatch — 10% fee'
         } else if (order.status === 'in-transit') {
@@ -801,7 +1023,7 @@ export const useIndividualStore = defineStore('individual', () => {
         })
     }
 
-    function makePayment(orderId, amount, mode, isDummy = false) {
+    async function makePayment(orderId, amount, mode, isDummy = false, paymentRef = null) {
         const p = {
             id: `PAY-${800 + payments.value.length + 1}`, orderId, amount, mode,
             status: isDummy ? 'simulated' : 'completed',
@@ -809,6 +1031,29 @@ export const useIndividualStore = defineStore('individual', () => {
         }
         payments.value.unshift(p)
         updateOrder(orderId, { paymentStatus: isDummy ? 'simulated' : 'paid', paymentMode: mode, isDummyPayment: isDummy })
+
+        // Persist to backend if real payment (not simulated)
+        if (!isDummy) {
+            const order = orders.value.find(o => o.id === orderId || o.trackingCode === orderId)
+            const backendId = order?.backendId
+            if (backendId) {
+                try {
+                    const token = localStorage.getItem('auth_token')
+                    await fetch(apiUrl(`api/v1/orders/${backendId}/pay`), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                        body: JSON.stringify({
+                            payment_ref: paymentRef,
+                            payment_mode: 'ONLINE',
+                            payment_method: mode,
+                            amount,
+                        }),
+                    })
+                } catch (e) {
+                    console.warn('[makePayment] Backend /pay call failed (non-fatal):', e)
+                }
+            }
+        }
         return p
     }
 
@@ -826,22 +1071,26 @@ export const useIndividualStore = defineStore('individual', () => {
         return report
     }
 
-    function calculateQuote(distance, laborCount, packingRequired, materialsCost, vehicleKey) {
-        // Per-km rates by vehicle type (realistic Indian logistics rates)
+    function calculateQuote(distance, laborCount, packingRequired, materialsCost, vehicleKey, ratesOverride = {}) {
+        const individualDistanceRates = ratesOverride.individualDistanceRates || {}
         const perKmRates = {
-            'mini-truck': 18,
-            'tempo': 25,
-            'lcv': 35,
-            'hcv': 50,
+            'mini-truck': individualDistanceRates.miniTruck ?? 18,
+            'tempo': individualDistanceRates.tempo ?? 25,
+            'lcv': individualDistanceRates.lcv ?? 35,
+            'hcv': individualDistanceRates.hcv ?? 50,
         }
         const vehicle = vehicleTypes.value.find(v => v.key === vehicleKey) || vehicleTypes.value[0]
         const perKm = perKmRates[vehicleKey] || 25
 
-        const bookingFee = 300                                          // fixed base booking charge
+        const bookingFee = ratesOverride.individualBookingFee ?? 300
+        const laborRate = ratesOverride.individualLaborRate ?? 800
+        const packingPct = (ratesOverride.individualPackingPct ?? 20) / 100
+        const minimumCharge = ratesOverride.minimumCharge ?? 500
+
         const distCharge = Math.round(distance * perKm)                 // distance charge
-        const base = bookingFee + distCharge                            // total base fare
-        const labor = laborCount * 800                                  // ₹800/helper
-        const packing = packingRequired ? Math.round(base * 0.20) : 0  // 20% of base
+        const base = Math.max(bookingFee + distCharge, minimumCharge)   // total base fare
+        const labor = laborCount * laborRate
+        const packing = packingRequired ? Math.round(base * packingPct) : 0
         const vehicleCost = Math.round(distCharge * (vehicle.priceMultiplier - 1) * 0.4)
         const matCost = materialsCost || 0
         const subtotal = base + labor + packing + vehicleCost + matCost

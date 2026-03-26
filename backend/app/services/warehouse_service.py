@@ -9,7 +9,7 @@ from app.models.inventory import InventoryItem, InventoryMovement
 from app.models.labour import Labourer, LabourAttendance
 from app.models.order import DamageReport, Order, OrderItem
 from app.models.user import User
-from app.models.warehouse import Warehouse
+from app.models.warehouse import LoadingDock, Warehouse
 from app.schemas.warehouse import (
     ChartData,
     ChartDataset,
@@ -64,6 +64,12 @@ async def create_warehouse(db: AsyncSession, data: WarehouseCreate) -> Warehouse
     warehouse = Warehouse(**data.model_dump())
     db.add(warehouse)
     await db.flush()
+
+    # Auto-seed 6 loading docks for the new warehouse
+    for i in range(1, 7):
+        db.add(LoadingDock(warehouse_id=warehouse.id, dock_number=str(i), status="FREE"))
+    await db.flush()
+
     await db.refresh(warehouse)
     return WarehouseResponse.model_validate(warehouse)
 

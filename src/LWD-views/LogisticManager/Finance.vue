@@ -1,5 +1,5 @@
 <template>
-    <div class="h-[calc(100vh-8rem)] flex flex-col gap-6">
+    <div class="flex flex-col gap-4">
         <!-- Header -->
         <div class="flex justify-between items-center bg-slate-800/80 p-4 rounded-xl shadow-sm border border-white/10">
             <div>
@@ -30,49 +30,45 @@
             </div>
         </div>
 
-        <!-- Dynamic Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-primary/30 transition-colors">
-                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-symbols-outlined text-6xl text-green-500">payments</span>
-                </div>
-                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Total Revenue (MTD)</p>
-                <div class="flex items-end gap-2 z-10 mt-1">
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ totalRevenue.toLocaleString() }}</p>
-                    <span class="text-xs font-bold text-green-500 bg-green-50 dark:bg-green-500/10 px-1.5 py-0.5 rounded flex items-center mb-1">
-                        <span class="material-symbols-outlined text-[10px] mr-0.5">trending_up</span> 12%
-                    </span>
+        <!-- Dynamic Stats Cards — compact single row -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div class="glass-panel px-4 py-3 rounded-xl border border-gray-200 dark:border-white/5 flex items-center gap-3 hover:border-primary/30 transition-colors">
+                <span class="material-symbols-outlined text-2xl text-green-500 shrink-0">payments</span>
+                <div class="min-w-0">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Revenue (MTD)</p>
+                    <p v-if="financeLoaded" class="text-lg font-bold text-gray-900 dark:text-white leading-tight">₹{{ totalRevenue.toLocaleString() }}</p>
+                    <div v-else class="h-6 w-20 bg-white/10 animate-pulse rounded mt-1"></div>
                 </div>
             </div>
-            
-            <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-red-500/30 transition-colors">
-                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-symbols-outlined text-6xl text-red-500">account_balance_wallet</span>
-                </div>
-                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Total Expenses</p>
-                <div class="flex items-end gap-2 z-10 mt-1">
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ Math.abs(totalExpenses).toLocaleString() }}</p>
+            <div class="glass-panel px-4 py-3 rounded-xl border border-gray-200 dark:border-white/5 flex items-center gap-3 hover:border-red-500/30 transition-colors">
+                <span class="material-symbols-outlined text-2xl text-red-500 shrink-0">account_balance_wallet</span>
+                <div class="min-w-0">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Expenses</p>
+                    <p v-if="financeLoaded" class="text-lg font-bold text-gray-900 dark:text-white leading-tight">₹{{ Math.abs(totalExpenses).toLocaleString() }}</p>
+                    <div v-else class="h-6 w-20 bg-white/10 animate-pulse rounded mt-1"></div>
                 </div>
             </div>
-
-            <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-blue-500/30 transition-colors">
-                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-symbols-outlined text-6xl text-blue-500">local_shipping</span>
-                </div>
-                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Pending COD</p>
-                <div class="flex items-end gap-2 z-10 mt-1">
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ pendingCOD.toLocaleString() }}</p>
-                    <button @click="activeTab = 'cod'" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline z-10 ml-auto font-medium">View Detail</button>
+            <div class="glass-panel px-4 py-3 rounded-xl border border-gray-200 dark:border-white/5 flex items-center gap-3 hover:border-blue-500/30 transition-colors">
+                <span class="material-symbols-outlined text-2xl text-blue-500 shrink-0">local_shipping</span>
+                <div class="min-w-0">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Pending COD</p>
+                    <p class="text-lg font-bold text-gray-900 dark:text-white leading-tight">₹{{ pendingCOD.toLocaleString() }}</p>
                 </div>
             </div>
-
-            <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-orange-500/30 transition-colors">
-                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-symbols-outlined text-6xl text-orange-500">group</span>
+            <div class="glass-panel px-4 py-3 rounded-xl border border-gray-200 dark:border-white/5 flex items-center gap-3 hover:border-orange-500/30 transition-colors">
+                <span class="material-symbols-outlined text-2xl text-orange-500 shrink-0">group</span>
+                <div class="min-w-0">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Payroll Due</p>
+                    <p v-if="financeLoaded" class="text-lg font-bold text-gray-900 dark:text-white leading-tight">₹{{ totalPayrollDue.toLocaleString() }}</p>
+                    <div v-else class="h-6 w-20 bg-white/10 animate-pulse rounded mt-1"></div>
                 </div>
-                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Total Payroll Due</p>
-                <div class="flex items-end gap-2 z-10 mt-1">
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ totalPayrollDue.toLocaleString() }}</p>
+            </div>
+            <div class="glass-panel px-4 py-3 rounded-xl border border-purple-200 dark:border-purple-500/20 flex items-center gap-3 hover:border-purple-500/50 transition-colors bg-purple-500/5">
+                <span class="material-symbols-outlined text-2xl text-purple-400 shrink-0">add_card</span>
+                <div class="min-w-0">
+                    <p class="text-[10px] text-purple-400 uppercase font-bold tracking-wider">Capital Inflow</p>
+                    <p v-if="financeLoaded" class="text-lg font-bold text-purple-300 leading-tight">₹{{ capitalInflow.toLocaleString() }}</p>
+                    <div v-else class="h-6 w-20 bg-purple-400/20 animate-pulse rounded mt-1"></div>
                 </div>
             </div>
         </div>
@@ -81,15 +77,15 @@
         <div class="flex gap-1 bg-slate-800/70 p-1 rounded-lg self-start border border-white/10">
             <button v-for="tab in tabs" :key="tab.id"
                 @click="activeTab = tab.id"
-                class="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
+                class="px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5"
                 :class="activeTab === tab.id ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-300 hover:text-white'">
-                <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
+                <span class="material-symbols-outlined text-[16px]">{{ tab.icon }}</span>
                 {{ tab.label }}
             </button>
         </div>
 
         <!-- Main Content Area -->
-        <div class="flex-1 glass-panel rounded-xl overflow-hidden flex flex-col border border-gray-200 dark:border-white/5 relative">
+        <div class="glass-panel rounded-xl overflow-hidden flex flex-col border border-gray-200 dark:border-white/5 relative" style="height: calc(100vh - 18rem)">
             <!-- Filter Bar -->
             <div class="p-4 border-b border-white/10 flex justify-between items-center bg-slate-800/70">
                 <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -122,33 +118,33 @@
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                         <template v-for="item in filteredItems" :key="item.id">
                             <!-- Main Row -->
-                            <tr @click="toggleRow(item.id)" 
+                            <tr @click="toggleRow(item.id)"
                                 class="hover:bg-white/5 transition-colors cursor-pointer group"
                                 :class="expandedRow === item.id ? 'bg-primary/10' : ''">
-                                <td class="py-3 px-4 font-mono text-gray-600 dark:text-gray-300 text-xs flex items-center gap-2">
+                                <td class="py-4 px-4 font-mono text-gray-600 dark:text-gray-300 text-xs flex items-center gap-2">
                                     <span class="material-symbols-outlined text-gray-400 transition-transform text-sm"
                                         :class="expandedRow === item.id ? 'rotate-90 text-primary' : ''">chevron_right</span>
                                     {{ item.id }}
                                 </td>
-                                <td class="py-3 px-4 text-gray-500 dark:text-gray-400">{{ item.date }}</td>
-                                <td class="py-3 px-4 font-medium text-gray-900 dark:text-white">
+                                <td class="py-4 px-4 text-gray-500 dark:text-gray-400">{{ item.date }}</td>
+                                <td class="py-4 px-4 font-medium text-gray-900 dark:text-white">
                                     <div class="flex items-center gap-2">
-                                        <div v-if="item.avatar" class="w-6 h-6 rounded-full overflow-hidden bg-gray-200">
+                                        <div v-if="item.avatar" class="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0">
                                             <img :src="item.avatar" class="w-full h-full object-cover">
                                         </div>
                                         <span>{{ item.desc || item.name }}</span>
                                     </div>
                                 </td>
-                                <td v-if="activeTab !== 'cod'" class="py-3 px-4">
+                                <td v-if="activeTab !== 'cod'" class="py-4 px-4">
                                     <span class="px-2 py-0.5 rounded text-[11px] bg-white/10 text-slate-300 border border-white/10">
                                         {{ item.role || item.type }}
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 font-bold font-mono text-right"
+                                <td class="py-4 px-4 font-bold font-mono text-right"
                                     :class="item.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'">
                                     {{ item.amount > 0 ? '+' : '' }}{{ item.amount.toLocaleString() }}
                                 </td>
-                                <td class="py-3 px-4 text-right">
+                                <td class="py-4 px-4 text-right">
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border"
                                         :class="{
                                             'bg-green-50 border-green-200 text-green-600 dark:bg-green-500/10 dark:text-green-400': item.status === 'Completed' || item.status === 'Paid',
@@ -158,7 +154,7 @@
                                         {{ item.status }}
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 text-right">
+                                <td class="py-4 px-4 text-right">
                                     <button v-if="item.status === 'Pending' && activeTab === 'cod'" 
                                         @click.stop="openReconcileModal(item)"
                                         class="text-xs bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded transition-colors shadow-sm">
@@ -195,15 +191,15 @@
                                             <div class="bg-slate-900/80 p-3 rounded border border-white/10 space-y-1">
                                                 <div class="flex justify-between text-gray-600 dark:text-gray-400">
                                                     <span>Base Amount</span>
-                                                    <span>${{ Math.abs(item.amount * 0.9).toFixed(2) }}</span>
+                                                    <span>₹{{ Math.abs(item.amount * 0.9).toFixed(2) }}</span>
                                                 </div>
                                                 <div class="flex justify-between text-gray-600 dark:text-gray-400">
                                                     <span>Tax / Deductions</span>
-                                                    <span>${{ Math.abs(item.amount * 0.1).toFixed(2) }}</span>
+                                                    <span>₹{{ Math.abs(item.amount * 0.1).toFixed(2) }}</span>
                                                 </div>
                                                 <div class="border-t border-gray-200 dark:border-white/10 pt-1 mt-1 flex justify-between font-bold text-gray-900 dark:text-white">
                                                     <span>Total</span>
-                                                    <span>${{ Math.abs(item.amount).toLocaleString() }}</span>
+                                                    <span>₹{{ Math.abs(item.amount).toLocaleString() }}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -291,7 +287,7 @@
                                         <span class="material-symbols-outlined text-[16px]">remove_circle</span> Deduct
                                     </button>
                                 </div>
-                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Amount ($)</label>
+                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Amount (₹)</label>
                                 <input v-model.number="bulkForm.amount" type="number" class="w-full bg-slate-950 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/50 font-mono font-bold text-lg text-slate-100">
                                 <input v-model="bulkForm.reason" type="text" placeholder="Reason (e.g. Performance Bonus)" class="w-full mt-2 bg-slate-950 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/50 text-slate-100 placeholder:text-slate-400">
                             </div>
@@ -302,7 +298,7 @@
                             <div class="p-3 border-b border-white/10 bg-slate-800 flex justify-between items-center">
                                 <span class="text-xs font-bold uppercase text-gray-500">Affected Users ({{ bulkTargetUsers.length }})</span>
                                 <span class="text-xs font-mono font-bold" :class="bulkForm.type === 'Bonus' ? 'text-green-600' : 'text-red-600'">
-                                    Total: ${{ (bulkTargetUsers.length * bulkForm.amount).toLocaleString() }}
+                                    Total: ₹{{ (bulkTargetUsers.length * bulkForm.amount).toLocaleString() }}
                                 </span>
                             </div>
                             <div class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
@@ -313,7 +309,7 @@
                                         <p class="text-[10px] text-gray-500 truncate">{{ user.role }} • Rating: {{ user.rating || 'N/A' }}</p>
                                     </div>
                                     <span class="text-xs font-bold" :class="bulkForm.type === 'Bonus' ? 'text-green-600' : 'text-red-600'">
-                                        {{ bulkForm.type === 'Bonus' ? '+' : '-' }}${{ bulkForm.amount }}
+                                        {{ bulkForm.type === 'Bonus' ? '+' : '-' }}₹{{ bulkForm.amount }}
                                     </span>
                                 </div>
                                 <div v-if="bulkTargetUsers.length === 0" class="h-full flex flex-col items-center justify-center text-gray-400 p-4 text-center">
@@ -364,13 +360,13 @@
                             </div>
                             <div class="flex justify-between items-center py-2">
                                 <span class="text-lg font-bold text-gray-900 dark:text-white">Total Payout</span>
-                                <span class="text-2xl font-mono font-bold text-green-600">${{ payrollSummary.total.toLocaleString() }}</span>
+                                <span class="text-2xl font-mono font-bold text-green-600">₹{{ payrollSummary.total.toLocaleString() }}</span>
                             </div>
 
                             <div class="max-h-32 overflow-y-auto custom-scrollbar bg-gray-50 dark:bg-black/20 p-2 rounded text-xs space-y-1">
                                 <div v-for="u in payrollSummary.pendingUsers" :key="u.id" class="flex justify-between">
                                     <span class="text-gray-600 dark:text-gray-400">{{ u.name }}</span>
-                                    <span class="font-mono font-bold">${{ u.pending_payout }}</span>
+                                    <span class="font-mono font-bold">₹{{ u.pending_payout }}</span>
                                 </div>
                             </div>
                         </div>
@@ -396,7 +392,7 @@
                             </div>
                             <div class="w-full bg-gray-50 dark:bg-white/5 p-4 rounded-lg mt-4 border border-dashed border-gray-200 dark:border-white/10">
                                 <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Total Disbursed</p>
-                                <p class="text-3xl font-bold font-mono text-gray-900 dark:text-white mt-1">${{ payrollSummary.total.toLocaleString() }}</p>
+                                <p class="text-3xl font-bold font-mono text-gray-900 dark:text-white mt-1">₹{{ payrollSummary.total.toLocaleString() }}</p>
                             </div>
                             <button @click="showPayrollModal = false" class="w-full py-3 bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white rounded-lg font-bold text-sm mt-4 transition-colors shadow-lg border border-slate-700 dark:border-primary/30">
                                 Close & Return to Dashboard
@@ -431,7 +427,7 @@
                             
                             <div class="bg-gray-50 dark:bg-black/20 p-4 rounded-xl border border-dashed border-gray-200 dark:border-white/10 text-center">
                                 <p class="text-xs font-bold uppercase text-gray-500 mb-1">Total Transfer Amount</p>
-                                <p class="text-3xl font-bold font-mono text-gray-900 dark:text-white">${{ paymentTarget?.amount.toLocaleString() }}</p>
+                                <p class="text-3xl font-bold font-mono text-gray-900 dark:text-white">₹{{ paymentTarget?.amount.toLocaleString() }}</p>
                             </div>
 
                             <p class="text-center text-xs text-gray-400 px-4">Funds will be transferred directly to the linked account ending in **4291.</p>
@@ -458,7 +454,7 @@
                             </div>
                             <div class="w-full bg-gray-50 dark:bg-white/5 p-4 rounded-lg mt-4">
                                 <p class="text-xs text-gray-400">Total Paid</p>
-                                <p class="text-lg font-bold font-mono text-gray-900 dark:text-white">${{ paymentTarget?.amount.toLocaleString() }}</p>
+                                <p class="text-lg font-bold font-mono text-gray-900 dark:text-white">₹{{ paymentTarget?.amount.toLocaleString() }}</p>
                             </div>
                             <button @click="showPaymentModal = false" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white rounded-lg font-bold text-sm mt-4 transition-colors border border-slate-700 dark:border-primary/30">
                                 Close Receipt
@@ -494,7 +490,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Amount ($)</label>
+                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Amount (₹)</label>
                                 <input v-model.number="newTx.amount" type="number" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white">
                             </div>
                         </div>
@@ -537,7 +533,7 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Expected Amount</label>
                                 <div class="w-full bg-gray-100 dark:bg-white/5 border border-transparent rounded-lg px-4 py-2 text-sm text-gray-500 font-mono">
-                                    ${{ selectedItem.amount.toLocaleString() }}
+                                    ₹{{ selectedItem.amount.toLocaleString() }}
                                 </div>
                             </div>
                             <div>
@@ -549,7 +545,7 @@
                         <div v-if="reconcileDiff !== 0" class="p-3 rounded text-xs font-bold flex items-center gap-2"
                              :class="reconcileDiff > 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
                             <span class="material-symbols-outlined text-[16px]">{{ reconcileDiff > 0 ? 'add_circle' : 'warning' }}</span>
-                            {{ reconcileDiff > 0 ? `Surplus of $${reconcileDiff}` : `Shortage of $${Math.abs(reconcileDiff)}` }}
+                            {{ reconcileDiff > 0 ? `Surplus of ₹${reconcileDiff}` : `Shortage of ₹${Math.abs(reconcileDiff)}` }}
                         </div>
                     </div>
                     <div class="p-4 bg-gray-50 dark:bg-white/5 flex justify-end gap-2">
@@ -570,7 +566,18 @@ import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
 
 const store = useLogisticStore()
-const { filteredTransactions, filteredUsers } = storeToRefs(store)
+const {
+    filteredTransactions,
+    filteredUsers,
+    financeSummary,
+    filteredFinanceCodRecords,
+    filteredFinanceStaffRecords,
+    filteredFinanceDriverRecords,
+    initialized,
+    isLoading,
+} = storeToRefs(store)
+
+const financeLoaded = computed(() => initialized.value && !isLoading.value)
 
 // View State
 const activeTab = ref('overview') // overview, cod, staff, drivers
@@ -709,6 +716,12 @@ const confirmPayrollRun = async () => {
         // In real app, call store action to clear
         u.pending_payout = 0
     })
+    filteredFinanceStaffRecords.value
+        .filter(item => item.status === 'Pending')
+        .forEach(item => store.markFinanceRecordPaid('staff', item.id))
+    filteredFinanceDriverRecords.value
+        .filter(item => item.status === 'Pending')
+        .forEach(item => store.markFinanceRecordPaid('drivers', item.id))
 
     payrollProcessing.value = false
     payrollSuccess.value = true
@@ -727,14 +740,20 @@ const activeTabLabel = computed(() => {
     return tabs.find(t => t.id === activeTab.value)?.label || 'Transactions'
 })
 
-const totalRevenue = computed(() => filteredTransactions.value
-    .filter(t => t.amount > 0)
-    .reduce((sum, t) => sum + t.amount, 0))
-const totalExpenses = computed(() => Math.abs(filteredTransactions.value
-    .filter(t => t.amount < 0)
-    .reduce((sum, t) => sum + t.amount, 0)))
-const totalPayrollDue = computed(() => filteredUsers.value.reduce((sum, user) => sum + (user.pending_payout || 0), 0))
-const pendingCOD = computed(() => store.filteredFinanceCodRecords
+const totalRevenue = computed(() => financeSummary.value.total_revenue ??
+    filteredTransactions.value
+        .filter(t => t.amount > 0 && t.type !== 'CAPITAL_INVESTMENT')
+        .reduce((sum, t) => sum + t.amount, 0))
+const totalExpenses = computed(() => financeSummary.value.total_expenses ??
+    Math.abs(filteredTransactions.value.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0)))
+const totalPayrollDue = computed(() =>
+    [...filteredFinanceStaffRecords.value, ...filteredFinanceDriverRecords.value]
+        .filter(item => item.status === 'Pending')
+        .reduce((sum, item) => sum + (item.amount || 0), 0)
+)
+const capitalInflow = computed(() => financeSummary.value.capital_invested ??
+    filteredTransactions.value.filter(t => t.type === 'CAPITAL_INVESTMENT').reduce((sum, t) => sum + t.amount, 0))
+const pendingCOD = computed(() => filteredFinanceCodRecords.value
     .filter(item => item.status === 'Pending')
     .reduce((sum, item) => sum + (item.amount || 0), 0))
 
@@ -749,11 +768,11 @@ const filteredItems = computed(() => {
     if (activeTab.value === 'overview') {
         items = filteredTransactions.value
     } else if (activeTab.value === 'cod') {
-        items = store.filteredFinanceCodRecords
+        items = filteredFinanceCodRecords.value
     } else if (activeTab.value === 'staff') {
-        items = store.filteredFinanceStaffRecords
+        items = filteredFinanceStaffRecords.value
     } else if (activeTab.value === 'drivers') {
-        items = store.filteredFinanceDriverRecords
+        items = filteredFinanceDriverRecords.value
     }
 
     if (searchQuery.value) {
@@ -825,6 +844,8 @@ const confirmSinglePayment = async () => {
     })
 
     store.markFinanceRecordPaid(activeTab.value === 'staff' ? 'staff' : 'drivers', paymentTarget.value.id)
+    const targetUser = filteredUsers.value.find((user) => user.id === paymentTarget.value.userId)
+    if (targetUser) targetUser.pending_payout = 0
 
     paymentProcessing.value = false
     paymentSuccess.value = true
@@ -842,3 +863,5 @@ const downloadSlip = (item) => {
 }
 
 </script>
+
+

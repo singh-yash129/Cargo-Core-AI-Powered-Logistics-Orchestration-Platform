@@ -1,10 +1,17 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { apiUrl } from '@/config/api';
+import {
+  apiUrl,
+  authenticatedJsonRequest,
+  clearAuthSession,
+  getStoredAccessToken,
+  getStoredUser,
+  storeAuthSession,
+} from '@/config/api';
 
 export const useAuthStore = defineStore('auth', () => {
-  const savedUser = JSON.parse(localStorage.getItem('auth_user') || 'null');
-  const savedToken = localStorage.getItem('auth_token');
+  const savedUser = getStoredUser();
+  const savedToken = getStoredAccessToken();
 
   const currentUser = ref(savedUser);
   const isAuthenticated = ref(!!savedToken);
@@ -19,6 +26,22 @@ export const useAuthStore = defineStore('auth', () => {
   const resetError = ref('');
   const isLoading = ref(false);
   const currentWarehouse = ref(null);
+
+  function syncSessionFromStorage() {
+    const storedToken = getStoredAccessToken();
+    authToken.value = storedToken;
+    isAuthenticated.value = !!storedToken;
+    currentUser.value = getStoredUser();
+
+    if (!storedToken) {
+      currentWarehouse.value = null;
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('auth:session-changed', syncSessionFromStorage);
+    window.addEventListener('storage', syncSessionFromStorage);
+  }
 
   const userRole = computed(() => currentUser.value?.role ?? '');
   const userName = computed(() => currentUser.value?.name ?? '');
@@ -48,30 +71,24 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function persistCurrentUser(user) {
+    storeAuthSession({ user });
     currentUser.value = user;
-    localStorage.setItem('auth_user', JSON.stringify(user));
   }
 
   async function ensureWarehouseContext() {
-    if (!authToken.value || !currentUser.value) return null;
+    if (!getStoredAccessToken() || !currentUser.value) return null;
 
     let profile = currentUser.value;
     const cachedWarehouseId = currentUser.value?.warehouse_id ?? null;
 
     try {
-      const profileResp = await fetch(apiUrl('api/v1/auth/me'), {
-        headers: { Authorization: `Bearer ${authToken.value}` },
-      });
-
-      if (profileResp.ok) {
-        const refreshedProfile = await profileResp.json();
-        profile = {
-          ...currentUser.value,
-          ...refreshedProfile,
-          warehouse_id: refreshedProfile.warehouse_id ?? cachedWarehouseId,
-        };
-        persistCurrentUser(profile);
-      }
+      const refreshedProfile = await authenticatedJsonRequest('api/v1/auth/me');
+      profile = {
+        ...currentUser.value,
+        ...refreshedProfile,
+        warehouse_id: refreshedProfile.warehouse_id ?? cachedWarehouseId,
+      };
+      persistCurrentUser(profile);
     } catch (_) {
       // Keep using cached auth data if the profile refresh fails.
     }
@@ -82,13 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     try {
-      const listResp = await fetch(apiUrl('api/v1/warehouses?page=1&page_size=100'), {
-        headers: { Authorization: `Bearer ${authToken.value}` },
-      });
-
-      if (!listResp.ok) return null;
-
-      const data = await listResp.json();
+      const data = await authenticatedJsonRequest('api/v1/warehouses?page=1&page_size=100');
       const warehouses = data.items || [];
       const linkedWarehouse = warehouses.find((warehouse) =>
         warehouse.id === profile.warehouse_id || warehouse.manager_id === profile.id
@@ -130,12 +141,12 @@ export const useAuthStore = defineStore('auth', () => {
 
       const data = await response.json();
 
-      currentUser.value = data.user;
-      isAuthenticated.value = true;
-      authToken.value = data.access_token;
-
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
+      storeAuthSession({
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        user: data.user,
+      });
+      syncSessionFromStorage();
 
       if (data.user.role === 'WAREHOUSE_MANAGER') {
         await ensureWarehouseContext();
@@ -195,10 +206,15 @@ export const useAuthStore = defineStore('auth', () => {
           address: payload.address,
           role: payload.role
         };
-        authToken.value = data.access_token;
-        isAuthenticated.value = true;
-        localStorage.setItem('auth_token', data.access_token);
-        localStorage.setItem('auth_user', JSON.stringify(currentUser.value));
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('signup_debug_otp');
+        }
+        storeAuthSession({
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+          user: currentUser.value,
+        });
+        syncSessionFromStorage();
 
         return {
           success: true,
@@ -247,12 +263,25 @@ export const useAuthStore = defineStore('auth', () => {
         return { success: false, message: signupError.value };
       }
 
+      const data = await response.json();
+      if (typeof window !== 'undefined') {
+        if (data.debug_otp) {
+          sessionStorage.setItem('signup_debug_otp', data.debug_otp);
+        } else {
+          sessionStorage.removeItem('signup_debug_otp');
+        }
+      }
+
       pendingEmail.value = userData.email;
       pendingRole.value = userData.role;
       pendingFlow.value = 'signup';
       pendingRegistrationData.value = payload;
 
-      return { success: true, message: 'OTP sent successfully.' };
+      return {
+        success: true,
+        message: data.message || 'OTP sent successfully.',
+        debugOtp: data.debug_otp || null,
+      };
     } catch (error) {
       signupError.value = 'Error connecting to the server.';
       return { success: false, message: signupError.value };
@@ -319,7 +348,26 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const ROLE_LOGIN_PATHS = {
+    INDIVIDUAL: '/login/customer',
+    VENDOR: '/login/vendor',
+    LOGISTIC_MANAGER: '/login/manager',
+    WAREHOUSE_MANAGER: '/login/warehouse',
+    DISPATCHER: '/login/dispatcher',
+    DRIVER: '/login/driver',
+    manager: '/login/manager',
+    warehouse: '/login/warehouse',
+    dispatcher: '/login/dispatcher',
+    driver: '/login/driver',
+  };
+
+  function getLoginRoute(role = currentUser.value?.role) {
+    return ROLE_LOGIN_PATHS[role] || '/login/customer';
+  }
+
   function logout() {
+    const loginPath = getLoginRoute();
+    clearAuthSession();
     isAuthenticated.value = false;
     authToken.value = null;
     currentUser.value = null;
@@ -328,8 +376,7 @@ export const useAuthStore = defineStore('auth', () => {
     pendingRole.value = '';
     pendingFlow.value = '';
     loginError.value = '';
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+    return loginPath;
   }
 
   async function googleLogin(credential, role = 'INDIVIDUAL') {
@@ -351,11 +398,12 @@ export const useAuthStore = defineStore('auth', () => {
 
       const data = await response.json();
 
-      currentUser.value = data.user;
-      isAuthenticated.value = true;
-      authToken.value = data.access_token;
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
+      storeAuthSession({
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        user: data.user,
+      });
+      syncSessionFromStorage();
 
       if (data.user.role === 'WAREHOUSE_MANAGER') {
         await ensureWarehouseContext();
@@ -408,6 +456,7 @@ export const useAuthStore = defineStore('auth', () => {
     googleLogin,
     ensureWarehouseContext,
     getDashboardRoute,
+    getLoginRoute,
     clearErrors,
   };
 });

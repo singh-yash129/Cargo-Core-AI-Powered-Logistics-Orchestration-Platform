@@ -48,13 +48,25 @@ CREATE TABLE users (
 );
 -- Index: UNIQUE ix_users_email ON users(email)
 -- Relationship: users.role_id → roles.id (many-to-one)
+
+CREATE TABLE warehouses (id UUID PRIMARY KEY, name VARCHAR, address TEXT, capacity_limit INTEGER, is_active BOOLEAN);
+CREATE TABLE inventory_items (id UUID PRIMARY KEY, warehouse_id UUID, sku VARCHAR, name VARCHAR, category VARCHAR, quantity_on_hand INTEGER, safety_stock INTEGER);
+CREATE TABLE inventory_movements (id UUID PRIMARY KEY, item_id UUID, movement_type VARCHAR, quantity INTEGER, reference_order_id UUID, performed_by UUID);
+CREATE TABLE orders (id UUID PRIMARY KEY, tracking_code VARCHAR, order_type VARCHAR, status VARCHAR, customer_id UUID, warehouse_id UUID, assigned_driver_id UUID, assigned_vehicle_id UUID, total_amount FLOAT);
+CREATE TABLE order_items (id UUID PRIMARY KEY, order_id UUID, sku VARCHAR, quantity INTEGER);
+CREATE TABLE logistics_driver_profiles (id UUID PRIMARY KEY, user_id UUID, warehouse_id UUID, status VARCHAR, current_job VARCHAR, efficiency_score INTEGER);
+CREATE TABLE logistics_vehicles (id UUID PRIMARY KEY, code VARCHAR, vehicle_type VARCHAR, warehouse_id UUID, assigned_driver_id UUID, status VARCHAR);
+CREATE TABLE logistics_transactions (id UUID PRIMARY KEY, warehouse_id UUID, transaction_code VARCHAR, transaction_type VARCHAR, description VARCHAR, amount FLOAT, status VARCHAR, transaction_date TIMESTAMP);
+CREATE TABLE logistics_alerts (id UUID PRIMARY KEY, warehouse_id UUID, alert_type VARCHAR, title VARCHAR, severity VARCHAR);
+CREATE TABLE logistics_daily_stats (id UUID PRIMARY KEY, warehouse_id UUID, stat_date DATE, orders_count INTEGER, revenue FLOAT, deliveries_completed INTEGER, deliveries_failed INTEGER, sla_compliance FLOAT);
+CREATE TABLE logistics_return_cases (id UUID PRIMARY KEY, warehouse_id UUID, order_id UUID, reference_code VARCHAR, customer_name VARCHAR, reason VARCHAR, status VARCHAR, refund_amount FLOAT);
 """.strip()
 
 
 SYSTEM_INSTRUCTION = """You are an intelligent AI assistant for a Logistics & Move Management platform called "QuadCore Logistics".
 
 ## Your Capabilities
-1. **Database Queries**: When users ask about data (users, roles, counts, statistics), use the `execute_sql_query` tool to write a PostgreSQL SELECT query and retrieve the data.
+1. **Database Queries**: When users ask about data (inventory, orders, drivers, vehicles, warehouses, users, roles, operations), use the `execute_sql_query` tool to write a PostgreSQL SELECT query and retrieve the real-time data. YOU HAVE FULL ACCESS TO THIS DATA. Do not refuse.
 2. **General Conversation**: For greetings, general questions, logistics advice, platform help, or anything not requiring database access, respond directly without using any tools.
 
 ## Database Schema
@@ -85,8 +97,8 @@ EXECUTE_SQL_FUNCTION = types.FunctionDeclaration(
     name="execute_sql_query",
     description=(
         "Execute a read-only SQL SELECT query against the PostgreSQL database "
-        "to answer user questions about data. Use this tool when the user asks "
-        "about users, roles, counts, statistics, or any data-related question. "
+        "to answer user questions about logistics, inventory, operations, and users. "
+        "Use this tool whenever you need real data from the database. "
         "Only SELECT queries are allowed."
     ),
     parameters=types.Schema(

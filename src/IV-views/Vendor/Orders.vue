@@ -44,6 +44,7 @@
             <select v-model="statusFilter" class="text-sm bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none">
                 <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Status</option>
                 <option value="Pending" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pending</option>
+                <option value="In Warehouse" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Warehouse</option>
                 <option value="In Transit" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Transit</option>
                 <option value="Delivered" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delivered</option>
                 <option value="Cancelled" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Cancelled</option>
@@ -92,6 +93,12 @@
                                 <div class="flex items-center justify-end gap-1">
                                     <button @click="openDetail(s)" class="p-1.5 rounded-lg hover:bg-blue-500/10 text-gray-400 hover:text-blue-500 transition-colors" title="View">
                                         <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                    </button>
+                                    <button @click="openSlipWithData('bookingConfirmation', s, currentUser())" class="p-1.5 rounded-lg hover:bg-indigo-500/10 text-gray-400 hover:text-indigo-500 transition-colors" title="Booking Confirmation">
+                                        <span class="material-symbols-outlined text-[16px]">receipt_long</span>
+                                    </button>
+                                    <button v-if="s.status === 'Delivered'" @click="openSlipWithData('finalTaxInvoice', s, currentUser())" class="p-1.5 rounded-lg hover:bg-green-500/10 text-gray-400 hover:text-green-500 transition-colors" title="Tax Invoice">
+                                        <span class="material-symbols-outlined text-[16px]">request_quote</span>
                                     </button>
                                     <button v-if="s.status !== 'Delivered' && s.status !== 'Cancelled'" @click="openAddressModal(s)" class="p-1.5 rounded-lg hover:bg-yellow-500/10 text-gray-400 hover:text-yellow-500 transition-colors" title="Update Address">
                                         <span class="material-symbols-outlined text-[16px]">edit_location</span>
@@ -154,6 +161,15 @@
                 </div>
                 <template #footer>
                     <button @click="detailOrder = null" class="px-4 py-2 text-gray-500 text-sm">Close</button>
+                    <button @click="openSlipWithData('bookingConfirmation', detailOrder, currentUser())" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[15px]">receipt_long</span> Booking Slip
+                    </button>
+                    <button v-if="detailOrder?.status === 'Delivered'" @click="openSlipWithData('proofOfDelivery', detailOrder, currentUser())" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[15px]">verified</span> PoD
+                    </button>
+                    <button v-if="detailOrder?.status === 'Delivered'" @click="openSlipWithData('finalTaxInvoice', detailOrder, currentUser())" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[15px]">request_quote</span> Invoice
+                    </button>
                 </template>
             </BaseModal>
         </Teleport>
@@ -255,9 +271,18 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useVendorStore } from '@/stores/vendorStore'
+import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+
+const { openSlip, openSlipWithData } = useSlipPrinter()
 
 const store = useVendorStore()
+const authStore = useAuthStore()
+
+function currentUser() {
+  return authStore.currentUser || {}
+}
 const searchQuery = ref('')
 const statusFilter = ref('all')
 const categoryFilter = ref('all')
@@ -294,6 +319,7 @@ const filteredOrders = computed(() => {
 
 const statusClass = s => ({
     Pending: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
+    'In Warehouse': 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
     'In Transit': 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
     Delivered: 'bg-green-500/20 text-green-600 dark:text-green-400',
     Cancelled: 'bg-red-500/20 text-red-600 dark:text-red-400',

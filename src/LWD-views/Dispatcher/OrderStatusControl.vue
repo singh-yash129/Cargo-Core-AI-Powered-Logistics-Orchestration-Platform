@@ -76,32 +76,32 @@
                     <span class="text-xs text-gray-500 dark:text-gray-400">Ready → Assigned Time</span>
                     <span class="material-symbols-outlined text-[16px] text-yellow-400">timer</span>
                 </div>
-                <div class="text-xl font-bold text-gray-900 dark:text-white">8.2 min</div>
-                <div class="text-[10px] text-green-400">-12% vs target (10 min)</div>
+                <div class="text-xl font-bold text-gray-900 dark:text-white">—</div>
+                <div class="text-[10px] text-gray-500">Target: &lt;10 min</div>
             </div>
             <div class="glass-panel p-4 rounded-xl">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs text-gray-500 dark:text-gray-400">On-Time Pickup %</span>
                     <span class="material-symbols-outlined text-[16px] text-blue-400">local_shipping</span>
                 </div>
-                <div class="text-xl font-bold text-gray-900 dark:text-white">96.2%</div>
-                <div class="text-[10px] text-green-400">+1.2% above SLA</div>
+                <div class="text-xl font-bold text-gray-900 dark:text-white">{{ dispatchedCount + inTransitCount + deliveredCount > 0 ? Math.round(((dispatchedCount + deliveredCount) / (orders.length || 1)) * 100) + '%' : '—' }}</div>
+                <div class="text-[10px] text-gray-500">SLA target: 95%</div>
             </div>
             <div class="glass-panel p-4 rounded-xl">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs text-gray-500 dark:text-gray-400">On-Time Dispatch %</span>
                     <span class="material-symbols-outlined text-[16px] text-purple-400">send</span>
                 </div>
-                <div class="text-xl font-bold text-gray-900 dark:text-white">94.8%</div>
-                <div class="text-[10px] text-yellow-400">-0.2% below target</div>
+                <div class="text-xl font-bold text-gray-900 dark:text-white">{{ orders.length > 0 ? Math.round(((orders.length - readyCount) / orders.length) * 100) + '%' : '—' }}</div>
+                <div class="text-[10px] text-gray-500">SLA target: 95%</div>
             </div>
             <div class="glass-panel p-4 rounded-xl">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs text-gray-500 dark:text-gray-400">Missed Window</span>
                     <span class="material-symbols-outlined text-[16px] text-red-400">report</span>
                 </div>
-                <div class="text-xl font-bold text-red-400">3</div>
-                <div class="text-[10px] text-red-300">Orders delayed today</div>
+                <div class="text-xl font-bold" :class="overdueCount > 0 ? 'text-red-400' : 'text-gray-900 dark:text-white'">{{ overdueCount }}</div>
+                <div class="text-[10px] text-gray-500">Orders delayed today</div>
             </div>
         </div>
 
@@ -138,7 +138,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-white/5">
-                        <tr v-for="order in filteredOrders" :key="order.id"
+                        <tr v-for="order in filteredOrders" :key="order.backendId || order.id"
                             class="hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group">
                             <td class="p-4 font-mono text-gray-900 dark:text-white font-bold">{{ order.id }}</td>
                             <td class="p-4">
@@ -173,8 +173,9 @@
                                         Mark In Transit
                                     </button>
                                     <button v-if="order.status === 'in-transit'"
-                                        class="px-3 py-1.5 bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg text-xs font-bold cursor-not-allowed border border-gray-400 dark:border-gray-600" disabled>
-                                        Awaiting PoD
+                                        @click="updateStatus(order, 'delivered')"
+                                        class="px-3 py-1.5 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded-lg text-xs font-bold transition-all hover:scale-105 shadow-md border border-green-700 dark:border-green-400">
+                                        Mark Delivered
                                     </button>
                                     <button v-if="order.status === 'delivered'"
                                         @click="viewPoD(order)"
@@ -183,7 +184,7 @@
                                     </button>
                                     <button @click="toggleOrderMenu(order)" class="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white relative transition-colors">
                                         <span class="material-symbols-outlined text-[16px]">more_vert</span>
-                                        <div v-if="orderMenu === order.id" class="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-40">
+                                        <div v-if="orderMenu === (order.backendId || order.id)" class="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-40">
                                         <button @click.stop="cancelOrder(order)" class="w-full text-left px-3 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors rounded-t-lg">Cancel Order</button>
                                         <button @click.stop="escalateOrder(order)" class="w-full text-left px-3 py-2 text-sm font-semibold text-yellow-600 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors rounded-b-lg">Escalate</button>
                                         </div>
@@ -202,33 +203,24 @@
                 <span class="material-symbols-outlined text-red-400">notification_important</span>
                 SLA Violation Alerts
             </h3>
-            <div class="space-y-3">
-                <div class="p-3 bg-red-100 dark:bg-red-500/10 border border-red-500/20 rounded-lg flex items-center justify-between">
+            <div v-if="overdueOrders.length" class="space-y-3">
+                <div v-for="order in overdueOrders" :key="order.id" class="p-3 bg-red-100 dark:bg-red-500/10 border border-red-500/20 rounded-lg flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-red-500 dark:text-red-400">error</span>
                         <div>
-                            <div class="text-sm text-red-700 dark:text-red-300 font-bold">ORD-3321 — Dispatch Window Missed</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Was ready at 10:15 AM, still not dispatched. SLA requires dispatch within 15 min.</div>
+                            <div class="text-sm text-red-700 dark:text-red-300 font-bold">{{ order.id }} — ETA Overdue</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Driver: {{ order.driver || 'Unassigned' }} • Status: {{ order.statusLabel }}</div>
                         </div>
                     </div>
-                    <button @click="resolveAlert('ORD-3321')" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-colors border"
-                        :class="alertResolved['ORD-3321'] ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-300 dark:border-green-500/30' : 'bg-red-100 dark:bg-red-500/20 hover:bg-red-200 dark:hover:bg-red-500/30 text-red-700 dark:text-red-400 border-red-300 dark:border-red-500/30'">
-                        {{ alertResolved['ORD-3321'] ? '✓ Resolved' : 'Resolve Now' }}
+                    <button @click="resolveAlert(order.id)" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-colors border"
+                        :class="alertResolved[order.id] ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-300 dark:border-green-500/30' : 'bg-red-100 dark:bg-red-500/20 hover:bg-red-200 dark:hover:bg-red-500/30 text-red-700 dark:text-red-400 border-red-300 dark:border-red-500/30'">
+                        {{ alertResolved[order.id] ? '✓ Resolved' : 'Resolve Now' }}
                     </button>
                 </div>
-                <div class="p-3 bg-yellow-100 dark:bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-yellow-500 dark:text-yellow-400">schedule</span>
-                        <div>
-                            <div class="text-sm text-yellow-700 dark:text-yellow-300 font-bold">ORD-7712 — ETA Slipping</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Current ETA 17:15, delivery deadline 16:30. 45 min overdue risk.</div>
-                        </div>
-                    </div>
-                    <button @click="rerouteAlert('ORD-7712')" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-colors border"
-                        :class="alertRerouted['ORD-7712'] ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-300 dark:border-green-500/30' : 'bg-yellow-100 dark:bg-yellow-500/20 hover:bg-yellow-200 dark:hover:bg-yellow-500/30 text-yellow-700 dark:text-yellow-400 border-yellow-300 dark:border-yellow-500/30'">
-                        {{ alertRerouted['ORD-7712'] ? '✓ Rerouted' : 'Reroute' }}
-                    </button>
-                </div>
+            </div>
+            <div v-else class="text-center py-6 text-gray-500 text-sm">
+                <span class="material-symbols-outlined text-green-400 text-[32px] block mb-2">check_circle</span>
+                No active SLA violations
             </div>
         </div>
 
@@ -262,7 +254,17 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
+import { getStoredAccessToken } from '@/config/api'
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+const store = useDispatcherStore()
+onMounted(async () => {
+    await store.initialize().catch(() => {})
+    await store.fetchActiveOrders().catch(() => {})
+})
 
 const searchQuery = ref('')
 const statusFilter = ref('')
@@ -274,21 +276,50 @@ const orderMenu = ref(null)
 const alertResolved = ref({})
 const alertRerouted = ref({})
 
-const orders = ref([
-    { id: 'ORD-9921', status: 'in-transit', statusLabel: 'In Transit', driver: 'Mike Ross', vehicle: 'Van T-20', eta: '2:45 PM', etaOverdue: false, slaStatus: 'On Track', slaClass: 'bg-green-500/20 text-green-400', lastUpdated: '12:30 PM' },
-    { id: 'ORD-3321', status: 'ready', statusLabel: 'Ready', driver: null, vehicle: null, eta: null, etaOverdue: false, slaStatus: 'OVERDUE', slaClass: 'bg-red-500/20 text-red-400', lastUpdated: '10:15 AM' },
-    { id: 'ORD-1102', status: 'dispatched', statusLabel: 'Dispatched', driver: 'Harvey Specter', vehicle: 'Truck XL', eta: '4:15 PM', etaOverdue: false, slaStatus: 'On Track', slaClass: 'bg-green-500/20 text-green-400', lastUpdated: '11:45 AM' },
-    { id: 'ORD-5541', status: 'dispatched', statusLabel: 'Dispatched', driver: 'Rachel Zane', vehicle: 'Van T-15', eta: '3:30 PM', etaOverdue: false, slaStatus: 'On Track', slaClass: 'bg-green-500/20 text-green-400', lastUpdated: '11:50 AM' },
-    { id: 'ORD-7712', status: 'in-transit', statusLabel: 'In Transit', driver: 'Mike Ross', vehicle: 'Van T-20', eta: '5:15 PM', etaOverdue: true, slaStatus: 'AT RISK', slaClass: 'bg-yellow-500/20 text-yellow-400', lastUpdated: '1:15 PM' },
-    { id: 'ORD-8843', status: 'delivered', statusLabel: 'Delivered', driver: 'Donna Paulsen', vehicle: 'Van T-15', eta: null, etaOverdue: false, slaStatus: 'Completed', slaClass: 'bg-green-500/20 text-green-400', lastUpdated: '11:02 AM' },
-    { id: 'ORD-6654', status: 'ready', statusLabel: 'Ready', driver: null, vehicle: null, eta: null, etaOverdue: false, slaStatus: 'Pending', slaClass: 'bg-gray-500/20 text-gray-400', lastUpdated: '12:00 PM' },
-    { id: 'ORD-2210', status: 'in-transit', statusLabel: 'In Transit', driver: 'Jessica Pearson', vehicle: 'Truck M', eta: '4:00 PM', etaOverdue: false, slaStatus: 'On Track', slaClass: 'bg-green-500/20 text-green-400', lastUpdated: '12:45 PM' },
-])
+const orders = ref([])
+
+function mapStatusToUI(backendStatus) {
+    const statusMap = {
+        'CONFIRMED': 'ready',
+        'ASSIGNED': 'dispatched',
+        'IN_TRANSIT': 'in-transit',
+        'DELIVERED': 'delivered',
+    }
+    return statusMap[backendStatus] || backendStatus?.toLowerCase().replace('_', '-') || 'ready'
+}
+
+function mapStatusLabel(backendStatus) {
+    const labelMap = {
+        'CONFIRMED': 'Ready',
+        'ASSIGNED': 'Dispatched',
+        'IN_TRANSIT': 'In Transit',
+        'DELIVERED': 'Delivered',
+    }
+    return labelMap[backendStatus] || backendStatus || 'Ready'
+}
+
+watch(() => store.activeOrders, (list) => {
+    orders.value = list.map(o => ({
+        id: o.trackingCode || o.id,
+        backendId: o.id,
+        status: mapStatusToUI(o.status),
+        statusLabel: mapStatusLabel(o.status),
+        driver: o.driver || null,
+        vehicle: o.vehicle || null,
+        eta: o.eta || null,
+        etaOverdue: o.etaOverdue || false,
+        slaStatus: o.slaStatus || 'Pending',
+        slaClass: o.slaClass || 'bg-gray-500/20 text-gray-400',
+        lastUpdated: o.lastUpdated ? new Date(o.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }))
+}, { immediate: true })
 
 const readyCount = computed(() => orders.value.filter(o => o.status === 'ready').length)
 const dispatchedCount = computed(() => orders.value.filter(o => o.status === 'dispatched').length)
 const inTransitCount = computed(() => orders.value.filter(o => o.status === 'in-transit').length)
 const deliveredCount = computed(() => orders.value.filter(o => o.status === 'delivered').length)
+const overdueOrders = computed(() => orders.value.filter(o => o.etaOverdue || o.slaStatus === 'ESCALATED'))
+const overdueCount = computed(() => overdueOrders.value.length)
 
 const statusTabs = computed(() => [
     { label: 'All', value: '', count: orders.value.length, activeClass: 'bg-white/10 text-gray-900 dark:text-white' },
@@ -301,7 +332,13 @@ const statusTabs = computed(() => [
 const filteredOrders = computed(() => {
     return orders.value.filter(o => {
         if (statusFilter.value && o.status !== statusFilter.value) return false
-        if (searchQuery.value && !o.id.toLowerCase().includes(searchQuery.value.toLowerCase())) return false
+        if (searchQuery.value) {
+            const q = searchQuery.value.toLowerCase()
+            const matchesId = o.id?.toLowerCase().includes(q)
+            const matchesBackendId = o.backendId?.toLowerCase().includes(q)
+            const matchesDriver = o.driver?.toLowerCase().includes(q)
+            if (!matchesId && !matchesBackendId && !matchesDriver) return false
+        }
         return true
     })
 })
@@ -316,27 +353,57 @@ function getStatusTextClass(status) {
     return map[status] || 'text-gray-400'
 }
 
-function updateStatus(order, newStatus) {
-    const labels = { 'dispatched': 'Dispatched', 'in-transit': 'In Transit' }
-    order.status = newStatus
-    order.statusLabel = labels[newStatus] || newStatus
-    order.lastUpdated = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    if (newStatus === 'dispatched') {
-        order.slaStatus = 'On Track'
-        order.slaClass = 'bg-green-500/20 text-green-400'
+async function updateStatus(order, newStatus) {
+    // Map UI status to backend status
+    const backendStatus = { 'dispatched': 'ASSIGNED', 'in-transit': 'IN_TRANSIT', 'delivered': 'DELIVERED' }
+    const labels = { 'dispatched': 'Dispatched', 'in-transit': 'In Transit', 'delivered': 'Delivered' }
+    const nextBackendStatus = backendStatus[newStatus]
+    if (!nextBackendStatus) return
+
+    // Use the backend UUID for the API call, not the display ID (tracking code)
+    const orderId = order.backendId || order.id
+    if (!orderId) {
+        console.error('No backend order ID available for transition')
+        return
+    }
+
+    try {
+        const token = getStoredAccessToken()
+        const res = await fetch(`${API_BASE}/api/v1/orders/${orderId}/transition`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify({ next_status: nextBackendStatus }),
+        })
+        if (res.ok) {
+            // Optimistically update the local order
+            order.status = newStatus
+            order.statusLabel = labels[newStatus] || newStatus
+            order.lastUpdated = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            if (newStatus === 'dispatched') {
+                order.slaStatus = 'On Track'
+                order.slaClass = 'bg-green-500/20 text-green-400'
+            }
+            // Refresh the active orders list from the backend
+            await store.fetchActiveOrders().catch(() => {})
+        } else {
+            const err = await res.json().catch(() => ({}))
+            console.error('Transition failed:', err.detail || res.statusText)
+            alert(`Status update failed: ${err.detail || res.statusText}`)
+        }
+    } catch (e) {
+        console.error('Transition error:', e)
+        alert('Network error while updating order status. Please try again.')
     }
 }
 
-function syncStatus() {
+async function syncStatus() {
     syncing.value = true
-    setTimeout(() => {
-        orders.value.forEach(o => {
-            o.lastUpdated = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        })
-        syncing.value = false
-        syncDone.value = true
-        setTimeout(() => { syncDone.value = false }, 2000)
-    }, 1500)
+    try {
+        await store.fetchActiveOrders()
+    } catch (_) {}
+    syncing.value = false
+    syncDone.value = true
+    setTimeout(() => { syncDone.value = false }, 2000)
 }
 
 function viewPoD(order) {
@@ -344,10 +411,13 @@ function viewPoD(order) {
     showPoD.value = true
 }
 
-function toggleOrderMenu(order) { orderMenu.value = orderMenu.value === order.id ? null : order.id }
+function toggleOrderMenu(order) {
+    const key = order.backendId || order.id
+    orderMenu.value = orderMenu.value === key ? null : key
+}
 
 function cancelOrder(order) {
-    orders.value = orders.value.filter(o => o.id !== order.id)
+    orders.value = orders.value.filter(o => o.backendId !== order.backendId)
     orderMenu.value = null
 }
 
@@ -359,7 +429,7 @@ function escalateOrder(order) {
 
 function resolveAlert(orderId) {
     alertResolved.value[orderId] = true
-    const order = orders.value.find(o => o.id === orderId)
+    const order = orders.value.find(o => o.id === orderId || o.backendId === orderId)
     if (order && order.status === 'ready') {
         updateStatus(order, 'dispatched')
         order.driver = 'Auto-assigned'
@@ -369,7 +439,7 @@ function resolveAlert(orderId) {
 
 function rerouteAlert(orderId) {
     alertRerouted.value[orderId] = true
-    const order = orders.value.find(o => o.id === orderId)
+    const order = orders.value.find(o => o.id === orderId || o.backendId === orderId)
     if (order) {
         order.etaOverdue = false
         order.slaStatus = 'Rerouted'

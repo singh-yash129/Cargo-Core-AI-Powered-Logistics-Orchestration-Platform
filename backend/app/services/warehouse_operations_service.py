@@ -85,11 +85,11 @@ def _validate_substatus_transition(current: str | None, target: str) -> None:
         )
 
     if current is None:
-        # Allow initial transition to AWAITING_PICK
-        if target not in {"AWAITING_PICK", "ON_HOLD"}:
+        # Allow initial transition to AWAITING_INBOUND (vendor) or AWAITING_PICK (individual)
+        if target not in {"AWAITING_INBOUND", "AWAITING_PICK", "ON_HOLD"}:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Initial substatus must be AWAITING_PICK, got {target}"
+                detail=f"Initial substatus must be AWAITING_INBOUND or AWAITING_PICK, got {target}"
             )
         return
 
@@ -128,6 +128,79 @@ def _format_user_name(user: User | None) -> str | None:
 
 
 # ======================
+# Accept Order
+# ======================
+
+async def accept_order_into_warehouse(
+    db: AsyncSession,
+    warehouse_id: UUID,
+    order_id: UUID,
+) -> PickingResponse:
+    """Accept a CONFIRMED order into the warehouse queue.
+    Vendor orders → AWAITING_INBOUND (goods must arrive first via Inbound).
+    Non-vendor orders → AWAITING_PICK directly.
+    """
+    await _get_warehouse(db, warehouse_id)
+    order = await _get_order(db, order_id)
+
+    if order.status not in {"CONFIRMED"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only CONFIRMED orders can be accepted into the warehouse queue (got {order.status})",
+        )
+
+    # Idempotent — if already accepted, just return success
+    if order.warehouse_substatus in {"AWAITING_INBOUND", "AWAITING_PICK", "PICKING", "PICKED", "PACKING", "PACKED", "QC_PASSED"}:
+        return PickingResponse(
+            order_id=order_id,
+            warehouse_substatus=order.warehouse_substatus,
+            assigned_labourer_id=None,
+            message="Order already in warehouse queue",
+        )
+
+    # Vendor orders wait in Inbound until goods physically arrive
+    initial_substatus = "AWAITING_INBOUND" if order.order_type == "VENDOR" else "AWAITING_PICK"
+    order.warehouse_substatus = initial_substatus
+    db.add(order)
+    await db.flush()
+
+    return PickingResponse(
+        order_id=order_id,
+        warehouse_substatus=initial_substatus,
+        assigned_labourer_id=None,
+        message="Order accepted — awaiting inbound receipt" if initial_substatus == "AWAITING_INBOUND" else "Order accepted into warehouse queue",
+    )
+
+
+async def mark_inbound_received(
+    db: AsyncSession,
+    warehouse_id: UUID,
+    order_id: UUID,
+) -> PickingResponse:
+    """Mark a vendor order's goods as physically received — transitions AWAITING_INBOUND → AWAITING_PICK."""
+    await _get_warehouse(db, warehouse_id)
+    order = await _get_order(db, order_id)
+
+    if order.warehouse_substatus != "AWAITING_INBOUND":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Order is not in AWAITING_INBOUND state (current: {order.warehouse_substatus})",
+        )
+
+    _validate_substatus_transition(order.warehouse_substatus, "AWAITING_PICK")
+    order.warehouse_substatus = "AWAITING_PICK"
+    db.add(order)
+    await db.flush()
+
+    return PickingResponse(
+        order_id=order_id,
+        warehouse_substatus="AWAITING_PICK",
+        assigned_labourer_id=None,
+        message="Goods received — order moved to picking queue",
+    )
+
+
+# ======================
 # Picking Operations
 # ======================
 
@@ -147,9 +220,30 @@ async def start_picking(
             detail="Order does not belong to this warehouse"
         )
 
-    # Backfill the initial warehouse step for older confirmed orders.
-    if order.warehouse_substatus is None and order.status == "CONFIRMED":
-        order.warehouse_substatus = "AWAITING_PICK"
+    # Guard: vendor orders in AWAITING_INBOUND must go through Inbound first
+    if order.warehouse_substatus == "AWAITING_INBOUND":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Vendor order goods have not been received yet. Complete inbound receiving first.",
+        )
+
+    # Idempotent: if already PICKING, return success immediately
+    if order.warehouse_substatus == "PICKING":
+        labourer_id = (
+            await db.execute(
+                select(Labourer.id).where(
+                    Labourer.warehouse_id == warehouse_id,
+                    Labourer.is_active.is_(True),
+                    Labourer.assigned_order_id == order_id,
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        return PickingResponse(
+            order_id=order_id,
+            warehouse_substatus="PICKING",
+            assigned_labourer_id=labourer_id,
+            message="Picking already in progress",
+        )
 
     # Validate transition
     _validate_substatus_transition(order.warehouse_substatus, "PICKING")
@@ -226,6 +320,36 @@ async def start_picking(
     )
 
 
+async def revert_picking(
+    db: AsyncSession,
+    warehouse_id: UUID,
+    order_id: UUID,
+) -> PickingResponse:
+    """Undo start-picking: revert order from PICKING back to AWAITING_PICK."""
+    await _get_warehouse(db, warehouse_id)
+    order = await _get_order(db, order_id)
+
+    if order.warehouse_id != warehouse_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Order does not belong to this warehouse"
+        )
+
+    _validate_substatus_transition(order.warehouse_substatus, "AWAITING_PICK")
+
+    order.warehouse_substatus = "AWAITING_PICK"
+    order.picking_started_at = None
+
+    await db.commit()
+
+    return PickingResponse(
+        order_id=order_id,
+        warehouse_substatus="AWAITING_PICK",
+        assigned_labourer_id=None,
+        message="Picking reverted to awaiting",
+    )
+
+
 async def complete_picking(
     db: AsyncSession,
     warehouse_id: UUID,
@@ -271,28 +395,39 @@ async def complete_picking(
                 + ", ".join(incomplete_items),
             )
     else:
-        for order_item in order_items:
-            inventory_result = await db.execute(
-                select(InventoryItem).where(
-                    InventoryItem.warehouse_id == warehouse_id,
-                    InventoryItem.sku == order_item.sku,
-                )
+        # Only run fallback deduction if no prior movements exist for this order
+        existing_movement = (
+            await db.execute(
+                select(InventoryMovement).where(
+                    InventoryMovement.reference_order_id == order_id,
+                    InventoryMovement.movement_type == "PICK",
+                ).limit(1)
             )
-            inventory_item = inventory_result.scalar_one_or_none()
+        ).scalar_one_or_none()
 
-            if inventory_item:
-                deduct_qty = min(order_item.quantity, inventory_item.quantity_on_hand)
-                if deduct_qty > 0:
-                    inventory_item.quantity_on_hand -= deduct_qty
-
-                    movement = InventoryMovement(
-                        item_id=inventory_item.id,
-                        movement_type="PICK",
-                        quantity=deduct_qty,
-                        reference_order_id=order_id,
-                        performed_by=None,
+        if not existing_movement:
+            for order_item in order_items:
+                inventory_result = await db.execute(
+                    select(InventoryItem).where(
+                        InventoryItem.warehouse_id == warehouse_id,
+                        InventoryItem.sku == order_item.sku,
                     )
-                    db.add(movement)
+                )
+                inventory_item = inventory_result.scalar_one_or_none()
+
+                if inventory_item:
+                    deduct_qty = min(order_item.quantity, inventory_item.quantity_on_hand)
+                    if deduct_qty > 0:
+                        inventory_item.quantity_on_hand -= deduct_qty
+
+                        movement = InventoryMovement(
+                            item_id=inventory_item.id,
+                            movement_type="PICK",
+                            quantity=deduct_qty,
+                            reference_order_id=order_id,
+                            performed_by=None,
+                        )
+                        db.add(movement)
 
     order.warehouse_substatus = "PICKED"
     order.picking_completed_at = datetime.now(timezone.utc)
@@ -394,8 +529,11 @@ async def confirm_pick_item(
 
     if inventory_item:
         if inventory_item.quantity_on_hand < data.quantity_picked:
-            # Allow negative for tracking but warn
-            pass  # Could log warning here
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Insufficient stock for {data.sku}: "
+                       f"need {data.quantity_picked}, available {inventory_item.quantity_on_hand}",
+            )
 
         inventory_item.quantity_on_hand -= data.quantity_picked
 
@@ -610,6 +748,21 @@ async def update_packing_station(
     if data.status is not None:
         station.status = data.status
     if data.assigned_labourer_id is not None:
+        # Validate labourer belongs to this warehouse
+        labourer_check = (
+            await db.execute(
+                select(Labourer).where(
+                    Labourer.id == data.assigned_labourer_id,
+                    Labourer.warehouse_id == warehouse_id,
+                    Labourer.is_active.is_(True),
+                )
+            )
+        ).scalar_one_or_none()
+        if not labourer_check:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Labourer not found or does not belong to this warehouse",
+            )
         station.assigned_labourer_id = data.assigned_labourer_id
     if data.current_order_id is not None:
         station.current_order_id = data.current_order_id
@@ -656,6 +809,26 @@ async def start_packing(
         )
 
     _validate_substatus_transition(order.warehouse_substatus, "PACKING")
+
+    # Verify all items were fully picked
+    from app.models.order import OrderItem, PickedItem
+    order_items = (await db.execute(
+        select(OrderItem).where(OrderItem.order_id == order_id)
+    )).scalars().all()
+    picked_items = (await db.execute(
+        select(PickedItem).where(PickedItem.order_id == order_id)
+    )).scalars().all()
+    picked_by_sku = {pi.sku: pi for pi in picked_items}
+    incomplete = [
+        f"{oi.sku} ({oi.quantity - (picked_by_sku[oi.sku].quantity_picked if oi.sku in picked_by_sku else 0)} remaining)"
+        for oi in order_items
+        if (picked_by_sku.get(oi.sku).quantity_picked if oi.sku in picked_by_sku else 0) < oi.quantity
+    ]
+    if incomplete:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot start packing — picking incomplete for: " + ", ".join(incomplete),
+        )
 
     station = None
     if data.station_id:
@@ -945,11 +1118,24 @@ async def get_loading_docks(
 
     result = await db.execute(
         select(LoadingDock)
-        .options(selectinload(LoadingDock.assigned_order))
+        .options(selectinload(LoadingDock.assigned_order), selectinload(LoadingDock.assigned_vehicle))
         .where(LoadingDock.warehouse_id == warehouse_id)
         .order_by(LoadingDock.dock_number)
     )
     docks = result.scalars().all()
+
+    # Lazy-seed: if this warehouse has no docks yet, create 6 now
+    if not docks:
+        for i in range(1, 7):
+            db.add(LoadingDock(warehouse_id=warehouse_id, dock_number=str(i), status="FREE"))
+        await db.flush()
+        result = await db.execute(
+            select(LoadingDock)
+            .options(selectinload(LoadingDock.assigned_order), selectinload(LoadingDock.assigned_vehicle))
+            .where(LoadingDock.warehouse_id == warehouse_id)
+            .order_by(LoadingDock.dock_number)
+        )
+        docks = result.scalars().all()
 
     items = []
     now = datetime.now(timezone.utc)
@@ -962,12 +1148,18 @@ async def get_loading_docks(
         if dock.assigned_order:
             order_tracking = dock.assigned_order.tracking_code
 
+        vehicle_code = None
+        if dock.assigned_vehicle:
+            v = dock.assigned_vehicle
+            vehicle_code = f"{v.code} · {v.license_plate}" if v.license_plate else v.code
+
         items.append(LoadingDockResponse(
             id=dock.id,
             warehouse_id=dock.warehouse_id,
             dock_number=dock.dock_number,
             status=dock.status,
-            assigned_truck_id=dock.assigned_truck_id,
+            assigned_vehicle_id=dock.assigned_vehicle_id,
+            assigned_vehicle_code=vehicle_code,
             assigned_carrier=dock.assigned_carrier,
             assigned_order_id=dock.assigned_order_id,
             assigned_order_tracking=order_tracking,
@@ -1003,7 +1195,8 @@ async def create_loading_dock(
         warehouse_id=dock.warehouse_id,
         dock_number=dock.dock_number,
         status=dock.status,
-        assigned_truck_id=None,
+        assigned_vehicle_id=None,
+        assigned_vehicle_code=None,
         assigned_carrier=None,
         assigned_order_id=None,
         assigned_order_tracking=None,
@@ -1026,7 +1219,7 @@ async def assign_truck_to_dock(
 
     result = await db.execute(
         select(LoadingDock)
-        .options(selectinload(LoadingDock.assigned_order))
+        .options(selectinload(LoadingDock.assigned_order), selectinload(LoadingDock.assigned_vehicle))
         .where(LoadingDock.id == dock_id, LoadingDock.warehouse_id == warehouse_id)
     )
     dock = result.scalar_one_or_none()
@@ -1039,7 +1232,18 @@ async def assign_truck_to_dock(
             detail=f"Dock is not available (current status: {dock.status})"
         )
 
-    # If order is provided, update its substatus
+    # Validate the vehicle exists and is available
+    from app.models.logistics import LogisticsVehicle
+    vehicle_result = await db.execute(
+        select(LogisticsVehicle).where(LogisticsVehicle.id == data.vehicle_id)
+    )
+    vehicle = vehicle_result.scalar_one_or_none()
+    if not vehicle:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
+    if vehicle.status == "In Use":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Vehicle {vehicle.code} is already in use")
+
+    # If order is provided, update its substatus and persist vehicle on the order
     if data.order_id:
         order = await _get_order(db, data.order_id)
         if order.warehouse_id != warehouse_id:
@@ -1049,26 +1253,38 @@ async def assign_truck_to_dock(
             )
         _validate_substatus_transition(order.warehouse_substatus, "ON_DOCK")
         order.warehouse_substatus = "ON_DOCK"
+        order.assigned_vehicle_id = data.vehicle_id  # persist vehicle on order for dispatcher
 
-    dock.assigned_truck_id = data.truck_id
-    dock.assigned_carrier = data.carrier
+    # Mark vehicle as In Use so it disappears from available lists
+    vehicle.status = "In Use"
+
+    dock.assigned_vehicle_id = data.vehicle_id
+    dock.assigned_carrier = "Internal Fleet"
     dock.assigned_order_id = data.order_id
     dock.arrived_at = datetime.now(timezone.utc)
     dock.status = "OCCUPIED"
 
     await db.commit()
-    await db.refresh(dock)
 
-    order_tracking = None
-    if dock.assigned_order:
-        order_tracking = dock.assigned_order.tracking_code
+    # Reload with relationships
+    result = await db.execute(
+        select(LoadingDock)
+        .options(selectinload(LoadingDock.assigned_order), selectinload(LoadingDock.assigned_vehicle))
+        .where(LoadingDock.id == dock_id)
+    )
+    dock = result.scalar_one()
+
+    order_tracking = dock.assigned_order.tracking_code if dock.assigned_order else None
+    v = dock.assigned_vehicle
+    vehicle_code = (f"{v.code} · {v.license_plate}" if v.license_plate else v.code) if v else None
 
     return LoadingDockResponse(
         id=dock.id,
         warehouse_id=dock.warehouse_id,
         dock_number=dock.dock_number,
         status=dock.status,
-        assigned_truck_id=dock.assigned_truck_id,
+        assigned_vehicle_id=dock.assigned_vehicle_id,
+        assigned_vehicle_code=vehicle_code,
         assigned_carrier=dock.assigned_carrier,
         assigned_order_id=dock.assigned_order_id,
         assigned_order_tracking=order_tracking,
@@ -1121,6 +1337,22 @@ async def release_dock(
     # Update order substatus if assigned
     if dock.assigned_order:
         order = dock.assigned_order
+
+        # Ensure QC was passed before allowing dispatch
+        qc_passed = (
+            await db.execute(
+                select(QualityCheck).where(
+                    QualityCheck.order_id == order.id,
+                    QualityCheck.is_passed.is_(True),
+                )
+            )
+        ).scalar_one_or_none()
+        if not qc_passed:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Quality check must be passed before dispatching the order",
+            )
+
         _validate_substatus_transition(order.warehouse_substatus, "DISPATCHED")
         order.warehouse_substatus = "DISPATCHED"
 
@@ -1129,9 +1361,12 @@ async def release_dock(
     if dock.arrived_at:
         dwell_minutes = int((now - dock.arrived_at).total_seconds() / 60)
 
+    # Vehicle stays "In Use" until dispatcher confirms dispatch — do NOT free it here
+    # (vehicle.status will be reset to Active when the order moves to IN_TRANSIT/DELIVERED)
+
     dock.released_at = now
     dock.status = "FREE"
-    dock.assigned_truck_id = None
+    dock.assigned_vehicle_id = None
     dock.assigned_carrier = None
     dock.assigned_order_id = None
     dock.arrived_at = None
@@ -1145,7 +1380,8 @@ async def release_dock(
         warehouse_id=dock.warehouse_id,
         dock_number=dock.dock_number,
         status=dock.status,
-        assigned_truck_id=None,
+        assigned_vehicle_id=None,
+        assigned_vehicle_code=None,
         assigned_carrier=None,
         assigned_order_id=None,
         assigned_order_tracking=None,
@@ -1190,7 +1426,8 @@ async def set_dock_maintenance(
         warehouse_id=dock.warehouse_id,
         dock_number=dock.dock_number,
         status=dock.status,
-        assigned_truck_id=dock.assigned_truck_id,
+        assigned_vehicle_id=dock.assigned_vehicle_id,
+        assigned_vehicle_code=None,
         assigned_carrier=dock.assigned_carrier,
         assigned_order_id=dock.assigned_order_id,
         assigned_order_tracking=None,

@@ -20,9 +20,9 @@
                     </div>
                 </div>
                 <div class="flex items-center text-sm">
-                    <span class="text-primary font-medium flex items-center">
-                        <span class="material-symbols-outlined text-[16px] mr-1">trending_up</span>
-                        +{{ store.dashboardStats.ordersTrend }}%
+                    <span class="font-medium flex items-center" :class="ordersTrend >= 0 ? 'text-primary' : 'text-red-400'">
+                        <span class="material-symbols-outlined text-[16px] mr-1">{{ ordersTrend >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                        {{ ordersTrend >= 0 ? '+' : '' }}{{ ordersTrend }}%
                     </span>
                     <span class="text-gray-500 dark:text-gray-400 ml-2">vs yesterday</span>
                 </div>
@@ -72,10 +72,10 @@
                     </div>
                 </div>
                 <div class="flex items-center text-sm">
-                    <span class="text-purple-400 font-medium flex items-center">
-                        High Perf.
+                    <span class="font-medium flex items-center" :class="successRateColor">
+                        {{ successRateLabel }}
                     </span>
-                    <span class="text-gray-500 dark:text-gray-400 ml-2">Consistent</span>
+                    <span class="text-gray-500 dark:text-gray-400 ml-2">{{ successRateStatus }}</span>
                 </div>
             </div>
 
@@ -87,7 +87,7 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Revenue Today</div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">${{
+                        <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">₹{{
                             (store.dashboardStats.revenueToday /
                                 1000).toFixed(1) }}k</div>
                     </div>
@@ -97,11 +97,11 @@
                     </div>
                 </div>
                 <div class="flex items-center text-sm">
-                    <span class="text-emerald-400 font-medium flex items-center">
-                        <span class="material-symbols-outlined text-[16px] mr-1">trending_up</span>
-                        +{{ store.dashboardStats.revenueTrend }}%
+                    <span class="font-medium flex items-center" :class="revenueTrend >= 0 ? 'text-emerald-400' : 'text-red-400'">
+                        <span class="material-symbols-outlined text-[16px] mr-1">{{ revenueTrend >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                        {{ revenueTrend >= 0 ? '+' : '' }}{{ revenueTrend }}%
                     </span>
-                    <span class="text-gray-500 dark:text-gray-400 ml-2">vs target</span>
+                    <span class="text-gray-500 dark:text-gray-400 ml-2">vs yesterday</span>
                 </div>
             </div>
         </div>
@@ -459,7 +459,7 @@
                                         class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
                                     <circle cx="18" cy="18" r="15.9155" fill="none"
                                         class="transition-all duration-1000 ease-out stroke-blue-500" stroke-width="3"
-                                        :stroke-dasharray="(currentHub.staffActive / currentHub.staffTotal * 100) + ', 100'"
+                                        :stroke-dasharray="`${staffFillPercent}, 100`"
                                         stroke-linecap="round"></circle>
                                 </svg>
                                 <div class="absolute inset-0 flex flex-col items-center justify-center">
@@ -481,7 +481,7 @@
                                         class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
                                     <circle cx="18" cy="18" r="15.9155" fill="none"
                                         class="transition-all duration-1000 ease-out stroke-purple-500" stroke-width="3"
-                                        :stroke-dasharray="(currentHub.vehiclesActive / currentHub.vehiclesTotal * 100) + ', 100'"
+                                        :stroke-dasharray="`${vehicleFillPercent}, 100`"
                                         stroke-linecap="round"></circle>
                                 </svg>
                                 <div class="absolute inset-0 flex flex-col items-center justify-center">
@@ -574,6 +574,23 @@ import DriverProfileModal from '@/LWD-components/DriverProfileModal.vue'
 import ContactHubModal from '@/LWD-components/ContactHubModal.vue'
 
 const store = useLogisticStore()
+const EMPTY_HUB = {
+    id: 'all',
+    hubCode: 'GLOBAL',
+    name: 'All Warehouses',
+    location: 'No warehouse data yet',
+    address: '',
+    capacity: 0,
+    efficiency: 0,
+    staffActive: 0,
+    staffTotal: 0,
+    vehiclesActive: 0,
+    vehiclesTotal: 0,
+    processRate: 0,
+    status: 'Monitoring',
+    statusColor: 'yellow',
+    bg: 'bg-slate-700',
+}
 const mapMarkerPositions = [
     { top: '50%', left: '33%' },
     { top: '33%', left: '75%' },
@@ -582,9 +599,110 @@ const mapMarkerPositions = [
 ]
 
 // --- Active Hub Logic ---
+function resolveNetworkStatus(hubs) {
+    const normalizedStatuses = hubs.map((hub) => String(hub.status || '').toLowerCase())
+
+    if (normalizedStatuses.some((status) => status === 'congested')) {
+        return 'Congested'
+    }
+
+    if (normalizedStatuses.some((status) => status && status !== 'optimal')) {
+        return 'Monitoring'
+    }
+
+    return 'Optimal'
+}
+
 const currentHub = computed(() => {
-    if (store.activeWarehouse === 'all') return null
-    return store.hubs.find(h => h.id === store.activeWarehouse)
+    const hubs = store.hubs || []
+
+    if (store.activeWarehouse !== 'all') {
+        return hubs.find((hub) => hub.id === store.activeWarehouse) || hubs[0] || EMPTY_HUB
+    }
+
+    if (hubs.length === 0) {
+        return EMPTY_HUB
+    }
+
+    if (hubs.length === 1) {
+        return hubs[0]
+    }
+
+    const totalCapacity = hubs.reduce((sum, hub) => sum + (Number(hub.capacity) || 0), 0)
+    const totalEfficiency = hubs.reduce((sum, hub) => sum + (Number(hub.efficiency) || 0), 0)
+    const totalStaffActive = hubs.reduce((sum, hub) => sum + (Number(hub.staffActive) || 0), 0)
+    const totalStaffTotal = hubs.reduce((sum, hub) => sum + (Number(hub.staffTotal) || 0), 0)
+    const totalVehiclesActive = hubs.reduce((sum, hub) => sum + (Number(hub.vehiclesActive) || 0), 0)
+    const totalVehiclesTotal = hubs.reduce((sum, hub) => sum + (Number(hub.vehiclesTotal) || 0), 0)
+    const totalProcessRate = hubs.reduce((sum, hub) => sum + (Number(hub.processRate) || 0), 0)
+
+    return {
+        ...EMPTY_HUB,
+        location: `${hubs.length} hubs connected`,
+        capacity: Math.round(totalCapacity / hubs.length),
+        efficiency: Math.round(totalEfficiency / hubs.length),
+        staffActive: totalStaffActive,
+        staffTotal: totalStaffTotal,
+        vehiclesActive: totalVehiclesActive,
+        vehiclesTotal: totalVehiclesTotal,
+        processRate: totalProcessRate,
+        status: resolveNetworkStatus(hubs),
+    }
+})
+
+// --- KPI Card Computed ---
+const ordersTrend = computed(() => {
+    const week = store.dashboardStats.orders?.week || []
+    if (week.length < 2) return store.dashboardStats.ordersTrend
+    const yesterday = week[week.length - 2] || 0
+    const today = week[week.length - 1] || 0
+    if (yesterday === 0) return today > 0 ? 100 : 0
+    return Math.round(((today - yesterday) / yesterday) * 100)
+})
+
+const revenueTrend = computed(() => {
+    const week = store.dashboardStats.revenue?.week || []
+    if (week.length < 2) return store.dashboardStats.revenueTrend
+    const yesterday = week[week.length - 2] || 0
+    const today = week[week.length - 1] || 0
+    if (yesterday === 0) return today > 0 ? 100 : 0
+    return Math.round(((today - yesterday) / yesterday) * 100)
+})
+
+const successRateLabel = computed(() => {
+    const rate = store.dashboardStats.deliverySuccess
+    if (rate >= 95) return 'Excellent'
+    if (rate >= 85) return 'High Perf.'
+    if (rate >= 70) return 'Moderate'
+    return 'Needs Work'
+})
+
+const successRateStatus = computed(() => {
+    const rate = store.dashboardStats.deliverySuccess
+    if (rate >= 95) return 'Outstanding'
+    if (rate >= 85) return 'Consistent'
+    if (rate >= 70) return 'Improving'
+    return 'Attention needed'
+})
+
+const successRateColor = computed(() => {
+    const rate = store.dashboardStats.deliverySuccess
+    if (rate >= 95) return 'text-emerald-400'
+    if (rate >= 85) return 'text-purple-400'
+    if (rate >= 70) return 'text-yellow-400'
+    return 'text-red-400'
+})
+
+const staffFillPercent = computed(() => {
+    const total = Number(currentHub.value.staffTotal) || 0
+    if (total <= 0) return 0
+    return Math.round(((Number(currentHub.value.staffActive) || 0) / total) * 100)
+})
+
+const vehicleFillPercent = computed(() => {
+    const total = Number(currentHub.value.vehiclesTotal) || 0
+    if (total <= 0) return 0
+    return Math.round(((Number(currentHub.value.vehiclesActive) || 0) / total) * 100)
 })
 
 const driverMapMarkers = computed(() => store.filteredDrivers.slice(0, mapMarkerPositions.length).map((driver, index) => {
@@ -619,7 +737,7 @@ const optimizeHub = () => {
             severity: 'low',
             type: 'system',
             icon: 'check_circle',
-            location: currentHub.value ? currentHub.value.location : 'Global Sector',
+            location: currentHub.value.location || 'Global Sector',
             timestamp: 'Just now',
             recommendation: 'Monitor load throughput for the next 15 minutes to verify stabilization.'
         })

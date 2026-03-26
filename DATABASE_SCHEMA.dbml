@@ -1,0 +1,653 @@
+// Project database schema for the QuadCore-Devs backend
+// Paste into https://dbdiagram.io/d
+// Generated from current SQLAlchemy models and Alembic migrations on 2026-03-20
+// PostgreSQL is the target database.
+// Seeded role values: LOGISTIC_MANAGER, WAREHOUSE_MANAGER, DISPATCHER, DRIVER, LABOURER, INDIVIDUAL, VENDOR, AI_AGENT
+// Important: orders.assigned_vehicle_id is used like a reference to logistics_vehicles.id in the codebase,
+// but the current database schema does not enforce it as a foreign key.
+
+Table roles {
+  id integer [pk, not null, increment]
+  name varchar(50) [not null, unique]
+}
+
+Table users {
+  id uuid [pk, not null]
+  name varchar(255) [not null]
+  username varchar(64) [not null, unique]
+  email varchar(255) [not null, unique]
+  phone varchar(20)
+  alt_phone varchar(20)
+  date_of_birth date
+  address text
+  preferred_language varchar(10) [not null]
+  preferred_currency varchar(10) [not null]
+  default_payment_method varchar(30) [not null]
+  notifications_push boolean [not null]
+  notifications_sms boolean [not null]
+  notifications_email boolean [not null]
+  notifications_geofence boolean [not null]
+  notifications_promo boolean [not null]
+  privacy_location boolean [not null]
+  privacy_analytics boolean [not null]
+  privacy_marketing boolean [not null]
+  password_hash varchar(255) [not null]
+  role_id integer [not null]
+  warehouse_id uuid
+  is_active boolean [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    email [unique, name: 'ix_users_email']
+    username [unique, name: 'ix_users_username']
+  }
+}
+
+Table ai_conversations {
+  id uuid [pk, not null]
+  session_id uuid [not null]
+  user_id uuid [not null]
+  role varchar(20) [not null]
+  message text [not null]
+  intent varchar(50)
+  sql_generated text
+  query_result json
+  created_at timestamp [not null]
+}
+
+Table escalations {
+  id uuid [pk, not null]
+  conversation_id uuid [not null]
+  reason text [not null]
+  escalated_to_user_id uuid
+  escalated_at timestamp [not null]
+  resolved_at timestamp
+  status varchar(20) [not null]
+}
+
+Table warehouses {
+  id uuid [pk, not null]
+  name varchar(255) [not null, unique]
+  address text [not null]
+  lat float
+  lng float
+  manager_id uuid
+  floor_plan_json jsonb
+  capacity_limit integer
+  is_active boolean [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table orders {
+  id uuid [pk, not null]
+  tracking_code varchar(32) [not null, unique]
+  order_type varchar(20) [not null]
+  status varchar(20) [not null]
+  warehouse_substatus varchar(30)
+  customer_id uuid [not null]
+  warehouse_id uuid
+  assigned_driver_id uuid
+  assigned_vehicle_id uuid [note: 'Logical reference to logistics_vehicles.id; no DB FK currently']
+  pickup_addr text [not null]
+  delivery_addr text [not null]
+  cargo_type varchar(100)
+  vehicle_type varchar(50)
+  labor_count integer [not null]
+  base_amount float [not null]
+  vehicle_amount float [not null]
+  labor_amount float [not null]
+  materials_amount float [not null]
+  packing_amount float [not null]
+  platform_fee float [not null]
+  tax_amount float [not null]
+  total_amount float [not null]
+  payment_mode varchar(30)
+  payment_status varchar(20) [not null]
+  service_otp varchar(10)
+  service_time_block varchar(50)
+  scheduled_at timestamp
+  cancel_reason text
+  picking_started_at timestamp
+  picking_completed_at timestamp
+  packing_started_at timestamp
+  packing_completed_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    tracking_code [unique, name: 'ix_orders_tracking_code']
+  }
+}
+
+Table order_items {
+  id uuid [pk, not null]
+  order_id uuid [not null]
+  sku varchar(64) [not null]
+  quantity integer [not null]
+  box_count integer
+  estimated_volume float
+  created_at timestamp [not null]
+
+  Indexes {
+    (order_id, sku) [unique, name: 'uq_order_items_order_id_sku']
+  }
+}
+
+Table picked_items {
+  id uuid [pk, not null]
+  order_id uuid [not null]
+  sku varchar(64) [not null]
+  quantity_picked integer [not null]
+  quantity_required integer [not null]
+  picked_by uuid
+  location varchar(200)
+  notes text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (order_id, sku) [unique, name: 'uq_picked_items_order_id_sku']
+  }
+}
+
+Table customer_quotes {
+  id uuid [pk, not null]
+  reference_code varchar(32) [not null, unique]
+  customer_id uuid [not null]
+  cargo_type varchar(100) [not null]
+  from_location text [not null]
+  to_location text [not null]
+  labor_count integer [not null]
+  packing boolean [not null]
+  total_amount float [not null]
+  status varchar(20) [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    reference_code [unique, name: 'ix_customer_quotes_reference_code']
+  }
+}
+
+Table damage_reports {
+  id uuid [pk, not null]
+  reference_code varchar(32) [not null, unique]
+  customer_id uuid [not null]
+  order_id uuid
+  description text [not null]
+  photos json [not null]
+  status varchar(20) [not null]
+  qr_code varchar(64) [not null, unique]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    reference_code [unique, name: 'ix_damage_reports_reference_code']
+  }
+}
+
+Table inventory_items {
+  id uuid [pk, not null]
+  warehouse_id uuid [not null]
+  sku varchar(64) [not null]
+  name varchar(255) [not null]
+  category varchar(100)
+  unit varchar(30) [not null]
+  quantity_on_hand integer [not null]
+  safety_stock integer [not null]
+  aisle varchar(30)
+  shelf varchar(30)
+  bin varchar(30)
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (warehouse_id, sku) [unique, name: 'uq_inventory_items_warehouse_sku']
+  }
+}
+
+Table inventory_movements {
+  id uuid [pk, not null]
+  item_id uuid [not null]
+  movement_type varchar(20) [not null]
+  quantity integer [not null]
+  reference_order_id uuid
+  performed_by uuid
+  created_at timestamp [not null]
+}
+
+Table restock_requests {
+  id uuid [pk, not null]
+  item_id uuid [not null]
+  warehouse_id uuid [not null]
+  quantity integer [not null]
+  status varchar(20) [not null]
+  requested_by uuid
+  manager_notes text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table labourers {
+  id uuid [pk, not null]
+  user_id uuid [not null, unique]
+  warehouse_id uuid [not null]
+  assigned_order_id uuid
+  skill_tags jsonb
+  is_active boolean [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table labour_attendance {
+  id uuid [pk, not null]
+  labourer_id uuid [not null]
+  event_type varchar(20) [not null]
+  created_at timestamp [not null]
+}
+
+Table loading_docks {
+  id uuid [pk, not null]
+  warehouse_id uuid [not null]
+  dock_number varchar(20) [not null]
+  status varchar(30) [not null]
+  assigned_truck_id varchar(50)
+  assigned_carrier varchar(100)
+  assigned_order_id uuid
+  arrived_at timestamp
+  loading_started_at timestamp
+  released_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table packing_stations {
+  id uuid [pk, not null]
+  warehouse_id uuid [not null]
+  station_number varchar(30) [not null]
+  status varchar(20) [not null]
+  assigned_labourer_id uuid
+  current_order_id uuid
+  items_packed_today integer [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table quality_checks {
+  id uuid [pk, not null]
+  order_id uuid [not null, unique]
+  warehouse_id uuid [not null]
+  performed_by uuid
+  goods_correct boolean [not null]
+  count_correct boolean [not null]
+  packaging_verified boolean [not null]
+  labor_assigned boolean [not null]
+  weight_verified boolean [not null]
+  label_attached boolean [not null]
+  is_passed boolean [not null]
+  notes text
+  checked_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table return_gradings {
+  id uuid [pk, not null]
+  warehouse_id uuid [not null]
+  order_id uuid
+  rma_code varchar(50) [not null, unique]
+  item_condition varchar(50) [not null]
+  condition_notes text
+  disposition varchar(30) [not null]
+  damage_photo_url varchar(500)
+  graded_by uuid
+  graded_at timestamp
+  status varchar(20) [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table warehouse_zone_metrics {
+  id uuid [pk, not null]
+  warehouse_id uuid [not null]
+  zone_id varchar(100) [not null]
+  metric_date date [not null]
+  orders_processed integer [not null]
+  picking_accuracy_pct float [not null]
+  active_pickers integer [not null]
+  capacity_used_pct float [not null]
+  throughput_items_per_hour float [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table vendor_team_members {
+  id uuid [pk, not null]
+  vendor_id uuid [not null]
+  name varchar(255) [not null]
+  email varchar(255) [not null]
+  role varchar(50) [not null]
+  status varchar(30) [not null]
+  created_at timestamp [not null]
+}
+
+Table vendor_api_keys {
+  id uuid [pk, not null]
+  vendor_id uuid [not null]
+  name varchar(255) [not null]
+  key_value varchar(255) [not null]
+  status varchar(30) [not null]
+  created_at timestamp [not null]
+  last_used_at timestamp
+}
+
+Table vendor_recurring_rules {
+  id uuid [pk, not null]
+  vendor_id uuid [not null]
+  name varchar(255) [not null]
+  description text
+  frequency varchar(100) [not null]
+  route varchar(255) [not null]
+  details varchar(255) [not null]
+  next_run varchar(100) [not null]
+  active boolean [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table vendor_bulk_uploads {
+  id uuid [pk, not null]
+  vendor_id uuid [not null]
+  filename varchar(255) [not null]
+  file_size_kb integer [not null]
+  orders integer [not null]
+  status varchar(30) [not null]
+  errors integer [not null]
+  scheduled_for varchar(100)
+  created_at timestamp [not null]
+}
+
+Table vendor_support_tickets {
+  id uuid [pk, not null]
+  vendor_id uuid [not null]
+  order_id uuid
+  subject varchar(255) [not null]
+  description text [not null]
+  priority varchar(30) [not null]
+  status varchar(30) [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table vendor_support_replies {
+  id uuid [pk, not null]
+  ticket_id uuid [not null]
+  from_name varchar(100) [not null]
+  message text [not null]
+  created_at timestamp [not null]
+}
+
+Table logistics_driver_profiles {
+  id uuid [pk, not null]
+  user_id uuid [not null, unique]
+  warehouse_id uuid
+  status varchar(30) [not null]
+  current_location varchar(255)
+  current_job varchar(255)
+  efficiency_score integer [not null]
+  avatar_color varchar(30)
+  chat_history jsonb
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table logistics_vehicles {
+  id uuid [pk, not null]
+  code varchar(50) [not null, unique]
+  vehicle_type varchar(100) [not null]
+  warehouse_id uuid
+  assigned_driver_id uuid
+  model varchar(100)
+  year integer
+  license_plate varchar(50)
+  status varchar(30) [not null]
+  fuel_efficiency varchar(50)
+  mileage integer [not null]
+  next_service_date timestamp
+  maintenance_issue varchar(255)
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    code [unique, name: 'ix_logistics_vehicles_code']
+  }
+}
+
+Table logistics_transactions {
+  id uuid [pk, not null]
+  warehouse_id uuid
+  transaction_code varchar(50) [not null, unique]
+  transaction_date timestamp [not null]
+  description varchar(255) [not null]
+  transaction_type varchar(50) [not null]
+  amount float [not null]
+  status varchar(30) [not null]
+  metadata_json jsonb
+  created_at timestamp [not null]
+
+  Indexes {
+    transaction_code [unique, name: 'ix_logistics_transactions_transaction_code']
+  }
+}
+
+Table logistics_zones {
+  id uuid [pk, not null]
+  warehouse_id uuid [not null]
+  name varchar(255) [not null]
+  zone_type varchar(50) [not null]
+  radius_km float
+  status varchar(30) [not null]
+  color_token varchar(30)
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table logistics_alerts {
+  id uuid [pk, not null]
+  warehouse_id uuid
+  alert_type varchar(50) [not null]
+  title varchar(255) [not null]
+  description text [not null]
+  severity varchar(20) [not null]
+  icon varchar(50)
+  location varchar(255)
+  recommendation text
+  impact_json jsonb
+  is_active boolean [not null]
+  created_at timestamp [not null]
+}
+
+Table logistics_notifications {
+  id uuid [pk, not null]
+  title varchar(255) [not null]
+  message text [not null]
+  type varchar(30) [not null]
+  is_read boolean [not null]
+  created_at timestamp [not null]
+}
+
+Table logistics_tasks {
+  id uuid [pk, not null]
+  text varchar(255) [not null]
+  status varchar(30) [not null]
+  target_time timestamp
+  repeat_rule varchar(30)
+  silenced boolean [not null]
+  last_alert_time timestamp
+  created_at timestamp [not null]
+}
+
+Table logistics_chat_threads {
+  id uuid [pk, not null]
+  warehouse_id uuid
+  name varchar(255) [not null]
+  status varchar(30) [not null]
+  phone varchar(20)
+  muted boolean [not null]
+  last_message text
+  last_message_at timestamp
+  created_at timestamp [not null]
+}
+
+Table logistics_chat_messages {
+  id uuid [pk, not null]
+  thread_id uuid [not null]
+  sender varchar(30) [not null]
+  text text [not null]
+  created_at timestamp [not null]
+}
+
+Table logistics_escalations {
+  id uuid [pk, not null]
+  warehouse_id uuid
+  title varchar(255) [not null]
+  priority varchar(20) [not null]
+  requester_name varchar(255) [not null]
+  requester_role varchar(100) [not null]
+  description text [not null]
+  action_details text
+  status varchar(30) [not null]
+  created_at timestamp [not null]
+}
+
+Table logistics_return_cases {
+  id uuid [pk, not null]
+  warehouse_id uuid
+  order_id uuid
+  reference_code varchar(50) [not null, unique]
+  customer_name varchar(255) [not null]
+  reason varchar(255) [not null]
+  condition varchar(100) [not null]
+  status varchar(30) [not null]
+  original_price float [not null]
+  refund_amount float [not null]
+  images jsonb
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    reference_code [unique, name: 'ix_logistics_return_cases_reference_code']
+  }
+}
+
+Table logistics_daily_stats {
+  id uuid [pk, not null]
+  warehouse_id uuid
+  stat_date date [not null]
+  orders_count integer [not null]
+  revenue float [not null]
+  deliveries_completed integer [not null]
+  deliveries_failed integer [not null]
+  sla_compliance float [not null]
+  created_at timestamp [not null]
+}
+
+Table logistics_metrics {
+  id uuid [pk, not null]
+  warehouse_id uuid
+  metric_type varchar(50) [not null]
+  label varchar(100) [not null]
+  value_main float [not null]
+  value_secondary float
+  created_at timestamp [not null]
+}
+
+Table logistics_equipment_ledger {
+  id uuid [pk, not null]
+  warehouse_id uuid
+  item_type varchar(50) [not null]
+  issued_count integer [not null]
+  returned_count integer [not null]
+  reference_code varchar(50)
+  status varchar(30) [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table logistics_documents {
+  id uuid [pk, not null]
+  entity_type varchar(50) [not null]
+  entity_id varchar(50) [not null]
+  hub_id uuid
+  doc_type varchar(100) [not null]
+  document_url varchar
+  status varchar(50) [not null]
+  expiry_date timestamp
+  notes varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Ref: ai_conversations.user_id > users.id
+Ref: customer_quotes.customer_id > users.id
+Ref: damage_reports.customer_id > users.id
+Ref: damage_reports.order_id > orders.id
+Ref: escalations.conversation_id > ai_conversations.id
+Ref: escalations.escalated_to_user_id > users.id
+Ref: inventory_items.warehouse_id > warehouses.id
+Ref: inventory_movements.item_id > inventory_items.id
+Ref: inventory_movements.performed_by > users.id
+Ref: inventory_movements.reference_order_id > orders.id
+Ref: labour_attendance.labourer_id > labourers.id
+Ref: labourers.assigned_order_id > orders.id
+Ref: labourers.user_id > users.id
+Ref: labourers.warehouse_id > warehouses.id
+Ref: loading_docks.assigned_order_id > orders.id
+Ref: loading_docks.warehouse_id > warehouses.id
+Ref: logistics_alerts.warehouse_id > warehouses.id
+Ref: logistics_chat_messages.thread_id > logistics_chat_threads.id
+Ref: logistics_chat_threads.warehouse_id > warehouses.id
+Ref: logistics_daily_stats.warehouse_id > warehouses.id
+Ref: logistics_documents.hub_id > warehouses.id
+Ref: logistics_driver_profiles.user_id > users.id
+Ref: logistics_driver_profiles.warehouse_id > warehouses.id
+Ref: logistics_equipment_ledger.warehouse_id > warehouses.id
+Ref: logistics_escalations.warehouse_id > warehouses.id
+Ref: logistics_metrics.warehouse_id > warehouses.id
+Ref: logistics_return_cases.order_id > orders.id
+Ref: logistics_return_cases.warehouse_id > warehouses.id
+Ref: logistics_transactions.warehouse_id > warehouses.id
+Ref: logistics_vehicles.assigned_driver_id > users.id
+Ref: logistics_vehicles.warehouse_id > warehouses.id
+Ref: logistics_zones.warehouse_id > warehouses.id
+Ref: order_items.order_id > orders.id
+Ref: orders.assigned_driver_id > users.id
+Ref: orders.customer_id > users.id
+Ref: orders.warehouse_id > warehouses.id
+Ref: packing_stations.assigned_labourer_id > labourers.id
+Ref: packing_stations.current_order_id > orders.id
+Ref: packing_stations.warehouse_id > warehouses.id
+Ref: picked_items.order_id > orders.id
+Ref: picked_items.picked_by > users.id
+Ref: quality_checks.order_id > orders.id
+Ref: quality_checks.performed_by > users.id
+Ref: quality_checks.warehouse_id > warehouses.id
+Ref: restock_requests.item_id > inventory_items.id
+Ref: restock_requests.requested_by > users.id
+Ref: restock_requests.warehouse_id > warehouses.id
+Ref: return_gradings.graded_by > users.id
+Ref: return_gradings.order_id > orders.id
+Ref: return_gradings.warehouse_id > warehouses.id
+Ref: users.role_id > roles.id
+Ref: users.warehouse_id > warehouses.id
+Ref: vendor_api_keys.vendor_id > users.id
+Ref: vendor_bulk_uploads.vendor_id > users.id
+Ref: vendor_recurring_rules.vendor_id > users.id
+Ref: vendor_support_replies.ticket_id > vendor_support_tickets.id
+Ref: vendor_support_tickets.order_id > orders.id
+Ref: vendor_support_tickets.vendor_id > users.id
+Ref: vendor_team_members.vendor_id > users.id
+Ref: warehouse_zone_metrics.warehouse_id > warehouses.id
+Ref: warehouses.manager_id > users.id

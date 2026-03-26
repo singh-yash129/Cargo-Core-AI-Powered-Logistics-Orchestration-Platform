@@ -52,7 +52,7 @@ class LoadingDock(Base):
     warehouse_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=False)
     dock_number: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="FREE")  # FREE, OCCUPIED, MAINTENANCE
-    assigned_truck_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    assigned_vehicle_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("logistics_vehicles.id"), nullable=True)
     assigned_carrier: Mapped[str | None] = mapped_column(String(100), nullable=True)
     assigned_order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=True)
     arrived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -69,6 +69,7 @@ class LoadingDock(Base):
 
     warehouse = relationship("Warehouse", back_populates="loading_docks")
     assigned_order = relationship("Order", foreign_keys=[assigned_order_id])
+    assigned_vehicle = relationship("LogisticsVehicle", foreign_keys=[assigned_vehicle_id])
 
 
 class PackingStation(Base):

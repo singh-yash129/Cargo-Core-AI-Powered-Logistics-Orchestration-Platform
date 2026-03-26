@@ -5,9 +5,15 @@ from pydantic import BaseModel, Field
 
 
 class LabourerCreate(BaseModel):
-    user_id: UUID
-    warehouse_id: UUID
+    """Create a new labourer - either with existing user_id or create new with name/phone"""
+    user_id: UUID | None = None
+    warehouse_id: UUID | None = None
+    name: str | None = None
+    email: str | None = None
+    phone: str | None = None
     skill_tags: list[str] | None = None
+    role: str | None = None
+    department: str | None = None
 
 
 class LabourerUpdate(BaseModel):
@@ -27,6 +33,10 @@ class LabourerResponse(BaseModel):
     is_active: bool
     name: str | None = None
     email: str | None = None
+    phone: str | None = None
+    role: str | None = None
+    full_name: str | None = None
+    status: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

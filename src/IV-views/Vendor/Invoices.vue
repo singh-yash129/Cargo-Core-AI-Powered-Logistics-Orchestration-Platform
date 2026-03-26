@@ -6,6 +6,11 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage payments, invoices, and billing history</p>
             </div>
             <div class="flex gap-3">
+                <button @click="openSlipWithData('finalTaxInvoice', store.shipments.find(s => s.id === store.invoices[0]?.orderId), authStore.currentUser)"
+                    :disabled="!store.invoices.length"
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <span class="material-symbols-outlined text-[16px]">request_quote</span> Tax Invoice
+                </button>
                 <button @click="exportReport" class="px-4 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white rounded-lg font-bold text-sm transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[16px]">download</span> Export
                 </button>
@@ -91,8 +96,8 @@
                                     <button v-if="inv.status !== 'Paid'" @click="openPayModal(inv)" class="p-1.5 rounded-lg hover:bg-green-500/10 text-gray-400 hover:text-green-500 transition-colors" title="Pay">
                                         <span class="material-symbols-outlined text-[16px]">payments</span>
                                     </button>
-                                    <button @click="downloadInvoice(inv)" class="p-1.5 rounded-lg hover:bg-gray-500/10 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors" title="Download">
-                                        <span class="material-symbols-outlined text-[16px]">download</span>
+                                    <button @click="openSlipWithData('finalTaxInvoice', store.shipments.find(s => s.id === inv.orderId), authStore.currentUser)" class="p-1.5 rounded-lg hover:bg-green-500/10 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors" title="Download Invoice">
+                                        <span class="material-symbols-outlined text-[16px]">request_quote</span>
                                     </button>
                                 </div>
                             </td>
@@ -121,56 +126,38 @@
                 </div>
                 <template #footer>
                     <button @click="viewingInvoice = null" class="px-4 py-2 text-gray-500 text-sm">Close</button>
+                    <button @click="openSlipWithData('finalTaxInvoice', store.shipments.find(s => s.id === viewingInvoice.orderId), authStore.currentUser)"
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[15px]">request_quote</span> Download Invoice
+                    </button>
                     <button v-if="viewingInvoice?.status !== 'Paid'" @click="openPayModal(viewingInvoice); viewingInvoice = null" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors">Make Payment</button>
                 </template>
             </BaseModal>
         </Teleport>
 
-        <!-- Payment Modal -->
-        <Teleport to="body">
-            <BaseModal :isOpen="showPayModal" @close="showPayModal = false">
-                <template #title>Make Payment — {{ payingInvoice?.id }}</template>
-                <div v-if="payingInvoice" class="space-y-4">
-                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-500">Total Due</span><span class="font-bold text-gray-900 dark:text-white">₹{{ (payingInvoice.amount - payingInvoice.paid).toLocaleString() }}</span></div>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Payment Type</label>
-                        <div class="flex gap-3">
-                            <label class="flex-1 text-center px-3 py-2 rounded-lg border cursor-pointer text-sm font-medium transition-colors" :class="paymentType === 'full' ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'border-gray-200 dark:border-white/10 text-gray-500'">
-                                <input type="radio" value="full" v-model="paymentType" class="sr-only">Full Payment
-                            </label>
-                            <label class="flex-1 text-center px-3 py-2 rounded-lg border cursor-pointer text-sm font-medium transition-colors" :class="paymentType === 'partial' ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'border-gray-200 dark:border-white/10 text-gray-500'">
-                                <input type="radio" value="partial" v-model="paymentType" class="sr-only">Partial
-                            </label>
-                        </div>
-                    </div>
-                    <div v-if="paymentType === 'partial'">
-                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Amount (₹) *</label>
-                        <input v-model.number="payAmount" type="number" :max="payingInvoice.amount - payingInvoice.paid" min="1" placeholder="Enter amount" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Payment Method</label>
-                        <div class="flex flex-wrap gap-2">
-                            <label v-for="m in ['Bank Transfer', 'Credit Card', 'UPI', 'Wallet']" :key="m" class="px-3 py-2 rounded-lg border cursor-pointer text-xs font-medium transition-colors" :class="payMethod === m ? 'border-green-500 bg-green-500/10 text-green-600 dark:text-green-400' : 'border-gray-200 dark:border-white/10 text-gray-500'">
-                                <input type="radio" :value="m" v-model="payMethod" class="sr-only">{{ m }}
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <template #footer>
-                    <button @click="showPayModal = false" class="px-4 py-2 text-gray-500 text-sm">Cancel</button>
-                    <button @click="submitPayment" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors">Confirm Payment</button>
-                </template>
-            </BaseModal>
-        </Teleport>
+        <!-- Razorpay Checkout for Invoice Payment -->
+        <RazorpayCheckout
+            v-model="showPayModal"
+            :amount="payingInvoice ? (payingInvoice.amount - payingInvoice.paid) : 0"
+            :order-id="payingInvoice?.orderId || ''"
+            :description="payingInvoice ? ('Invoice ' + payingInvoice.id) : ''"
+            :name="authStore.currentUser?.name || ''"
+            :email="authStore.currentUser?.email || ''"
+            @success="onRazorpaySuccess"
+        />
     </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { useVendorStore } from '@/stores/vendorStore'
+import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
+import RazorpayCheckout from '@/components/RazorpayCheckout.vue'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+
+const { openSlip, openSlipWithData } = useSlipPrinter()
+const authStore = useAuthStore()
 
 const store = useVendorStore()
 const searchQuery = ref('')
@@ -178,9 +165,6 @@ const statusFilter = ref('all')
 const viewingInvoice = ref(null)
 const showPayModal = ref(false)
 const payingInvoice = ref(null)
-const paymentType = ref('full')
-const payAmount = ref(0)
-const payMethod = ref('Bank Transfer')
 
 const filteredInvoices = computed(() => {
     let list = store.invoices
@@ -205,27 +189,20 @@ function viewInvoice(inv) {
 
 function openPayModal(inv) {
     payingInvoice.value = inv
-    paymentType.value = 'full'
-    payAmount.value = inv.amount - inv.paid
-    payMethod.value = 'Bank Transfer'
     showPayModal.value = true
 }
 
-function submitPayment() {
+async function onRazorpaySuccess({ payment_id, method, amount }) {
     if (!payingInvoice.value) return
-    const amount = paymentType.value === 'full' ? (payingInvoice.value.amount - payingInvoice.value.paid) : payAmount.value
-    if (amount <= 0) return
-    store.payInvoice(payingInvoice.value.id, amount)
-    showPayModal.value = false
+    const ok = await store.payInvoice(payingInvoice.value.id, amount, method)
     payingInvoice.value = null
-    showToast('Payment recorded successfully')
+    showToast(ok ? `Payment of ₹${amount.toLocaleString()} recorded! (${payment_id})` : 'Payment failed — please try again')
 }
 
-function payAllDue() {
+async function payAllDue() {
     if (!confirm('Pay all outstanding invoices?')) return
-    store.invoices.filter(i => i.status !== 'Paid').forEach(inv => {
-        store.payInvoice(inv.id, inv.amount - inv.paid)
-    })
+    const unpaid = store.invoices.filter(i => i.status !== 'Paid')
+    await Promise.all(unpaid.map(inv => store.payInvoice(inv.id, inv.amount - inv.paid, 'Bank Transfer')))
     showToast('All invoices settled')
 }
 

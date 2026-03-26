@@ -321,8 +321,8 @@ const employeeData = computed(() => ({
 
 const handleLogout = async () => {
     showLogoutConfirm.value = false
-    await authStore.logout()
-    router.replace('/login')
+    const loginPath = authStore.logout()
+    router.replace(loginPath)
 }
 
 const availableHubs = computed(() => {

@@ -22,6 +22,7 @@ from app.schemas.auth import (
     OTPVerifiedResponse,
     RefreshTokenRequest,
     ResetPasswordRequest,
+    SignupOtpSendResponse,
     SendOTPRequest,
     TokenResponse,
     UserLogin,
@@ -43,6 +44,10 @@ _OTP_PREFIX = "signup_otp:"
 _RESET_OTP_PREFIX = "reset_otp:"  # New prefix for password reset OTPs
 _RESET_TTL_SECONDS = 3600   # 1 hour
 _OTP_TTL_SECONDS = 600      # 10 minutes
+
+# In-memory OTP fallback when Redis is unavailable
+_otp_memory: dict[str, str] = {}
+_reset_otp_memory: dict[str, str] = {}
 settings = get_settings()
 
 # Roles allowed through the public /register endpoint (kept in sync with schema).
@@ -244,6 +249,9 @@ async def login_user(db: AsyncSession, data: UserLogin) -> LoginResponse:
             detail="Account is deactivated",
         )
 
+    user.last_login = datetime.now(timezone.utc)
+    db.add(user)
+    await db.flush()
     await db.refresh(user, attribute_names=["role"])
     return _build_login_response(user)
 
@@ -380,7 +388,11 @@ async def forgot_password(db: AsyncSession, redis: Redis | None, data: ForgotPas
 
     # Generate 6-digit OTP
     otp = f"{random.randint(0, 999999):06d}"
-    await redis.setex(f"{_RESET_OTP_PREFIX}{data.email.lower()}", _OTP_TTL_SECONDS, otp)
+    reset_key = f"{_RESET_OTP_PREFIX}{data.email.lower()}"
+    if redis is not None:
+        await redis.setex(reset_key, _OTP_TTL_SECONDS, otp)
+    else:
+        _reset_otp_memory[data.email.lower()] = otp
 
     logger.info(f"[DEV] Password reset OTP for {user.email}: {otp}")
 
@@ -397,16 +409,19 @@ async def reset_password(
 ) -> None:
     """Validate the OTP and update the user's password hash."""
     redis_key = f"{_RESET_OTP_PREFIX}{data.email.lower()}"
-    stored_otp = await redis.get(redis_key)
 
-    if not stored_otp:
+    if redis is not None:
+        raw = await redis.get(redis_key)
+        stored_otp_str = raw.decode() if isinstance(raw, bytes) else (str(raw) if raw else None)
+    else:
+        stored_otp_str = _reset_otp_memory.get(data.email.lower())
+
+    if not stored_otp_str:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Reset code is invalid or has expired",
         )
 
-    # Validate OTP
-    stored_otp_str = stored_otp.decode() if isinstance(stored_otp, bytes) else str(stored_otp)
     if stored_otp_str != data.token:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -427,17 +442,21 @@ async def reset_password(
     await db.flush()
 
     # Consume the OTP (one-time use)
-    await redis.delete(redis_key)
+    if redis is not None:
+        await redis.delete(redis_key)
+    else:
+        _reset_otp_memory.pop(data.email.lower(), None)
     logger.info(f"Password reset completed for user: {user.email}")
 
 
-async def send_signup_otp(db: AsyncSession, redis: Redis | None, data: SendOTPRequest) -> None:
-    """Generate a 6-digit OTP, store in Redis, and send via email."""
+async def send_signup_otp(db: AsyncSession, redis: Redis | None, data: SendOTPRequest) -> SignupOtpSendResponse:
+    """Generate a 6-digit OTP, store it, and send via email."""
     import random
     from app.utils.email import send_email, otp_email_html
 
     # Check if email already exists to provide early feedback
-    existing = await _get_user_by_email(db, data.email)
+    email = data.email.lower()
+    existing = await _get_user_by_email(db, email)
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -445,30 +464,57 @@ async def send_signup_otp(db: AsyncSession, redis: Redis | None, data: SendOTPRe
         )
 
     otp = f"{random.randint(0, 999999):06d}"
-    await redis.setex(f"{_OTP_PREFIX}{data.email.lower()}", _OTP_TTL_SECONDS, otp)
-    logger.info(f"[DEV] Signup OTP for {data.email}: {otp}")
+    key = f"{_OTP_PREFIX}{email}"
+    sent_at = datetime.now(timezone.utc)
+    if redis is not None:
+        await redis.setex(key, _OTP_TTL_SECONDS, otp)
+    else:
+        _otp_memory[email] = otp
+    logger.info(f"[DEV] Signup OTP for {email}: {otp}")
 
-    await send_email(
-        to=data.email,
+    sent = await send_email(
+        to=email,
         subject="Your Cargo Core Verification Code",
-        html_body=otp_email_html(otp, data.email),
+        html_body=otp_email_html(otp, email),
+    )
+    if not sent:
+        if settings.is_production:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Signup OTP email could not be sent. Check SMTP configuration.",
+            )
+
+        logger.warning("[EMAIL] Signup OTP generated without email delivery in development for {}", email)
+        return SignupOtpSendResponse(
+            message="Signup OTP generated (email unavailable in development)",
+            email=email,
+            sent_at=sent_at,
+            debug_otp=otp,
+        )
+
+    return SignupOtpSendResponse(
+        message="Signup OTP sent successfully",
+        email=email,
+        sent_at=sent_at,
     )
 
 
 async def verify_signup_otp(redis: Redis | None, data: VerifyOTPRequest) -> OTPVerifiedResponse:
     """Verify the signup OTP sent to the user's email."""
     key = f"{_OTP_PREFIX}{data.email.lower()}"
-    stored_otp = await redis.get(key)
 
-    # stored_otp can be bytes, string, or None depending on redis client config
-    if not stored_otp:
+    if redis is not None:
+        stored_otp = await redis.get(key)
+        stored_otp_str = stored_otp.decode() if isinstance(stored_otp, bytes) else (str(stored_otp) if stored_otp else None)
+    else:
+        stored_otp_str = _otp_memory.get(data.email.lower())
+
+    if not stored_otp_str:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OTP. Please request a new one.",
         )
-        
-    stored_otp_str = stored_otp.decode() if isinstance(stored_otp, bytes) else str(stored_otp)
-    
+
     if stored_otp_str != data.otp:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -476,7 +522,11 @@ async def verify_signup_otp(redis: Redis | None, data: VerifyOTPRequest) -> OTPV
         )
 
     # Consume OTP — one time use
-    await redis.delete(key)
+    if redis is not None:
+        await redis.delete(key)
+    else:
+        _otp_memory.pop(data.email.lower(), None)
+
     logger.info(f"Email verified via OTP: {data.email}")
     return OTPVerifiedResponse(verified=True, message="Email verified successfully!")
 
@@ -537,6 +587,9 @@ async def google_login_or_register(db: AsyncSession, redis: Redis, data: GoogleL
             await db.commit()
             await db.refresh(user, attribute_names=["role"])
 
+        user.last_login = datetime.now(timezone.utc)
+        db.add(user)
+        await db.flush()
         return _build_login_response(user)
 
     except ValueError as e:

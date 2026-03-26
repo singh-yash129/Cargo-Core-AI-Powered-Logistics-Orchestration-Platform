@@ -67,68 +67,31 @@
 
         <!-- Center Panel: Interactive Map -->
         <div class="flex-1 bg-gray-200 dark:bg-gray-900 relative">
-            <!-- Map Placeholder -->
-            <div class="absolute inset-0 bg-gradient-to-br from-gray-200 dark:from-gray-800 to-gray-100 dark:to-gray-900 opacity-60"></div>
-            <div class="absolute inset-0 bg-gray-100/20 dark:bg-background-dark/20 backdrop-blur-[2px]"></div>
+            <!-- Live Leaflet Map -->
+            <div class="absolute inset-0 z-0">
+                <l-map ref="map" :zoom="12" :center="[19.0760, 72.8777]" :use-global-leaflet="false">
+                    <l-tile-layer
+                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                        layer-type="base"
+                        name="CartoDB Voyager"
+                    ></l-tile-layer>
 
-            <!-- Left Panel Toggle -->
-            <button @click="showLeftPanel = !showLeftPanel"
-                class="absolute top-4 left-4 z-20 bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 shadow-md backdrop-blur-xl p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group" :title="showLeftPanel ? 'Hide Drivers' : 'Show Drivers'">
-                <span class="material-symbols-outlined text-[18px]" :class="showLeftPanel ? 'text-primary' : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'">{{ showLeftPanel ? 'left_panel_close' : 'left_panel_open' }}</span>
-            </button>
-
-            <!-- Right Panel Toggle -->
-            <button @click="showRightPanel = !showRightPanel"
-                class="absolute top-4 right-4 z-20 bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 shadow-md backdrop-blur-xl p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group" :title="showRightPanel ? 'Hide Loads' : 'Show Loads'">
-                <span class="material-symbols-outlined text-[18px]" :class="showRightPanel ? 'text-primary' : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'">{{ showRightPanel ? 'right_panel_close' : 'right_panel_open' }}</span>
-            </button>
-
-            <!-- Overlay Controls -->
-            <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
-                <div class="glass-panel px-4 py-2 rounded-lg flex items-center gap-4">
-                    <div class="flex items-center gap-2">
-                        <span
-                            class="w-3 h-3 rounded-full bg-primary border-2 border-gray-300 dark:border-white/20 shadow-[0_0_10px_rgba(28,231,131,0.5)]"></span>
-                        <span class="text-xs font-medium text-gray-900 dark:text-white">Available</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded-full bg-yellow-500 border-2 border-gray-300 dark:border-white/20"></span>
-                        <span class="text-xs font-medium text-gray-900 dark:text-white">Busy</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded-full bg-gray-500 border-2 border-gray-300 dark:border-white/20"></span>
-                        <span class="text-xs font-medium text-gray-900 dark:text-white">Offline</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Simulated Map Markers -->
-            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <!-- Truck Marker -->
-                <div class="relative group cursor-pointer" style="left: -100px; top: -50px;">
-                    <div class="w-16 h-16 bg-primary/10 rounded-full animate-ping absolute inset-0"></div>
-                    <div
-                        class="w-8 h-8 bg-white dark:bg-background-dark rounded-full border-2 border-primary flex items-center justify-center relative z-10 shadow-lg">
-                        <span class="material-symbols-outlined text-primary text-[14px]">local_shipping</span>
-                    </div>
-                    <div
-                        class="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-white/90 dark:bg-background-dark/90 rounded text-[10px] text-gray-900 dark:text-white whitespace-nowrap border border-gray-200 dark:border-white/10 hidden group-hover:block z-20">
-                        Driver: J. Doe
-                    </div>
-                </div>
-
-                <!-- Unassigned Order Dot -->
-                <div class="w-4 h-4 rounded-full bg-gray-400 border-2 border-white hover:scale-125 transition-transform cursor-pointer absolute"
-                    style="left: 120px; top: 80px;"></div>
-                <div class="w-4 h-4 rounded-full bg-gray-400 border-2 border-white hover:scale-125 transition-transform cursor-pointer absolute"
-                    style="left: 140px; top: 90px;"></div>
-
-                <!-- Active Route Line (CSS Simulation) -->
-                <svg class="absolute top-0 left-0 w-[400px] h-[300px] pointer-events-none"
-                    style="transform: translate(-100px, -50px);">
-                    <path d="M 34 34 Q 150 10 240 140" stroke="#1CE783" stroke-width="3" fill="none"
-                        stroke-dasharray="5,5" class="animate-pulse" />
-                </svg>
+                    <l-marker v-for="driver in activeDrivers" :key="driver.driver_id" :lat-lng="[driver.latitude, driver.longitude]">
+                        <l-popup>
+                            <div class="text-xs p-1">
+                                <div class="font-bold flex items-center gap-1 mb-1">
+                                    <span class="material-symbols-outlined text-[14px] text-green-500">local_shipping</span>
+                                    {{ driver.driver_name }}
+                                </div>
+                                <div class="text-gray-500 mb-0.5">Vehicle: <span class="text-gray-900 font-medium">{{ driver.vehicle_code }}</span></div>
+                                <div class="text-gray-500 mt-1 uppercase text-[9px] font-bold px-1.5 py-0.5 inline-block rounded"
+                                    :class="driver.status === 'In-Transit' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'">
+                                    {{ driver.status }}
+                                </div>
+                            </div>
+                        </l-popup>
+                    </l-marker>
+                </l-map>
             </div>
 
             <!-- Bottom Map Toolbar -->
@@ -149,7 +112,7 @@
         <transition name="slide-right">
         <div v-show="showRightPanel" class="w-80 bg-white dark:bg-card-dark border-l border-gray-200 dark:border-white/5 flex flex-col z-10 glass-panel flex-shrink-0">
             <div class="p-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center">
-                <h3 class="font-bold text-gray-900 dark:text-white text-sm">Pending Loads (8)</h3>
+                <h3 class="font-bold text-gray-900 dark:text-white text-sm">Pending Loads ({{ pendingLoads.length }})</h3>
                 <button @click="showAssignModal = true"
                     class="flex items-center gap-1 text-xs bg-primary text-black font-semibold px-2.5 py-1 rounded-md hover:bg-primary-dark transition-colors shadow-sm">
                     <span class="material-symbols-outlined text-[14px]">add</span> Assign
@@ -200,7 +163,7 @@
                             </div>
                             <div class="p-1.5 bg-gray-100 dark:bg-black/20 rounded text-[10px]">
                                 <span class="text-gray-500 block">Window (Today)</span>
-                                <span class="text-gray-900 dark:text-white font-medium">14:00 – 18:00</span>
+                                <span class="text-gray-900 dark:text-white font-medium">{{ load.deadline ? new Date(load.deadline).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:false}) : 'TBD' }}</span>
                             </div>
                         </div>
                         <div class="p-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded text-[10px] flex items-center gap-1.5">
@@ -219,11 +182,11 @@
             <div class="p-4 border-t border-gray-200 dark:border-white/5 bg-gray-100 dark:bg-black/20">
                 <div class="text-xs text-gray-500 mb-2">Overall SLA Projection</div>
                 <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
-                    <div class="h-full bg-gradient-to-r from-yellow-500 to-green-500 w-[94%]"></div>
+                    <div class="h-full bg-gradient-to-r from-yellow-500 to-green-500 transition-all" :style="{ width: slaProjection.pct + '%' }"></div>
                 </div>
                 <div class="flex justify-between text-[10px]">
-                    <span class="text-gray-900 dark:text-white">94% Predicted</span>
-                    <span class="text-green-400">+2% vs Target</span>
+                    <span class="text-gray-900 dark:text-white">{{ slaProjection.pct }}% Predicted</span>
+                    <span :class="slaProjection.delta >= 0 ? 'text-green-400' : 'text-red-400'">{{ slaProjection.delta >= 0 ? '+' : '' }}{{ slaProjection.delta }}% vs Target</span>
                 </div>
             </div>
         </div>
@@ -253,11 +216,15 @@
                 </select>
             </div>
             <div class="flex gap-2">
-                <button @click="confirmAssign" :disabled="!assignOrderId || !assignDriverId"
-                    class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark transition-colors">Assign</button>
-                <button @click="showAssignModal = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
+                <button @click="confirmAssign" :disabled="!assignOrderId || !assignDriverId || assigning"
+                    class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark transition-colors flex items-center justify-center gap-1">
+                    <span v-if="assigning" class="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+                    {{ assigning ? 'Assigning...' : 'Assign' }}
+                </button>
+                <button @click="showAssignModal = false" :disabled="assigning" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors disabled:opacity-50">Cancel</button>
             </div>
             <div v-if="assignSuccess" class="mt-3 text-center text-xs text-green-400 font-bold">✓ Order assigned successfully!</div>
+            <div v-if="assignError" class="mt-3 text-center text-xs text-red-400 font-bold">{{ assignError }}</div>
         </div>
     </div>
     </Teleport>
@@ -347,7 +314,24 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
+import { useRealTimeTracking } from '@/composables/useRealTimeTracking'
+import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+// Fix Leaflet icons issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
+  iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
+  shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
+});
+
+const { activeDrivers } = useRealTimeTracking()
+
+const store = useDispatcherStore()
 
 const showLeftPanel = ref(true)
 const showRightPanel = ref(true)
@@ -359,6 +343,8 @@ const showAssignModal = ref(false)
 const assignOrderId = ref('')
 const assignDriverId = ref('')
 const assignSuccess = ref(false)
+const assigning = ref(false)
+const assignError = ref('')
 const showChatModal = ref(false)
 const chatDriver = ref(null)
 const chatMsg = ref('')
@@ -369,19 +355,9 @@ const draggingLoad = ref(null)
 const dragOverDriver = ref(null)
 const dragAssignToast = ref('')
 
-const drivers = ref([
-    { id: 'DRV-001', name: 'Mike Ross', vehicle: 'Van T-20', location: 'Sector 4', statusColor: 'bg-green-500', load: 85, hours: 4.5, avatar: 'https://i.pravatar.cc/150?u=1' },
-    { id: 'DRV-042', name: 'Harvey Specter', vehicle: 'Truck XL', location: 'Downtown', statusColor: 'bg-yellow-500', load: 45, hours: 2.1, avatar: 'https://i.pravatar.cc/150?u=2' },
-    { id: 'DRV-091', name: 'Rachel Zane', vehicle: 'Van T-15', location: 'West End', statusColor: 'bg-green-500', load: 12, hours: 6.8, avatar: 'https://i.pravatar.cc/150?u=3' },
-    { id: 'DRV-103', name: 'Louis Litt', vehicle: 'Van T-20', location: 'Depot', statusColor: 'bg-gray-500', load: 0, hours: 8.0, avatar: 'https://i.pravatar.cc/150?u=4' },
-])
-
-const pendingLoads = ref([
-    { id: 'ORD-9921', type: 'Electronics', weight: 450, volume: 2.1, priority: 'HIGH', hub: 'North-East' },
-    { id: 'ORD-3321', type: 'Perishables', weight: 120, volume: 0.8, priority: 'URGENT', hub: 'South' },
-    { id: 'ORD-1102', type: 'Furniture', weight: 850, volume: 5.4, priority: 'NORMAL', hub: 'North-East' },
-    { id: 'ORD-5541', type: 'Retail Goods', weight: 200, volume: 1.2, priority: 'NORMAL', hub: 'West DC' },
-])
+const drivers = computed(() => store.dispatcherDrivers)
+const pendingLoads = computed(() => store.pendingOrders)
+const slaProjection = computed(() => store.slaProjection)
 
 const filteredDrivers = computed(() => {
     let list = drivers.value
@@ -393,6 +369,8 @@ const filteredDrivers = computed(() => {
     return list
 })
 
+onMounted(() => store.initialize().catch(() => {}))
+
 function selectDriver(driver) { selectedDriver.value = selectedDriver.value?.id === driver.id ? null : driver }
 function toggleLoadDetail(load) { expandedLoad.value = expandedLoad.value?.id === load.id ? null : load }
 function toggleMapLayer(layer) { mapLayers.value[layer] = !mapLayers.value[layer] }
@@ -402,14 +380,18 @@ function assignLoad(load) {
     showAssignModal.value = true
 }
 
-function confirmAssign() {
+async function confirmAssign() {
     if (!assignOrderId.value || !assignDriverId.value) return
-    const loadIdx = pendingLoads.value.findIndex(l => l.id === assignOrderId.value)
-    if (loadIdx > -1) pendingLoads.value.splice(loadIdx, 1)
-    const driver = drivers.value.find(d => d.id === assignDriverId.value)
-    if (driver) driver.load = Math.min(100, driver.load + 15)
-    assignSuccess.value = true
-    setTimeout(() => { showAssignModal.value = false; assignSuccess.value = false; assignOrderId.value = ''; assignDriverId.value = '' }, 1200)
+    assigning.value = true
+    assignError.value = ''
+    const ok = await store.assignOrder(assignOrderId.value, assignDriverId.value)
+    assigning.value = false
+    if (ok) {
+        assignSuccess.value = true
+        setTimeout(() => { showAssignModal.value = false; assignSuccess.value = false; assignOrderId.value = ''; assignDriverId.value = '' }, 1200)
+    } else {
+        assignError.value = 'Failed to assign. Please try again.'
+    }
 }
 
 const driverChatMessages = ref([])
@@ -425,11 +407,12 @@ function chatWithDriver(driver) {
 
 function sendDriverMsg() {
     if (!chatMsg.value.trim()) return
-    driverChatMessages.value.push({ id: chatMsgId++, from: 'dispatch', text: chatMsg.value })
-    const msg = chatMsg.value
+    const text = chatMsg.value
+    driverChatMessages.value.push({ id: chatMsgId++, from: 'dispatch', text })
     chatMsg.value = ''
+    store.sendMessageToDriver(chatDriver.value?.id, text)
     setTimeout(() => {
-        driverChatMessages.value.push({ id: chatMsgId++, from: 'driver', text: msg.includes('?') ? 'Yes, copy that. I\'ll check and confirm.' : 'Roger, acknowledged.' })
+        driverChatMessages.value.push({ id: chatMsgId++, from: 'driver', text: text.includes('?') ? 'Yes, copy that. I\'ll check and confirm.' : 'Roger, acknowledged.' })
     }, 1000)
 }
 
@@ -465,20 +448,20 @@ function onDropOnDriverPanel(event) {
     dragOverDriver.value = null
 }
 
-function onDropOnDriver(event, driver) {
+async function onDropOnDriver(event, driver) {
     event.preventDefault()
     dragOverDriver.value = null
     if (!draggingLoad.value) return
-
-    // Assign the load to the driver
-    const loadIdx = pendingLoads.value.findIndex(l => l.id === draggingLoad.value.id)
-    if (loadIdx > -1) {
-        pendingLoads.value.splice(loadIdx, 1)
-        driver.load = Math.min(100, driver.load + 15)
-        dragAssignToast.value = `${draggingLoad.value.id} assigned to ${driver.name}`
+    const load = draggingLoad.value
+    draggingLoad.value = null
+    const ok = await store.assignOrder(load.id, driver.id)
+    if (ok) {
+        dragAssignToast.value = `${load.id} → ${driver.name}`
+        setTimeout(() => { dragAssignToast.value = '' }, 2500)
+    } else {
+        dragAssignToast.value = `Failed to assign ${load.id}`
         setTimeout(() => { dragAssignToast.value = '' }, 2500)
     }
-    draggingLoad.value = null
 }
 </script>
 

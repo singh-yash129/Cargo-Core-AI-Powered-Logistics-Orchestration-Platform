@@ -17,6 +17,8 @@ from app.schemas.vendor import (
     VendorDamageReportCreate,
     VendorDamageReportsResponse,
     VendorDashboardResponse,
+    VendorInvoicePayRequest,
+    VendorInvoiceRecord,
     VendorRecurringRuleCreate,
     VendorRecurringRuleResponse,
     VendorSettings,
@@ -28,7 +30,8 @@ from app.schemas.vendor import (
     VendorTeamMemberCreate,
     VendorTeamMemberResponse,
 )
-from app.services import vendor_service
+from app.schemas.wallet import WalletSummary
+from app.services import vendor_service, wallet_service
 
 router = APIRouter(prefix="/api/v1/vendor", tags=["Vendor"])
 
@@ -235,6 +238,16 @@ async def reply_support_ticket(
     return await vendor_service.reply_support_ticket(db, current_user, ticket_id, data)
 
 
+@router.post("/invoices/{order_id}/pay", response_model=VendorInvoiceRecord)
+async def pay_invoice(
+    order_id: UUID,
+    data: VendorInvoicePayRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await vendor_service.pay_invoice(db, current_user, order_id, data)
+
+
 @router.post("/support-tickets/{ticket_id}/resolve", response_model=VendorSupportTicketResponse)
 async def resolve_support_ticket(
     ticket_id: UUID,
@@ -242,3 +255,11 @@ async def resolve_support_ticket(
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     return await vendor_service.resolve_support_ticket(db, current_user, ticket_id)
+
+
+@router.get("/wallet", response_model=WalletSummary)
+async def get_wallet(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await wallet_service.get_wallet_summary(db, current_user)

@@ -15,6 +15,9 @@ async def get_redis_pool() -> Redis | None:
     """Return (or create) the shared async Redis connection pool.
     Returns None if Redis is unavailable so callers can degrade gracefully."""
     global _redis_pool, _redis_available
+    # If already confirmed unavailable, skip retry (avoids 1s timeout on every request)
+    if not _redis_available:
+        return None
     if _redis_pool is None:
         try:
             pool = from_url(settings.redis_url, decode_responses=False, socket_connect_timeout=1)

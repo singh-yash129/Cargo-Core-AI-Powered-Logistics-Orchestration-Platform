@@ -63,6 +63,28 @@ pytest tests/ -v
 
 ---
 
+## API Docs Export
+
+Swagger is already available at:
+
+- `http://localhost:8000/docs`
+- `http://localhost:8000/redoc`
+
+To export the current OpenAPI schema and a readable Markdown endpoint catalog:
+
+```bash
+cd backend
+python export_api_docs.py
+```
+
+Generated files:
+
+- `docs/openapi.json`
+- `docs/API_ENDPOINT_CATALOG.md`
+- `docs/SWAGGER_TESTING_GUIDE.md`
+
+---
+
 ## Project Structure
 
 ```

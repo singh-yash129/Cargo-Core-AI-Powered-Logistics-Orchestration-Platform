@@ -24,6 +24,8 @@ class Order(Base):
 
     pickup_addr: Mapped[str] = mapped_column(Text, nullable=False)
     delivery_addr: Mapped[str] = mapped_column(Text, nullable=False)
+    delivery_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    delivery_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     cargo_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     vehicle_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     labor_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -37,10 +39,18 @@ class Order(Base):
     total_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     payment_mode: Mapped[str | None] = mapped_column(String(30), nullable=True)
     payment_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    paid_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    declared_value: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     service_otp: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    service_otp_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    service_otp_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     service_time_block: Mapped[str | None] = mapped_column(String(50), nullable=True)
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancel_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivery_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pod_photos: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    pod_signature: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Picking timestamps
     picking_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

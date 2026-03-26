@@ -184,9 +184,13 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
 
-const activeChat = ref(1)
+const store = useDispatcherStore()
+onMounted(() => store.initialize().catch(() => {}))
+
+const activeChat = ref(null)
 const contactType = ref('all')
 const searchQuery = ref('')
 const newMessage = ref('')
@@ -194,7 +198,6 @@ const showLog = ref(false)
 const routeUpdateSent = ref(false)
 const urgentSent = ref(false)
 const chatAreaRef = ref(null)
-// PTT and call removed from UI
 const showRouteModal = ref(false)
 const showUrgentModal = ref(false)
 const routeUpdateMsg = ref('')
@@ -206,13 +209,12 @@ const contactTabs = [
     { key: 'warehouse', label: 'Warehouse' }
 ]
 
-const contacts = ref([
-    { id: 1, name: 'Mike Ross', type: 'driver', online: true, lastMessage: 'Got the new route. Thanks!', avatar: 'https://i.pravatar.cc/150?u=1', status: 'On Route to Zone A', phone: '+1 555-0123', unread: 0 },
-    { id: 2, name: 'Harvey Specter', type: 'driver', online: false, lastMessage: 'Delivered successfully.', avatar: 'https://i.pravatar.cc/150?u=2', status: 'Off Duty', phone: '+1 555-0124', unread: 0 },
-    { id: 3, name: 'Rachel Zane', type: 'driver', online: true, lastMessage: 'Pick up done.', avatar: 'https://i.pravatar.cc/150?u=3', status: 'At Warehouse B', phone: '+1 555-0125', unread: 2 },
-    { id: 4, name: 'Warehouse Alpha', type: 'warehouse', online: true, lastMessage: 'Batch 42 ready for pickup.', avatar: '', status: 'Active', role: 'Main Warehouse', phone: '+1 555-8001', unread: 1 },
-    { id: 5, name: 'Warehouse Beta', type: 'warehouse', online: true, lastMessage: 'Cold storage order staged.', avatar: '', status: 'Active', role: 'Cold Storage Hub', phone: '+1 555-8002', unread: 0 },
-])
+const contacts = computed(() => store.dispatcherContacts)
+
+// Set first contact as active once loaded
+watch(contacts, (list) => {
+    if (list.length && activeChat.value === null) activeChat.value = list[0].id
+}, { immediate: true })
 
 const filteredContacts = computed(() => {
     return contacts.value.filter(c => {
@@ -224,46 +226,21 @@ const filteredContacts = computed(() => {
 
 const activeContact = computed(() => contacts.value.find(c => c.id === activeChat.value))
 
-// Per-contact message history
-const messageHistory = ref({
-    1: [
-        { id: 1, from: 'contact', text: 'Boss, traffic is heavy on Main St. Estimated delay 10 mins.', time: '10:14 AM' },
-        { id: 2, from: 'dispatch', text: 'Copy that Mike. Proceed with caution. Dispatching updated route to your nav.', time: '10:15 AM' },
-        { id: 3, from: 'contact', text: '', time: '10:16 AM', type: 'system' },
-        { id: 4, from: 'contact', text: 'Got the new route. ETA looks good now. Thanks!', time: '10:18 AM' }
-    ],
-    2: [
-        { id: 1, from: 'contact', text: 'All deliveries completed for Zone B. Heading back.', time: '3:45 PM' },
-        { id: 2, from: 'dispatch', text: 'Great work Harvey. See you at the hub.', time: '3:46 PM' }
-    ],
-    3: [
-        { id: 1, from: 'contact', text: 'Pickup at Warehouse B done. 24 parcels loaded.', time: '11:30 AM' },
-        { id: 2, from: 'dispatch', text: 'Confirmed. Head to Zone C next.', time: '11:31 AM' },
-        { id: 3, from: 'contact', text: 'On my way. ETA 25 mins.', time: '11:32 AM' }
-    ],
-    4: [
-        { id: 1, from: 'contact', text: 'Batch 42 ready for pickup. 38 parcels staged at Dock 2.', time: '9:15 AM' },
-        { id: 2, from: 'dispatch', text: 'Driver en route. ETA 15 mins.', time: '9:16 AM' }
-    ],
-    5: [
-        { id: 1, from: 'contact', text: 'Cold storage order OCS-221 staged. Temp verified at -18°C.', time: '8:30 AM' },
-        { id: 2, from: 'dispatch', text: 'Acknowledged. Refrigerated van dispatched.', time: '8:32 AM' }
-    ]
-})
+// Per-contact message history (local state for session)
+const messageHistory = ref({})
 
-// Init the system message text
-messageHistory.value[1][2].text = "Route update pushed to driver's navigation – 10:16 AM"
+// Seed history from store contacts on load
+watch(contacts, (list) => {
+    list.forEach(c => {
+        if (!messageHistory.value[c.id] && c.messages?.length) {
+            messageHistory.value[c.id] = c.messages
+        }
+    })
+}, { immediate: true })
 
 const currentMessages = computed(() => messageHistory.value[activeChat.value] || [])
 
-const commLog = ref([
-    { id: 1, action: 'Route Update Pushed', type: 'route', contact: 'Mike Ross', detail: 'Alternative via Route 7', time: '10:16 AM' },
-    { id: 2, action: 'Urgent Instruction', type: 'urgent', contact: 'Rachel Zane', detail: 'Dock 3 closed, use Dock 5', time: '9:45 AM' },
-    { id: 3, action: 'Message Sent', type: 'message', contact: 'Warehouse Alpha', detail: 'Confirmed pickup at 11:00', time: '9:30 AM' },
-    { id: 4, action: 'Call Connected', type: 'message', contact: 'Harvey Specter', detail: 'Duration: 2m 15s', time: '9:12 AM' },
-    { id: 5, action: 'Route Update Pushed', type: 'route', contact: 'Mike Ross', detail: 'Original route restored', time: '8:50 AM' },
-    { id: 6, action: 'Broadcast Sent', type: 'urgent', contact: 'All Drivers', detail: 'Weather alert: heavy rain Zone C', time: '8:30 AM' },
-])
+const commLog = ref([])
 
 // PTT and Call buttons removed from UI — dispatcher uses phone number shown in header
 
@@ -307,27 +284,23 @@ function sendMessage() {
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     if (!messageHistory.value[activeChat.value]) messageHistory.value[activeChat.value] = []
     messageHistory.value[activeChat.value].push({ id: Date.now(), from: 'dispatch', text: newMessage.value, time: now })
-    
-    // Update last message on contact
-    const contact = contacts.value.find(c => c.id === activeChat.value)
-    if (contact) { contact.lastMessage = 'You: ' + newMessage.value; contact.unread = 0 }
-    
+
+    // Send to driver via store if contact is a driver
+    const contact = activeContact.value
+    if (contact?.type === 'driver') store.sendMessageToDriver(contact.id, newMessage.value)
+
     // Log to comm log
-    commLog.value.unshift({ id: Date.now(), action: 'Message Sent', type: 'message', contact: activeContact.value?.name, detail: newMessage.value.substring(0, 40), time: now })
-    
-    const sentMsg = newMessage.value
+    commLog.value.unshift({ id: Date.now(), action: 'Message Sent', type: 'message', contact: contact?.name, detail: newMessage.value.substring(0, 40), time: now })
+
     newMessage.value = ''
-    
-    // Auto scroll
     nextTick(() => { if (chatAreaRef.value) chatAreaRef.value.scrollTop = chatAreaRef.value.scrollHeight })
-    
+
     // Simulate reply
     setTimeout(() => {
         const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         const replies = ['Roger that, understood.', 'Copy. Will do.', 'Acknowledged. On it.', 'Got it, thanks!', 'Confirmed.']
-        const reply = replies[Math.floor(Math.random() * replies.length)]
-        messageHistory.value[activeChat.value].push({ id: Date.now(), from: 'contact', text: reply, time: replyTime })
-        if (contact) contact.lastMessage = reply
+        if (!messageHistory.value[activeChat.value]) return
+        messageHistory.value[activeChat.value].push({ id: Date.now(), from: 'contact', text: replies[Math.floor(Math.random() * replies.length)], time: replyTime })
         nextTick(() => { if (chatAreaRef.value) chatAreaRef.value.scrollTop = chatAreaRef.value.scrollHeight })
     }, 1500)
 }

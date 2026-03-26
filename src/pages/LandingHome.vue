@@ -8,32 +8,32 @@
             <div class="relative z-10 text-center px-6 max-w-6xl mx-auto mt-10">
                 <div class="overflow-hidden mb-4">
                     <h1
-                        class="text-6xl md:text-8xl font-black tracking-tighter leading-none hero-line translate-y-full opacity-0">
+                        class="text-6xl md:text-8xl font-black tracking-tighter leading-none hero-line">
                         Effortless
                     </h1>
                 </div>
                 <div class="overflow-hidden mb-8">
                     <h1
-                        class="text-6xl md:text-8xl font-black tracking-tighter leading-none hero-line translate-y-full opacity-0">
+                        class="text-6xl md:text-8xl font-black tracking-tighter leading-none hero-line">
                         Logistics Intelligence
                     </h1>
                 </div>
 
                 <div class="overflow-hidden mb-12">
                     <h1
-                        class="text-6xl md:text-8xl font-black tracking-tighter leading-none hero-line translate-y-full opacity-0 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 animate-gradient-x neon-text">
+                        class="text-6xl md:text-8xl font-black tracking-tighter leading-none hero-line bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 animate-gradient-x neon-text">
                         for modern movement
                     </h1>
                 </div>
 
                 <div class="overflow-hidden mb-12">
                     <p
-                        class="text-xl md:text-2xl text-gray-400 font-light tracking-wide hero-subtitle translate-y-10 opacity-0">
+                        class="text-xl md:text-2xl text-gray-400 font-light tracking-wide hero-subtitle">
                         One System. Six Roles. Infinite Precision.
                     </p>
                 </div>
 
-                <div class="flex justify-center hero-buttons opacity-0 translate-y-10">
+                <div class="flex justify-center hero-buttons">
                     <router-link to="/login-hub"
                         class="px-8 py-4 bg-white text-black font-bold text-lg rounded-full hover:bg-cyan-50 hover:shadow-[0_0_20px_rgba(34,211,238,0.6)] transition-all duration-300">
                         Get Started
@@ -42,7 +42,7 @@
             </div>
 
             <div
-                class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-0 hero-scroll">
+                class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 hero-scroll">
                 <span class="text-[10px] tracking-[0.3em] uppercase text-gray-500">Scroll</span>
                 <div class="w-[1px] h-12 bg-gradient-to-b from-transparent via-cyan-500 to-transparent animate-pulse">
                 </div>
@@ -168,8 +168,11 @@
             <div class="w-full md:w-1/2 p-8 flex justify-center relative z-10">
                 <div
                     class="w-[300px] h-[600px] border-8 border-gray-800 rounded-[3rem] overflow-hidden bg-black relative shadow-[0_0_50px_rgba(255,255,255,0.1)]">
-                    <img src="https://placehold.co/300x600/000/FFF?text=Driver+App"
-                        class="w-full h-full object-cover opacity-80" alt="Driver App" />
+                    <div class="relative w-full h-full">
+                        <img v-for="(img, index) in driverAppImages" :key="index" :src="img"
+                            class="absolute inset-0 w-full h-full object-cover driver-screen"
+                            :style="{ zIndex: index + 1 }" alt="Driver App Screen" />
+                    </div>
                     <div class="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-full z-20"></div>
                 </div>
             </div>
@@ -309,6 +312,15 @@ const logisticImages = [
     '/images/logistic-screens/user_management.png'
 ]
 
+const driverAppImages = [
+    '/images/mobile-screens/splash.png',
+    '/images/mobile-screens/login.png',
+    '/images/mobile-screens/pre-shift.png',
+    '/images/mobile-screens/binding.png',
+    '/images/mobile-screens/binding scanner.png',
+    '/images/mobile-screens/login-help.png'
+]
+
 const splineScenes = [
     'https://prod.spline.design/dly62PB8Wm4vg4E3/scene.splinecode',
     'https://prod.spline.design/h-pIvYOqSBqshSxe/scene.splinecode',
@@ -329,27 +341,27 @@ onMounted(() => {
 
     const tl = gsap.timeline({ defaults: { ease: 'power4.out' } })
 
-    tl.to('.hero-line', {
-        y: 0,
-        opacity: 1,
+    tl.from('.hero-line', {
+        yPercent: 100,
+        opacity: 0,
         duration: 1.8,
         stagger: 0.15,
-        skewY: 0
+        skewY: 8
     })
-        .to('.hero-subtitle', {
-            y: 0,
-            opacity: 1,
+        .from('.hero-subtitle', {
+            y: 40,
+            opacity: 0,
             duration: 1.5,
-            filter: 'blur(0px)'
+            filter: 'blur(10px)'
         }, '-=1.2')
-        .to('.hero-buttons', {
-            y: 0,
-            opacity: 1,
+        .from('.hero-buttons', {
+            y: 40,
+            opacity: 0,
             duration: 1.2,
             ease: 'elastic.out(1, 0.5)'
         }, '-=1')
-        .to('.hero-scroll', {
-            opacity: 1,
+        .from('.hero-scroll', {
+            opacity: 0,
             duration: 2
         }, '-=0.5')
 
@@ -357,6 +369,12 @@ onMounted(() => {
     if (frames.length > 0) {
         gsap.set(frames, { yPercent: 100 })
         gsap.set(frames[0], { yPercent: 0 })
+    }
+
+    const driverScreens = gsap.utils.toArray('.driver-screen')
+    if (driverScreens.length > 0) {
+        gsap.set(driverScreens, { opacity: 0 })
+        gsap.set(driverScreens[0], { opacity: 1 })
     }
 
     const tlLogistic = gsap.timeline({
@@ -376,6 +394,17 @@ onMounted(() => {
             ease: 'power2.out'
         })
     })
+
+    // Driver app screen carousel animation
+    if (driverScreens.length > 1) {
+        let currentDriverIndex = 0
+        setInterval(() => {
+            const nextIndex = (currentDriverIndex + 1) % driverScreens.length
+            gsap.to(driverScreens[currentDriverIndex], { opacity: 0, duration: 0.8 })
+            gsap.to(driverScreens[nextIndex], { opacity: 1, duration: 0.8 })
+            currentDriverIndex = nextIndex
+        }, 3000)
+    }
 
     const roleTexts = [
         ['The Architect of Movement...', 'The Owner of the System...', 'The Strategic Intelligence Layer...'],

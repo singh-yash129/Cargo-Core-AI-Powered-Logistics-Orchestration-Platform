@@ -82,59 +82,62 @@
                     </div>
 
                     <div class="pt-4 border-t border-gray-200 dark:border-white/5">
-                        <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-2">Unassigned Orders (42)</h4>
+                        <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-2">Unassigned Orders ({{ overrideOrders.length }})</h4>
                         <div class="bg-gray-100 dark:bg-black/20 rounded p-2 text-xs text-gray-600 dark:text-gray-400 h-32 overflow-y-auto no-scrollbar">
-                            <div class="flex justify-between py-1 border-b border-gray-200 dark:border-white/5"><span>ORD-9912 (Zone A)</span><span class="text-yellow-400">High</span></div>
-                            <div class="flex justify-between py-1 border-b border-gray-200 dark:border-white/5"><span>ORD-8821 (Zone B)</span><span class="text-gray-500">Normal</span></div>
-                            <div class="flex justify-between py-1 border-b border-gray-200 dark:border-white/5"><span>ORD-7712 (Zone A)</span><span class="text-gray-500">Normal</span></div>
-                            <div class="flex justify-between py-1 border-b border-gray-200 dark:border-white/5"><span>ORD-1120 (Zone C)</span><span class="text-red-400">Critical</span></div>
+                            <div v-if="overrideOrders.length === 0" class="text-center py-4 text-gray-500">No pending orders</div>
+                            <div v-for="order in overrideOrders" :key="order.id" class="flex justify-between py-1 border-b border-gray-200 dark:border-white/5">
+                                <span>{{ order.id }}</span>
+                                <span :class="order.priority === 'URGENT' ? 'text-red-400' : order.priority === 'HIGH' ? 'text-yellow-400' : 'text-gray-500'">{{ order.priority || 'Normal' }}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="mt-4 p-3 bg-blue-100 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg text-xs text-blue-700 dark:text-blue-300">
-                    <span class="font-bold">AI Tip:</span> Grouping Zone A orders could save 15% fuel today.
+                    <!-- Route legend (shown after optimization) -->
+                    <div v-if="optimizedRoutes.length > 0" class="pt-4 border-t border-gray-200 dark:border-white/5">
+                        <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-2">Driver Routes</div>
+                        <div class="space-y-1.5">
+                            <div v-for="route in optimizedRoutes" :key="route.driver_id" class="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                <span class="w-3 h-3 rounded-full flex-shrink-0" :style="{ backgroundColor: route.color }"></span>
+                                <span class="font-medium truncate">{{ route.driver_name }}</span>
+                                <span class="ml-auto text-gray-500 flex-shrink-0">{{ route.stops.length }} stops</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Map Result Visualization -->
             <div class="lg:col-span-2 glass-panel rounded-xl relative overflow-hidden flex flex-col">
-                <div class="absolute inset-0 bg-gray-200 dark:bg-gray-800 bg-gradient-to-br from-gray-200 dark:from-gray-800 to-gray-100 dark:to-gray-900 opacity-70"></div>
 
-                <!-- Simulated Route Lines -->
-                <svg class="absolute inset-0 w-full h-full pointer-events-none">
-                    <path d="M 100 100 L 200 200 L 300 150" stroke="#1CE783" stroke-width="3" fill="none"
-                        stroke-dasharray="5,5" class="animate-pulse" />
-                    <circle cx="100" cy="100" r="4" fill="white" />
-                    <circle cx="200" cy="200" r="4" fill="white" />
-                    <circle cx="300" cy="150" r="4" fill="white" />
-                </svg>
+                <!-- Loading overlay -->
+                <div v-if="optimizing" class="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div class="flex flex-col items-center gap-3">
+                        <span class="material-symbols-outlined animate-spin text-primary text-4xl">progress_activity</span>
+                        <span class="text-white font-bold text-sm">Calculating optimal routes…</span>
+                    </div>
+                </div>
 
-                <!-- Manual Override Panel (rendered as centered modal via Teleport below) -->
+                <!-- Leaflet Map Container -->
+                <div ref="mapContainer" style="width:100%;height:100%;min-height:400px;z-index:0;"></div>
 
                 <!-- ETA Generation Panel -->
                 <div class="absolute top-4 left-4 z-10 bg-white/90 dark:bg-black/80 backdrop-blur border border-gray-200 dark:border-white/10 rounded-xl p-4 w-64">
                     <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-2">ETA Generation</div>
-                    <div class="space-y-2 text-xs">
-                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Stop 1 ETA</span><span class="text-gray-900 dark:text-white font-mono">9:45 AM</span></div>
-                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Stop 2 ETA</span><span class="text-gray-900 dark:text-white font-mono">10:15 AM</span></div>
-                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Stop 3 ETA</span><span class="text-yellow-600 dark:text-yellow-400 font-mono">11:00 AM ⚠</span></div>
-                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Stop 4 ETA</span><span class="text-gray-900 dark:text-white font-mono">12:30 PM</span></div>
+                    <div v-if="routesApplied" class="space-y-2 text-xs">
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Routes</span><span class="text-gray-900 dark:text-white font-mono">{{ routeStats.routes }} active</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Total Distance</span><span class="text-gray-900 dark:text-white font-mono">{{ routeStats.distance }} km</span></div>
                         <div class="pt-1 border-t border-gray-200 dark:border-white/10 flex justify-between">
-                            <span class="text-gray-500 dark:text-gray-400">Total Duration</span>
-                            <span class="text-primary font-bold font-mono">6h 30m</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-500 dark:text-gray-400">Delay Probability</span>
-                            <span class="text-yellow-600 dark:text-yellow-400 font-bold">18%</span>
+                            <span class="text-gray-500 dark:text-gray-400">Efficiency</span>
+                            <span class="text-primary font-bold font-mono">{{ routeStats.efficiency }}%</span>
                         </div>
                     </div>
+                    <div v-else class="text-xs text-gray-500 text-center py-2">Run optimizer to generate ETAs</div>
                     <div class="mt-2 text-[9px] text-gray-500">Shared with: Driver, AI Customer Support</div>
                 </div>
 
                 <!-- Results Summary Overlay -->
                 <div
-                    class="absolute bottom-6 left-6 right-6 bg-white/90 dark:bg-black/80 backdrop-blur-md rounded-lg p-4 border border-gray-200 dark:border-white/10 flex justify-between items-center">
+                    class="absolute bottom-6 left-6 right-6 bg-white/90 dark:bg-black/80 backdrop-blur-md rounded-lg p-4 border border-gray-200 dark:border-white/10 flex justify-between items-center z-10">
                     <div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">Proposed Solution</div>
                         <div class="text-gray-900 dark:text-white font-bold">{{ routeStats.routes }} Routes • {{ routeStats.distance }} km Total • {{ routeStats.efficiency }}% Efficiency</div>
@@ -289,8 +292,129 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
+import { useLogisticStore } from '@/stores/logisticStore'
+import { API_BASE_URL, getStoredAccessToken } from '@/config/api'
 
+// Fix Leaflet default marker icon paths broken by Vite
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
+    iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
+    shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
+})
+
+const store = useDispatcherStore()
+const logisticStore = useLogisticStore()
+
+// ── Map ────────────────────────────────────────────────────────────────────
+const mapContainer = ref(null)
+let mapInstance = null
+let routePolylines = []
+let stopMarkers = []
+let hubMarker = null
+
+// Get hub location dynamically from active warehouse
+const hubLocation = computed(() => {
+    const activeWarehouse = logisticStore.activeWarehouse
+    const activeHub = store.hubs.find(h => h.id === activeWarehouse) || store.hubs[0]
+    if (activeHub?.coordinates) {
+        // Parse coordinates if stored as string "lat,lng"
+        if (typeof activeHub.coordinates === 'string') {
+            const [lat, lng] = activeHub.coordinates.split(',').map(Number)
+            return [lat, lng]
+        }
+        // If stored as array [lat, lng]
+        if (Array.isArray(activeHub.coordinates)) {
+            return activeHub.coordinates
+        }
+        // If stored as object {lat, lng}
+        if (activeHub.coordinates.lat && activeHub.coordinates.lng) {
+            return [activeHub.coordinates.lat, activeHub.coordinates.lng]
+        }
+    }
+    // Fallback to Bangalore if no hub coordinates found
+    return [12.9716, 77.5946]
+})
+
+const hubName = computed(() => {
+    const activeWarehouse = logisticStore.activeWarehouse
+    const activeHub = store.hubs.find(h => h.id === activeWarehouse) || store.hubs[0]
+    return activeHub?.name || 'Warehouse Hub'
+})
+
+onMounted(async () => {
+    await store.initialize().catch(() => {})
+    await nextTick()
+    if (mapContainer.value) {
+        mapInstance = L.map(mapContainer.value, { zoomControl: true }).setView(hubLocation.value, 11)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 18,
+        }).addTo(mapInstance)
+        // Hub marker
+        hubMarker = L.marker(hubLocation.value)
+            .bindPopup(`<b>${hubName.value}</b><br><span style="color:#6b7280">Distribution Center</span>`)
+            .addTo(mapInstance)
+    }
+})
+
+// Update hub marker when warehouse changes
+watch(hubLocation, (newLoc) => {
+    if (mapInstance && hubMarker) {
+        hubMarker.setLatLng(newLoc)
+        hubMarker.setPopupContent(`<b>${hubName.value}</b><br><span style="color:#6b7280">Distribution Center</span>`)
+        mapInstance.setView(newLoc, 11)
+    }
+})
+
+onBeforeUnmount(() => {
+    if (mapInstance) {
+        mapInstance.remove()
+        mapInstance = null
+    }
+})
+
+function clearMapLayers() {
+    routePolylines.forEach(l => l.remove())
+    stopMarkers.forEach(m => m.remove())
+    routePolylines = []
+    stopMarkers = []
+}
+
+function drawRoutes(routes) {
+    if (!mapInstance) return
+    clearMapLayers()
+    const hub = hubLocation.value
+    const allCoords = [hub]
+    routes.forEach(route => {
+        const stopCoords = route.stops.map(s => [s.lat, s.lng])
+        const coords = [hub, ...stopCoords, hub]
+        const line = L.polyline(coords, { color: route.color, weight: 3, opacity: 0.85 }).addTo(mapInstance)
+        routePolylines.push(line)
+        route.stops.forEach((stop, si) => {
+            const marker = L.marker([stop.lat, stop.lng])
+                .bindPopup(
+                    `<div style="min-width:160px">` +
+                    `<b style="color:${route.color}">Stop ${si + 1} — ${route.driver_name}</b><br>` +
+                    `<code>${stop.tracking_code}</code><br>` +
+                    `<span style="color:#6b7280">${stop.address}</span>` +
+                    `</div>`
+                )
+                .addTo(mapInstance)
+            stopMarkers.push(marker)
+            allCoords.push([stop.lat, stop.lng])
+        })
+    })
+    if (allCoords.length > 1) {
+        mapInstance.fitBounds(L.latLngBounds(allCoords).pad(0.15))
+    }
+}
+
+// ── UI state ───────────────────────────────────────────────────────────────
 const showManualOverride = ref(false)
 const optimizing = ref(false)
 const routesApplied = ref(false)
@@ -308,55 +432,154 @@ const constraints = reactive({
     evRouting: false,
     respectNoGo: true,
     hosCompliance: true,
-    vehicleSize: true
+    vehicleSize: true,
 })
 
-const routeStats = reactive({ routes: 14, distance: 842, efficiency: 96 })
+const routeStats = reactive({ routes: 0, distance: 0, efficiency: 0 })
 
 const adjustForm = reactive({
-    routes: routeStats.routes,
-    distance: routeStats.distance,
-    efficiency: routeStats.efficiency,
-    priority: 'Balanced'
+    routes: 0,
+    distance: 0,
+    efficiency: 0,
+    priority: 'Balanced',
 })
 
-const overrideOrders = reactive([
-    { id: 'ORD-9912', reassigned: false, assignedTo: '' },
-    { id: 'ORD-8821', reassigned: false, assignedTo: '' },
-    { id: 'ORD-7712', reassigned: false, assignedTo: '' }
-])
+// ── Optimized routes from backend ─────────────────────────────────────────
+const optimizedRoutes = ref([])
 
-const availableDrivers = reactive([
-    { id: 'DRV-01', name: 'Mike Johnson', load: 55 },
-    { id: 'DRV-02', name: 'Sara Patel', load: 72 },
-    { id: 'DRV-03', name: 'Lee Chen', load: 40 }
-])
+watch(optimizedRoutes, (routes) => {
+    nextTick(() => drawRoutes(routes))
+})
 
-function runOptimizer() {
-    optimizing.value = true
-    routesApplied.value = false
-    setTimeout(() => {
-        routeStats.routes = 12
-        routeStats.distance = 768
-        routeStats.efficiency = 98
-        optimizing.value = false
-    }, 2000)
+// ── Orders list for override panel ────────────────────────────────────────
+const overrideOrders = ref([])
+
+watch(() => store.pendingOrders, (list) => {
+    overrideOrders.value = list.map(o => ({ id: o.id, priority: o.priority, reassigned: false, assignedTo: '' }))
+}, { immediate: true })
+
+const availableDrivers = computed(() =>
+    store.dispatcherDrivers.map(d => ({ id: d.id, name: d.name, load: d.load || 0 }))
+)
+
+// ── Auth headers ──────────────────────────────────────────────────────────
+function authHeaders() {
+    const token = getStoredAccessToken()
+    return token
+        ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        : { 'Content-Type': 'application/json' }
 }
 
-function applyRoutes() { routesApplied.value = true }
+// ── Run optimizer ─────────────────────────────────────────────────────────
+async function runOptimizer() {
+    if (store.pendingOrders.length === 0) {
+        showToast('⚠️ No pending orders to optimize')
+        return
+    }
 
-function confirmAdjust() {
+    optimizing.value = true
+    routesApplied.value = false
+    try {
+        // Build query parameters from optimization settings
+        const params = new URLSearchParams()
+
+        // Map optimization goal to backend parameter
+        if (optimizationGoal.value === 'Minimize Time') {
+            params.append('optimize_for', 'time')
+        } else if (optimizationGoal.value === 'Balance Workload') {
+            params.append('optimize_for', 'balance')
+        } else if (optimizationGoal.value === 'Minimize Empty Miles') {
+            params.append('optimize_for', 'empty_miles')
+        } else {
+            params.append('optimize_for', 'distance')
+        }
+
+        // Add constraints
+        if (constraints.avoidTolls) params.append('avoid_tolls', 'true')
+        if (constraints.prioritizeVIP) params.append('prioritize_vip', 'true')
+        if (constraints.evRouting) params.append('ev_routing', 'true')
+        if (constraints.respectNoGo) params.append('respect_no_go', 'true')
+        if (constraints.hosCompliance) params.append('hos_compliance', 'true')
+        if (constraints.vehicleSize) params.append('vehicle_size_check', 'true')
+
+        const res = await fetch(`${API_BASE_URL}/api/v1/orders/optimize-routes?${params.toString()}`, {
+            method: 'POST',
+            headers: authHeaders(),
+        })
+        if (res.ok) {
+            const data = await res.json()
+            if (!data || data.length === 0) {
+                showToast('⚠️ No optimal routes found')
+                optimizing.value = false
+                return
+            }
+            optimizedRoutes.value = data
+            routeStats.routes = data.length
+            routeStats.distance = parseFloat(
+                data.reduce((s, r) => s + (r.total_distance_km || 0), 0).toFixed(1)
+            )
+            routeStats.efficiency = data.length > 0
+                ? Math.round(data.reduce((s, r) => s + (r.efficiency || 0), 0) / data.length)
+                : 0
+            adjustForm.routes = routeStats.routes
+            adjustForm.distance = routeStats.distance
+            adjustForm.efficiency = routeStats.efficiency
+            showToast(`✓ ${data.length} optimal route(s) generated`)
+        } else {
+            showToast('✗ Optimization failed. Please try again.')
+        }
+    } catch (err) {
+        console.error('Optimization error:', err)
+        showToast('✗ Network error. Check your connection.')
+    }
+    optimizing.value = false
+}
+
+function applyRoutes() {
+    if (optimizedRoutes.value.length === 0) {
+        showToast('⚠️ No routes to apply')
+        return
+    }
+    routesApplied.value = true
+    showToast('✓ Routes applied and ETAs generated')
+}
+
+async function confirmAdjust() {
+    showAdjustModal.value = false
+    // Re-run optimizer with adjusted parameters
     routeStats.routes = adjustForm.routes
     routeStats.distance = adjustForm.distance
     routeStats.efficiency = adjustForm.efficiency
     routesApplied.value = false
-    showAdjustModal.value = false
+
+    // Re-run optimization with new constraints
+    await runOptimizer()
 }
 
-function setEmergencyPriority() { emergencySet.value = true }
-function reorderStops() { stopsReordered.value = true }
+function setEmergencyPriority() {
+    emergencySet.value = true
+    // Set all unassigned orders to high priority
+    overrideOrders.value.forEach(order => {
+        if (!order.reassigned) {
+            order.priority = 'URGENT'
+        }
+    })
+    showToast('Emergency priority set for all unassigned orders')
+}
 
-// Drag & Drop
+function reorderStops() {
+    stopsReordered.value = true
+    // Re-optimize current routes to reorder stops efficiently
+    if (optimizedRoutes.value.length > 0) {
+        runOptimizer().then(() => {
+            showToast('Stops reordered for optimal sequence')
+        })
+    } else {
+        showToast('No active routes to reorder')
+    }
+}
+
+// ── Drag & Drop ───────────────────────────────────────────────────────────
 function onDragStart(event, order) {
     draggedOrder.value = order
     event.dataTransfer.effectAllowed = 'move'
@@ -372,15 +595,42 @@ function onDropOnDriver(event, driver) {
     event.preventDefault()
     dragOverDriver.value = null
     if (!draggedOrder.value) return
-
-    const order = overrideOrders.find(o => o.id === draggedOrder.value.id)
-    if (order) {
-        order.reassigned = true
-        order.assignedTo = driver.name
-        driver.load = Math.min(100, driver.load + 10)
-        showToast(`${order.id} reassigned to ${driver.name}`)
+    const order = overrideOrders.value.find(o => o.id === draggedOrder.value.id)
+    if (order && !order.reassigned) {
+        // Call backend API to assign order to driver
+        assignOrderToDriver(order.id, driver.id, driver.name)
+            .then(success => {
+                if (success) {
+                    order.reassigned = true
+                    order.assignedTo = driver.name
+                    driver.load = Math.min(100, driver.load + 10)
+                    showToast(`✓ ${order.id} reassigned to ${driver.name}`)
+                } else {
+                    showToast(`✗ Failed to assign ${order.id}`)
+                }
+            })
     }
     draggedOrder.value = null
+}
+
+async function assignOrderToDriver(orderId, driverId, driverName) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/v1/orders/${orderId}/assign`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ driver_id: driverId })
+        })
+        if (res.ok) {
+            // Refresh orders after assignment
+            await store.fetchOrders()
+            await store.fetchActiveOrders()
+            return true
+        }
+        return false
+    } catch (err) {
+        console.error('Failed to assign order:', err)
+        return false
+    }
 }
 
 function showToast(msg) {

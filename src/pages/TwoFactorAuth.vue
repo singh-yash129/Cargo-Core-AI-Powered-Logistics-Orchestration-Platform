@@ -43,6 +43,14 @@
             </p>
           </div>
 
+          <div
+            v-if="signupDebugOtp"
+            class="mb-6 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-center text-sm text-amber-200"
+          >
+            Development mode: email delivery is unavailable, so use this OTP instead:
+            <span class="font-mono font-semibold tracking-[0.3em]">{{ signupDebugOtp }}</span>
+          </div>
+
           <!-- OTP Input -->
           <div
             v-motion
@@ -159,6 +167,7 @@ const isLoading = ref(false);
 const timer = ref(59);
 const canResend = ref(false);
 const inputRefs = ref([]);
+const signupDebugOtp = ref('');
 
 // Get email from auth store (set during login or signup)
 const email = computed(() => authStore.pendingEmail || authStore.userEmail || 'user@example.com');
@@ -167,6 +176,14 @@ const maskedEmail = computed(() => email.value.replace(/(.{3})(.*)(@.*)/, '$1***
 let countdown = null;
 
 onMounted(() => {
+  if (String(route.query.flow || '') === 'signup') {
+    const debugOtp = typeof window !== 'undefined' ? sessionStorage.getItem('signup_debug_otp') || '' : '';
+    if (/^\d{6}$/.test(debugOtp)) {
+      signupDebugOtp.value = debugOtp;
+      otp.value = debugOtp.split('');
+    }
+  }
+
   countdown = setInterval(() => {
     timer.value--;
     if (timer.value <= 0) {

@@ -88,7 +88,7 @@
                                 </td>
                             </tr>
                             <tr v-if="filteredLog.length === 0">
-                                <td colspan="6" class="p-8 text-center text-gray-500">No {{ logTab }} records yet this session</td>
+                                <td colspan="6" class="p-8 text-center text-gray-500">No {{ logTab }} records found</td>
                             </tr>
                         </tbody>
                     </table>
@@ -146,17 +146,17 @@
             <div v-if="showIssueModal"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 @click.self="showIssueModal = false">
-                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-2xl border border-gray-200 dark:border-white/10 max-h-[90vh] flex flex-col">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Issue Materials to Order</h3>
-                        <button @click="showIssueModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white">
+                        <button @click="closeIssueModal" class="text-gray-500 hover:text-gray-900 dark:text-white">
                             <span class="material-symbols-outlined">close</span>
                         </button>
                     </div>
-                    <div class="p-6 space-y-4">
+                    <div class="p-6 space-y-4 overflow-y-auto flex-1">
                         <div>
-                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Order ID</label>
-                            <select v-model="issueForm.orderId"
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Select Order</label>
+                            <select v-model="issueForm.orderId" @change="onOrderSelected"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
                                 <option value="">Select an active order...</option>
                                 <option v-for="o in activeOrders" :key="o.id" :value="o.tracking_code">
@@ -164,30 +164,100 @@
                                 </option>
                             </select>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div v-for="item in packingItems" :key="item.id">
-                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">{{ item.emoji }} {{ item.name }}</label>
-                            <div class="relative">
-                                <input type="number" min="0" :max="item.stock" :placeholder="`Avail: ${item.stock}`"
-                                    v-model.number="issueForm.items[item.id]"
-                                    class="w-full bg-gray-50 dark:bg-black/40 border rounded-lg p-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-primary/50"
-                                    :class="issueForm.items[item.id] > item.stock ? 'border-red-500' : 'border-gray-200 dark:border-white/10'" />
-                                <div v-if="issueForm.items[item.id] > item.stock" class="text-[10px] text-red-500 mt-0.5">
-                                    Exceeds stock ({{ item.stock }})
+
+                        <!-- Order Details & Requirements -->
+                        <div v-if="selectedOrderDetails" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4 space-y-3">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-1">Order Details</h4>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                                        <div><span class="font-semibold">Tracking:</span> {{ selectedOrderDetails.tracking_code }}</div>
+                                        <div><span class="font-semibold">Status:</span> {{ selectedOrderDetails.status }}</div>
+                                        <div v-if="selectedOrderDetails.customer_name" class="capitalize">
+                                            <span class="font-semibold">Customer:</span> {{ selectedOrderDetails.customer_name }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Estimated Items</div>
+                                    <div class="text-2xl font-bold text-primary">{{ selectedOrderDetails.estimated_items || '—' }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Recommended Materials -->
+                            <div v-if="recommendedMaterials.length > 0" class="pt-2 border-t border-blue-200 dark:border-blue-500/20">
+                                <div class="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm">lightbulb</span>
+                                    Recommended Packing Materials
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div v-for="rec in recommendedMaterials" :key="rec.id"
+                                        class="text-xs bg-white dark:bg-gray-800/50 rounded p-2 flex items-center justify-between">
+                                        <span class="text-gray-900 dark:text-white">{{ rec.emoji }} {{ rec.name }}</span>
+                                        <span class="font-bold text-primary">{{ rec.suggestedQty }} {{ rec.unit }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Material Selection -->
+                        <div v-if="issueForm.orderId">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-xs text-gray-600 dark:text-gray-400 block">Select Materials to Issue</label>
+                                <button v-if="recommendedMaterials.length > 0" @click="applyRecommendedQuantities"
+                                    class="text-xs bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1 rounded-lg font-semibold transition-colors">
+                                    Apply Recommended
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1">
+                                <div v-for="item in packingItems" :key="item.id"
+                                    class="bg-gray-50 dark:bg-white/5 border rounded-lg p-3 transition-colors"
+                                    :class="issueForm.items[item.id] > 0 ? 'border-primary/50 bg-primary/5' : 'border-gray-200 dark:border-white/10'">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-2xl">{{ item.emoji }}</span>
+                                        <div class="flex-1">
+                                            <div class="text-xs font-bold text-gray-900 dark:text-white">{{ item.name }}</div>
+                                            <div class="text-[10px] text-gray-500">Available: {{ item.stock }} {{ item.unit }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="relative">
+                                        <input type="number" min="0" :max="item.stock" placeholder="0"
+                                            v-model.number="issueForm.items[item.id]"
+                                            class="w-full bg-white dark:bg-black/40 border rounded-lg p-2 text-gray-900 dark:text-white text-sm text-center font-bold focus:outline-none focus:border-primary/50"
+                                            :class="issueForm.items[item.id] > item.stock ? 'border-red-500' : 'border-gray-200 dark:border-white/10'" />
+                                        <div v-if="issueForm.items[item.id] > item.stock" class="text-[10px] text-red-500 mt-1 text-center font-semibold">
+                                            ⚠ Exceeds stock
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Issue To (Driver / Laborer)</label>
+
+                        <div v-else class="text-center py-8 text-gray-500 text-sm">
+                            <span class="material-symbols-outlined text-4xl mb-2 opacity-30">inbox</span>
+                            <p>Select an order to see recommended materials</p>
+                        </div>
+
+                        <div v-if="issueForm.orderId">
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 flex items-center gap-2">
+                                <span>Issue To (Driver / Laborer)</span>
+                                <span class="text-[10px] text-green-500 font-semibold">{{ availableLabourers.length }} available</span>
+                            </label>
                             <select v-model="issueForm.issuedTo"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option value="">Select staff...</option>
-                                <option v-for="l in labourers" :key="l.id" :value="l.name || l.full_name">
+                                <option value="">Select available staff...</option>
+                                <option v-for="l in availableLabourers" :key="l.id" :value="l.name || l.full_name">
                                     {{ l.name || l.full_name }} ({{ l.role || l.designation || 'Labourer' }})
                                 </option>
                             </select>
+                            <div v-if="availableLabourers.length === 0" class="text-xs text-orange-500 mt-1 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm">warning</span>
+                                No workers currently available. All staff are assigned or off duty.
+                            </div>
                         </div>
+                    </div>
+
+                    <div class="p-6 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-black/20">
                         <button @click="submitIssue"
                             class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             :disabled="!canSubmitIssue || issuingMaterials">
@@ -267,6 +337,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
+import { apiUrl } from '@/config/api'
 
 const authStore = useAuthStore()
 
@@ -282,6 +353,8 @@ const restocking = ref(false)
 
 const issueForm = reactive({ orderId: '', issuedTo: '', items: {} })
 const restockForm = reactive({})
+const selectedOrderDetails = ref(null)
+const recommendedMaterials = ref([])
 
 // Live data
 const allInventory = ref([])
@@ -289,6 +362,7 @@ const activeOrders = ref([])
 const labourers = ref([])
 const issuanceLogs = ref([])
 const returnableAssets = ref([])
+const MAX_CACHED_ISSUANCE_LOGS = 200
 
 // Emoji map by category/name
 function getEmoji(name = '', category = '') {
@@ -311,9 +385,94 @@ function getWarehouseId() {
     return authStore.currentWarehouse?.id || authStore.currentUser?.warehouse_id
 }
 
+function issuanceLogStorageKey(warehouseId) {
+    return `warehouse-material-issuance-log:${warehouseId || 'unassigned'}`
+}
+
+function readCachedIssuanceLogs(warehouseId) {
+    if (typeof window === 'undefined') return []
+
+    try {
+        const raw = window.localStorage.getItem(issuanceLogStorageKey(warehouseId))
+        const parsed = raw ? JSON.parse(raw) : []
+        return Array.isArray(parsed) ? parsed : []
+    } catch {
+        return []
+    }
+}
+
+function writeCachedIssuanceLogs(warehouseId, logs) {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(
+        issuanceLogStorageKey(warehouseId),
+        JSON.stringify((logs || []).slice(0, MAX_CACHED_ISSUANCE_LOGS))
+    )
+}
+
+function formatIssuanceTime(createdAt) {
+    const date = createdAt ? new Date(createdAt) : new Date()
+    if (Number.isNaN(date.getTime())) return ''
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+}
+
+function normalizeIssuanceLog(log = {}) {
+    const movementType = (log.movement_type || log.type || '').toUpperCase()
+    const type = movementType === 'RESERVED' || log.type === 'reserved' ? 'reserved' : 'issued'
+    const createdAt = log.created_at || log.createdAt || new Date().toISOString()
+    const orderId = log.reference_order_tracking || log.orderId || (
+        typeof log.reference_order_id === 'string' ? log.reference_order_id.slice(0, 8) : null
+    ) || 'N/A'
+    const material = log.item_name || log.material || 'Item'
+    const qty = Number(log.quantity ?? log.qty ?? 0)
+    const issuedTo = log.issuedTo || log.performed_by_name || log.performedByName || 'System'
+
+    return {
+        id: String(log.id || `${type}-${orderId}-${material}-${qty}-${createdAt}`),
+        orderId,
+        material,
+        qty,
+        issuedTo,
+        time: formatIssuanceTime(createdAt),
+        createdAt,
+        status: type === 'issued' ? 'Issued' : 'Reserved',
+        statusClass: type === 'issued'
+            ? 'bg-green-500/10 text-green-500 border-green-500/20'
+            : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+        type,
+    }
+}
+
+function mergeIssuanceLogs(...logGroups) {
+    const merged = new Map()
+
+    for (const group of logGroups) {
+        for (const log of group || []) {
+            const normalized = normalizeIssuanceLog(log)
+            const existing = merged.get(normalized.id)
+
+            if (existing) {
+                merged.set(normalized.id, {
+                    ...existing,
+                    ...normalized,
+                    issuedTo: normalized.issuedTo || existing.issuedTo,
+                })
+                continue
+            }
+
+            merged.set(normalized.id, normalized)
+        }
+    }
+
+    return [...merged.values()].sort((left, right) => {
+        const leftTime = Date.parse(left.createdAt || '') || 0
+        const rightTime = Date.parse(right.createdAt || '') || 0
+        return rightTime - leftTime
+    })
+}
+
 // Filter inventory to packing-related items (category or name match)
 const packingItems = computed(() => {
-    const packingKeywords = ['pack', 'wrap', 'box', 'carton', 'tape', 'label', 'blanket', 'crate', 'film', 'dolly', 'pallet', 'protector', 'bag', 'material']
+    const packingKeywords = ['pack', 'wrap', 'box', 'carton', 'tape', 'label', 'blanket', 'crate', 'film', 'dolly', 'pallet', 'protector', 'bag', 'material', 'rope']
     const items = allInventory.value.filter(item => {
         const text = ((item.name || '') + (item.category || '') + (item.product_category || '')).toLowerCase()
         return packingKeywords.some(kw => text.includes(kw))
@@ -345,6 +504,19 @@ const lowStockItems = computed(() => {
 
 const filteredLog = computed(() => issuanceLogs.value.filter(l => l.type === logTab.value))
 
+// Filter laborers by availability status
+const availableLabourers = computed(() => {
+    return labourers.value.filter(l => l.status === 'AVAILABLE')
+})
+
+const assignedLabourers = computed(() => {
+    return labourers.value.filter(l => l.status === 'ASSIGNED' && l.assigned_order_tracking !== issueForm.orderId)
+})
+
+const offDutyLabourers = computed(() => {
+    return labourers.value.filter(l => l.status === 'OFF_DUTY')
+})
+
 // Validation: check if any item qty exceeds available stock
 const issueValidationErrors = computed(() => {
     const errors = []
@@ -368,22 +540,120 @@ const canSubmitIssue = computed(() => {
     return hasItems
 })
 
+// Calculate recommended materials based on order details
+function calculateRecommendedMaterials(order) {
+    if (!order) return []
+
+    const recommendations = []
+
+    // Estimate number of items (from order details or default)
+    const numItems = order.estimated_items || order.item_count || 5
+    const isFragile = order.is_fragile || false
+    const isLarge = order.is_large || numItems > 10
+
+    // Find materials by keywords
+    const findMaterial = (keywords) => {
+        return packingItems.value.find(item => {
+            const text = item.name.toLowerCase()
+            return keywords.some(kw => text.includes(kw))
+        })
+    }
+
+    // Boxes/Cartons - base on items
+    const box = findMaterial(['box', 'carton'])
+    if (box) {
+        recommendations.push({
+            ...box,
+            suggestedQty: Math.max(1, Math.ceil(numItems / 3))
+        })
+    }
+
+    // Bubble wrap for fragile items
+    const bubbleWrap = findMaterial(['bubble', 'wrap'])
+    if (bubbleWrap && (isFragile || numItems > 5)) {
+        recommendations.push({
+            ...bubbleWrap,
+            suggestedQty: Math.ceil(numItems / 2)
+        })
+    }
+
+    // Tape - always needed
+    const tape = findMaterial(['tape'])
+    if (tape) {
+        recommendations.push({
+            ...tape,
+            suggestedQty: Math.max(2, Math.ceil(numItems / 4))
+        })
+    }
+
+    // Blankets/pads for large items
+    const blanket = findMaterial(['blanket', 'pad'])
+    if (blanket && isLarge) {
+        recommendations.push({
+            ...blanket,
+            suggestedQty: Math.ceil(numItems / 5)
+        })
+    }
+
+    // Labels
+    const label = findMaterial(['label'])
+    if (label) {
+        recommendations.push({
+            ...label,
+            suggestedQty: Math.max(1, Math.ceil(numItems / 2))
+        })
+    }
+
+    return recommendations
+}
+
+function onOrderSelected() {
+    const selected = activeOrders.value.find(o => o.tracking_code === issueForm.orderId)
+    selectedOrderDetails.value = selected
+
+    if (selected) {
+        // Calculate recommended materials
+        recommendedMaterials.value = calculateRecommendedMaterials(selected)
+    } else {
+        recommendedMaterials.value = []
+    }
+}
+
+function applyRecommendedQuantities() {
+    recommendedMaterials.value.forEach(rec => {
+        issueForm.items[rec.id] = rec.suggestedQty
+    })
+    showSuccess('Recommended quantities applied')
+}
+
+function closeIssueModal() {
+    showIssueModal.value = false
+    issueForm.orderId = ''
+    issueForm.issuedTo = ''
+    issueForm.items = {}
+    selectedOrderDetails.value = null
+    recommendedMaterials.value = []
+}
+
 async function fetchData() {
     loading.value = true
-    const warehouseId = getWarehouseId()
-
     try {
+        await authStore.ensureWarehouseContext()
+        const warehouseId = getWarehouseId()
+        const cachedIssuanceLogs = readCachedIssuanceLogs(warehouseId)
+        issuanceLogs.value = cachedIssuanceLogs
+        
         const headers = {
             'Authorization': `Bearer ${authStore.authToken}`,
             'Content-Type': 'application/json'
         }
 
         const [inventoryRes, ordersRes, labourRes, movementsRes, returnsRes] = await Promise.allSettled([
-            fetch(`http://localhost:8000/api/v1/inventory?page=1&page_size=100${warehouseId ? `&warehouse_id=${warehouseId}` : ''}`, { headers }),
-            fetch('http://localhost:8000/api/v1/orders?page=1&page_size=100', { headers }),
-            fetch(`http://localhost:8000/api/v1/labourers?page=1&page_size=100${warehouseId ? `&warehouse_id=${warehouseId}` : ''}`, { headers }),
-            fetch(`http://localhost:8000/api/v1/inventory/movements?page=1&page_size=50${warehouseId ? `&warehouse_id=${warehouseId}` : ''}`, { headers }),
-            warehouseId ? fetch(`http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/returns?page=1&page_size=20`, { headers }) : Promise.resolve({ ok: false })
+            fetch(apiUrl(`api/v1/inventory?page=1&page_size=100${warehouseId ? `&warehouse_id=${warehouseId}` : ''}`), { headers }),
+            fetch(apiUrl('api/v1/orders?page=1&page_size=100'), { headers }),
+            fetch(apiUrl(`api/v1/labourers?page=1&page_size=100${warehouseId ? `&warehouse_id=${warehouseId}` : ''}`), { headers }),
+            fetch(apiUrl(`api/v1/inventory/movements?page=1&page_size=100${warehouseId ? `&warehouse_id=${warehouseId}` : ''}`), { headers }),
+            warehouseId ? fetch(apiUrl(`api/v1/warehouses/${warehouseId}/operations/returns?page=1&page_size=20`), { headers }) : Promise.resolve({ ok: false })
         ])
 
         if (inventoryRes.status === 'fulfilled' && inventoryRes.value.ok) {
@@ -405,24 +675,31 @@ async function fetchData() {
         }
 
         // Load issuance logs from inventory movements (ISSUE type)
-        if (movementsRes.status === 'fulfilled' && movementsRes.value.ok) {
-            const data = await movementsRes.value.json()
-            const movements = Array.isArray(data) ? data : (data.items || [])
-            issuanceLogs.value = movements
-                .filter(m => m.movement_type === 'ISSUE' || m.movement_type === 'RESERVED')
-                .map(m => ({
-                    id: m.id,
-                    orderId: m.reference_order_tracking || m.reference_order_id?.slice(0, 8) || 'N/A',
-                    material: m.item_name || 'Item',
-                    qty: m.quantity,
-                    issuedTo: m.performed_by_name || 'System',
-                    time: new Date(m.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
-                    status: m.movement_type === 'ISSUE' ? 'Issued' : 'Reserved',
-                    statusClass: m.movement_type === 'ISSUE'
-                        ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                        : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-                    type: m.movement_type === 'ISSUE' ? 'issued' : 'reserved'
-                }))
+        if (movementsRes.status === 'fulfilled') {
+            if (movementsRes.value.ok) {
+                const data = await movementsRes.value.json()
+                const movements = Array.isArray(data) ? data : (data.items || [])
+                const movementLogs = movements
+                    .filter(m => {
+                        const t = (m.movement_type || '').toUpperCase()
+                        return t === 'ISSUE' || t === 'RESERVED'
+                    })
+                    .map(m => normalizeIssuanceLog(m))
+
+                issuanceLogs.value = mergeIssuanceLogs(movementLogs, cachedIssuanceLogs)
+                writeCachedIssuanceLogs(warehouseId, issuanceLogs.value)
+            } else {
+                const errorText = await movementsRes.value.text()
+                console.error('Failed to load movements:', errorText)
+                if (cachedIssuanceLogs.length === 0) {
+                    showError('Failed to load issuance logs. Please check your permissions.')
+                }
+            }
+        } else if (movementsRes.status === 'rejected') {
+            console.error('Error loading movements:', movementsRes.reason)
+            if (cachedIssuanceLogs.length === 0) {
+                showError('Error loading issuance logs. Please try again.')
+            }
         }
 
         // Load returnable assets from returns endpoint
@@ -471,7 +748,7 @@ async function verifyReturn(asset) {
     }
 
     try {
-        const response = await fetch(`http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/returns/${asset.gradeId}/complete`, {
+        const response = await fetch(apiUrl(`api/v1/warehouses/${warehouseId}/operations/returns/${asset.gradeId}/complete`), {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${authStore.authToken}`,
@@ -508,8 +785,8 @@ async function submitIssue() {
     }
 
     issuingMaterials.value = true
-    const now = new Date()
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+    const issuedAt = new Date().toISOString()
+    const warehouseId = getWarehouseId()
 
     // Find the selected order to get its ID
     const selectedOrder = activeOrders.value.find(o => o.tracking_code === issueForm.orderId)
@@ -523,12 +800,13 @@ async function submitIssue() {
 
         let successCount = 0
         let errorCount = 0
+        const newLogs = []
 
         for (const item of packingItems.value) {
             const qty = issueForm.items[item.id]
             if (qty && qty > 0) {
                 // Call inventory movement API
-                const response = await fetch('http://localhost:8000/api/v1/inventory/movements', {
+                const response = await fetch(apiUrl('api/v1/inventory/movements'), {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({
@@ -541,18 +819,19 @@ async function submitIssue() {
 
                 if (response.ok) {
                     successCount++
-                    // Add to local log
-                    issuanceLogs.value.unshift({
-                        id: Date.now() + Math.random(),
-                        orderId: issueForm.orderId,
-                        material: item.name,
-                        qty,
+                    const movement = await response.json().catch(() => null)
+                    newLogs.push(normalizeIssuanceLog(movement ? {
+                        ...movement,
                         issuedTo: issueForm.issuedTo,
-                        time: timeStr,
-                        status: 'Issued',
-                        statusClass: 'bg-green-500/10 text-green-500 border-green-500/20',
-                        type: 'issued'
-                    })
+                    } : {
+                        id: `local-${item.id}-${Date.now()}`,
+                        movement_type: 'ISSUE',
+                        quantity: qty,
+                        reference_order_tracking: issueForm.orderId,
+                        item_name: item.name,
+                        issuedTo: issueForm.issuedTo,
+                        created_at: issuedAt,
+                    }))
 
                     // Update local stock count
                     const inv = allInventory.value.find(i => i.id === item.id)
@@ -569,10 +848,12 @@ async function submitIssue() {
             }
         }
 
-        showIssueModal.value = false
-        issueForm.orderId = ''
-        issueForm.issuedTo = ''
-        issueForm.items = {}
+        if (newLogs.length > 0) {
+            issuanceLogs.value = mergeIssuanceLogs(issuanceLogs.value, newLogs)
+            writeCachedIssuanceLogs(warehouseId, issuanceLogs.value)
+        }
+
+        closeIssueModal()
 
         if (successCount > 0 && errorCount === 0) {
             showSuccess(`Materials issued successfully (${successCount} items)`)
@@ -607,7 +888,7 @@ async function submitRestock() {
             const qty = restockForm[item.id]
             if (qty && qty > 0) {
                 // Call inventory movement API with RESTOCK type
-                const response = await fetch('http://localhost:8000/api/v1/inventory/movements', {
+                const response = await fetch(apiUrl('api/v1/inventory/movements'), {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({

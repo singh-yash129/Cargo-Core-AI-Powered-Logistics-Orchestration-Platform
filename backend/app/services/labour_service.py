@@ -1,5 +1,5 @@
 from datetime import date
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy import and_, func, select
@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.labour import LabourAttendance, Labourer
+from app.models.user import User
 from app.schemas.labour import (
     AssignLabourResponse,
     AvailabilityItem,
@@ -20,10 +21,11 @@ from app.schemas.labour import (
 
 
 async def _get_labourer(db: AsyncSession, labourer_id: UUID) -> Labourer:
+    from sqlalchemy.orm import selectinload as sil
     result = await db.execute(
         select(Labourer)
         .options(
-            selectinload(Labourer.user),
+            selectinload(Labourer.user).selectinload(User.role),
             selectinload(Labourer.assigned_order),
         )
         .where(Labourer.id == labourer_id)
@@ -35,6 +37,28 @@ async def _get_labourer(db: AsyncSession, labourer_id: UUID) -> Labourer:
 
 
 def _to_labourer_response(labourer: Labourer) -> LabourerResponse:
+    # Determine status based on assignment and active state
+    if not labourer.is_active:
+        status = "OFF_DUTY"
+    elif labourer.assigned_order_id:
+        # If the linked order is already out for delivery, labourer is on field
+        if labourer.assigned_order and labourer.assigned_order.status == "IN_TRANSIT":
+            status = "ON_FIELD"
+        else:
+            status = "ASSIGNED"
+    else:
+        status = "AVAILABLE"
+
+    user = labourer.user
+    # user.role is a Role relationship object — get the name string
+    role_name = None
+    if user:
+        role_obj = user.role
+        if role_obj and hasattr(role_obj, 'name'):
+            role_name = role_obj.name
+        elif isinstance(role_obj, str):
+            role_name = role_obj
+
     return LabourerResponse(
         id=labourer.id,
         user_id=labourer.user_id,
@@ -44,8 +68,12 @@ def _to_labourer_response(labourer: Labourer) -> LabourerResponse:
         assigned_order_substatus=labourer.assigned_order.warehouse_substatus if labourer.assigned_order else None,
         skill_tags=labourer.skill_tags,
         is_active=labourer.is_active,
-        name=labourer.user.name if labourer.user else None,
-        email=labourer.user.email if labourer.user else None,
+        name=user.name if user else None,
+        full_name=user.name if user else None,
+        email=user.email if user else None,
+        phone=user.phone if user else None,
+        role=role_name or "LABOURER",
+        status=status,
         created_at=labourer.created_at,
     )
 
@@ -60,7 +88,7 @@ async def list_labourers(
     data_query = (
         select(Labourer)
         .options(
-            selectinload(Labourer.user),
+            selectinload(Labourer.user).selectinload(User.role),
             selectinload(Labourer.assigned_order),
         )
         .order_by(Labourer.created_at.desc())
@@ -86,15 +114,90 @@ async def list_labourers(
 
 
 async def create_labourer(db: AsyncSession, data: LabourerCreate) -> LabourerResponse:
-    existing = await db.execute(select(Labourer).where(Labourer.user_id == data.user_id))
+    user_id = data.user_id
+
+    # If no user_id provided but name is given, create a new user
+    if not user_id and data.name:
+        # Generate a unique email if not provided
+        email = data.email or f"labourer_{uuid4().hex[:8]}@warehouse.local"
+
+        # Check if email already exists
+        existing_user = await db.execute(select(User).where(User.email == email))
+        if existing_user.scalar_one_or_none():
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
+
+        # Look up the LABOURER role_id from the roles table
+        from app.models.user import Role
+        role_result = await db.execute(select(Role).where(Role.name == "LABOURER"))
+        labourer_role = role_result.scalar_one_or_none()
+        if not labourer_role:
+            # Create the LABOURER role if it doesn't exist
+            labourer_role = Role(name="LABOURER")
+            db.add(labourer_role)
+            await db.flush()
+
+        # Generate unique username from name
+        base_username = data.name.lower().replace(" ", "_")
+        username = f"{base_username}_{uuid4().hex[:6]}"
+
+        # Create new user with LABOURER role
+        new_user = User(
+            name=data.name,
+            username=username,
+            email=email,
+            phone=data.phone,
+            role_id=labourer_role.id,
+            password_hash="",  # No password - managed user
+        )
+        db.add(new_user)
+        await db.flush()
+        user_id = new_user.id
+    elif not user_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Either user_id or name is required")
+
+    # Check if labourer profile already exists for this user
+    existing = await db.execute(select(Labourer).where(Labourer.user_id == user_id))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Labourer profile already exists")
 
-    labourer = Labourer(**data.model_dump(), is_active=True)
+    # Get a default warehouse if not provided
+    warehouse_id = data.warehouse_id
+    if not warehouse_id:
+        from app.models.warehouse import Warehouse
+        result = await db.execute(select(Warehouse).limit(1))
+        warehouse = result.scalar_one_or_none()
+        if warehouse:
+            warehouse_id = warehouse.id
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No warehouse available")
+
+    labourer = Labourer(
+        user_id=user_id,
+        warehouse_id=warehouse_id,
+        skill_tags=data.skill_tags,
+        is_active=True,
+    )
     db.add(labourer)
     await db.flush()
     labourer = await _get_labourer(db, labourer.id)
     return _to_labourer_response(labourer)
+
+
+async def delete_labourer(db: AsyncSession, labourer_id: UUID) -> None:
+    labourer = await _get_labourer(db, labourer_id)
+    user_id = labourer.user_id
+    # Delete labourer (cascades attendance_events)
+    await db.delete(labourer)
+    await db.flush()
+    # Only delete the user if it was a system-managed account (empty password)
+    try:
+        user_result = await db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        if user and user.password_hash == "":
+            await db.delete(user)
+            await db.flush()
+    except Exception:
+        pass  # User has other FK references, leave the user account intact
 
 
 async def get_labourer_detail(db: AsyncSession, labourer_id: UUID) -> LabourerResponse:

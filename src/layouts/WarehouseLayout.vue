@@ -47,11 +47,6 @@
                     </div>
 
                     <div class="flex items-center gap-1 sm:gap-3">
-                        <!-- Weather & Clock Widget (hidden on small mobile) -->
-                        <div class="hidden sm:block">
-                            <HeaderWeather hub-id="1" />
-                        </div>
-
                         <!-- Notifications -->
                         <NotificationPopover :notifications="store.notifications"
                             :unread-count="store.unreadNotificationsCount" @mark-read="store.markNotificationRead"
@@ -98,7 +93,6 @@
 <script setup>
 import { computed, onMounted, provide, ref } from 'vue'
 import WarehouseSidebar from '../LWD-components/WarehouseSidebar.vue'
-import HeaderWeather from '@/components/HeaderWeather.vue'
 import HeaderTodo from '@/components/HeaderTodo.vue'
 import HeaderMeetingScheduler from '@/components/HeaderMeetingScheduler.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'

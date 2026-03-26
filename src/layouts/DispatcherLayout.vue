@@ -31,7 +31,7 @@
                         </h1>
                         <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
                             <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                            North-East Hub • Shift A (06:00 – 14:00)
+                            {{ hubLabel }}
                         </div>
                     </div>
                 </div>
@@ -41,20 +41,15 @@
                     <div class="hidden md:flex gap-4 border-r border-gray-200 dark:border-white/10 pr-6">
                         <div class="text-right">
                             <div class="text-[10px] text-gray-500 uppercase">Active</div>
-                            <div class="text-sm font-bold text-green-500 dark:text-green-400">18</div>
+                            <div class="text-sm font-bold text-green-500 dark:text-green-400">{{ store.dashboardStats.activeDeliveries || 0 }}</div>
                         </div>
                         <div class="text-right">
                             <div class="text-[10px] text-gray-500 uppercase">Pending</div>
-                            <div class="text-sm font-bold text-gray-900 dark:text-white">42</div>
+                            <div class="text-sm font-bold text-gray-900 dark:text-white">{{ dispatchStore.pendingOrders.length }}</div>
                         </div>
                     </div>
 
                     <div class="flex items-center gap-1 sm:gap-3">
-                        <!-- Weather & Clock Widget -->
-                        <div class="hidden sm:block">
-                            <HeaderWeather hub-id="1" />
-                        </div>
-
                         <!-- Notifications -->
                         <NotificationPopover :notifications="store.notifications"
                             :unread-count="store.unreadNotificationsCount" @mark-read="store.markNotificationRead"
@@ -87,7 +82,7 @@
 
             <!-- Page Content - Responsive Padding -->
             <div class="flex-1 relative" :class="route.meta.fullWidth ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 sm:p-6 lg:p-8'">
-                <slot />
+                <RouterView />
             </div>
         </main>
 
@@ -124,17 +119,28 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, reactive, computed } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import DispatcherSidebar from '../LWD-components/DispatcherSidebar.vue'
-import HeaderWeather from '@/components/HeaderWeather.vue'
 import HeaderTodo from '@/components/HeaderTodo.vue'
 import HeaderMeetingScheduler from '@/components/HeaderMeetingScheduler.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
+import { useAuthStore } from '@/stores/authStore'
 
 const store = useLogisticStore()
+const dispatchStore = useDispatcherStore()
+const authStore = useAuthStore()
+
+// Resolve hub name from user profile → hubs list
+const dispatcherHub = computed(() => {
+    const warehouseId = authStore.currentUser?.warehouse_id
+    if (!warehouseId) return null
+    return store.hubs.find(h => h.id === String(warehouseId)) || null
+})
+const hubLabel = computed(() => dispatcherHub.value?.name || 'All Hubs')
 const route = useRoute()
 const sidebarOpen = ref(false)
 const showNewMove = ref(false)

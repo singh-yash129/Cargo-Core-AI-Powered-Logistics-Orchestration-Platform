@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +17,7 @@ from app.schemas.auth import (
     OTPVerifiedResponse,
     RefreshTokenRequest,
     ResetPasswordRequest,
+    SignupOtpSendResponse,
     SendOTPRequest,
     TokenResponse,
     UserLogin,
@@ -61,6 +63,32 @@ async def login(
     redis: Annotated[Redis, Depends(get_redis)],
 ):
     return await auth_service.login_user(db, data)
+
+
+@router.post(
+    "/token",
+    response_model=TokenResponse,
+    summary="Issue OAuth2 bearer token for Swagger UI",
+    description=(
+        "Form-based OAuth2 password flow endpoint used by Swagger UI's "
+        "`Authorize` dialog. Enter your email or username in the `username` "
+        "field. Use `/api/v1/auth/login` if you need the JSON response that "
+        "also includes the user profile."
+    ),
+)
+async def token_login(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    login_response = await auth_service.login_user(
+        db,
+        UserLogin(email=form_data.username, password=form_data.password),
+    )
+    return TokenResponse(
+        access_token=login_response.access_token,
+        refresh_token=login_response.refresh_token,
+        token_type=login_response.token_type,
+    )
 
 
 @router.post(
@@ -176,7 +204,7 @@ async def reset_password(
 
 @router.post(
     "/send-otp",
-    response_model=MessageResponse,
+    response_model=SignupOtpSendResponse,
     summary="Send email verification OTP for signup",
 )
 async def send_otp(
@@ -184,8 +212,7 @@ async def send_otp(
     db: Annotated[AsyncSession, Depends(get_db)],
     redis: Annotated[Redis, Depends(get_redis)],
 ):
-    await auth_service.send_signup_otp(db, redis, data)
-    return MessageResponse(message=f"OTP sent to {data.email}")
+    return await auth_service.send_signup_otp(db, redis, data)
 
 
 @router.post(

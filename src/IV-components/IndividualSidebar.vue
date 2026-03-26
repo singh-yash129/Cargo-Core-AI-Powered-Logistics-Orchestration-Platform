@@ -80,6 +80,7 @@ const menuItems = [
   { label: 'My Orders', icon: 'receipt_long', route: '/individual/orders' },
   { label: 'Quotes', icon: 'request_quote', route: '/individual/quotes' },
   { label: 'Tracking', icon: 'gps_fixed', route: '/individual/tracking' },
+  { label: 'Wallet', icon: 'account_balance_wallet', route: '/individual/wallet' },
   { label: 'Payments', icon: 'credit_card', route: '/individual/payments' },
   { label: 'Profile', icon: 'person', route: '/individual/profile' },
 ]
@@ -92,7 +93,7 @@ const moveMetrics = computed(() => ([
 ]))
 
 async function handleLogout() {
-  await authStore.logout()
-  router.replace('/login')
+  const loginPath = authStore.logout()
+  router.replace(loginPath)
 }
 </script>

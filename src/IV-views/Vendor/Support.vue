@@ -307,8 +307,11 @@ function openTicketDetail(t) {
 
 async function sendReply() {
     if (!replyText.value.trim() || !detailTicket.value) return
-    await store.replyTicket(detailTicket.value.id, replyText.value.trim())
+    const ticketId = detailTicket.value.id
+    await store.replyTicket(ticketId, replyText.value.trim())
     replyText.value = ''
+    const updated = store.tickets.find(t => t.id === ticketId)
+    if (updated) detailTicket.value = updated
 }
 
 async function markResolved(t) {

@@ -1,11 +1,11 @@
 <template>
     <div
-        class="logistic-theme min-h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased flex">
+        class="logistic-theme min-h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased overflow-x-hidden relative">
         <!-- Sidebar -->
         <LogisticSidebar />
 
         <!-- Main Content Area -->
-        <main class="flex-1 ml-64 min-h-screen flex flex-col transition-all duration-300">
+        <main class="ml-64 min-h-screen flex flex-col transition-all duration-300 overflow-x-hidden">
             <!-- Top Bar with Warehouse Switcher -->
             <header
                 class="h-16 px-8 flex items-center justify-between border-b border-gray-200 dark:border-white/5 bg-surface-light/80 dark:bg-background-dark/80 backdrop-blur-md sticky top-0 z-40">
@@ -40,9 +40,6 @@
                 <div class="flex items-center gap-4">
                     <!-- Search Bar Moved to Dashboard -->
 
-                    <!-- Weather & Clock Widget -->
-                    <HeaderWeather />
-
                     <!-- Notifications -->
                     <NotificationPopover :notifications="store.notifications"
                         :unread-count="store.unreadNotificationsCount" @mark-read="store.markNotificationRead"
@@ -61,6 +58,20 @@
 
             <!-- Page Content -->
             <div class="flex-1 p-8 overflow-y-auto overflow-x-hidden">
+                <div v-if="store.error"
+                    class="mb-6 rounded-2xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <div class="font-semibold">Unable to load logistics data</div>
+                            <div class="mt-1 text-amber-800/90 dark:text-amber-100/90">{{ store.error }}</div>
+                        </div>
+                        <button
+                            class="shrink-0 rounded-lg border border-amber-400/60 px-3 py-1.5 font-medium transition-colors hover:bg-amber-100 dark:border-amber-400/30 dark:hover:bg-amber-500/10"
+                            @click="store.initialize(true).catch((err) => console.error('Failed to reload logistics data', err))">
+                            Retry
+                        </button>
+                    </div>
+                </div>
                 <RouterView />
             </div>
 
@@ -75,7 +86,6 @@
 import LogisticSidebar from '../LWD-components/LogisticSidebar.vue'
 import WarehouseSelectorModal from '@/LWD-components/WarehouseSelectorModal.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'
-import HeaderWeather from '@/components/HeaderWeather.vue'
 import HeaderTodo from '@/components/HeaderTodo.vue'
 import HeaderMeetingScheduler from '@/components/HeaderMeetingScheduler.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
@@ -87,7 +97,9 @@ const store = useLogisticStore()
 const route = useRoute()
 
 onMounted(() => {
-    store.initialize().catch(() => {})
+    store.initialize().catch((err) => {
+        console.error('Failed to initialize logistic data', err)
+    })
     document.body.classList.add('logistic-theme-portal')
 })
 

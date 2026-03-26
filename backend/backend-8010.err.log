@@ -1,0 +1,58 @@
+INFO:     Started server process [28624]
+INFO:     Waiting for application startup.
+2026-03-25 00:48:34.112 | INFO     | app.services.auth_service:ensure_logistic_manager_account:155 - Bootstrapped existing Logistics Manager account: logisticmanager@gmail.com
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+2026-03-25 00:48:43.488 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/health', 'status_code': 200, 'duration_ms': 1.48, 'client': '127.0.0.1'}
+2026-03-25 00:48:58.319 | WARNING  | app.utils.redis:get_redis_pool:29 - Redis unavailable — running without cache/blacklist: Timeout connecting to server
+2026-03-25 00:48:59.019 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 1715.23, 'client': '127.0.0.1'}
+2026-03-25 00:58:54.750 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 611.61, 'client': '127.0.0.1'}
+2026-03-25 00:58:54.871 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/auth/me', 'status_code': 200, 'duration_ms': 18.04, 'client': '127.0.0.1'}
+2026-03-25 00:58:55.056 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 134.42, 'client': '127.0.0.1'}
+2026-03-25 00:58:55.199 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 50.29, 'client': '127.0.0.1'}
+2026-03-25 00:59:11.537 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/logistics/drivers/me/shift/start', 'status_code': 200, 'duration_ms': 40.25, 'client': '127.0.0.1'}
+2026-03-25 00:59:11.641 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 45.92, 'client': '127.0.0.1'}
+2026-03-25 00:59:12.010 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 47.19, 'client': '127.0.0.1'}
+2026-03-25 00:59:12.065 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/vehicles', 'status_code': 200, 'duration_ms': 28.01, 'client': '127.0.0.1'}
+2026-03-25 00:59:34.906 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/logistics/drivers/me/bind-vehicle', 'status_code': 200, 'duration_ms': 56.79, 'client': '127.0.0.1'}
+2026-03-25 00:59:35.015 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 55.47, 'client': '127.0.0.1'}
+2026-03-25 01:00:07.580 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 520.9, 'client': '127.0.0.1'}
+2026-03-25 01:00:07.691 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/auth/me', 'status_code': 200, 'duration_ms': 13.2, 'client': '127.0.0.1'}
+2026-03-25 01:00:07.791 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 47.97, 'client': '127.0.0.1'}
+2026-03-25 01:00:07.976 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 50.28, 'client': '127.0.0.1'}
+2026-03-25 01:00:09.525 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/logistics/drivers/me/shift/start', 'status_code': 200, 'duration_ms': 35.17, 'client': '127.0.0.1'}
+2026-03-25 01:00:09.627 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 47.47, 'client': '127.0.0.1'}
+2026-03-25 01:00:09.996 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 48.57, 'client': '127.0.0.1'}
+2026-03-25 01:00:10.048 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/vehicles', 'status_code': 200, 'duration_ms': 27.62, 'client': '127.0.0.1'}
+2026-03-25 01:00:11.726 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/logistics/drivers/me/bind-vehicle', 'status_code': 200, 'duration_ms': 27.04, 'client': '127.0.0.1'}
+2026-03-25 01:00:11.824 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 44.04, 'client': '127.0.0.1'}
+2026-03-25 01:01:25.849 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 509.63, 'client': '127.0.0.1'}
+2026-03-25 01:01:25.942 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/auth/me', 'status_code': 200, 'duration_ms': 14.89, 'client': '127.0.0.1'}
+2026-03-25 01:01:26.030 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 49.06, 'client': '127.0.0.1'}
+2026-03-25 01:01:26.247 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 46.72, 'client': '127.0.0.1'}
+2026-03-25 01:01:27.575 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/logistics/drivers/me/shift/start', 'status_code': 200, 'duration_ms': 28.8, 'client': '127.0.0.1'}
+2026-03-25 01:01:27.670 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 43.35, 'client': '127.0.0.1'}
+2026-03-25 01:01:28.029 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 46.36, 'client': '127.0.0.1'}
+2026-03-25 01:01:28.079 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/vehicles', 'status_code': 200, 'duration_ms': 28.4, 'client': '127.0.0.1'}
+2026-03-25 01:01:30.466 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/logistics/drivers/me/bind-vehicle', 'status_code': 200, 'duration_ms': 24.65, 'client': '127.0.0.1'}
+2026-03-25 01:01:30.567 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 41.53, 'client': '127.0.0.1'}
+2026-03-25 01:02:21.185 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 516.37, 'client': '127.0.0.1'}
+2026-03-25 01:02:21.292 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/auth/me', 'status_code': 200, 'duration_ms': 12.15, 'client': '127.0.0.1'}
+2026-03-25 01:02:21.383 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 42.6, 'client': '127.0.0.1'}
+2026-03-25 01:02:21.551 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 43.14, 'client': '127.0.0.1'}
+2026-03-25 01:02:22.978 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/logistics/drivers/me/shift/start', 'status_code': 200, 'duration_ms': 27.07, 'client': '127.0.0.1'}
+2026-03-25 01:02:23.074 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 42.61, 'client': '127.0.0.1'}
+2026-03-25 01:02:23.452 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 60.97, 'client': '127.0.0.1'}
+2026-03-25 01:02:23.510 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/vehicles', 'status_code': 200, 'duration_ms': 32.84, 'client': '127.0.0.1'}
+2026-03-25 01:02:30.999 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/logistics/drivers/me/bind-vehicle', 'status_code': 200, 'duration_ms': 27.71, 'client': '127.0.0.1'}
+2026-03-25 01:02:31.101 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 47.07, 'client': '127.0.0.1'}
+2026-03-25 01:09:52.504 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 577.23, 'client': '127.0.0.1'}
+2026-03-25 01:09:52.623 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/auth/me', 'status_code': 200, 'duration_ms': 15.11, 'client': '127.0.0.1'}
+2026-03-25 01:09:52.716 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 47.26, 'client': '127.0.0.1'}
+2026-03-25 01:09:52.891 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 46.2, 'client': '127.0.0.1'}
+2026-03-25 01:09:54.495 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/logistics/drivers/me/shift/start', 'status_code': 200, 'duration_ms': 39.5, 'client': '127.0.0.1'}
+2026-03-25 01:09:54.603 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 56.34, 'client': '127.0.0.1'}
+2026-03-25 01:09:54.983 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 53.89, 'client': '127.0.0.1'}
+2026-03-25 01:09:55.047 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/vehicles', 'status_code': 200, 'duration_ms': 33.18, 'client': '127.0.0.1'}
+2026-03-25 01:09:59.494 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/logistics/drivers/me/bind-vehicle', 'status_code': 200, 'duration_ms': 29.68, 'client': '127.0.0.1'}
+2026-03-25 01:09:59.603 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/logistics/drivers/me/dashboard', 'status_code': 200, 'duration_ms': 52.46, 'client': '127.0.0.1'}

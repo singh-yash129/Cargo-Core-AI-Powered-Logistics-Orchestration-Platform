@@ -260,7 +260,6 @@ import { apiUrl } from '@/config/api'
 import {
     getEffectiveWarehouseSubstatus,
     isWarehouseOrderAccepted,
-    patchWarehouseOrderUiState,
 } from '@/utils/warehouseOrderState'
 
 const authStore = useAuthStore()
@@ -286,7 +285,8 @@ function needsWarehouseAcceptance(order) {
     if (!order || order.status !== 'CONFIRMED') return false
     const warehouseId = authStore.currentUser?.warehouse_id
     const substatus = getEffectiveWarehouseSubstatus(order, warehouseId)
-    if (substatus && substatus !== 'AWAITING_PICK') return false
+    // If any warehouse substatus is already set in DB, it was already accepted
+    if (substatus) return false
     return !isWarehouseOrderAccepted(order, warehouseId)
 }
 
@@ -349,10 +349,7 @@ async function fetchOrders() {
                 } else if (incomingStatuses.has(order.status)) {
                     if (
                         order.status === 'CONFIRMED' &&
-                        (
-                            (effectiveWarehouseSubstatus && effectiveWarehouseSubstatus !== 'AWAITING_PICK') ||
-                            isWarehouseOrderAccepted(order, warehouseIdStr)
-                        )
+                        (effectiveWarehouseSubstatus || isWarehouseOrderAccepted(order, warehouseIdStr))
                     ) {
                         tab = 'accepted'
                     } else {
@@ -484,18 +481,30 @@ async function acceptOrder(order) {
 
     if (needsWarehouseAcceptance(order)) {
         const warehouseId = authStore.currentUser?.warehouse_id
-        patchWarehouseOrderUiState(warehouseId, order.id, {
-            accepted: true,
-            warehouse_substatus: 'AWAITING_PICK',
-        })
-        orders.value = orders.value.map(currentOrder =>
-            currentOrder.id === order.id
-                ? { ...currentOrder, tab: 'accepted', warehouse_substatus: 'AWAITING_PICK' }
-                : currentOrder
-        )
-        notifyOrdersUpdated()
-        activeTab.value = 'accepted'
-        showToast(`${order.tracking_code} accepted into warehouse queue`)
+        if (!warehouseId) {
+            showToast('No warehouse assigned to your account')
+            return
+        }
+        try {
+            const response = await fetch(
+                apiUrl(`api/v1/warehouses/${warehouseId}/operations/orders/${order.id}/accept`),
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authStore.authToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            )
+            if (!response.ok) throw new Error('Failed to accept order')
+            await fetchOrders()
+            notifyOrdersUpdated()
+            activeTab.value = 'accepted'
+            showToast(`${order.tracking_code} accepted into warehouse queue`)
+        } catch (error) {
+            console.error('Error accepting order:', error)
+            showToast('Error accepting order')
+        }
     }
 }
 

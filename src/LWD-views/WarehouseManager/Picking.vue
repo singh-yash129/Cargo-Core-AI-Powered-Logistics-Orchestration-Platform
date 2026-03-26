@@ -18,6 +18,11 @@
                     <span class="material-symbols-outlined text-[14px]">{{ autoRefreshEnabled ? 'pause' : 'play_arrow' }}</span>
                     {{ autoRefreshEnabled ? 'Pause' : 'Auto' }}
                 </button>
+                <button @click="openSlip('digitalPickList')"
+                    class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[18px]">checklist</span>
+                    Pick List
+                </button>
                 <button @click="refreshData"
                     class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-1">
                     <span class="material-symbols-outlined text-[18px]">refresh</span>
@@ -102,27 +107,111 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Pick Wave Status -->
-            <div class="lg:col-span-2 glass-panel rounded-xl overflow-hidden">
-                <div class="p-6 border-b border-gray-100 dark:border-white/5 flex flex-col sm:flex-row justify-between gap-2">
-                    <h3 class="font-bold text-gray-900 dark:text-white">Active Pick Waves</h3>
-                    <span class="text-xs text-gray-600 dark:text-gray-400">
-                        {{ filteredWaves.length }} of {{ waves.length }} orders
+        <!-- Active Pick Waves - Clean Tab Layout -->
+        <div class="glass-panel rounded-xl overflow-hidden">
+            <!-- Header with Status Tabs -->
+            <div class="border-b border-gray-100 dark:border-white/5">
+                <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Active Pick Waves</h3>
+                    <div class="text-xs text-gray-500">
+                        {{ filteredWaves.length }} orders
                         <span v-if="hasActiveFilters" class="text-primary">(filtered)</span>
-                    </span>
+                    </div>
                 </div>
 
-                <!-- Loading -->
-                <div v-if="loading" class="p-8 text-center">
-                    <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                    <div class="mt-2 text-xs text-gray-500">Loading pick waves...</div>
+                <!-- Status Tabs -->
+                <div class="flex overflow-x-auto px-4 gap-1 pb-0">
+                    <button @click="selectedStatusTab = 'ALL'"
+                        class="px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors"
+                        :class="selectedStatusTab === 'ALL'
+                            ? 'border-primary text-primary bg-primary/5'
+                            : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'">
+                        All
+                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-gray-200 dark:bg-white/10">
+                            {{ waves.length }}
+                        </span>
+                    </button>
+                    <button @click="selectedStatusTab = 'ON_HOLD'"
+                        class="px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors"
+                        :class="selectedStatusTab === 'ON_HOLD'
+                            ? 'border-red-500 text-red-600 dark:text-red-400 bg-red-500/5'
+                            : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'">
+                        <span class="inline-flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                            On Hold
+                        </span>
+                        <span v-if="wavesByStatus.ON_HOLD?.length" class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-red-500/20 text-red-600 dark:text-red-400">
+                            {{ wavesByStatus.ON_HOLD.length }}
+                        </span>
+                    </button>
+                    <button @click="selectedStatusTab = 'AWAITING_PICK'"
+                        class="px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors"
+                        :class="selectedStatusTab === 'AWAITING_PICK'
+                            ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400 bg-yellow-500/5'
+                            : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'">
+                        <span class="inline-flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                            Awaiting
+                        </span>
+                        <span v-if="wavesByStatus.AWAITING_PICK?.length" class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-400">
+                            {{ wavesByStatus.AWAITING_PICK.length }}
+                        </span>
+                    </button>
+                    <button @click="selectedStatusTab = 'PICKING'"
+                        class="px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors"
+                        :class="selectedStatusTab === 'PICKING'
+                            ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-500/5'
+                            : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'">
+                        <span class="inline-flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                            Picking
+                        </span>
+                        <span v-if="wavesByStatus.PICKING?.length" class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                            {{ wavesByStatus.PICKING.length }}
+                        </span>
+                    </button>
+                    <button @click="selectedStatusTab = 'PICKED'"
+                        class="px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors"
+                        :class="selectedStatusTab === 'PICKED'
+                            ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400 bg-cyan-500/5'
+                            : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'">
+                        <span class="inline-flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-cyan-500"></span>
+                            Picked
+                        </span>
+                        <span v-if="wavesByStatus.PICKED?.length" class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-cyan-500/20 text-cyan-600 dark:text-cyan-400">
+                            {{ wavesByStatus.PICKED.length }}
+                        </span>
+                    </button>
+                    <button @click="selectedStatusTab = 'PACKING'"
+                        class="px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors"
+                        :class="selectedStatusTab === 'PACKING'
+                            ? 'border-green-500 text-green-600 dark:text-green-400 bg-green-500/5'
+                            : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'">
+                        <span class="inline-flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            Packing
+                        </span>
+                        <span v-if="wavesByStatus.PACKING?.length" class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-green-500/20 text-green-600 dark:text-green-400">
+                            {{ wavesByStatus.PACKING.length }}
+                        </span>
+                    </button>
                 </div>
+            </div>
 
-                <!-- Mobile Card View -->
-                <div v-else class="md:hidden p-4 space-y-3 max-h-[500px] overflow-y-auto">
-                    <div v-for="wave in filteredWaves" :key="wave.id"
-                        class="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+            <!-- Loading -->
+            <div v-if="loading" class="p-8 text-center">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                <div class="mt-2 text-xs text-gray-500">Loading pick waves...</div>
+            </div>
+
+            <!-- Orders Grid -->
+            <div v-else class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div v-for="wave in filteredWavesByTab" :key="wave.id"
+                        class="bg-gray-50 dark:bg-white/5 rounded-xl p-4 hover:bg-gray-100 dark:hover:bg-white/10 transition-all cursor-pointer group"
+                        @click="openPickList(wave)">
+                        <!-- Header -->
                         <div class="flex justify-between items-start mb-3">
                             <div>
                                 <div class="font-mono text-primary font-bold">{{ wave.id }}</div>
@@ -130,127 +219,92 @@
                                     <span :class="getPriorityBadgeClass(wave.priority)" class="px-2 py-0.5 rounded text-[10px] font-bold">
                                         {{ getPriorityIcon(wave.priority) }} {{ wave.priority || 'Standard' }}
                                     </span>
-                                    <span class="px-2 py-1 rounded text-[10px] font-bold border" :class="wave.statusClass">
-                                        {{ wave.status }}
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold border" :class="wave.statusClass">
+                                        {{ wave.status === 'ON_HOLD' ? 'ON HOLD' : wave.status }}
                                     </span>
                                 </div>
                             </div>
-                            <button @click="openPickList(wave)" class="text-primary text-sm font-bold">
-                                {{ wave.items }} items →
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wave.items }} items</span>
+                        </div>
+
+                        <!-- Labour Info (for ON_HOLD orders) -->
+                        <div v-if="wave.status === 'ON_HOLD'"
+                            class="mb-3 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                            <div class="flex items-center gap-2 text-red-600 dark:text-red-400">
+                                <span class="material-symbols-outlined text-[16px]">warning</span>
+                                <span class="text-xs font-medium">
+                                    Need {{ wave.laborRequired }} labourer(s) — {{ wave.laborAssigned?.length || 0 }} assigned
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Labour Badge (for other orders) -->
+                        <div v-else-if="wave.laborRequired > 1 || wave.laborAssigned?.length" class="mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-500">Labour:</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold"
+                                    :class="(wave.laborAssigned?.length || 0) >= (wave.laborRequired || 1)
+                                        ? 'bg-green-500/20 text-green-600 dark:text-green-400'
+                                        : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'">
+                                    {{ wave.laborAssigned?.length || 0 }}/{{ wave.laborRequired || 1 }}
+                                </span>
+                                <div v-if="wave.laborAssigned?.length" class="flex -space-x-1">
+                                    <span v-for="(l, idx) in wave.laborAssigned.slice(0, 3)" :key="l.id"
+                                        class="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[9px] font-bold border border-white dark:border-gray-800">
+                                        {{ (l.name || 'L')[0] }}
+                                    </span>
+                                    <span v-if="wave.laborAssigned.length > 3"
+                                        class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300 flex items-center justify-center text-[9px] font-bold border border-white dark:border-gray-800">
+                                        +{{ wave.laborAssigned.length - 3 }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Details -->
+                        <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
+                            <span>{{ formatCurrency(wave.value) }}</span>
+                            <span class="font-mono" :class="isOverdue(wave.deadline) ? 'text-red-500 font-bold' : ''">
+                                {{ wave.deadline }}
+                                <span v-if="isOverdue(wave.deadline)">⚠️</span>
+                            </span>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div v-if="wave.status === 'ON_HOLD'" class="flex gap-2">
+                            <button @click.stop="openAssignLabourers(wave)"
+                                class="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">group_add</span>
+                                Assign Labourers
                             </button>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 text-xs mb-3">
-                            <div>
-                                <span class="text-gray-500">Value:</span>
-                                <span class="text-gray-900 dark:text-white ml-1">{{ formatCurrency(wave.value) }}</span>
-                            </div>
-                            <div>
-                                <span class="text-gray-500">Deadline:</span>
-                                <span class="text-gray-900 dark:text-white ml-1 font-mono">{{ wave.deadline }}</span>
-                            </div>
-                            <div class="col-span-2">
-                                <span class="text-gray-500">Picker:</span>
-                                <span v-if="wave.assignedPicker" class="text-green-600 ml-1">{{ wave.assignedPicker }}</span>
-                                <button v-else @click="openAssignPicker(wave)" class="text-yellow-500 ml-1 underline">Assign</button>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button v-if="hasAction(wave)" @click="handleWaveAction(wave)"
-                                class="flex-1 bg-primary text-background-dark py-2 rounded-lg text-xs font-bold">
+                        <div v-else-if="hasAction(wave)" class="flex gap-2">
+                            <button @click.stop="handleWaveAction(wave)"
+                                class="flex-1 py-2 bg-primary hover:bg-primary-dark text-background-dark rounded-lg text-xs font-bold transition-colors">
                                 {{ getActionLabel(wave) }}
                             </button>
-                            <button v-if="wave.canUndo" @click="undoWaveStatus(wave)"
-                                class="px-3 py-2 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 rounded-lg text-xs">
+                            <button v-if="wave.canUndo" @click.stop="undoWaveStatus(wave)"
+                                class="px-3 py-2 bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
+                                title="Undo">
                                 <span class="material-symbols-outlined text-[14px]">undo</span>
                             </button>
                         </div>
-                    </div>
-                    <div v-if="filteredWaves.length === 0" class="text-center py-8 text-gray-500">
-                        <span class="material-symbols-outlined text-4xl mb-2 opacity-50">search_off</span>
-                        <p>No orders match your filters</p>
+                        <div v-else class="text-center text-xs text-gray-400 py-2">
+                            Awaiting QC / Dispatch
+                        </div>
                     </div>
                 </div>
 
-                <!-- Desktop Table View -->
-                <div class="hidden md:block overflow-x-auto">
-                <table class="w-full min-w-[1100px] text-left text-sm">
-                    <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 uppercase">
-                        <tr>
-                            <th class="p-4">Order ID</th>
-                            <th class="p-4">Priority</th>
-                            <th class="p-4">Items</th>
-                            <th class="p-4">Value</th>
-                            <th class="p-4">Assigned Picker</th>
-                            <th class="p-4">Deadline</th>
-                            <th class="p-4">Status</th>
-                            <th class="p-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                        <tr v-for="wave in filteredWaves" :key="wave.id"
-                            class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                            <td class="p-4 font-mono text-primary">{{ wave.id }}</td>
-                            <td class="p-4">
-                                <span :class="getPriorityBadgeClass(wave.priority)" class="px-2 py-1 rounded text-[10px] font-bold inline-flex items-center gap-1">
-                                    {{ getPriorityIcon(wave.priority) }} {{ wave.priority || 'Standard' }}
-                                </span>
-                            </td>
-                            <td class="p-4">
-                                <button @click="openPickList(wave)"
-                                    class="text-primary hover:text-primary-dark underline text-sm font-medium flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[14px]">list_alt</span>
-                                    {{ wave.items }} items
-                                </button>
-                            </td>
-                            <td class="p-4 text-gray-600 dark:text-gray-300">{{ formatCurrency(wave.value) }}</td>
-                            <td class="p-4">
-                                <div v-if="wave.assignedPicker" class="flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                                    <span class="text-gray-900 dark:text-white text-xs">{{ wave.assignedPicker }}</span>
-                                </div>
-                                <button v-else @click="openAssignPicker(wave)"
-                                    class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 text-xs flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[14px]">person_add</span>
-                                    Assign
-                                </button>
-                            </td>
-                            <td class="p-4">
-                                <span class="font-mono text-xs" :class="isOverdue(wave.deadline) ? 'text-red-500 font-bold' : 'text-gray-900 dark:text-white'">
-                                    {{ wave.deadline }}
-                                    <span v-if="isOverdue(wave.deadline)" class="ml-1">⚠️</span>
-                                </span>
-                            </td>
-                            <td class="p-4">
-                                <span class="px-2 py-1 rounded text-[10px] font-bold border" :class="wave.statusClass">
-                                    {{ wave.status }}
-                                </span>
-                            </td>
-                            <td class="p-4">
-                                <div class="flex gap-2">
-                                    <button v-if="hasAction(wave)" @click="handleWaveAction(wave)"
-                                        class="bg-primary/20 hover:bg-primary/30 text-primary px-3 py-1 rounded text-xs font-bold transition-colors">
-                                        {{ getActionLabel(wave) }}
-                                    </button>
-                                    <span v-else class="text-xs text-gray-500">QC / Dispatch</span>
-                                    <button v-if="wave.canUndo" @click="undoWaveStatus(wave)"
-                                        class="px-2 py-1 bg-gray-100 dark:bg-white/10 text-gray-500 rounded text-xs hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
-                                        title="Undo last status change">
-                                        <span class="material-symbols-outlined text-[14px]">undo</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr v-if="filteredWaves.length === 0">
-                            <td colspan="8" class="p-8 text-center text-gray-500">
-                                <span class="material-symbols-outlined text-4xl mb-2 opacity-50">{{ hasActiveFilters ? 'search_off' : 'inventory_2' }}</span>
-                                <p v-if="hasActiveFilters">No orders match your filters. <button @click="clearFilters" class="text-primary underline">Clear filters</button></p>
-                                <p v-else>No active pick waves yet. Accepted orders stay in New Orders until a real picking status exists.</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <!-- Empty State -->
+                <div v-if="filteredWavesByTab.length === 0" class="text-center py-12 text-gray-500">
+                    <span class="material-symbols-outlined text-5xl mb-3 opacity-30">inventory_2</span>
+                    <p class="font-medium">No orders in this category</p>
+                    <p class="text-xs mt-1 text-gray-400">Orders will appear here when they match this status</p>
                 </div>
             </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
 
             <!-- Packing Station View + Quality Check -->
             <div class="space-y-6">
@@ -529,6 +583,128 @@
             </div>
         </Teleport>
 
+        <!-- Multi-Labourer Assignment Modal (for orders requiring multiple labourers) -->
+        <Teleport to="body">
+            <div v-if="showMultiLabourerModal"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showMultiLabourerModal = false">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
+                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">group_add</span>
+                                Assign Labourers
+                            </h3>
+                            <p class="text-xs text-gray-500 mt-1">
+                                Order: {{ multiLabourerWave?.id }} requires
+                                <span class="text-primary font-bold">{{ multiLabourerWave?.laborRequired || 1 }}</span> labourer(s)
+                            </p>
+                        </div>
+                        <button @click="showMultiLabourerModal = false" class="text-gray-500 hover:text-gray-900 dark:text-white">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <div v-if="labourersLoading" class="flex items-center justify-center py-4">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        </div>
+                        <div v-else>
+                            <!-- Selection Counter -->
+                            <div class="flex items-center justify-between mb-4 p-3 rounded-lg"
+                                :class="selectedLabourers.length >= (multiLabourerWave?.laborRequired || 1)
+                                    ? 'bg-green-500/20 border border-green-500/30'
+                                    : 'bg-yellow-500/20 border border-yellow-500/30'">
+                                <span class="text-sm font-medium"
+                                    :class="selectedLabourers.length >= (multiLabourerWave?.laborRequired || 1)
+                                        ? 'text-green-600 dark:text-green-400'
+                                        : 'text-yellow-600 dark:text-yellow-400'">
+                                    {{ selectedLabourers.length }} / {{ multiLabourerWave?.laborRequired || 1 }} labourers selected
+                                </span>
+                                <span v-if="selectedLabourers.length >= (multiLabourerWave?.laborRequired || 1)"
+                                    class="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
+                                <span v-else class="material-symbols-outlined text-yellow-500 text-[18px]">info</span>
+                            </div>
+
+                            <!-- Selected Labourers -->
+                            <div v-if="selectedLabourers.length > 0" class="mb-4">
+                                <label class="text-xs text-gray-600 dark:text-gray-400 mb-2 block">Selected:</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <span v-for="labourer in selectedLabourers" :key="labourer.id"
+                                        class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/20 text-primary rounded-full text-sm font-medium">
+                                        {{ labourer.name || labourer.full_name }}
+                                        <button @click="toggleLabourerSelection(labourer)" class="hover:text-red-500">
+                                            <span class="material-symbols-outlined text-[14px]">close</span>
+                                        </button>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Available Labourers List -->
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-2 block">Available Labourers:</label>
+                            <div class="space-y-2 max-h-64 overflow-y-auto">
+                                <div v-for="labourer in availableLabourersForMulti" :key="labourer.id"
+                                    @click="toggleLabourerSelection(labourer)"
+                                    class="p-3 rounded-lg border cursor-pointer transition-all"
+                                    :class="isLabourerSelected(labourer)
+                                        ? 'bg-primary/20 border-primary'
+                                        : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-primary/50'">
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                                                :class="isLabourerSelected(labourer)
+                                                    ? 'bg-primary text-white'
+                                                    : 'bg-primary/20 text-primary'">
+                                                {{ (labourer.name || labourer.full_name || '?')[0].toUpperCase() }}
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-gray-900 dark:text-white text-sm">
+                                                    {{ labourer.name || labourer.full_name }}
+                                                </div>
+                                                <div class="text-xs text-gray-500">
+                                                    {{ labourer.skill_tags?.join(', ') || 'Warehouse Labour' }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="px-2 py-0.5 bg-green-500/20 text-green-600 dark:text-green-400 rounded text-[10px] font-bold">
+                                                Available
+                                            </span>
+                                            <span v-if="isLabourerSelected(labourer)"
+                                                class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="availableLabourersForMulti.length === 0" class="text-center py-8 text-gray-500">
+                                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">group_off</span>
+                                    <p class="text-sm">No available labourers</p>
+                                    <p class="text-xs mt-1">All labourers are currently assigned to other orders</p>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex gap-2 mt-4">
+                                <button @click="showMultiLabourerModal = false"
+                                    class="flex-1 py-3 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white rounded-lg font-bold transition-colors hover:bg-gray-200 dark:hover:bg-white/20">
+                                    Cancel
+                                </button>
+                                <button @click="assignMultipleLabourers"
+                                    :disabled="selectedLabourers.length < (multiLabourerWave?.laborRequired || 1) || assigningPicker"
+                                    class="flex-1 py-3 bg-primary text-background-dark rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                    <span v-if="assigningPicker" class="animate-spin rounded-full h-4 w-4 border-b-2 border-background-dark"></span>
+                                    <span>{{ assigningPicker ? 'Assigning...' : 'Assign & Continue' }}</span>
+                                </button>
+                            </div>
+
+                            <p v-if="selectedLabourers.length < (multiLabourerWave?.laborRequired || 1)"
+                                class="text-xs text-center text-yellow-600 dark:text-yellow-400 mt-3">
+                                Select {{ (multiLabourerWave?.laborRequired || 1) - selectedLabourers.length }} more labourer(s) to proceed
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
         <!-- Packing Station Live Monitor Modal -->
         <Teleport to="body">
             <div v-if="showStationMonitor"
@@ -590,6 +766,10 @@
 import { ref, computed, inject, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { getEffectiveWarehouseSubstatus, patchWarehouseOrderUiState } from '@/utils/warehouseOrderState'
+import { apiUrl } from '@/config/api'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+
+const { openSlip } = useSlipPrinter()
 
 const authStore = useAuthStore()
 const openScanner = inject('openScanner', null)
@@ -636,6 +816,15 @@ const availableLabourers = ref([])
 const selectedLabourer = ref(null)
 const labourersLoading = ref(false)
 const assigningPicker = ref(false)
+
+// Multi-Labourer assignment modal state
+const showMultiLabourerModal = ref(false)
+const multiLabourerWave = ref(null)
+const selectedLabourers = ref([])
+
+// Kanban view state
+const kanbanViewMode = ref('board') // 'board' or 'table'
+const selectedStatusTab = ref('ALL') // ALL, ON_HOLD, AWAITING_PICK, PICKING, PICKED, PACKING
 
 // Station monitor state
 const showStationMonitor = ref(false)
@@ -696,6 +885,57 @@ const filteredWaves = computed(() => {
 })
 
 const hasActiveFilters = computed(() => searchQuery.value.trim() || activeStatusFilters.value.length > 0 || priorityFilter.value)
+
+// Waves grouped by status for Kanban board
+const wavesByStatus = computed(() => {
+    const grouped = {
+        ON_HOLD: [],
+        AWAITING_PICK: [],
+        PICKING: [],
+        PICKED: [],
+        PACKING: [],
+    }
+
+    for (const wave of waves.value) {
+        // Put orders on hold if they don't have enough labourers assigned
+        const laborRequired = wave.laborRequired || 1
+        const laborAssigned = wave.laborAssigned?.length || 0
+
+        if (laborAssigned < laborRequired && ['AWAITING_PICK', 'CONFIRMED'].includes(wave.status)) {
+            grouped.ON_HOLD.push({ ...wave, status: 'ON_HOLD' })
+        } else if (wave.status === 'AWAITING_PICK' || wave.status === 'CONFIRMED') {
+            grouped.AWAITING_PICK.push(wave)
+        } else if (wave.status === 'PICKING') {
+            grouped.PICKING.push(wave)
+        } else if (wave.status === 'PICKED') {
+            grouped.PICKED.push(wave)
+        } else if (wave.status === 'PACKING') {
+            grouped.PACKING.push(wave)
+        }
+    }
+
+    return grouped
+})
+
+// Available labourers for multi-selection modal
+const availableLabourersForMulti = computed(() => {
+    return labourers.value.filter(l =>
+        l.is_active && !l.assigned_order_id
+    )
+})
+
+// Filtered waves based on selected tab
+const filteredWavesByTab = computed(() => {
+    if (selectedStatusTab.value === 'ALL') {
+        // Return all waves including ON_HOLD ones
+        const allWaves = []
+        for (const status of ['ON_HOLD', 'AWAITING_PICK', 'PICKING', 'PICKED', 'PACKING']) {
+            allWaves.push(...(wavesByStatus.value[status] || []))
+        }
+        return allWaves
+    }
+    return wavesByStatus.value[selectedStatusTab.value] || []
+})
 
 // Active pickers: count real labourers currently attached to picking/packing orders
 const activePickers = computed(() => {
@@ -829,7 +1069,8 @@ function saveUndoState(wave, previousStatus, newStatus) {
     undoAction.value = {
         message: `${wave.id} moved to ${newStatus.replace(/_/g, ' ')}`,
         orderId: wave.rawId,
-        previousStatus
+        previousStatus,
+        newStatus
     }
 
     // Auto-dismiss after 10 seconds
@@ -842,10 +1083,36 @@ function saveUndoState(wave, previousStatus, newStatus) {
 async function performUndo() {
     if (!undoAction.value) return
 
-    const { orderId, previousStatus } = undoAction.value
+    const { orderId, previousStatus, newStatus } = undoAction.value
     const warehouseId = getWarehouseId()
 
     if (!warehouseId) return
+
+    const headers = { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
+
+    // Map newStatus → revert endpoint (uses the reverse transitions added to the state machine)
+    const revertEndpoints = {
+        'PICKING': `api/v1/warehouses/${warehouseId}/operations/orders/${orderId}/revert-picking`,
+    }
+    const revertUrl = revertEndpoints[newStatus]
+
+    if (revertUrl) {
+        try {
+            const res = await fetch(apiUrl(revertUrl), { method: 'POST', headers })
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}))
+                actionToast.value = err.detail || `Failed to undo: ${res.status}`
+                setTimeout(() => { actionToast.value = '' }, 3000)
+                undoAction.value = null
+                if (undoTimeout) clearTimeout(undoTimeout)
+                return
+            }
+        } catch (e) {
+            actionToast.value = 'Network error during undo'
+            setTimeout(() => { actionToast.value = '' }, 3000)
+            return
+        }
+    }
 
     patchWarehouseOrderUiState(warehouseId, orderId, {
         accepted: true,
@@ -923,6 +1190,7 @@ function formatLocation(item) {
 
 function getStatusClass(status) {
     const map = {
+        'ON_HOLD': 'bg-red-500/10 text-red-500 border-red-500/20',
         'AWAITING_PICK': 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
         'PICKING': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
         'PICKED': 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
@@ -1043,7 +1311,7 @@ function mergePickListWithProgress(items = [], progressItems = [], status = sele
 }
 
 async function fetchPickListItems(orderId) {
-    const response = await fetch(`http://localhost:8000/api/v1/inventory/pick-list/${orderId}`, {
+    const response = await fetch(apiUrl(`api/v1/inventory/pick-list/${orderId}`), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
     })
@@ -1053,7 +1321,7 @@ async function fetchPickListItems(orderId) {
         return data.items || []
     }
 
-    const orderRes = await fetch(`http://localhost:8000/api/v1/orders/${orderId}`, {
+    const orderRes = await fetch(apiUrl(`api/v1/orders/${orderId}`), {
         headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
     })
 
@@ -1084,7 +1352,7 @@ async function fetchPickProgress(orderId) {
     if (!warehouseId) return null
 
     const response = await fetch(
-        `http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/orders/${orderId}/pick-progress`,
+        apiUrl(`api/v1/warehouses/${warehouseId}/operations/orders/${orderId}/pick-progress`),
         {
             headers: {
                 'Authorization': `Bearer ${authStore.authToken}`,
@@ -1105,7 +1373,7 @@ async function fetchLabourers(warehouseId) {
     }
 
     try {
-        const response = await fetch(`http://localhost:8000/api/v1/labourers?warehouse_id=${warehouseId}&page_size=100`, {
+        const response = await fetch(apiUrl(`api/v1/labourers?warehouse_id=${warehouseId}&page_size=100`), {
             headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
         })
 
@@ -1137,7 +1405,7 @@ async function fetchQualityChecks(warehouseId) {
     if (!warehouseId) return []
 
     try {
-        const response = await fetch(`http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/quality-checks`, {
+        const response = await fetch(apiUrl(`api/v1/warehouses/${warehouseId}/operations/quality-checks`), {
             headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
         })
 
@@ -1158,7 +1426,7 @@ async function ensureQualityCheckRecord(check) {
         throw new Error('Missing warehouse or order for quality check')
     }
 
-    const createResponse = await fetch(`http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/orders/${check.rawId}/quality-check`, {
+    const createResponse = await fetch(apiUrl(`api/v1/warehouses/${warehouseId}/operations/orders/${check.rawId}/quality-check`), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
     })
@@ -1171,7 +1439,7 @@ async function ensureQualityCheckRecord(check) {
 
     if (createResponse.status === 409) {
         const existingResponse = await fetch(
-            `http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/quality-checks?order_id=${check.rawId}`,
+            apiUrl(`api/v1/warehouses/${warehouseId}/operations/quality-checks?order_id=${check.rawId}`),
             { headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' } }
         )
 
@@ -1191,7 +1459,7 @@ async function ensureQualityCheckRecord(check) {
 async function persistQualityCheck(check) {
     const warehouseId = getWarehouseId()
     const checkId = await ensureQualityCheckRecord(check)
-    const response = await fetch(`http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/quality-checks/${checkId}`, {
+    const response = await fetch(apiUrl(`api/v1/warehouses/${warehouseId}/operations/quality-checks/${checkId}`), {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1309,7 +1577,7 @@ async function toggleItemPicked(item, source = 'button') {
 
     try {
         const response = await fetch(
-            `http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/orders/${selectedWave.value.rawId}/pick-item`,
+            apiUrl(`api/v1/warehouses/${warehouseId}/operations/orders/${selectedWave.value.rawId}/pick-item`),
             {
                 method: 'POST',
                 headers: {
@@ -1422,8 +1690,8 @@ async function openAssignPicker(wave) {
     try {
         const warehouseId = getWarehouseId()
         const url = warehouseId
-            ? `http://localhost:8000/api/v1/labourers?warehouse_id=${warehouseId}&page_size=50`
-            : 'http://localhost:8000/api/v1/labourers?page_size=50'
+            ? apiUrl(`api/v1/labourers?warehouse_id=${warehouseId}&page_size=50`)
+            : apiUrl('api/v1/labourers?page_size=50')
 
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
@@ -1449,7 +1717,7 @@ async function assignPicker() {
 
     try {
         const response = await fetch(
-            `http://localhost:8000/api/v1/labourers/${selectedLabourer.value.id}/assign/${selectedWave.value.rawId}`,
+            apiUrl(`api/v1/labourers/${selectedLabourer.value.id}/assign/${selectedWave.value.rawId}`),
             {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
@@ -1467,6 +1735,82 @@ async function assignPicker() {
     } catch (error) {
         console.error('Error assigning picker:', error)
         actionToast.value = error.message || 'Unable to assign picker'
+        setTimeout(() => { actionToast.value = '' }, 2500)
+    } finally {
+        assigningPicker.value = false
+    }
+}
+
+// ==================
+// Multi-Labourer Assignment
+// ==================
+
+function openAssignLabourers(wave) {
+    multiLabourerWave.value = wave
+    selectedLabourers.value = wave.laborAssigned ? [...wave.laborAssigned] : []
+    showMultiLabourerModal.value = true
+    fetchAvailableLabourersForMulti()
+}
+
+async function fetchAvailableLabourersForMulti() {
+    labourersLoading.value = true
+    const warehouseId = getWarehouseId()
+
+    if (!warehouseId) {
+        labourersLoading.value = false
+        return
+    }
+
+    try {
+        await fetchLabourers(warehouseId)
+    } finally {
+        labourersLoading.value = false
+    }
+}
+
+function isLabourerSelected(labourer) {
+    return selectedLabourers.value.some(l => l.id === labourer.id)
+}
+
+function toggleLabourerSelection(labourer) {
+    const idx = selectedLabourers.value.findIndex(l => l.id === labourer.id)
+    if (idx >= 0) {
+        selectedLabourers.value.splice(idx, 1)
+    } else {
+        selectedLabourers.value.push(labourer)
+    }
+}
+
+async function assignMultipleLabourers() {
+    if (!multiLabourerWave.value || selectedLabourers.value.length < (multiLabourerWave.value.laborRequired || 1)) {
+        return
+    }
+
+    assigningPicker.value = true
+
+    try {
+        // Assign each selected labourer to the order
+        for (const labourer of selectedLabourers.value) {
+            const response = await fetch(
+                apiUrl(`api/v1/labourers/${labourer.id}/assign/${multiLabourerWave.value.rawId}`),
+                {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
+                }
+            )
+
+            if (!response.ok) {
+                console.warn(`Failed to assign labourer ${labourer.id}`)
+            }
+        }
+
+        showMultiLabourerModal.value = false
+        actionToast.value = `${selectedLabourers.value.length} labourer(s) assigned to ${multiLabourerWave.value.id}`
+        await fetchPickingData()
+        setTimeout(() => { actionToast.value = '' }, 2500)
+    } catch (error) {
+        console.error('Error assigning labourers:', error)
+        actionToast.value = error.message || 'Unable to assign labourers'
         setTimeout(() => { actionToast.value = '' }, 2500)
     } finally {
         assigningPicker.value = false
@@ -1509,11 +1853,12 @@ async function refreshData() {
 async function fetchPickingData() {
     loading.value = true
     pipelineLoading.value = true
+    await authStore.ensureWarehouseContext()
     const warehouseId = getWarehouseId()
 
     try {
         // Fetch orders
-        const response = await fetch('http://localhost:8000/api/v1/orders?page=1&page_size=100', {
+        const response = await fetch(apiUrl('api/v1/orders?page=1&page_size=100'), {
             headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
         })
 
@@ -1531,10 +1876,10 @@ async function fetchPickingData() {
 
             awaitingPickOrders = warehouseOrders.filter(order => {
                 const substatus = getEffectiveWarehouseSubstatus(order, warehouseId)
-                return order.status === 'CONFIRMED' && (!substatus || substatus === 'AWAITING_PICK')
+                return order.status === 'CONFIRMED' && substatus === 'AWAITING_PICK'
             }).map(order => ({
                 ...order,
-                warehouse_substatus: getEffectiveWarehouseSubstatus(order, warehouseId) || 'AWAITING_PICK'
+                warehouse_substatus: 'AWAITING_PICK'
             }))
             pickingOrders = warehouseOrders.filter(order => getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKING')
                 .map(order => ({ ...order, warehouse_substatus: 'PICKING' }))
@@ -1554,10 +1899,27 @@ async function fetchPickingData() {
         await fetchLabourers(warehouseId)
         const qcItems = await fetchQualityChecks(warehouseId)
 
+        // Build a map of labourers assigned to each order
+        const labourersByOrder = {}
+        for (const labourer of labourers.value) {
+            if (labourer.assigned_order_id) {
+                if (!labourersByOrder[labourer.assigned_order_id]) {
+                    labourersByOrder[labourer.assigned_order_id] = []
+                }
+                labourersByOrder[labourer.assigned_order_id].push({
+                    id: labourer.id,
+                    name: labourer.name || labourer.full_name || labourer.email || 'Labourer',
+                    skill_tags: labourer.skill_tags
+                })
+            }
+        }
+
         const allActiveOrders = dedupeOrders([...awaitingPickOrders, ...pickingOrders, ...pickedOrders, ...packingOrders])
         waves.value = allActiveOrders.map(order => {
             const assignment = orderAssignments.value[order.id]
             const hasUndoHistory = undoHistory.value.some(h => h.orderId === order.id)
+            const laborAssigned = labourersByOrder[order.id] || []
+
             return {
                 id: order.tracking_code || order.id?.slice(0, 8).toUpperCase(),
                 type: order.order_type || 'Standard',
@@ -1569,7 +1931,9 @@ async function fetchPickingData() {
                 statusClass: getStatusClass(order.warehouse_substatus || order.status),
                 rawId: order.id,
                 assignedPicker: assignment?.labourerName || null,
-                canUndo: hasUndoHistory
+                canUndo: hasUndoHistory,
+                laborRequired: order.labor_count || order.laborCount || 1,
+                laborAssigned: laborAssigned
             }
         })
 
@@ -1629,7 +1993,7 @@ async function fetchPickingData() {
 
 async function fetchPackingStations(warehouseId) {
     try {
-        const response = await fetch(`http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/packing-stations`, {
+        const response = await fetch(apiUrl(`api/v1/warehouses/${warehouseId}/operations/packing-stations`), {
             headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
         })
 
@@ -1704,7 +2068,7 @@ async function handleWaveAction(wave) {
     if (wave.status === 'AWAITING_PICK' || wave.status === 'CONFIRMED') {
         const assignment = orderAssignments.value[wave.rawId]
         return updateWaveStatus(wave, 'PICKING', {
-            url: `http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/orders/${wave.rawId}/start-picking`,
+            url: apiUrl(`api/v1/warehouses/${warehouseId}/operations/orders/${wave.rawId}/start-picking`),
             options: { method: 'POST', headers, body: JSON.stringify({ labourer_id: assignment?.labourerId || null }) }
         }, {
             onSuccess: () => saveUndoState(wave, previousStatus, 'PICKING')
@@ -1713,7 +2077,7 @@ async function handleWaveAction(wave) {
 
     if (wave.status === 'PICKING') {
         return updateWaveStatus(wave, 'PICKED', {
-            url: `http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/orders/${wave.rawId}/complete-picking`,
+            url: apiUrl(`api/v1/warehouses/${warehouseId}/operations/orders/${wave.rawId}/complete-picking`),
             options: { method: 'POST', headers }
         }, {
             onSuccess: () => saveUndoState(wave, previousStatus, 'PICKED')
@@ -1722,7 +2086,7 @@ async function handleWaveAction(wave) {
 
     if (wave.status === 'PICKED') {
         return updateWaveStatus(wave, 'PACKING', {
-            url: `http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/orders/${wave.rawId}/start-packing`,
+            url: apiUrl(`api/v1/warehouses/${warehouseId}/operations/orders/${wave.rawId}/start-packing`),
             options: { method: 'POST', headers, body: JSON.stringify({}) }
         }, {
             onSuccess: () => saveUndoState(wave, previousStatus, 'PACKING')
@@ -1731,7 +2095,7 @@ async function handleWaveAction(wave) {
 
     if (wave.status === 'PACKING') {
         return updateWaveStatus(wave, 'PACKED', {
-            url: `http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/orders/${wave.rawId}/complete-packing`,
+            url: apiUrl(`api/v1/warehouses/${warehouseId}/operations/orders/${wave.rawId}/complete-packing`),
             options: { method: 'POST', headers }
         }, {
             onSuccess: () => saveUndoState(wave, previousStatus, 'PACKED')
@@ -1779,7 +2143,7 @@ async function triggerDispatch(check) {
         const checkId = await ensureQualityCheckRecord(check)
         await persistQualityCheck(check)
 
-        const passResponse = await fetch(`http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/quality-checks/${checkId}/pass`, {
+        const passResponse = await fetch(apiUrl(`api/v1/warehouses/${warehouseId}/operations/quality-checks/${checkId}/pass`), {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
         })

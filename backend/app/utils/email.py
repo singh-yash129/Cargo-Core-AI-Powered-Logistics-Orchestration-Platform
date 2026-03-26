@@ -11,30 +11,87 @@ from loguru import logger
 from app.config import get_settings
 
 
-async def send_email(to: str, subject: str, html_body: str) -> None:
-    """Send an email via Gmail SMTP. Logs and swallows errors gracefully."""
+async def send_email(to: str, subject: str, html_body: str) -> bool:
+    """Send an email via Gmail SMTP. Returns True on success."""
     settings = get_settings()
 
-    if not settings.smtp_user or not settings.smtp_password:
+    smtp_host = settings.smtp_host.strip()
+    smtp_user = settings.smtp_user.strip()
+    # Gmail app passwords are often pasted with spaces for readability.
+    # Strip them so SMTP auth works whether the value was pasted grouped or raw.
+    smtp_password = settings.smtp_password.replace(" ", "").strip()
+
+    if not smtp_host or not smtp_user or not smtp_password:
         logger.warning(f"[EMAIL] SMTP not configured — skipping email to {to}. Subject: {subject}")
-        return
+        return False
 
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"] = f"Cargo Core <{settings.smtp_user}>"
+        msg["From"] = f"Cargo Core <{smtp_user}>"
         msg["To"] = to
         msg.attach(MIMEText(html_body, "html"))
 
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+        with smtplib.SMTP(smtp_host, settings.smtp_port) as server:
             server.ehlo()
             server.starttls()
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.sendmail(settings.smtp_user, to, msg.as_string())
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, to, msg.as_string())
 
         logger.info(f"[EMAIL] Sent '{subject}' to {to}")
+        return True
     except Exception as e:
         logger.error(f"[EMAIL] Failed to send email to {to}: {e}")
+        return False
+
+
+def delivery_otp_email_html(otp: str, customer_name: str, tracking_code: str, delivery_address: str) -> str:
+    return f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Delivery Verification OTP</title>
+    </head>
+    <body style="margin:0;padding:0;background:#0F1419;font-family:Arial,sans-serif;">
+        <table role="presentation" style="width:100%;border-collapse:collapse;padding:32px 16px;">
+            <tr>
+                <td align="center">
+                    <table role="presentation" style="width:100%;max-width:620px;background:#111827;border-radius:18px;overflow:hidden;">
+                        <tr>
+                            <td style="padding:32px;background:linear-gradient(135deg,#1E3A8A 0%,#00C4FF 100%);color:#ffffff;text-align:center;">
+                                <h1 style="margin:0;font-size:30px;">Cargo Core</h1>
+                                <p style="margin:8px 0 0 0;font-size:14px;opacity:0.92;">Delivery Verification Required</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:36px 32px;color:#E5E7EB;">
+                                <p style="margin:0 0 14px 0;font-size:16px;">Hi {customer_name},</p>
+                                <p style="margin:0 0 20px 0;font-size:15px;line-height:1.6;">
+                                    Your driver has reached the delivery step for order <strong>{tracking_code}</strong>.
+                                    Share this OTP only after you confirm the handover.
+                                </p>
+                                <div style="margin:0 0 22px 0;padding:20px;border:2px solid #00C4FF;border-radius:14px;background:#0B1220;text-align:center;">
+                                    <div style="font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#93C5FD;margin-bottom:10px;">Delivery OTP</div>
+                                    <div style="font-size:42px;letter-spacing:12px;font-weight:700;color:#00C4FF;font-family:'Courier New',monospace;">{otp}</div>
+                                </div>
+                                <div style="margin:0 0 20px 0;padding:16px;border-radius:12px;background:#0B1220;">
+                                    <p style="margin:0 0 8px 0;font-size:13px;color:#9CA3AF;text-transform:uppercase;">Delivery Address</p>
+                                    <p style="margin:0;font-size:14px;line-height:1.5;color:#F9FAFB;">{delivery_address}</p>
+                                </div>
+                                <p style="margin:0;font-size:13px;line-height:1.6;color:#FCA5A5;">
+                                    Security note: never share this code before the delivery is actually received.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
 
 
 def otp_email_html(otp: str, email: str) -> str:

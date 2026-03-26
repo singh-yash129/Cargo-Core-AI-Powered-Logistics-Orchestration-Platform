@@ -253,7 +253,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
   Mail,
@@ -271,6 +271,7 @@ import GlassInput from '../components/GlassInput.vue';
 import GlassButton from '../components/GlassButton.vue';
 import { useAuthStore } from '../stores/authStore';
 import { useToast } from '../composables/useToast';
+import { consumeAuthError } from '@/config/api';
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -330,6 +331,14 @@ const password = ref('');
 const rememberMe = ref(false);
 const isLoading = ref(false);
 const showMobileQR = ref(false);
+
+onMounted(() => {
+  const authError = consumeAuthError();
+  if (authError) {
+    authStore.loginError = authError;
+    toast.error(authError);
+  }
+});
 
 const handleSubmit = async () => {
   authStore.clearErrors();

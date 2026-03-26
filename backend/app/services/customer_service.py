@@ -38,7 +38,7 @@ def _ui_status(status_value: str) -> str:
     mapping = {
         "DRAFT": "pending",
         "CONFIRMED": "pending",
-        "ASSIGNED": "in-transit",
+        "ASSIGNED": "dispatched",
         "IN_TRANSIT": "in-transit",
         "DELIVERED": "delivered",
         "CLOSED": "delivered",
@@ -71,6 +71,7 @@ def _service_time_block(order: Order) -> str:
 def _progress_for_status(status_value: str) -> int:
     mapping = {
         "pending": 15,
+        "dispatched": 40,
         "in-transit": 65,
         "delivered": 100,
         "cancelled": 0,
@@ -80,7 +81,7 @@ def _progress_for_status(status_value: str) -> int:
 
 def _eta_label(order: Order) -> str:
     if order.status in {"DELIVERED", "CLOSED"}:
-        return "Delivered"
+        return f"Delivered {_fmt(order.delivered_at or order.updated_at)}".strip()
     if order.status == "CANCELLED":
         return "Cancelled"
     if order.scheduled_at:
@@ -88,21 +89,154 @@ def _eta_label(order: Order) -> str:
     return "TBD"
 
 
-def _tracking_log(order: Order) -> list[dict]:
-    created = order.created_at.strftime("%d %b %Y, %I:%M %p")
+def _fmt(dt) -> str:
+    if dt is None:
+        return ""
+    return dt.strftime("%d %b %Y, %I:%M %p")
+
+
+def _tracking_log(order: Order, qc_checked_at=None) -> list[dict]:
+    created = _fmt(order.created_at)
+    ws = order.warehouse_substatus or ""
+    # Backfill display: confirmed orders with no substatus yet still show as queued
+    if not ws and order.status in {"CONFIRMED", "ASSIGNED", "IN_TRANSIT", "DELIVERED", "CLOSED"}:
+        ws = "AWAITING_PICK"
+
+    AFTER_AWAITING = {"PICKING", "PICKED", "PACKING", "PACKED", "QC_PASSED", "READY_FOR_DISPATCH", "ON_DOCK", "DISPATCHED"}
+    AFTER_PICKING  = {"PICKED", "PACKING", "PACKED", "QC_PASSED", "READY_FOR_DISPATCH", "ON_DOCK", "DISPATCHED"}
+    AFTER_PICKED   = {"PACKING", "PACKED", "QC_PASSED", "READY_FOR_DISPATCH", "ON_DOCK", "DISPATCHED"}
+    AFTER_PACKING  = {"PACKED", "QC_PASSED", "READY_FOR_DISPATCH", "ON_DOCK", "DISPATCHED"}
+    AFTER_PACKED   = {"QC_PASSED", "READY_FOR_DISPATCH", "ON_DOCK", "DISPATCHED"}
+    AFTER_QC       = {"READY_FOR_DISPATCH", "ON_DOCK", "DISPATCHED"}
+    AFTER_READY    = {"ON_DOCK", "DISPATCHED"}
+
     entries = [
-        {"event": "Order created", "time": created, "icon": "receipt", "color": "green"},
+        {"event": "Order created", "time": created, "icon": "receipt_long", "color": "blue"},
     ]
+
     if order.status in {"CONFIRMED", "ASSIGNED", "IN_TRANSIT", "DELIVERED", "CLOSED"}:
-        entries.append({"event": "Order confirmed", "time": created, "icon": "check_circle", "color": "blue"})
+        entries.append({"event": "Order confirmed", "time": created, "icon": "check_circle", "color": "green"})
+
+    # Warehouse: Queued for picking
+    if ws in AFTER_AWAITING | {"AWAITING_PICK"}:
+        entries.append({
+            "event": "Queued for Picking",
+            "description": "Your order has been queued at the warehouse and is awaiting a pick team.",
+            "time": created,
+            "icon": "hourglass_empty",
+            "color": "amber",
+        })
+
+    # Warehouse: On hold
+    if ws == "ON_HOLD":
+        entries.append({
+            "event": "Order On Hold",
+            "description": "Your order is temporarily on hold — usually due to insufficient labourers.",
+            "time": _fmt(order.updated_at),
+            "icon": "pause_circle",
+            "color": "red",
+        })
+
+    # Warehouse: Picking started
+    if ws in AFTER_AWAITING:
+        entries.append({
+            "event": "Picking started",
+            "description": "Warehouse staff have started gathering your items from the shelves.",
+            "time": _fmt(order.picking_started_at) or "In progress",
+            "icon": "shopping_basket",
+            "color": "blue",
+        })
+
+    # Warehouse: Picking completed
+    if ws in AFTER_PICKED | {"PICKED"}:
+        entries.append({
+            "event": "Picking completed",
+            "description": "All items have been gathered and are ready to be packed.",
+            "time": _fmt(order.picking_completed_at) or "Completed",
+            "icon": "inventory_2",
+            "color": "cyan",
+        })
+
+    # Warehouse: Packing started
+    if ws in AFTER_PICKED:
+        entries.append({
+            "event": "Packing started",
+            "description": "Your items are being boxed and prepared for dispatch.",
+            "time": _fmt(order.packing_started_at) or "In progress",
+            "icon": "package_2",
+            "color": "amber",
+        })
+
+    # Warehouse: Packing completed
+    if ws in AFTER_PACKING | {"PACKED"}:
+        entries.append({
+            "event": "Packing completed",
+            "description": "All items are securely packed and awaiting quality check.",
+            "time": _fmt(order.packing_completed_at) or "Completed",
+            "icon": "deployed_code",
+            "color": "green",
+        })
+
+    # Warehouse: Quality check passed
+    if ws in AFTER_QC | {"QC_PASSED"}:
+        entries.append({
+            "event": "Quality check passed",
+            "description": "Your shipment has passed all quality and safety checks.",
+            "time": _fmt(qc_checked_at) or "Verified",
+            "icon": "verified",
+            "color": "green",
+        })
+
+    # Warehouse: Ready for dispatch / on dock
+    if ws in AFTER_READY | {"READY_FOR_DISPATCH"} or order.status in {"ASSIGNED", "IN_TRANSIT", "DELIVERED", "CLOSED"}:
+        entries.append({
+            "event": "Ready for dispatch",
+            "description": "Your shipment is on the loading dock and ready to be picked up.",
+            "time": _fmt(order.updated_at) if ws in AFTER_READY | {"READY_FOR_DISPATCH"} else created,
+            "icon": "local_shipping",
+            "color": "blue",
+        })
+
+    # Driver assigned
     if order.status in {"ASSIGNED", "IN_TRANSIT", "DELIVERED", "CLOSED"}:
-        entries.append({"event": "Crew assigned", "time": created, "icon": "group", "color": "purple"})
-    if order.status in {"IN_TRANSIT", "DELIVERED", "CLOSED"}:
-        entries.append({"event": "Shipment in transit", "time": created, "icon": "local_shipping", "color": "blue"})
+        entries.append({
+            "event": "Driver assigned",
+            "description": "A driver and vehicle have been assigned to your shipment.",
+            "time": _fmt(order.updated_at),
+            "icon": "person_pin_circle",
+            "color": "blue",
+        })
+
+    # In transit
+    if ws == "DISPATCHED" or order.status in {"IN_TRANSIT", "DELIVERED", "CLOSED"}:
+        entries.append({
+            "event": "Shipment in transit",
+            "description": "Your shipment is on its way to the destination.",
+            "time": _fmt(order.updated_at) if ws == "DISPATCHED" else created,
+            "icon": "local_shipping",
+            "color": "green",
+        })
+
+    # Delivered
     if order.status in {"DELIVERED", "CLOSED"}:
-        entries.append({"event": "Shipment delivered", "time": created, "icon": "task_alt", "color": "green"})
+        entries.append({
+            "event": "Delivery completed",
+            "description": "Your order has been delivered successfully.",
+            "time": _fmt(order.delivered_at or order.updated_at),
+            "icon": "where_to_vote",
+            "color": "green",
+        })
+
+    # Cancelled
     if order.status == "CANCELLED":
-        entries.append({"event": f"Order cancelled: {order.cancel_reason or 'No reason provided'}", "time": created, "icon": "cancel", "color": "red"})
+        entries.append({
+            "event": f"Order cancelled",
+            "description": order.cancel_reason or "No reason provided",
+            "time": _fmt(order.updated_at),
+            "icon": "cancel",
+            "color": "red",
+        })
+
     return entries
 
 
@@ -122,7 +256,8 @@ def _to_dashboard_order(order: Order) -> CustomerDashboardOrder:
     )
 
 
-def _to_active_move(order: Order) -> CustomerDashboardActiveMove:
+def _to_active_move(order: Order, driver_lookup: dict | None = None) -> CustomerDashboardActiveMove:
+    driver_payload = (driver_lookup or {}).get(order.assigned_driver_id)
     return CustomerDashboardActiveMove(
         id=order.id,
         tracking_code=order.tracking_code,
@@ -139,7 +274,11 @@ def _to_active_move(order: Order) -> CustomerDashboardActiveMove:
         service_otp=_service_otp(order),
         service_time_block=_service_time_block(order),
         labor_count=order.labor_count,
-        driver=CustomerDashboardDriver(name=None, phone=None, rating=None),
+        driver=CustomerDashboardDriver(
+            name=driver_payload["name"] if driver_payload else None,
+            phone=driver_payload["phone"] if driver_payload else None,
+            rating=driver_payload["rating"] if driver_payload else None,
+        ),
         cost=CustomerDashboardCostSummary(
             base=order.base_amount,
             vehicle=order.vehicle_amount,
@@ -151,6 +290,26 @@ def _to_active_move(order: Order) -> CustomerDashboardActiveMove:
             total=order.total_amount,
         ),
     )
+
+
+async def _build_driver_lookup(db: AsyncSession, orders: list[Order]) -> dict:
+    driver_ids = {order.assigned_driver_id for order in orders if order.assigned_driver_id}
+    if not driver_ids:
+        return {}
+
+    rows = (
+        await db.execute(
+            select(User.id, User.name, User.phone).where(User.id.in_(driver_ids))
+        )
+    ).all()
+    return {
+        row.id: {
+            "name": row.name,
+            "phone": row.phone,
+            "rating": None,
+        }
+        for row in rows
+    }
 
 
 def _to_user_profile(user: User) -> UserProfile:
@@ -176,11 +335,12 @@ async def get_customer_dashboard(db: AsyncSession, user: User) -> CustomerDashbo
             select(Order).where(Order.customer_id == user.id).order_by(Order.created_at.desc())
         )
     ).scalars().all()
+    driver_lookup = await _build_driver_lookup(db, orders)
 
     ui_statuses = [_ui_status(order.status) for order in orders]
     stats = CustomerDashboardStats(
         total_orders=len(orders),
-        active_orders=sum(1 for value in ui_statuses if value == "in-transit"),
+        active_orders=sum(1 for value in ui_statuses if value in ("in-transit", "dispatched")),
         pending_orders=sum(1 for value in ui_statuses if value == "pending"),
         delivered_orders=sum(1 for value in ui_statuses if value == "delivered"),
         cancelled_orders=sum(1 for value in ui_statuses if value == "cancelled"),
@@ -198,13 +358,14 @@ async def get_customer_dashboard(db: AsyncSession, user: User) -> CustomerDashbo
     for order in orders:
         month_key = order.created_at.strftime("%b")
         if month_key in month_buckets:
-            month_buckets[month_key] += 1
+            month_buckets[month_key] += float(order.total_amount or 0)
 
-    active_order = next((order for order in orders if _ui_status(order.status) == "in-transit"), None)
+    active_order_list = [order for order in orders if _ui_status(order.status) in ("in-transit", "dispatched")]
     return CustomerDashboardResponse(
         profile=_to_user_profile(user),
         stats=stats,
-        active_move=_to_active_move(active_order) if active_order else None,
+        active_move=_to_active_move(active_order_list[0], driver_lookup) if active_order_list else None,
+        active_moves=[_to_active_move(o, driver_lookup) for o in active_order_list],
         recent_orders=[_to_dashboard_order(order) for order in orders[:5]],
         monthly_activity=[CustomerDashboardMonthlyPoint(month=month, count=count) for month, count in month_buckets.items()],
     )
@@ -214,30 +375,56 @@ async def get_customer_tracking(db: AsyncSession, user: User) -> CustomerTrackin
     if user.role.name != "INDIVIDUAL":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Customer tracking is only available for individual users")
 
+    from app.models.warehouse import QualityCheck
+
     orders = (
         await db.execute(
             select(Order).where(Order.customer_id == user.id).order_by(Order.created_at.desc())
         )
     ).scalars().all()
 
-    return CustomerTrackingResponse(
-        orders=[
+    # Fetch QC checked_at for all orders in one query
+    order_ids = [o.id for o in orders]
+    qc_map: dict = {}
+    if order_ids:
+        qc_rows = (
+            await db.execute(
+                select(QualityCheck.order_id, QualityCheck.checked_at)
+                .where(
+                    QualityCheck.order_id.in_(order_ids),
+                    QualityCheck.is_passed.is_(True),
+                )
+            )
+        ).all()
+        qc_map = {row.order_id: row.checked_at for row in qc_rows}
+
+    tracking_orders = []
+    for order in orders:
+        qc_checked_at = qc_map.get(order.id)
+        tracking_orders.append(
             CustomerTrackingOrder(
                 id=order.id,
                 tracking_code=order.tracking_code,
                 status=order.status,
                 ui_status=_ui_status(order.status),
+                warehouse_substatus=order.warehouse_substatus,
                 pickup_addr=order.pickup_addr,
                 delivery_addr=order.delivery_addr,
                 scheduled_at=order.scheduled_at,
                 created_at=order.created_at,
                 progress=_progress_for_status(order.status),
                 eta_label=_eta_label(order),
-                transport_log=_tracking_log(order),
+                picking_started_at=order.picking_started_at,
+                picking_completed_at=order.picking_completed_at,
+                packing_started_at=order.packing_started_at,
+                packing_completed_at=order.packing_completed_at,
+                qc_passed_at=qc_checked_at,
+                dispatched_at=order.updated_at if order.warehouse_substatus == "DISPATCHED" else None,
+                transport_log=_tracking_log(order, qc_checked_at),
             )
-            for order in orders
-        ]
-    )
+        )
+
+    return CustomerTrackingResponse(orders=tracking_orders)
 
 
 async def get_customer_payments(db: AsyncSession, user: User) -> CustomerPaymentsSummary:

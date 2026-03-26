@@ -5,7 +5,7 @@
       <p class="text-white/60 text-lg mb-2">Welcome, <span class="text-[#00C4FF] font-semibold">{{ authStore.userName || 'User' }}</span></p>
       <p class="text-white/40 text-sm mb-8">Role: <span class="text-[#FF9500] font-semibold">{{ authStore.userRoleLabel }}</span></p>
       <button
-        @click="authStore.logout(); router.replace('/login')"
+        @click="router.replace(authStore.logout())"
         class="px-6 py-2 rounded-lg bg-white/10 border border-white/20 text-white hover:bg-white/20 transition"
       >
         Logout

@@ -70,6 +70,19 @@ async def test_login_success(client: AsyncClient, registered_user_tokens):
     assert "access_token" in response.json()
 
 
+async def test_token_login_success_for_swagger_authorize(client: AsyncClient, registered_user_tokens):
+    response = await client.post(
+        "/api/v1/auth/token",
+        data={"username": REGISTER_PAYLOAD["email"], "password": REGISTER_PAYLOAD["password"]},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert "access_token" in body
+    assert "refresh_token" in body
+    assert body["token_type"] == "bearer"
+
+
 async def test_login_wrong_password(client: AsyncClient, registered_user_tokens):
     response = await client.post(
         "/api/v1/auth/login",

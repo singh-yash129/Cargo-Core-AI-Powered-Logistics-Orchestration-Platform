@@ -7,9 +7,9 @@
                 <p class="text-sm text-gray-400 mt-1">Batch orders by geographic area, delivery window & route corridor to reduce empty miles</p>
             </div>
             <div class="flex gap-2">
-                <button @click="autoCluster"
-                    class="bg-blue-100 dark:bg-blue-500/15 hover:bg-blue-200 dark:hover:bg-blue-500/25 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-500/30 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold">
-                    <span class="material-symbols-outlined text-[18px]">auto_awesome</span> Auto-Cluster
+                <button @click="autoCluster" :disabled="clustering"
+                    class="bg-blue-100 dark:bg-blue-500/15 hover:bg-blue-200 dark:hover:bg-blue-500/25 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-500/30 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold disabled:opacity-50 disabled:cursor-wait">
+                    <span class="material-symbols-outlined text-[18px]" :class="{ 'animate-spin': clustering }">{{ clustering ? 'progress_activity' : 'auto_awesome' }}</span> {{ clustering ? 'Clustering...' : 'Auto-Cluster' }}
                 </button>
                 <button @click="confirmBatches" :disabled="batchConfirmed"
                     class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm disabled:opacity-40 disabled:cursor-not-allowed">
@@ -62,7 +62,7 @@
                         <span class="text-xs font-mono text-gray-900 dark:text-white font-bold">{{ order.id }}</span>
                         <span class="px-1.5 py-0.5 rounded text-[9px] font-bold" :class="getPriorityClass(order.priority)">{{ order.priority }}</span>
                     </div>
-                    <div class="text-[10px] text-gray-400 mb-2">{{ order.weight }} kg • {{ order.zone || 'Unzoned' }}</div>
+                    <div class="text-[10px] text-gray-400 mb-2">₹{{ order.weight.toLocaleString() }} • {{ order.zone || 'Unzoned' }}</div>
                     <div class="flex gap-1">
                         <button v-for="cluster in clusters" :key="cluster.id" @click="addToCluster(cluster, order)"
                             class="flex-1 text-[9px] py-1 rounded font-bold transition-colors"
@@ -144,7 +144,7 @@
                         </div>
                         <div class="text-right">
                             <div class="text-sm font-bold text-gray-900 dark:text-white">{{ cluster.orders.length }} orders</div>
-                            <div class="text-[10px] text-gray-400">{{ cluster.totalWeight }} kg</div>
+                            <div class="text-[10px] text-gray-400">₹{{ cluster.totalWeight.toLocaleString() }}</div>
                         </div>
                     </div>
 
@@ -198,7 +198,7 @@
                             <div v-for="order in cluster.orders" :key="order.id"
                                 class="flex items-center justify-between p-2 bg-gray-50 dark:bg-white/5 rounded text-xs hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
                                 <span class="text-gray-400 font-mono">{{ order.id }}</span>
-                                <span class="text-gray-900 dark:text-white">{{ order.weight }} kg</span>
+                                <span class="text-gray-900 dark:text-white">₹{{ order.weight.toLocaleString() }}</span>
                                 <span class="px-1.5 py-0.5 rounded text-[9px] font-bold" :class="getPriorityClass(order.priority)">
                                     {{ order.priority }}
                                 </span>
@@ -221,15 +221,19 @@
                 </div>
 
                 <!-- AI Suggestion -->
-                <div class="p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
+                <div v-if="clusters.length >= 2" class="p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
                     <div class="flex items-center gap-2 mb-2">
                         <span class="material-symbols-outlined text-blue-500 dark:text-blue-400 text-[18px]">psychology</span>
                         <span class="text-sm font-bold text-blue-600 dark:text-blue-400">AI Clustering Insight</span>
                     </div>
-                    <p class="text-xs text-blue-700 dark:text-blue-200">Merging <strong>Downtown</strong> and <strong>Midtown</strong> clusters could reduce total route distance by 18%. Both share the I-95 corridor and have overlapping delivery windows.</p>
+                    <p class="text-xs text-blue-700 dark:text-blue-200">Merging <strong>{{ clusters[0]?.zone }}</strong> and <strong>{{ clusters[1]?.zone }}</strong> clusters could reduce total route distance. Both share the {{ clusters[0]?.corridor }} corridor and may have overlapping delivery windows.</p>
                     <button @click="applySuggestion" class="mt-2 text-xs font-bold transition-colors" :class="suggestionApplied ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-white'">
                         {{ suggestionApplied ? '✓ Applied' : 'Apply Suggestion' }}
                     </button>
+                </div>
+                <div v-else-if="clusters.length === 0" class="p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl text-center">
+                    <span class="material-symbols-outlined text-blue-400 text-[24px] block mb-1">auto_awesome</span>
+                    <p class="text-xs text-blue-700 dark:text-blue-200">Click <strong>Auto-Cluster</strong> to group pending orders into geographic clusters.</p>
                 </div>
             </div>
         </div>
@@ -244,14 +248,15 @@
             <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
                 Select a vehicle for <strong>{{ vehiclePickerCluster?.zone }}</strong> cluster ({{ vehiclePickerCluster?.orders?.length }} orders, {{ vehiclePickerCluster?.totalWeight }}kg)
             </p>
-            <div class="space-y-2 mb-4">
-                <button v-for="v in vehicles" :key="v" @click="selectedVehicle = v"
+            <div class="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                <button v-for="v in vehicles" :key="v.id" @click="selectedVehicle = v.label"
                     class="w-full p-3 rounded-lg border text-sm font-medium text-left flex items-center gap-3 transition-colors"
-                    :class="selectedVehicle === v ? 'border-primary bg-green-50 dark:bg-primary/10 text-primary' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'">
+                    :class="selectedVehicle === v.label ? 'border-primary bg-green-50 dark:bg-primary/10 text-primary' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'">
                     <span class="material-symbols-outlined text-[18px]">local_shipping</span>
-                    {{ v }}
-                    <span v-if="selectedVehicle === v" class="ml-auto material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                    {{ v.label }}
+                    <span v-if="selectedVehicle === v.label" class="ml-auto material-symbols-outlined text-primary text-[18px]">check_circle</span>
                 </button>
+                <div v-if="!vehicles.length" class="text-center py-3 text-gray-400 text-xs">No vehicles available</div>
             </div>
             <div class="flex gap-2">
                 <button @click="confirmVehicleAssign" :disabled="!selectedVehicle" class="flex-1 bg-primary hover:bg-primary-dark text-black font-bold py-2 rounded-lg text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Assign</button>
@@ -264,116 +269,36 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
 
-const totalUnbatched = ref(5)
+const store = useDispatcherStore()
+onMounted(() => store.initialize().catch(() => {}))
+
 const showVehiclePicker = ref(false)
 const vehiclePickerCluster = ref(null)
 const selectedVehicle = ref('')
-const estimatedMilesSaved = ref(24)
-const avgEfficiency = ref(89)
-const uniqueCorridors = ref(3)
+const estimatedMilesSaved = ref(0)
+const avgEfficiency = ref(0)
+const uniqueCorridors = computed(() => clusters.value.length)
 const batchConfirmed = ref(false)
 const showCorridors = ref(false)
 const suggestionApplied = ref(false)
 const showUnbatchedPanel = ref(false)
+const clustering = ref(false)
+const clusterRadius = ref(5.0)
 
-const unbatchedOrders = ref([
-    { id: 'ORD-4410', weight: 280, priority: 'NORMAL', zone: 'East Side' },
-    { id: 'ORD-4411', weight: 150, priority: 'HIGH', zone: 'South Gate' },
-    { id: 'ORD-4412', weight: 520, priority: 'LOW', zone: 'Airport Rd' },
-    { id: 'ORD-4413', weight: 90, priority: 'URGENT', zone: 'Central' },
-    { id: 'ORD-4414', weight: 340, priority: 'NORMAL', zone: 'West Park' },
-])
-
+const unbatchedOrders = ref([])
 const confirmedCount = computed(() => clusters.value.filter(c => c.confirmed).length)
 
-const clusters = ref([
-    {
-        id: 1,
-        zone: 'Downtown Core',
-        corridor: 'I-95 South Corridor',
-        confirmed: false,
-        colorClass: 'bg-green-500',
-        borderClass: 'border-green-500',
-        dotClass: 'bg-green-500',
-        labelClass: 'bg-green-500/20 text-green-400',
-        headerBg: 'bg-green-500/5',
-        mapPosition: { top: '80px', left: '120px' },
-        radius: 100,
-        totalWeight: 670,
-        totalDistance: 28,
-        timeWindow: '14:00-17:00',
-        efficiency: 92,
-        dots: [
-            { orderId: 'ORD-9921', style: { top: '20px', left: '30px' } },
-            { orderId: 'ORD-8843', style: { top: '40px', left: '60px' } },
-            { orderId: 'ORD-5541', style: { top: '55px', left: '25px' } },
-        ],
-        orders: [
-            { id: 'ORD-9921', weight: 450, priority: 'HIGH' },
-            { id: 'ORD-8843', weight: 75, priority: 'URGENT' },
-            { id: 'ORD-5541', weight: 200, priority: 'NORMAL' },
-        ],
-        editing: false,
-        vehicleAssigned: ''
-    },
-    {
-        id: 2,
-        zone: 'North Industrial',
-        corridor: 'Highway 9 North',
-        confirmed: false,
-        colorClass: 'bg-blue-500',
-        borderClass: 'border-blue-500',
-        dotClass: 'bg-blue-500',
-        labelClass: 'bg-blue-500/20 text-blue-400',
-        headerBg: 'bg-blue-500/5',
-        mapPosition: { top: '250px', left: '300px' },
-        radius: 80,
-        totalWeight: 1760,
-        totalDistance: 42,
-        timeWindow: '15:00-19:00',
-        efficiency: 87,
-        dots: [
-            { orderId: 'ORD-7712', style: { top: '15px', left: '20px' } },
-            { orderId: 'ORD-2210', style: { top: '35px', left: '45px' } },
-        ],
-        orders: [
-            { id: 'ORD-7712', weight: 1200, priority: 'HIGH' },
-            { id: 'ORD-2210', weight: 560, priority: 'HIGH' },
-        ],
-        editing: false,
-        vehicleAssigned: ''
-    },
-    {
-        id: 3,
-        zone: 'Suburban West',
-        corridor: 'I-95 South Corridor',
-        confirmed: false,
-        colorClass: 'bg-purple-500',
-        borderClass: 'border-purple-500',
-        dotClass: 'bg-purple-500',
-        labelClass: 'bg-purple-500/20 text-purple-400',
-        headerBg: 'bg-purple-500/5',
-        mapPosition: { top: '300px', left: '80px' },
-        radius: 70,
-        totalWeight: 460,
-        totalDistance: 35,
-        timeWindow: '10:00-14:00',
-        efficiency: 91,
-        dots: [
-            { orderId: 'ORD-3321', style: { top: '15px', left: '20px' } },
-            { orderId: 'ORD-6654', style: { top: '30px', left: '40px' } },
-        ],
-        orders: [
-            { id: 'ORD-3321', weight: 120, priority: 'URGENT' },
-            { id: 'ORD-6654', weight: 340, priority: 'LOW' },
-        ],
-        editing: false,
-        vehicleAssigned: ''
-    }
-])
+const clusterColors = [
+    { colorClass: 'bg-green-500', borderClass: 'border-green-500', dotClass: 'bg-green-500', labelClass: 'bg-green-500/20 text-green-400', headerBg: 'bg-green-500/5' },
+    { colorClass: 'bg-blue-500', borderClass: 'border-blue-500', dotClass: 'bg-blue-500', labelClass: 'bg-blue-500/20 text-blue-400', headerBg: 'bg-blue-500/5' },
+    { colorClass: 'bg-purple-500', borderClass: 'border-purple-500', dotClass: 'bg-purple-500', labelClass: 'bg-purple-500/20 text-purple-400', headerBg: 'bg-purple-500/5' },
+    { colorClass: 'bg-orange-500', borderClass: 'border-orange-500', dotClass: 'bg-orange-500', labelClass: 'bg-orange-500/20 text-orange-400', headerBg: 'bg-orange-500/5' },
+]
 
+const clusters = ref([])
 const totalOrdersInClusters = computed(() => clusters.value.reduce((sum, c) => sum + c.orders.length, 0))
 
 function getPriorityClass(priority) {
@@ -386,16 +311,69 @@ function getPriorityClass(priority) {
     return map[priority] || map.NORMAL
 }
 
-function autoCluster() {
-    // Move all unbatched into clusters round-robin
-    unbatchedOrders.value.forEach((order, i) => {
-        const target = clusters.value[i % clusters.value.length]
-        target.orders.push(order)
-        target.totalWeight += order.weight
-    })
-    unbatchedOrders.value = []
-    estimatedMilesSaved.value = 32
-    avgEfficiency.value = 94
+function centroidToPixels(lat, lng, allClusters, containerW = 600, containerH = 500) {
+    if (allClusters.length <= 1) return { top: '200px', left: '250px' }
+    const lats = allClusters.map(c => c.centroid_lat)
+    const lngs = allClusters.map(c => c.centroid_lng)
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats)
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs)
+    const pad = 80
+    const rangeL = maxLat - minLat || 1
+    const rangeN = maxLng - minLng || 1
+    const x = pad + ((lng - minLng) / rangeN) * (containerW - pad * 2)
+    const y = pad + ((maxLat - lat) / rangeL) * (containerH - pad * 2)
+    return { top: `${Math.round(y)}px`, left: `${Math.round(x)}px` }
+}
+
+async function autoCluster() {
+    clustering.value = true
+    batchConfirmed.value = false
+    suggestionApplied.value = false
+    try {
+        const result = await store.fetchClusters(clusterRadius.value)
+        clusters.value = result.clusters.map((c, i) => {
+            const col = clusterColors[i % clusterColors.length]
+            const zoneLabel = c.orders[0]?.delivery_addr?.split(',').slice(-3, -1).join(',').trim() || `Cluster ${c.cluster_id}`
+            return {
+                id: c.cluster_id,
+                zone: zoneLabel,
+                corridor: c.time_window,
+                confirmed: false,
+                ...col,
+                mapPosition: centroidToPixels(c.centroid_lat, c.centroid_lng, result.clusters),
+                radius: 60 + c.order_count * 12,
+                totalWeight: Math.round(c.total_weight),
+                totalDistance: c.total_distance_km,
+                timeWindow: c.time_window,
+                efficiency: Math.round(c.efficiency_pct),
+                dots: c.orders.map((o, di) => ({
+                    orderId: o.tracking_code || o.id,
+                    style: { top: `${10 + di * 15}px`, left: `${10 + di * 12}px` }
+                })),
+                orders: c.orders.map(o => ({
+                    id: o.tracking_code || o.id,
+                    rawId: o.id,
+                    weight: Math.round(o.total_amount),
+                    priority: 'NORMAL',
+                    zone: o.delivery_addr?.split(',').slice(-3, -1).join(',').trim() || '',
+                    deliveryAddr: o.delivery_addr,
+                })),
+                editing: false,
+                vehicleAssigned: '',
+            }
+        })
+        unbatchedOrders.value = result.unbatched.map(o => ({
+            id: o.tracking_code || o.id,
+            rawId: o.id,
+            weight: Math.round(o.total_amount),
+            priority: 'NORMAL',
+            zone: o.delivery_addr?.split(',').slice(-2, -1).join('').trim() || 'Unknown',
+        }))
+        estimatedMilesSaved.value = Math.round(result.estimated_miles_saved_pct)
+        avgEfficiency.value = Math.round(result.avg_efficiency_pct)
+    } finally {
+        clustering.value = false
+    }
 }
 
 function confirmBatches() {
@@ -403,7 +381,13 @@ function confirmBatches() {
     batchConfirmed.value = true
 }
 
-const vehicles = ['Van T-15', 'Van T-20', 'Truck M', 'Truck XL']
+const vehicles = computed(() => {
+    return store.filteredVehicles.map(v => ({
+        id: v.id,
+        label: v.code || v.licensePlate || v.model || v.id,
+    }))
+})
+
 function assignVehicle(cluster) {
     vehiclePickerCluster.value = cluster
     selectedVehicle.value = cluster.vehicleAssigned || ''
@@ -419,9 +403,7 @@ function confirmVehicleAssign() {
 
 function editCluster(cluster) {
     if (cluster.editing) {
-        // Saving — recalculate weight & boost efficiency
         cluster.totalWeight = cluster.orders.reduce((s, o) => s + o.weight, 0)
-        cluster.efficiency = Math.min(99, cluster.efficiency + 2)
     }
     cluster.editing = !cluster.editing
 }
@@ -430,21 +412,32 @@ function removeOrderFromCluster(cluster, order) {
     cluster.orders = cluster.orders.filter(o => o.id !== order.id)
     cluster.dots = cluster.dots.slice(0, cluster.orders.length)
     cluster.totalWeight = cluster.orders.reduce((s, o) => s + o.weight, 0)
-    unbatchedOrders.value.push({ ...order, zone: cluster.zone })
     cluster.confirmed = false
     batchConfirmed.value = false
+    unbatchedOrders.value.push(order)
 }
 
 function addToCluster(cluster, order) {
     cluster.orders.push(order)
     cluster.totalWeight += order.weight
+    cluster.dots.push({ orderId: order.id, style: { top: `${10 + cluster.dots.length * 15}px`, left: `${10 + cluster.dots.length * 12}px` } })
     unbatchedOrders.value = unbatchedOrders.value.filter(o => o.id !== order.id)
 }
 
 function applySuggestion() {
+    if (clusters.value.length < 2) return
+    // Merge first two clusters
+    const merged = clusters.value[0]
+    const donor = clusters.value[1]
+    merged.orders.push(...donor.orders)
+    merged.dots.push(...donor.dots)
+    merged.totalWeight += donor.totalWeight
+    merged.totalDistance = Math.round(merged.totalDistance * 0.7)
+    merged.efficiency = Math.min(99, merged.efficiency + 5)
+    clusters.value.splice(1, 1)
     suggestionApplied.value = true
-    estimatedMilesSaved.value = 38
-    avgEfficiency.value = 96
+    estimatedMilesSaved.value = Math.min(99, estimatedMilesSaved.value + 8)
+    avgEfficiency.value = Math.min(99, avgEfficiency.value + 5)
 }
 
 function toggleConfirmCluster(cluster) {

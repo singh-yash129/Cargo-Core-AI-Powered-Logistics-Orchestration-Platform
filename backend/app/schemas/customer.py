@@ -75,6 +75,7 @@ class CustomerDashboardResponse(BaseModel):
     profile: UserProfile
     stats: CustomerDashboardStats
     active_move: CustomerDashboardActiveMove | None = None
+    active_moves: list[CustomerDashboardActiveMove]
     recent_orders: list[CustomerDashboardOrder]
     monthly_activity: list[CustomerDashboardMonthlyPoint]
 
@@ -84,12 +85,19 @@ class CustomerTrackingOrder(BaseModel):
     tracking_code: str
     status: str
     ui_status: str
+    warehouse_substatus: str | None = None
     pickup_addr: str
     delivery_addr: str
     scheduled_at: datetime | None
     created_at: datetime
     progress: int
     eta_label: str
+    picking_started_at: datetime | None = None
+    picking_completed_at: datetime | None = None
+    packing_started_at: datetime | None = None
+    packing_completed_at: datetime | None = None
+    qc_passed_at: datetime | None = None
+    dispatched_at: datetime | None = None
     transport_log: list[dict]
 
 

@@ -1,6 +1,6 @@
 from app.models.ai_conversation import AIConversation
 from app.models.escalation import Escalation
-from app.models.inventory import InventoryItem, InventoryMovement
+from app.models.inventory import InventoryItem, InventoryMovement, RestockRequest
 from app.models.labour import LabourAttendance, Labourer
 from app.models.logistics import (
 		LogisticsAlert,
@@ -15,7 +15,9 @@ from app.models.logistics import (
 		LogisticsVehicle,
 		LogisticsZone,
 )
+from app.models.document import LogisticsDocument
 from app.models.order import CustomerQuote, DamageReport, Order, OrderItem, PickedItem
+from app.models.payment import OrderPayment
 from app.models.user import Role, User
 from app.models.vendor import (
 		VendorApiKey,
@@ -25,6 +27,7 @@ from app.models.vendor import (
 		VendorSupportTicket,
 		VendorTeamMember,
 )
+from app.models.wallet import WalletTransaction
 from app.models.warehouse import (
 	LoadingDock,
 	PackingStation,
@@ -41,6 +44,7 @@ __all__ = [
 	"Escalation",
 	"InventoryItem",
 	"InventoryMovement",
+	"RestockRequest",
 	"LabourAttendance",
 	"Labourer",
 	"LoadingDock",
@@ -55,8 +59,10 @@ __all__ = [
 	"LogisticsTransaction",
 	"LogisticsVehicle",
 	"LogisticsZone",
+	"LogisticsDocument",
 	"Order",
 	"OrderItem",
+	"OrderPayment",
 	"PackingStation",
 	"QualityCheck",
 	"ReturnGrading",
@@ -68,6 +74,7 @@ __all__ = [
 	"VendorSupportReply",
 	"VendorSupportTicket",
 	"VendorTeamMember",
+	"WalletTransaction",
 	"Warehouse",
 	"WarehouseZoneMetrics",
 ]

@@ -86,6 +86,11 @@ const routes = [
         component: () => import('../IV-views/Individual/Payments.vue'),
       },
       {
+        path: 'wallet',
+        name: 'IndividualWallet',
+        component: () => import('../IV-views/Individual/Wallet.vue'),
+      },
+      {
         path: 'support',
         name: 'IndividualSupport',
         component: () => import('../IV-views/Individual/Support.vue'),
@@ -155,6 +160,11 @@ const routes = [
         path: 'invoices',
         name: 'VendorInvoices',
         component: () => import('../IV-views/Vendor/Invoices.vue'),
+      },
+      {
+        path: 'wallet',
+        name: 'VendorWallet',
+        component: () => import('../IV-views/Vendor/Wallet.vue'),
       },
       {
         path: 'analytics',
@@ -323,6 +333,78 @@ const routes = [
     ],
   },
   {
+    path: '/dispatcher',
+    component: () => import('../layouts/DispatcherLayout.vue'),
+    redirect: '/dispatcher/dashboard',
+    children: [
+      {
+        path: 'dashboard',
+        name: 'DispatcherDashboard',
+        component: () => import('../LWD-views/Dispatcher/Dashboard.vue'),
+      },
+      {
+        path: 'pending-queue',
+        name: 'DispatcherPendingQueue',
+        component: () => import('../LWD-views/Dispatcher/PendingDispatchQueue.vue'),
+      },
+      {
+        path: 'clustering',
+        name: 'DispatcherOrderClustering',
+        component: () => import('../LWD-views/Dispatcher/OrderClustering.vue'),
+      },
+      {
+        path: 'optimization',
+        name: 'DispatcherRouteOptimization',
+        component: () => import('../LWD-views/Dispatcher/RouteOptimization.vue'),
+      },
+      {
+        path: 'load-balancing',
+        name: 'DispatcherLoadBalancing',
+        component: () => import('../LWD-views/Dispatcher/LoadBalancing.vue'),
+      },
+      {
+        path: 'drivers',
+        name: 'DispatcherDriverManagement',
+        component: () => import('../LWD-views/Dispatcher/DriverManagement.vue'),
+      },
+      {
+        path: 'manifest',
+        name: 'DispatcherManifestCenter',
+        component: () => import('../LWD-views/Dispatcher/ManifestCenter.vue'),
+      },
+      {
+        path: 'service-moves',
+        name: 'DispatcherServiceMoves',
+        component: () => import('../LWD-views/Dispatcher/ServiceMoves.vue'),
+      },
+      {
+        path: 'order-status',
+        name: 'DispatcherOrderStatus',
+        component: () => import('../LWD-views/Dispatcher/OrderStatusControl.vue'),
+      },
+      {
+        path: 'crisis',
+        name: 'DispatcherCrisisManagement',
+        component: () => import('../LWD-views/Dispatcher/CrisisManagement.vue'),
+      },
+      {
+        path: 'communication',
+        name: 'DispatcherCommunication',
+        component: () => import('../LWD-views/Dispatcher/Communication.vue'),
+      },
+      {
+        path: 'performance',
+        name: 'DispatcherPerformanceMetrics',
+        component: () => import('../LWD-views/Dispatcher/PerformanceMetrics.vue'),
+      },
+      {
+        path: 'ai-assistant',
+        name: 'DispatcherSmartDispatcher',
+        component: () => import('../LWD-views/Dispatcher/SmartDispatcher.vue'),
+      },
+    ],
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../pages/NotFound.vue'),
@@ -335,44 +417,82 @@ const router = createRouter({
 });
 
 // ── Auth Guard ─────────────────────────────────────────────────────────────
-// Protected route prefixes — any navigation to these requires authentication
-const PROTECTED_PREFIXES = [
-  '/warehouse',
-  '/logistic',
-  '/dispatcher',
-  '/individual',
-  '/vendor',
-  '/dashboard',
-  '/driver',
-]
+// Maps protected route prefixes → { loginPath, allowedRoles }
+const ROUTE_AUTH_MAP = {
+  '/warehouse':  { loginPath: '/login/warehouse', roles: ['WAREHOUSE_MANAGER', 'warehouse'] },
+  '/logistic':   { loginPath: '/login/manager',   roles: ['LOGISTIC_MANAGER', 'manager'] },
+  '/dispatcher': { loginPath: '/login/dispatcher', roles: ['DISPATCHER', 'dispatcher'] },
+  '/individual': { loginPath: '/login/customer',  roles: ['INDIVIDUAL'] },
+  '/vendor':     { loginPath: '/login/vendor',    roles: ['VENDOR'] },
+  '/driver':     { loginPath: '/login/driver',    roles: ['DRIVER', 'driver'] },
+  '/dashboard':  { loginPath: '/login/customer',  roles: [] },
+}
+
+const ROLE_DASHBOARD_MAP = {
+  INDIVIDUAL:        '/individual/dashboard',
+  VENDOR:            '/vendor/dashboard',
+  LOGISTIC_MANAGER:  '/logistic/dashboard',
+  manager:           '/logistic/dashboard',
+  WAREHOUSE_MANAGER: '/warehouse/dashboard',
+  warehouse:         '/warehouse/dashboard',
+  DISPATCHER:        '/dispatcher/dashboard',
+  dispatcher:        '/dispatcher/dashboard',
+  DRIVER:            '/driver/dashboard',
+  driver:            '/driver/dashboard',
+}
+
+function isTokenExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.exp * 1000 < Date.now()
+  } catch {
+    return true
+  }
+}
 
 router.beforeEach((to, _from, next) => {
-  const token = localStorage.getItem('auth_token')
-  const isProtected = PROTECTED_PREFIXES.some(prefix => to.path.startsWith(prefix))
+  const rawToken = localStorage.getItem('auth_token')
+  const token = rawToken && !isTokenExpired(rawToken) ? rawToken : null
 
-  if (isProtected && !token) {
-    // Replace so the browser back button won't return to the protected page
-    return next({ path: '/login', replace: true })
+  // Clear stale expired token so the auth store stays in sync
+  if (rawToken && !token) {
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_refresh_token')
+    localStorage.removeItem('auth_user')
   }
 
-  // If already logged in and trying to hit login/signup, redirect to their dashboard
-  if (token && (to.path === '/login' || to.path === '/login-hub' || to.path === '/' )) {
+  const matchedPrefix = Object.keys(ROUTE_AUTH_MAP).find(prefix =>
+    to.path.startsWith(prefix)
+  )
+
+  if (matchedPrefix) {
+    const { loginPath, roles } = ROUTE_AUTH_MAP[matchedPrefix]
+
+    // No token → send to the role-specific login page
+    if (!token) {
+      return next({ path: loginPath, replace: true })
+    }
+
+    // Token exists but wrong role → redirect to their own dashboard
+    if (roles.length > 0) {
+      try {
+        const user = JSON.parse(localStorage.getItem('auth_user') || 'null')
+        if (user?.role && !roles.includes(user.role)) {
+          const ownDashboard = ROLE_DASHBOARD_MAP[user.role] || loginPath
+          return next({ path: ownDashboard, replace: true })
+        }
+      } catch (_) { /* ignore */ }
+    }
+  }
+
+  // If already logged in and hitting the generic /login page, redirect to their dashboard.
+  // /login-hub is intentionally excluded — it's the role selection portal and must always be accessible
+  // so a different user can log in without having to clear the previous session manually.
+  if (token && to.path === '/login') {
     try {
       const user = JSON.parse(localStorage.getItem('auth_user') || 'null')
       if (user?.role) {
-        const roleRoutes = {
-          INDIVIDUAL: '/individual/dashboard',
-          VENDOR: '/vendor/dashboard',
-          LOGISTIC_MANAGER: '/logistic/dashboard',
-          manager: '/logistic/dashboard',
-          WAREHOUSE_MANAGER: '/warehouse/dashboard',
-          warehouse: '/warehouse/dashboard',
-          DISPATCHER: '/dispatcher/dashboard',
-          dispatcher: '/dispatcher/dashboard',
-          DRIVER: '/driver/dashboard',
-          driver: '/driver/dashboard',
-        }
-        const dest = roleRoutes[user.role]
+        const dest = ROLE_DASHBOARD_MAP[user.role]
         if (dest && to.path !== dest) return next({ path: dest, replace: true })
       }
     } catch (_) { /* ignore */ }

@@ -54,6 +54,28 @@ router = APIRouter(
 # Picking Endpoints
 # ======================
 
+@router.post("/orders/{order_id}/accept", response_model=PickingResponse)
+async def accept_order(
+    warehouse_id: UUID,
+    order_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[User, Depends(require_role("WAREHOUSE_MANAGER", "LOGISTIC_MANAGER"))],
+):
+    """Accept an order into the warehouse queue (sets warehouse_substatus = AWAITING_PICK)."""
+    return await ops_service.accept_order_into_warehouse(db, warehouse_id, order_id)
+
+
+@router.post("/orders/{order_id}/receive-inbound", response_model=PickingResponse)
+async def receive_inbound(
+    warehouse_id: UUID,
+    order_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[User, Depends(require_role("WAREHOUSE_MANAGER", "LOGISTIC_MANAGER"))],
+):
+    """Mark vendor goods as physically received — transitions AWAITING_INBOUND → AWAITING_PICK."""
+    return await ops_service.mark_inbound_received(db, warehouse_id, order_id)
+
+
 @router.post("/orders/{order_id}/start-picking", response_model=PickingResponse)
 async def start_picking(
     warehouse_id: UUID,
@@ -64,6 +86,17 @@ async def start_picking(
 ):
     """Start picking process for an order."""
     return await ops_service.start_picking(db, warehouse_id, order_id, data)
+
+
+@router.post("/orders/{order_id}/revert-picking", response_model=PickingResponse)
+async def revert_picking(
+    warehouse_id: UUID,
+    order_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[User, Depends(require_role("WAREHOUSE_MANAGER", "LOGISTIC_MANAGER"))],
+):
+    """Undo start-picking: revert order from PICKING back to AWAITING_PICK."""
+    return await ops_service.revert_picking(db, warehouse_id, order_id)
 
 
 @router.post("/orders/{order_id}/complete-picking", response_model=PickingResponse)

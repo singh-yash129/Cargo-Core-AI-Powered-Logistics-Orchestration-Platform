@@ -8,11 +8,20 @@ from app.database import get_db
 from app.dependencies import require_role
 from app.schemas.auth import MessageResponse
 from app.schemas.logistics import (
+    DriverCrewMemberItem,
+    DriverDashboardContext,
+    DriverHosSummary,
+    DriverShiftSummary,
+    DriverTelemetryResponse,
+    DriverVehicleBindRequest,
     LogisticsAiQueryRequest,
     LogisticsAiQueryResponse,
     LogisticsBootstrapResponse,
     LogisticsChatMessageCreate,
     LogisticsChatThreadItem,
+    LogisticsDriverCreate,
+    LogisticsDriverItem,
+    LogisticsDriverUpdate,
     LogisticsNotificationItem,
     LogisticsNotificationUpdate,
     LogisticsReturnCaseItem,
@@ -21,12 +30,16 @@ from app.schemas.logistics import (
     LogisticsTaskUpdate,
     LogisticsTransactionCreate,
     LogisticsTransactionItem,
+    CapitalInvestmentCreate,
     LogisticsVehicleCreate,
     LogisticsVehicleItem,
     LogisticsVehicleUpdate,
     LogisticsZoneCreate,
     LogisticsZoneItem,
     LogisticsZoneUpdate,
+    LogisticsDocumentItem,
+    LogisticsDocumentCreate,
+    LogisticsDocumentUpdateStatus,
 )
 from app.services import logistics_service
 
@@ -48,6 +61,56 @@ async def ai_query(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
 ):
     return await logistics_service.answer_ai_query(db, data.query)
+
+
+@router.get("/vehicles", response_model=list[LogisticsVehicleItem])
+async def list_vehicles(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER", "DRIVER"))],
+):
+    warehouse_id = getattr(user, "warehouse_id", None)
+    # Warehouse managers only see their own warehouse's vehicles; logistic managers and dispatchers see all
+    if getattr(user, "role", None) and user.role.name == "WAREHOUSE_MANAGER" and warehouse_id:
+        return await logistics_service.list_vehicles(db, warehouse_id=warehouse_id)
+    if getattr(user, "role", None) and user.role.name == "DRIVER":
+        return await logistics_service.list_vehicles(
+            db,
+            warehouse_id=warehouse_id,
+            driver_id=user.id,
+            driver_scoped=True,
+        )
+    return await logistics_service.list_vehicles(db)
+
+
+@router.get("/drivers", response_model=list[LogisticsDriverItem])
+async def list_drivers(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    from uuid import UUID as _UUID
+    warehouse_id = getattr(user, "warehouse_id", None)
+    if getattr(user, "role", None) and user.role.name == "DISPATCHER" and warehouse_id:
+        return await logistics_service.list_drivers(db, warehouse_id=warehouse_id)
+    return await logistics_service.list_drivers(db)
+
+
+@router.post("/drivers", response_model=LogisticsDriverItem, status_code=status.HTTP_201_CREATED)
+async def create_driver(
+    data: LogisticsDriverCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+):
+    return await logistics_service.create_driver(db, data)
+
+
+@router.put("/drivers/{driver_id}", response_model=LogisticsDriverItem)
+async def update_driver(
+    driver_id: UUID,
+    data: LogisticsDriverUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+):
+    return await logistics_service.update_driver(db, driver_id, data)
 
 
 @router.post("/vehicles", response_model=LogisticsVehicleItem, status_code=status.HTTP_201_CREATED)
@@ -76,6 +139,25 @@ async def create_transaction(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
 ):
     return await logistics_service.create_transaction(db, data)
+
+
+@router.post("/capital-investment", response_model=dict, status_code=status.HTTP_201_CREATED)
+async def create_capital_investment(
+    data: CapitalInvestmentCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+):
+    from app.services import finance_service
+    result = await finance_service.create_capital_investment(
+        db,
+        amount=data.amount,
+        description=data.description,
+        funding_source=data.funding_source,
+        warehouse_id=data.warehouse_id,
+        investment_date=data.investment_date,
+    )
+    await db.commit()
+    return result
 
 
 @router.put("/returns/{case_id}", response_model=LogisticsReturnCaseItem)
@@ -179,3 +261,110 @@ async def resolve_alert(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
 ):
     return await logistics_service.resolve_alert(db, alert_id)
+
+
+@router.post("/documents", response_model=LogisticsDocumentItem, status_code=status.HTTP_201_CREATED)
+async def create_document(
+    data: LogisticsDocumentCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+):
+    return await logistics_service.create_document(db, data)
+
+
+@router.put("/documents/{doc_id}/status", response_model=LogisticsDocumentItem)
+async def update_document_status(
+    doc_id: UUID,
+    data: LogisticsDocumentUpdateStatus,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+):
+    return await logistics_service.update_document_status(db, doc_id, data)
+
+
+@router.get("/drivers/me/dashboard", response_model=DriverDashboardContext)
+async def get_driver_dashboard(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.get_driver_dashboard(db, user)
+
+
+@router.get("/drivers/me/shift", response_model=DriverShiftSummary)
+async def get_driver_shift(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.get_driver_shift(db, user)
+
+
+@router.get("/drivers/me/hos", response_model=DriverHosSummary)
+async def get_driver_hos(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.get_driver_hos(db, user)
+
+
+@router.get("/drivers/me/crew", response_model=list[DriverCrewMemberItem])
+async def get_driver_crew(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.get_driver_crew(db, user)
+
+
+@router.post("/drivers/me/crew/{labourer_id}/check-in", response_model=DriverCrewMemberItem)
+async def check_in_driver_crew_member(
+    labourer_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.check_in_driver_crew_member(db, user, labourer_id)
+
+
+@router.get("/drivers/me/telemetry", response_model=DriverTelemetryResponse)
+async def get_driver_telemetry(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.get_driver_telemetry(db, user)
+
+
+@router.post("/drivers/me/bind-vehicle", response_model=LogisticsVehicleItem)
+async def bind_driver_vehicle(
+    data: DriverVehicleBindRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.bind_driver_vehicle(db, user, data)
+
+
+@router.post("/drivers/me/shift/start", response_model=dict)
+async def start_shift(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.start_shift(db, user)
+
+
+@router.post("/drivers/me/shift/end", response_model=dict)
+async def end_shift(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.end_shift(db, user)
+
+
+from pydantic import BaseModel
+class LocationUpdateParams(BaseModel):
+    latitude: float
+    longitude: float
+
+@router.post("/drivers/me/location", response_model=dict)
+async def update_driver_location(
+    data: LocationUpdateParams,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.update_driver_location(db, user, data.latitude, data.longitude)

@@ -12,6 +12,8 @@ class InventoryCreate(BaseModel):
     unit: str = Field(default="pcs", min_length=1, max_length=30)
     quantity_on_hand: int = Field(default=0, ge=0)
     safety_stock: int = Field(default=0, ge=0)
+    cost_price: float = Field(default=0.0, ge=0)
+    selling_price: float = Field(default=0.0, ge=0)
     aisle: str | None = Field(default=None, max_length=30)
     shelf: str | None = Field(default=None, max_length=30)
     bin: str | None = Field(default=None, max_length=30)
@@ -22,6 +24,8 @@ class InventoryUpdate(BaseModel):
     category: str | None = Field(default=None, max_length=100)
     unit: str | None = Field(default=None, min_length=1, max_length=30)
     safety_stock: int | None = Field(default=None, ge=0)
+    cost_price: float | None = Field(default=None, ge=0)
+    selling_price: float | None = Field(default=None, ge=0)
     aisle: str | None = Field(default=None, max_length=30)
     shelf: str | None = Field(default=None, max_length=30)
     bin: str | None = Field(default=None, max_length=30)
@@ -43,6 +47,8 @@ class InventoryResponse(BaseModel):
     unit: str
     quantity_on_hand: int
     safety_stock: int
+    cost_price: float = 0.0
+    selling_price: float = 0.0
     aisle: str | None
     shelf: str | None
     bin: str | None
@@ -97,3 +103,38 @@ class PickingListItem(BaseModel):
 class PickingListResponse(BaseModel):
     order_id: UUID
     items: list[PickingListItem]
+
+
+class RestockRequestCreate(BaseModel):
+    item_id: UUID
+    quantity: int = Field(..., gt=0)
+
+
+class RestockRequestStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(APPROVED|REJECTED)$")
+    manager_notes: str | None = None
+    funding_source: str = Field(default="APP_REVENUE", max_length=30)
+
+
+class RestockRequestResponse(BaseModel):
+    id: UUID
+    item_id: UUID
+    warehouse_id: UUID
+    quantity: int
+    status: str
+    requested_by: UUID | None
+    requested_by_name: str | None = None
+    manager_notes: str | None
+    item_sku: str
+    item_name: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class RestockRequestListResponse(BaseModel):
+    items: list[RestockRequestResponse]
+    total: int
+    page: int
+    page_size: int

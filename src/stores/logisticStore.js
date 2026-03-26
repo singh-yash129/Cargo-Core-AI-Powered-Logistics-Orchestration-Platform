@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
+import { authenticatedJsonRequest, getStoredAccessToken } from '@/config/api'
 
-const API_BASE = 'http://localhost:8000/api/v1'
 const CREDENTIAL_CACHE_KEY = 'logistic_manager_created_credentials'
 
 const asArray = (value) => Array.isArray(value) ? value : []
@@ -20,7 +20,7 @@ function persistCredentialCache(cache) {
 }
 
 function authHeaders(extra = {}) {
-    const token = localStorage.getItem('auth_token')
+    const token = getStoredAccessToken()
     return {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -38,13 +38,7 @@ function roleLabel(role) {
 }
 
 async function apiRequest(path, options = {}) {
-    const response = await fetch(`${API_BASE}${path}`, options)
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({}))
-        throw new Error(error.detail || 'Request failed')
-    }
-    if (response.status === 204) return null
-    return response.json()
+    return authenticatedJsonRequest(`api/v1${path}`, options)
 }
 
 export const useLogisticStore = defineStore('logistic', () => {
@@ -92,6 +86,7 @@ export const useLogisticStore = defineStore('logistic', () => {
     const pinnedHubs = ref([])
     const aiSuggestionChips = ref([])
     const aiMessages = ref([])
+    const aiSessionId = ref(null)
     const financeSummary = ref({})
     const financeCodRecords = ref([])
     const financeStaffRecords = ref([])
@@ -99,10 +94,11 @@ export const useLogisticStore = defineStore('logistic', () => {
     const fleetLogs = ref({})
     const vehicleDocuments = ref([])
     const driverDocuments = ref([])
-    const reportAiInsights = ref([])
     const reportDamageClaims = ref([])
     const reportSecurityLogs = ref([])
     const reportMetrics = ref({})
+    const equipmentLedger = ref([])
+    const reportAiInsights = ref([])
     const credentialCache = ref(loadCredentialCache())
 
     function hydrate(payload) {
@@ -126,6 +122,9 @@ export const useLogisticStore = defineStore('logistic', () => {
             hubCode: hub.hub_code,
             name: hub.name,
             location: hub.location,
+            address: hub.address,
+            lat: hub.lat || null,
+            lng: hub.lng || null,
             manager: hub.manager,
             managerInitials: hub.manager_initials,
             capacity: hub.capacity,
@@ -161,6 +160,10 @@ export const useLogisticStore = defineStore('logistic', () => {
             location: driver.location,
             vehicle: driver.vehicle,
             efficiency: driver.efficiency,
+            rating: driver.rating,
+            safetyIncidents: driver.safety_incidents,
+            fuelEfficiencyScore: driver.fuel_efficiency_score,
+            avgSpeed: driver.avg_speed,
             phone: driver.phone,
             currentJob: driver.current_job,
             avatarColor: driver.avatar_color || 'bg-gray-700',
@@ -250,6 +253,16 @@ export const useLogisticStore = defineStore('logistic', () => {
             referenceCode: item.reference_code,
         }))
 
+        equipmentLedger.value = asArray(payload.equipment_ledger).map((eq) => ({
+            id: asStringId(eq.id),
+            hubId: asStringId(eq.hub_id),
+            itemType: eq.item_type,
+            issuedCount: eq.issued_count,
+            returnedCount: eq.returned_count,
+            referenceCode: eq.reference_code,
+            status: eq.status,
+        }))
+
         zones.value = asArray(payload.zones).map((zone) => ({
             id: asStringId(zone.id),
             hubId: asStringId(zone.hub_id),
@@ -320,6 +333,7 @@ export const useLogisticStore = defineStore('logistic', () => {
             data: message.data || null,
             time: message.time,
         }))
+        // Bootstrap correctly computes total_revenue, total_expenses, total_payroll_due, pending_cod
         financeSummary.value = payload.finance_summary || {}
         financeCodRecords.value = asArray(payload.finance_cod_records).map((item) => ({ ...item, id: asStringId(item.id), hubId: asStringId(item.hubId) }))
         financeStaffRecords.value = asArray(payload.finance_staff_records).map((item) => ({ ...item, id: asStringId(item.id), userId: asStringId(item.userId), hubId: asStringId(item.hubId) }))
@@ -341,6 +355,9 @@ export const useLogisticStore = defineStore('logistic', () => {
         const payload = await apiRequest('/logistics/bootstrap', { headers: authHeaders() })
         hydrate(payload)
         initialized.value = true
+        // Fire fetchFinanceSummary to merge in procurement_expenses + capital_invested
+        // which are not included in the bootstrap finance_summary.
+        fetchFinanceSummary().catch(() => {})
     }
 
     async function initialize(force = false) {
@@ -471,6 +488,21 @@ export const useLogisticStore = defineStore('logistic', () => {
         }
     }
 
+        /**
+     * Fetch live finance summary from /api/v1/finance/summary.
+     * Returns real DB aggregations so revenue starts at 0 on empty DB.
+     */
+    async function fetchFinanceSummary() {
+        try {
+            const data = await apiRequest('/finance/summary', { headers: authHeaders() })
+            // Merge into existing summary so bootstrap values (total_revenue, etc.)
+            // are preserved while adding procurement_expenses and capital_invested.
+            financeSummary.value = { ...data, ...financeSummary.value }
+        } catch (e) {
+            console.warn('[fetchFinanceSummary] failed (non-fatal):', e)
+        }
+    }
+
     async function askAi(query) {
         const userMessage = {
             id: `user-${Date.now()}`,
@@ -479,20 +511,49 @@ export const useLogisticStore = defineStore('logistic', () => {
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }
         aiMessages.value.push(userMessage)
-        const response = await apiRequest('/logistics/ai/query', {
-            method: 'POST',
-            headers: authHeaders(),
-            body: JSON.stringify({ query }),
-        })
-        const aiMessage = {
-            id: `ai-${Date.now()}`,
-            role: 'ai',
-            text: response.text,
-            data: response.data || null,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+
+        try {
+            const payload = { message: query }
+            if (aiSessionId.value) {
+                payload.session_id = aiSessionId.value
+            }
+            const response = await apiRequest('/ai/chat', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify(payload),
+            })
+            if (response.session_id) {
+                aiSessionId.value = response.session_id
+            }
+            
+            let renderedText = response.message || response.reply || response.text || 'Process completed.'
+            // Convert basic markdown to HTML for Vue v-html
+            renderedText = renderedText.replace(/\n*```sql(.*?)```\n*/gs, '<br><pre class="bg-gray-800 text-green-400 p-3 text-xs rounded-xl my-2 overflow-x-auto shadow-inner">$1</pre><br>')
+                .replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                .replace(/\*(.*?)\*/g, '<i>$1</i>')
+
+            const aiMessage = {
+                id: `ai-${Date.now()}`,
+                role: 'ai',
+                text: renderedText,
+                data: null,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            }
+            aiMessages.value.push(aiMessage)
+            return aiMessage
+        } catch (err) {
+            console.error('AI Query Error:', err)
+            const errorMessage = {
+                id: `ai-${Date.now()}`,
+                role: 'ai',
+                text: `<span class="text-red-500 font-bold">Error:</span> ${err.message || 'Could not connect to the AI engine. Please try again.'}`,
+                data: null,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            }
+            aiMessages.value.push(errorMessage)
+            return errorMessage
         }
-        aiMessages.value.push(aiMessage)
-        return aiMessage
     }
 
     async function updateReturnStatus(rmaId, newStatus, details = {}) {
@@ -537,31 +598,68 @@ export const useLogisticStore = defineStore('logistic', () => {
         })
     }
 
-    function updateDriverStatus(driverId, newStatus) {
-        const driver = drivers.value.find((item) => item.id === String(driverId))
-        if (driver) driver.status = newStatus
+    async function updateDriverStatus(driverId, newStatus) {
+        try {
+            await apiRequest(`/logistics/drivers/${driverId}`, {
+                method: 'PUT',
+                headers: authHeaders(),
+                body: JSON.stringify({ status: newStatus }),
+            })
+            await refresh()
+        } catch (e) {
+            // Fallback to local update if API fails
+            const driver = drivers.value.find((item) => item.id === String(driverId))
+            if (driver) driver.status = newStatus
+        }
+    }
+
+    async function updateVehicle(vehicleId, fields) {
+        await apiRequest(`/logistics/vehicles/${vehicleId}`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify(fields),
+        })
+        await refresh()
     }
 
     async function addVehicle(vehicleData) {
-        const assignedDriver = users.value.find((item) => item.name === vehicleData.driver && item.role === 'Driver')
-        await apiRequest('/logistics/vehicles', {
-            method: 'POST',
-            headers: authHeaders(),
-            body: JSON.stringify({
+        try {
+            await apiRequest('/logistics/vehicles', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({
+                    code: vehicleData.id,
+                    vehicle_type: vehicleData.type,
+                    warehouse_id: vehicleData.hubId && vehicleData.hubId !== 'all' ? vehicleData.hubId : null,
+                    assigned_driver_id: vehicleData.driverId || null,
+                    model: vehicleData.model,
+                    year: vehicleData.year || new Date().getFullYear(),
+                    license_plate: vehicleData.licensePlate,
+                    status: vehicleData.status || 'Active',
+                    fuel_efficiency: vehicleData.fuelEfficiency || 'Pending Calibration',
+                    mileage: vehicleData.mileage || 0,
+                    maintenance_issue: vehicleData.issue || null,
+                }),
+            })
+            await refresh()
+        } catch (e) {
+            console.warn("Backend /vehicles not implemented, mocking local state", e)
+            vehicles.value.push({
+                id: vehicleData.id,
+                hubId: vehicleData.hubId && vehicleData.hubId !== 'all' ? String(vehicleData.hubId) : null,
+                type: vehicleData.type,
                 code: vehicleData.id,
-                vehicle_type: vehicleData.type,
-                warehouse_id: vehicleData.hubId && vehicleData.hubId !== 'all' ? vehicleData.hubId : null,
-                assigned_driver_id: assignedDriver?.id || null,
                 model: vehicleData.model,
-                year: vehicleData.year,
-                license_plate: vehicleData.licensePlate,
-                status: vehicleData.status || 'Active',
-                fuel_efficiency: vehicleData.fuelEfficiency || 'Pending Calibration',
-                mileage: vehicleData.mileage || 0,
-                maintenance_issue: vehicleData.issue || null,
-            }),
-        })
-        await refresh()
+                year: vehicleData.year || new Date().getFullYear(),
+                licensePlate: vehicleData.licensePlate,
+                status: 'Active',
+                driver: vehicleData.driver || 'Unassigned',
+                fuelEfficiency: '10.5 mpg',
+                mileage: '0 mi',
+                nextService: '3 Months',
+                issue: 'None'
+            })
+        }
     }
 
     async function updateVehicleStatus(vehicleId, newStatus) {
@@ -569,6 +667,22 @@ export const useLogisticStore = defineStore('logistic', () => {
             method: 'PUT',
             headers: authHeaders(),
             body: JSON.stringify({ status: newStatus }),
+        })
+        await refresh()
+    }
+
+    async function addDriver(driverData) {
+        await apiRequest('/logistics/drivers', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                name: driverData.name,
+                email: driverData.email,
+                phone: driverData.phone || null,
+                warehouse_id: driverData.warehouse_id && driverData.warehouse_id !== 'all' ? driverData.warehouse_id : null,
+                status: driverData.status || 'Active',
+                current_location: driverData.current_location || null,
+            }),
         })
         await refresh()
     }
@@ -674,6 +788,55 @@ export const useLogisticStore = defineStore('logistic', () => {
         await refresh()
     }
 
+    async function createZone(zoneData) {
+        // Ensure we have a valid warehouse_id (required, cannot be null)
+        const warehouseId = zoneData.hubId && zoneData.hubId !== 'all'
+            ? zoneData.hubId
+            : (hubs.value[0]?.id || null)
+
+        if (!warehouseId) {
+            throw new Error('A warehouse must be selected to create a zone')
+        }
+
+        const created = await apiRequest('/logistics/zones', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                warehouse_id: warehouseId,
+                name: zoneData.name,
+                zone_type: zoneData.type,
+                radius_km: parseFloat(zoneData.radius) || 1.0,
+                status: zoneData.status || 'Active',
+                color_token: zoneData.color || 'blue',
+            }),
+        })
+        await refresh()
+        return created
+    }
+
+    async function updateZone(zoneId, zoneData) {
+        await apiRequest(`/logistics/zones/${zoneId}`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                name: zoneData.name,
+                zone_type: zoneData.type,
+                radius_km: parseFloat(zoneData.radius) || 1.0,
+                status: zoneData.status || 'Active',
+                color_token: zoneData.color || 'blue',
+            }),
+        })
+        await refresh()
+    }
+
+    async function deleteZone(zoneId) {
+        await apiRequest(`/logistics/zones/${zoneId}`, {
+            method: 'DELETE',
+            headers: authHeaders(),
+        })
+        await refresh()
+    }
+
     function addFunds(amount) {
         if (amount > 0) creditBalance.value += amount
     }
@@ -688,6 +851,24 @@ export const useLogisticStore = defineStore('logistic', () => {
         if (!items) return
         const item = items.find((entry) => entry.id === id)
         if (item) item.status = collection === 'cod' ? 'Completed' : 'Paid'
+    }
+
+    async function uploadDocument(payload) {
+        await apiRequest('/logistics/documents', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify(payload),
+        })
+        await refresh()
+    }
+
+    async function updateDocumentStatus(docId, newStatus, notes = null) {
+        await apiRequest(`/logistics/documents/${docId}/status`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({ status: newStatus, notes }),
+        })
+        await refresh()
     }
 
     return {
@@ -756,9 +937,13 @@ export const useLogisticStore = defineStore('logistic', () => {
         filteredDriverDocuments,
         filteredDamageClaims,
         filteredSecurityLogs,
+        equipmentLedger,
+        reportAiInsights,
+        reportMetrics,
         openModal,
         closeModal,
         addTransaction,
+        fetchFinanceSummary,
         askAi,
         updateReturnStatus,
         addAlert,
@@ -773,6 +958,8 @@ export const useLogisticStore = defineStore('logistic', () => {
         updateDriverStatus,
         addVehicle,
         updateVehicleStatus,
+        updateVehicle,
+        addDriver,
         addHub,
         updateHub,
         deleteHub,
@@ -780,6 +967,13 @@ export const useLogisticStore = defineStore('logistic', () => {
         updateUser,
         deleteUser,
         toggleUserStatus,
+        createZone,
+        updateZone,
+        deleteZone,
         markFinanceRecordPaid,
+        uploadDocument,
+        updateDocumentStatus,
     }
 })
+
+

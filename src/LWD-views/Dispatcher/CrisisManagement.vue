@@ -109,13 +109,10 @@
                 <div class="absolute bottom-1/3 right-1/3 w-4 h-4 rounded-full bg-yellow-500 animate-ping"></div>
                 <div class="absolute bottom-1/3 right-1/3 w-4 h-4 rounded-full bg-yellow-500 border-2 border-white"></div>
                 <!-- Weather overlay indicator -->
-                <div class="absolute top-4 right-4 bg-white/90 dark:bg-black/80 backdrop-blur border border-gray-200 dark:border-white/10 rounded-lg p-3">
+                <div v-if="weatherDisruptions.length" class="absolute top-4 right-4 bg-white/90 dark:bg-black/80 backdrop-blur border border-gray-200 dark:border-white/10 rounded-lg p-3">
                     <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Weather Disruptions</div>
-                    <div class="flex items-center gap-2 text-xs text-yellow-400">
-                        <span class="material-symbols-outlined text-[16px]">thunderstorm</span> Heavy rain – Zone C
-                    </div>
-                    <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                        <span class="material-symbols-outlined text-[16px]">foggy</span> Fog advisory – Highway 9
+                    <div v-for="wd in weatherDisruptions" :key="wd.id" class="flex items-center gap-2 text-xs text-yellow-400 mt-1">
+                        <span class="material-symbols-outlined text-[16px]">thunderstorm</span> {{ wd.title }}
                     </div>
                 </div>
             </div>
@@ -129,19 +126,19 @@
                 <div class="space-y-3 flex-1">
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Impacted Routes</div>
-                        <div class="text-gray-900 dark:text-white font-bold text-xl">6</div>
+                        <div class="text-gray-900 dark:text-white font-bold text-xl">{{ activeCrises.length }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Orders to Reassign</div>
-                        <div class="text-gray-900 dark:text-white font-bold text-xl">14</div>
+                        <div class="text-gray-900 dark:text-white font-bold text-xl">{{ activeCrises.reduce((sum, c) => sum + (c.affectedOrders?.length || 0), 0) || 0 }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Available Backup Drivers</div>
-                        <div class="text-primary font-bold text-xl">3</div>
+                        <div class="text-primary font-bold text-xl">{{ backupDriverCount }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                        <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Estimated Recovery Time</div>
-                        <div class="text-yellow-400 font-bold text-xl">45 min</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Disruptions Detected</div>
+                        <div class="text-yellow-400 font-bold text-xl">{{ disruptions.length }}</div>
                     </div>
                 </div>
                 <button @click="runReoptimization"
@@ -150,7 +147,7 @@
                     Run Re-Optimization
                 </button>
                 <div v-if="reoptRunning" class="mt-2 text-center text-xs text-primary animate-pulse">
-                    Re-optimizing 6 routes...
+                    Re-optimizing {{ activeCrises.length }} routes...
                 </div>
             </div>
         </div>
@@ -241,7 +238,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
+
+const store = useDispatcherStore()
+onMounted(() => store.initialize().catch(() => {}))
 
 const reoptRunning = ref(false)
 const showBroadcast = ref(false)
@@ -251,46 +252,31 @@ const broadcastMsg = ref('')
 const broadcastSeverity = ref('critical')
 const broadcastSent = ref(false)
 
-const disruptions = ref([
-    { id: 1, severity: 'critical', icon: 'flood', title: 'Flooding – NH48 South', detail: 'Road submerged near KM 42', affected: 4 },
-    { id: 2, severity: 'warning', icon: 'thunderstorm', title: 'Heavy Rain Warning – Zone C', detail: 'Expected until 4 PM', affected: 7 }
-])
+const disruptions = computed(() =>
+    store.disruptions.map(d => ({ ...d, rerouted: false, etaUpdated: false }))
+)
 
-const activeCrises = ref([
-    {
-        id: 1, level: 'CRITICAL', title: 'Vehicle Breakdown', timeAgo: '12 mins ago',
-        description: 'Vehicle TRK-402 reported engine failure on Highway 9. Cargo includes perishable items.',
-        affectedOrders: [
-            { id: 'ORD-4421', dest: 'Sector 14, Gurugram', reassigned: false, newDriver: '' },
-            { id: 'ORD-4422', dest: 'MG Road, Delhi', reassigned: true, newDriver: 'DRV-088 (Priya S.)' },
-            { id: 'ORD-4423', dest: 'Dwarka Mod', reassigned: false, newDriver: '' }
-        ],
+const weatherDisruptions = computed(() =>
+    store.disruptions.filter(d => d.type === 'weather' || d.icon === 'thunderstorm' || d.icon === 'foggy')
+)
+
+const backupDriverCount = computed(() =>
+    store.dispatcherDrivers.filter(d => !d.breakDue && d.statusColor === 'bg-green-500' && (d.load || 0) < 30).length
+)
+
+const activeCrises = computed(() =>
+    store.activeCrises.map(c => ({
+        ...c,
+        affectedOrders: [],
         actions: [
             { label: 'Dispatch Recovery', baseClass: 'bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white border-red-700 dark:border-red-400' },
-            { label: 'Contact Driver', baseClass: 'bg-blue-600 hover:bg-blue-700 dark:bg-white/10 dark:hover:bg-white/20 text-white dark:text-white border-blue-700 dark:border-white/20' }
-        ],
-        driver: { name: 'Mark Johnson', phone: '+1 555-0142', vehicle: 'TRK-402', status: 'Stranded - Engine Failure', location: 'Highway 9, KM 28', avatar: 'https://i.pravatar.cc/150?u=142' }
-    },
-    {
-        id: 2, level: 'HIGH', title: 'Route Blockage', timeAgo: '35 mins ago',
-        description: 'Major accident reported on I-95 North. 4 trucks will be delayed by ~45 mins.',
-        affectedOrders: [
-            { id: 'ORD-3310', dest: 'Noida Sec 62', reassigned: true, newDriver: 'DRV-041 (Rahul K.)' },
-            { id: 'ORD-3311', dest: 'Greater Noida', reassigned: false, newDriver: '' }
-        ],
-        actions: [
-            { label: 'Reroute All', baseClass: 'bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-white border-yellow-700 dark:border-yellow-400' },
             { label: 'Ignore', baseClass: 'bg-gray-300 hover:bg-gray-400 dark:bg-white/10 dark:hover:bg-white/20 text-gray-900 dark:text-white border-gray-400 dark:border-white/20' }
         ],
-        driver: { name: 'Sarah Williams', phone: '+1 555-0198', vehicle: 'TRK-309', status: 'Delayed - Route Blockage', location: 'I-95 North, Exit 42', avatar: 'https://i.pravatar.cc/150?u=198' }
-    }
-])
+        driver: { name: c.driver || 'Unknown', phone: '', vehicle: '', status: c.title, location: c.description || '', avatar: '' }
+    }))
+)
 
-const resolvedIncidents = ref([
-    { id: 1, title: 'Driver No-Show (Mike T.) – Replacement Found', detail: 'Resolved at 08:15 AM by Scheduler AI. Orders reassigned to DRV-055.', time: '08:15' },
-    { id: 2, title: 'Flat Tire – TRK-210 on Ring Road', detail: 'Resolved at 07:30 AM. Roadside assistance dispatched. 2 orders re-routed.', time: '07:30' },
-    { id: 3, title: 'Weather Delay – Zone A Morning Batch', detail: 'Resolved at 06:45 AM. Routes adjusted after fog lifted. ETAs updated via AI bot.', time: '06:45' }
-])
+const resolvedIncidents = ref([])
 
 function reassignOrder(crisisId, orderId) {
     const crisis = activeCrises.value.find(c => c.id === crisisId)
@@ -330,13 +316,8 @@ function handleCrisisAction(crisis, action) {
     }
     
     if (action.label === 'Ignore') {
-        // Remove crisis from active list
-        setTimeout(() => {
-            const index = activeCrises.value.findIndex(c => c.id === crisis.id)
-            if (index > -1) {
-                activeCrises.value.splice(index, 1)
-            }
-        }, 500)
+        // Resolve the alert in the store
+        store.resolveAlert(crisis.id).catch(() => {})
         return
     }
     

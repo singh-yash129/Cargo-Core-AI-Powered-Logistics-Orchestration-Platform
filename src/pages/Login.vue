@@ -232,7 +232,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   Mail,
@@ -249,6 +249,7 @@ import GlassInput from '../components/GlassInput.vue';
 import GlassButton from '../components/GlassButton.vue';
 import { useAuthStore } from '../stores/authStore';
 import { useToast } from '../composables/useToast';
+import { consumeAuthError } from '@/config/api';
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -272,6 +273,14 @@ const emailOrPhone = ref('');
 const password = ref('');
 const rememberMe = ref(false);
 const isLoading = ref(false);
+
+onMounted(() => {
+  const authError = consumeAuthError();
+  if (authError) {
+    authStore.loginError = authError;
+    toast.error(authError);
+  }
+});
 
 const handleSubmit = async () => {
   authStore.clearErrors();

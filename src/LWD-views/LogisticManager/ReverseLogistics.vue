@@ -25,7 +25,7 @@
                     <span class="material-symbols-outlined text-6xl text-green-500">recycling</span>
                 </div>
                 <div class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Restock Rate</div>
-                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">68%</div>
+                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">{{ restockRate }}%</div>
             </div>
 
             <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-red-500/30 transition-colors">
@@ -33,7 +33,7 @@
                     <span class="material-symbols-outlined text-6xl text-red-500">delete</span>
                 </div>
                 <div class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Scrap / Dispose</div>
-                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">12%</div>
+                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">{{ scrapRate }}%</div>
             </div>
 
             <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-blue-500/30 transition-colors">
@@ -41,7 +41,7 @@
                     <span class="material-symbols-outlined text-6xl text-blue-500">currency_exchange</span>
                 </div>
                 <div class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Total Refund Value</div>
-                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">${{ refundValue.toLocaleString() }}</div>
+                <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">₹{{ refundValue.toLocaleString() }}</div>
             </div>
         </div>
 
@@ -207,8 +207,8 @@
                                 </div>
                                 <div class="bg-slate-900/70 p-2 rounded-lg border border-white/10">
                                     <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1 flex justify-between">
-                                        <span>Refund ($)</span>
-                                        <span class="text-xs font-mono text-gray-500">Max: ${{ selectedRMA?.originalPrice || 0 }}</span>
+                                        <span>Refund (₹)</span>
+                                        <span class="text-xs font-mono text-gray-500">Max: ₹{{ selectedRMA?.originalPrice || 0 }}</span>
                                     </label>
                                     <input v-model.number="processForm.amount" type="number" 
                                         class="w-full bg-slate-800 border border-white/10 rounded px-2 py-1 text-sm text-white outline-none focus:ring-1 focus:ring-primary mb-2 font-mono disabled:opacity-50 disabled:cursor-not-allowed"
@@ -333,7 +333,7 @@
                             </div>
                             <div>
                                 <p class="text-xs text-gray-500 mb-0.5">Refunded</p>
-                                <p class="font-bold text-green-600 dark:text-green-400 font-mono">${{ selectedRMA?.refundAmount || 0 }}</p>
+                                <p class="font-bold text-green-600 dark:text-green-400 font-mono">₹{{ selectedRMA?.refundAmount || 0 }}</p>
                             </div>
                         </div>
                         <div v-if="selectedRMA?.notes" class="bg-gray-50 dark:bg-white/5 p-3 rounded-xl text-sm text-gray-600 dark:text-gray-300 italic border border-gray-100 dark:border-white/10">
@@ -388,10 +388,25 @@ const pendingReturns = computed(() => {
 })
 
 const refundValue = computed(() => {
-    // Only count approved refunds
     return filteredReturns.value
         .filter(r => r.status === 'Approved')
         .reduce((sum, r) => sum + (r.refundAmount || 0), 0)
+})
+
+// % of approved returns with restorable condition (Unopened or New/Open Box)
+const restockRate = computed(() => {
+    const approved = filteredReturns.value.filter(r => r.status === 'Approved')
+    if (!approved.length) return 0
+    const restorable = approved.filter(r => r.condition === 'Unopened' || r.condition === 'New/Open Box').length
+    return Math.round((restorable / approved.length) * 100)
+})
+
+// % of all returns that are Damaged/Scrap/Defective
+const scrapRate = computed(() => {
+    const total = filteredReturns.value.length
+    if (!total) return 0
+    const scrapped = filteredReturns.value.filter(r => r.condition === 'Damaged' || r.condition === 'Scrap' || r.condition === 'Defective').length
+    return Math.round((scrapped / total) * 100)
 })
 
 const filteredList = computed(() => {

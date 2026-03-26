@@ -3,9 +3,17 @@
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Fleet & Drivers Overview</h2>
             <div class="flex gap-3">
+                <button @click="openSlip('vehicleSafetyChecklist')"
+                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+                    <span class="material-symbols-outlined text-sm">health_and_safety</span> Safety Checklist
+                </button>
                 <button @click="generateMaintenanceReport"
                     class="bg-slate-800 hover:bg-slate-700 text-white font-medium dark:bg-white/10 dark:hover:bg-white/15 dark:text-white border border-slate-700 dark:border-white/10 py-2 px-4 rounded-lg transition-colors shadow-sm flex items-center gap-2">
                     <span class="material-symbols-outlined text-sm">download</span> Maintenance Report
+                </button>
+                <button @click="openDriverModal"
+                    class="bg-slate-800 hover:bg-slate-700 dark:bg-white/10 dark:hover:bg-white/15 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-lg border border-slate-700 dark:border-white/10">
+                    <span class="material-symbols-outlined">person_add</span> Add Driver
                 </button>
                 <button @click="openVehicleModal('add')"
                     class="bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-lg border border-slate-700 dark:border-primary/30">
@@ -14,20 +22,37 @@
             </div>
         </div>
 
-        <!-- Live Map Placeholder -->
-        <div
-            class="glass-panel w-full h-[300px] rounded-xl relative overflow-hidden group border border-gray-200 dark:border-white/5">
-            <div
-                class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 opacity-60 dark:opacity-40 group-hover:opacity-80 dark:group-hover:opacity-50 transition-opacity">
-            </div>
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div
-                    class="bg-white/80 dark:bg-black/50 backdrop-blur-md px-6 py-3 rounded-full text-gray-900 dark:text-white font-medium flex items-center gap-3 border border-gray-200 dark:border-white/10 shadow-lg">
+        <!-- Live Fleet Map -->
+        <div class="glass-panel w-full h-[300px] rounded-xl relative overflow-hidden border border-gray-200 dark:border-white/5">
+            <!-- Live badge overlay -->
+            <div class="absolute top-3 left-3 z-[401] pointer-events-none">
+                <div class="bg-white/90 dark:bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-gray-900 dark:text-white text-xs font-bold flex items-center gap-2 border border-gray-200 dark:border-white/10 shadow-md">
                     <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    Live Fleet Tracking Active ({{filteredVehicles.filter(v => v.status === 'Active').length}}
-                    Vehicles)
+                    Live Fleet Map &mdash; {{ fleetActiveDrivers.length }} driver{{ fleetActiveDrivers.length !== 1 ? 's' : '' }} tracked
                 </div>
             </div>
+            <l-map :zoom="11" :center="fleetMapCenter" :use-global-leaflet="false" style="height:300px;width:100%;border-radius:0.75rem;">
+                <l-tile-layer
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    layer-type="base"
+                    name="CartoDB Voyager"
+                />
+                <l-marker v-for="d in fleetActiveDrivers" :key="d.driver_id" :lat-lng="[d.latitude, d.longitude]">
+                    <l-popup>
+                        <div class="text-xs p-1">
+                            <div class="font-bold flex items-center gap-1 mb-1">
+                                <span style="color:#22c55e;font-size:14px;" class="material-symbols-outlined">local_shipping</span>
+                                {{ d.driver_name }}
+                            </div>
+                            <div class="text-gray-500 mb-0.5">Vehicle: <span class="font-medium text-gray-900">{{ d.vehicle_code || 'N/A' }}</span></div>
+                            <div class="text-[9px] uppercase font-bold px-1.5 py-0.5 inline-block rounded mt-1"
+                                :style="d.status === 'In-Transit' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#dcfce7;color:#15803d'">
+                                {{ d.status }}
+                            </div>
+                        </div>
+                    </l-popup>
+                </l-marker>
+            </l-map>
         </div>
 
         <!-- Role Filter Tabs & Search -->
@@ -225,7 +250,7 @@
                                     </div>
                                 </td>
                                 <td class="py-3 text-right text-gray-600 dark:text-gray-300 font-mono">
-                                    ${{ Math.floor(Math.random() * 500) + 150 }}.00
+                                    ₹{{ Math.floor(Math.random() * 500) + 150 }}.00
                                 </td>
                                 <td class="py-3 text-right">
                                     <span
@@ -263,7 +288,7 @@
                     <div class="p-4 rounded-xl border" 
                         :class="`bg-${logStats.color}-50 dark:bg-${logStats.color}-500/10 border-${logStats.color}-100 dark:border-${logStats.color}-500/20`">
                         <p class="text-xs uppercase font-bold tracking-wider mb-1" :class="`text-${logStats.color}-600 dark:text-${logStats.color}-400`">Total Cost (This Month)</p>
-                        <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ logStats.totalCost.toLocaleString(undefined, {minimumFractionDigits: 2}) }}</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">₹{{ logStats.totalCost.toLocaleString(undefined, {minimumFractionDigits: 2}) }}</p>
                         <p class="text-xs mt-1 opacity-80" :class="`text-${logStats.color}-600 dark:text-${logStats.color}-400`">↑ 2.4% vs last month</p>
                     </div>
 
@@ -339,7 +364,7 @@
                                 <td v-if="activeLogType === 'Cleaning Logs'" class="py-3 text-gray-600 dark:text-gray-300">{{ log.type }}</td>
                                 <td v-if="activeLogType === 'Cleaning Logs'" class="py-3 text-gray-600 dark:text-gray-300">{{ log.provider }}</td>
 
-                                <td class="py-3 text-gray-900 dark:text-white font-bold text-right">${{ log.cost }}</td>
+                                <td class="py-3 text-gray-900 dark:text-white font-bold text-right">₹{{ log.cost }}</td>
                                 <td class="py-3 text-right">
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border" 
                                         :class="log.status === 'Completed' || log.status === 'Verified' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-500/10 dark:text-green-400' : 'bg-yellow-50 text-yellow-600 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400'">
@@ -356,7 +381,12 @@
         <!-- Tab Content: Vehicle Documents -->
         <div v-if="activeTab === 'Vehicle Documents'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             <div class="glass-panel rounded-xl p-6 h-[500px] flex flex-col relative overflow-hidden col-span-2">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Vehicle Documentation & Compliance</h3>
+                <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                <h3 class="font-bold text-gray-900 dark:text-white">Vehicle Documentation & Compliance</h3>
+                <button @click="openUploadModal('VEHICLE')" class="bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md shadow-primary/20 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">upload_file</span> Upload Doc
+                </button>
+            </div>
                 <div class="overflow-x-auto overflow-y-auto flex-grow custom-scrollbar">
                     <table class="w-full text-left text-sm">
                          <thead class="bg-gray-50 dark:bg-transparent sticky top-0 z-10 backdrop-blur-md">
@@ -442,7 +472,12 @@
         <!-- Tab Content: Driver Documents -->
         <div v-if="activeTab === 'Driver Documents'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             <div class="glass-panel rounded-xl p-6 h-[500px] flex flex-col relative overflow-hidden col-span-2">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Driver Personnel Files</h3>
+            <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                <h3 class="font-bold text-gray-900 dark:text-white">Driver Personnel Files</h3>
+                <button @click="openUploadModal('DRIVER')" class="bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md shadow-primary/20 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">upload_file</span> Upload Doc
+                </button>
+            </div>
                  <div class="overflow-x-auto overflow-y-auto flex-grow custom-scrollbar">
                     <table class="w-full text-left text-sm">
                          <thead class="bg-gray-50 dark:bg-transparent sticky top-0 z-10 backdrop-blur-md">
@@ -533,109 +568,81 @@
         </div>
 
         <!-- Tab Content: Live Locations -->
-        <div v-if="activeTab === 'Live Locations'" class="glass-panel rounded-xl p-6 h-[500px] flex flex-col relative overflow-hidden">
-            <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Real-Time Fleet Positioning</h3>
-            <div class="overflow-x-auto overflow-y-auto flex-grow custom-scrollbar">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-gray-50 dark:bg-transparent sticky top-0 z-10 backdrop-blur-md">
-                        <tr class="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-white/10 uppercase tracking-wider text-[10px]">
-                            <th class="py-2 px-2 font-medium">Vehicle Details</th>
-                            <th class="py-2 font-medium">Warehouse</th>
-                            <th class="py-2 font-medium">Assigned Driver</th>
-                            <th class="py-2 font-medium">Current Coordinate</th>
-                            <th class="py-2 font-medium text-right">Status</th>
-                            <th class="py-2 px-2 text-right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                        <template v-for="vehicle in vehicleLocationData" :key="vehicle.id">
-                            <!-- Parent Row -->
-                            <tr class="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer" @click="toggleDocExpand(vehicle.id)">
-                                <td class="py-3 px-2">
-                                    <div class="flex items-center gap-3">
-                                        <span class="material-symbols-outlined text-gray-400 text-sm transition-transform duration-200" :class="expandedDocs.includes(vehicle.id) ? 'rotate-90' : ''">chevron_right</span>
-                                        <div>
-                                            <p class="font-mono font-medium text-gray-900 dark:text-white">{{ vehicle.id }}</p>
-                                            <p class="text-[10px] text-gray-500">{{ vehicle.type }} • {{ vehicle.licensePlate }}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="py-3 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">
-                                    {{ store.hubs.find(h => h.id === vehicle.hubId)?.name || 'Main Hub' }}
-                                </td>
-                                <td class="py-3 text-gray-600 dark:text-gray-300">
-                                    <div v-if="vehicle.driver !== 'Unassigned'">
-                                        <p class="font-medium text-gray-900 dark:text-white">{{ vehicle.driver }}</p>
-                                        <p class="text-[10px] text-gray-500">Lic: {{ vehicle.licenseNo }}</p>
-                                    </div>
-                                    <div v-else class="text-gray-400 italic text-xs">Unassigned</div>
-                                </td>
-                                <td class="py-3 text-gray-600 dark:text-gray-300 font-mono text-xs">
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-[14px] text-primary">location_on</span>
-                                        {{ vehicle.currentLocation }}
-                                    </span>
-                                </td>
-                                <td class="py-3 text-right">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border"
-                                        :class="vehicle.status === 'Active' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-500/10 dark:text-green-400' : 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-white/10 dark:text-gray-400'">
-                                        {{ vehicle.status }}
-                                    </span>
-                                </td>
-                                <td class="py-3 px-2 text-right">
-                                    <button @click.stop="toggleDocExpand(vehicle.id)" class="text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white p-1 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-white/10">
-                                        <span class="material-symbols-outlined">expand_circle_down</span>
-                                    </button>
-                                </td>
-                            </tr>
-                            <!-- Child Row (Dropdown) -->
-                            <tr v-if="expandedDocs.includes(vehicle.id)" class="bg-gray-50/50 dark:bg-white/5">
-                                <td colspan="5" class="p-0">
-                                    <div class="px-4 py-3 border-l-2 border-primary ml-8 my-2 bg-white dark:bg-black/20 rounded-r-lg shadow-inner">
-                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <!-- Map Placeholder -->
-                                            <div class="h-32 bg-gray-200 dark:bg-white/10 rounded-lg flex items-center justify-center relative overflow-hidden group">
-                                                <div class="absolute inset-0 bg-[url('https://maps.googleapis.com/maps/api/staticmap?center=40.7128,-74.0060&zoom=13&size=400x200&sensor=false')] bg-cover bg-center grayscale opacity-50 group-hover:grayscale-0 transition-all duration-500"></div>
-                                                <div class="z-10 bg-white/80 dark:bg-black/80 px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-2 backdrop-blur-sm">
-                                                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                                                    {{ vehicle.gps }}
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Stats -->
-                                            <div class="col-span-2 space-y-3">
-                                                <div class="flex justify-between items-start">
-                                                    <div>
-                                                        <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-1">Current Assignment</h4>
-                                                        <p class="text-xs text-gray-600 dark:text-gray-300">{{ vehicle.currentJob }}</p>
-                                                    </div>
-                                                    <div class="text-right">
-                                                        <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Last Ping</p>
-                                                        <p class="text-xs font-mono font-bold text-green-600 dark:text-green-400">{{ vehicle.lastUpdate }}</p>
-                                                    </div>
-                                                </div>
-                                                <div class="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100 dark:border-white/5">
-                                                    <div class="bg-gray-50 dark:bg-white/5 p-2 rounded">
-                                                        <p class="text-[10px] text-gray-400">Speed</p>
-                                                        <p class="text-sm font-bold">{{ vehicle.speed }}</p>
-                                                    </div>
-                                                    <div class="bg-gray-50 dark:bg-white/5 p-2 rounded">
-                                                        <p class="text-[10px] text-gray-400">Heading</p>
-                                                        <p class="text-sm font-bold">NW 315°</p>
-                                                    </div>
-                                                    <div class="bg-gray-50 dark:bg-white/5 p-2 rounded">
-                                                        <p class="text-[10px] text-gray-400">Altitude</p>
-                                                        <p class="text-sm font-bold">245 ft</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+        <div v-if="activeTab === 'Live Locations'" class="flex flex-col gap-4">
+
+            <!-- Live Map -->
+            <div class="glass-panel rounded-xl overflow-hidden border border-gray-200 dark:border-white/5 relative" style="height:420px;">
+                <!-- Status badge -->
+                <div class="absolute top-3 left-3 z-[401] pointer-events-none">
+                    <div class="bg-white/90 dark:bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-gray-900 dark:text-white text-xs font-bold flex items-center gap-2 border border-gray-200 dark:border-white/10 shadow-md">
+                        <span v-if="fleetTrackingLoading" class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
+                        <span v-else class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        {{ fleetTrackingLoading ? 'Fetching locations...' : `${fleetActiveDrivers.length} active driver${fleetActiveDrivers.length !== 1 ? 's' : ''} tracked` }}
+                    </div>
+                </div>
+                <!-- No data hint -->
+                <div v-if="!fleetTrackingLoading && fleetActiveDrivers.length === 0"
+                    class="absolute inset-0 flex items-center justify-center z-[402] pointer-events-none">
+                    <div class="bg-white/90 dark:bg-black/70 backdrop-blur-md px-6 py-4 rounded-xl border border-gray-200 dark:border-white/10 text-center shadow-lg">
+                        <span class="material-symbols-outlined text-gray-400 text-3xl block mb-2">location_off</span>
+                        <p class="text-sm font-bold text-gray-900 dark:text-white">No Active Drivers</p>
+                        <p class="text-xs text-gray-500 mt-1">GPS data will appear once drivers start their shift and send location.</p>
+                    </div>
+                </div>
+                <l-map :zoom="selectedFleetDriver ? 14 : 11" :center="fleetMapCenter" :use-global-leaflet="false" style="height:100%;width:100%;">
+                    <l-tile-layer
+                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                        layer-type="base"
+                        name="CartoDB Voyager"
+                    />
+                    <l-marker v-for="d in fleetActiveDrivers" :key="d.driver_id" :lat-lng="[d.latitude, d.longitude]">
+                        <l-popup>
+                            <div class="text-xs p-1">
+                                <div class="font-bold flex items-center gap-1 mb-1">
+                                    <span style="color:#22c55e;font-size:14px;" class="material-symbols-outlined">local_shipping</span>
+                                    {{ d.driver_name }}
+                                </div>
+                                <div class="text-gray-500 mb-0.5">Vehicle: <span class="font-medium text-gray-900">{{ d.vehicle_code || 'N/A' }}</span></div>
+                                <div class="text-gray-400 font-mono text-[10px]">{{ d.latitude?.toFixed(5) }}, {{ d.longitude?.toFixed(5) }}</div>
+                                <div class="text-gray-500 text-[10px] mt-1">Updated: {{ d.last_updated ? new Date(d.last_updated).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'}) : 'N/A' }}</div>
+                                <div class="text-[9px] uppercase font-bold px-1.5 py-0.5 inline-block rounded mt-1"
+                                    :style="d.status === 'in-transit' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#dcfce7;color:#15803d'">
+                                    {{ d.status }}
+                                </div>
+                            </div>
+                        </l-popup>
+                    </l-marker>
+                </l-map>
+            </div>
+
+            <!-- Driver List below map -->
+            <div class="glass-panel rounded-xl p-5 border border-gray-200 dark:border-white/5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-gray-900 dark:text-white text-sm">Active Driver Locations</h3>
+                    <span class="text-xs text-gray-500">Auto-refreshes every 10s</span>
+                </div>
+                <div v-if="fleetActiveDrivers.length === 0" class="text-center py-8 text-gray-400 text-sm">
+                    <span class="material-symbols-outlined block text-3xl mb-2">signal_disconnected</span>
+                    No live GPS data. Drivers need to start a shift on the driver app.
+                </div>
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div v-for="d in fleetActiveDrivers" :key="d.driver_id"
+                        class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-transparent hover:border-primary/30 transition-colors cursor-pointer"
+                        @click="selectedFleetDriver = d">
+                        <div class="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-green-500 text-[18px]">local_shipping</span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ d.driver_name }}</p>
+                            <p class="text-[10px] text-gray-500">{{ d.vehicle_code || 'No vehicle' }}</p>
+                            <p class="text-[10px] font-mono text-primary">{{ d.latitude?.toFixed(4) }}, {{ d.longitude?.toFixed(4) }}</p>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase flex-shrink-0"
+                            :class="d.status === 'in-transit' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400'">
+                            {{ d.status }}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -646,8 +653,8 @@
             <div v-if="isVehicleModalOpen"
                 class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
                 @click.self="closeVehicleModal">
-                <div
-                    class="bg-white dark:bg-card-dark w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col">
+                <div :class="vehicleModalMode === 'add' ? 'max-w-[800px]' : 'max-w-md'"
+                    class="bg-white dark:bg-card-dark w-full rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
                     <div
                         class="px-6 py-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-gray-50 dark:bg-white/5">
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ vehicleModalMode === 'add' ? `Add
@@ -658,7 +665,9 @@
                         </button>
                     </div>
 
-                    <div class="p-6 space-y-4">
+                    <div class="p-6 overflow-y-auto" :class="vehicleModalMode === 'add' ? 'grid grid-cols-1 md:grid-cols-2 gap-8' : 'space-y-4'">
+                        <!-- Left Column: Vehicle Details -->
+                        <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vehicle
@@ -692,15 +701,136 @@
                                 </select>
                             </div>
                         </div>
+
+                        </div> <!-- End Left Column -->
+
+                        <!-- Right Column: Required Documentation Section -->
+                        <div v-if="vehicleModalMode === 'add'" class="space-y-6 bg-gray-50/50 dark:bg-black/10 p-5 rounded-2xl border border-gray-200/50 dark:border-white/5">
+                            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Required Documents</h4>
+                            
+                            <!-- Insurance Policy -->
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-gray-400 text-sm">verified_user</span>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">Insurance Policy</p>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-500 mb-1">Expiry Date</label>
+                                        <input type="date" v-model="vehicleFormData.insuranceExpiry" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-500 mb-1">Policy Document</label>
+                                        <label class="w-full flex items-center justify-center gap-2 cursor-pointer bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg px-3 py-2 text-xs font-bold text-primary transition-colors h-[38px]">
+                                            <span class="material-symbols-outlined text-[16px]">cloud_upload</span>
+                                            <span class="truncate">{{ vehicleFormData.insuranceFileName || 'Upload PDF/IMG' }}</span>
+                                            <input type="file" class="hidden" accept="image/*,.pdf" @change="e => handleVehicleDocUpload(e, 'insurance')">
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Vehicle Registration -->
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-gray-400 text-sm">assignment</span>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">Vehicle Registration</p>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-500 mb-1">Expiry Date</label>
+                                        <input type="date" v-model="vehicleFormData.registrationExpiry" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-500 mb-1">Registration Document</label>
+                                        <label class="w-full flex items-center justify-center gap-2 cursor-pointer bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg px-3 py-2 text-xs font-bold text-primary transition-colors h-[38px]">
+                                            <span class="material-symbols-outlined text-[16px]">cloud_upload</span>
+                                            <span class="truncate">{{ vehicleFormData.registrationFileName || 'Upload PDF/IMG' }}</span>
+                                            <input type="file" class="hidden" accept="image/*,.pdf" @change="e => handleVehicleDocUpload(e, 'registration')">
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div
                         class="px-6 py-4 border-t border-gray-200 dark:border-white/5 flex justify-end gap-3 bg-gray-50 dark:bg-white/5">
                         <button @click="closeVehicleModal"
                             class="px-4 py-2 rounded-lg font-medium text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 dark:bg-white/10 dark:border-white/10 dark:text-gray-200 dark:hover:bg-white/15 transition-colors shadow-sm">Cancel</button>
-                        <button @click="submitVehicle"
-                            class="px-4 py-2 rounded-lg font-medium text-white bg-primary hover:bg-primary/90 transition-colors shadow-sm">{{
-                                vehicleModalMode === 'add' ? 'Add Vehicle' : 'Save Changes' }}</button>
+                        <button @click="submitVehicle" :disabled="isSubmitting"
+                            class="px-4 py-2 rounded-lg font-medium text-white flex items-center justify-center gap-2 min-w-[120px] bg-primary hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-75 disabled:cursor-not-allowed">
+                            <span v-if="isSubmitting" class="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
+                            <span>{{ vehicleModalMode === 'add' ? (isSubmitting ? 'Uploading...' : 'Add Vehicle') : 'Save Changes' }}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Add Driver Modal -->
+        <Teleport to="body">
+            <div v-if="isDriverModalOpen"
+                class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                @click.self="closeDriverModal">
+                <div class="bg-white dark:bg-card-dark w-full max-w-2xl rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-gray-50 dark:bg-white/5">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Add New Driver</h3>
+                        <button @click="closeDriverModal" class="text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    <div class="p-6 grid grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name <span class="text-red-500">*</span></label>
+                            <input v-model="driverFormData.name" type="text" placeholder="e.g. Ravi Kumar"
+                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email <span class="text-red-500">*</span></label>
+                            <input v-model="driverFormData.email" type="email" placeholder="driver@example.com"
+                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                            <input v-model="driverFormData.phone" type="text" placeholder="+91 98765 43210"
+                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                            <select v-model="driverFormData.status"
+                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                                <option class="bg-white dark:bg-gray-800">Active</option>
+                                <option class="bg-white dark:bg-gray-800">Idle</option>
+                                <option class="bg-white dark:bg-gray-800">On Leave</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hub Assignment</label>
+                            <select v-model="driverFormData.warehouse_id"
+                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                                <option value="all" class="bg-white dark:bg-gray-800">Global (All Hubs)</option>
+                                <option v-for="h in store.hubs" :key="h.id" :value="h.id" class="bg-white dark:bg-gray-800">{{ h.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Location</label>
+                            <input v-model="driverFormData.current_location" type="text" placeholder="e.g. Depot - Bangalore Central"
+                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                        </div>
+                        <div class="col-span-2 space-y-1">
+                            <p class="text-xs text-gray-400 dark:text-gray-500">Default login password: <span class="font-mono font-bold">Driver@123</span></p>
+                            <p v-if="driverError" class="text-xs text-red-500 font-medium">{{ driverError }}</p>
+                        </div>
+                    </div>
+                    <div class="px-6 py-4 border-t border-gray-200 dark:border-white/5 flex justify-end gap-3 bg-gray-50 dark:bg-white/5">
+                        <button @click="closeDriverModal"
+                            class="px-4 py-2 rounded-lg font-medium text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 dark:bg-white/10 dark:border-white/10 dark:text-gray-200 dark:hover:bg-white/15 transition-colors">Cancel</button>
+                        <button @click="submitDriver" :disabled="isDriverSubmitting || !driverFormData.name || !driverFormData.email"
+                            class="px-4 py-2 rounded-lg font-medium text-white flex items-center justify-center gap-2 min-w-[120px] bg-primary hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-75 disabled:cursor-not-allowed">
+                            <span v-if="isDriverSubmitting" class="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
+                            <span>{{ isDriverSubmitting ? 'Adding...' : 'Add Driver' }}</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -904,7 +1034,7 @@
                                             class="flex justify-between text-sm py-2 border-b border-gray-100 dark:border-white/5">
                                             <span class="text-gray-500">Total Repair Expense</span>
                                             <span class="font-medium text-gray-900 dark:text-white">
-                                                ${{ activeVehicleProfile.totalMaintenanceCost.toLocaleString() }} (YTD)
+                                                ₹{{ activeVehicleProfile.totalMaintenanceCost.toLocaleString() }} (YTD)
                                             </span>
                                         </div>
                                     </div>
@@ -926,7 +1056,7 @@
                                             <div class="flex justify-between items-center">
                                                 <span
                                                     class="text-xs bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded text-gray-600 dark:text-gray-300">{{ log.type }}</span>
-                                                <span class="text-xs font-mono font-bold text-gray-900 dark:text-white">${{ log.cost }}</span>
+                                                <span class="text-xs font-mono font-bold text-gray-900 dark:text-white">₹{{ log.cost }}</span>
                                             </div>
                                         </div>
                                         <button @click="activeVehicleProfile.viewMode = 'history'" class="w-full text-center text-xs text-primary hover:underline mt-2">View Full History</button>
@@ -941,7 +1071,7 @@
                                 <h4 class="font-bold text-gray-900 dark:text-white">Full Service Ledger</h4>
                                 <div class="bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-lg">
                                     <span class="text-xs text-gray-500 uppercase font-bold mr-2">Total Cost</span>
-                                    <span class="font-mono font-bold text-gray-900 dark:text-white">${{ activeVehicleProfile.totalMaintenanceCost.toLocaleString() }}</span>
+                                    <span class="font-mono font-bold text-gray-900 dark:text-white">₹{{ activeVehicleProfile.totalMaintenanceCost.toLocaleString() }}</span>
                                 </div>
                             </div>
                             
@@ -965,7 +1095,7 @@
                                                     {{ item.type }}
                                                 </span>
                                             </td>
-                                            <td class="py-3 px-3 text-right text-gray-900 dark:text-white font-mono font-bold">${{ item.cost.toFixed(2) }}</td>
+                                            <td class="py-3 px-3 text-right text-gray-900 dark:text-white font-mono font-bold">₹{{ item.cost.toFixed(2) }}</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1108,12 +1238,42 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+import { useRealTimeTracking } from '@/composables/useRealTimeTracking'
+import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+// Fix Leaflet default icon paths
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
+    iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
+    shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
+})
+
+const { openSlip } = useSlipPrinter()
 
 const store = useLogisticStore()
 const { filteredTopDrivers, filteredMaintenance, filteredVehicles } = storeToRefs(store)
+
+// Real-time tracking (same composable as Dispatcher)
+const { activeDrivers: fleetActiveDrivers, loading: fleetTrackingLoading } = useRealTimeTracking()
+
+// Center map on drivers if any, else default to Mumbai
+const fleetMapCenter = computed(() => {
+    if (fleetActiveDrivers.value.length > 0) {
+        const first = fleetActiveDrivers.value[0]
+        return [first.latitude, first.longitude]
+    }
+    return [19.0760, 72.8777]
+})
+
+// Selected driver for zoom-to focus on live map
+const selectedFleetDriver = ref(null)
 
 const tabs = ['Active Drivers', 'Fleet Vehicles', 'Fleet Logs', 'Vehicle Documents', 'Driver Documents', 'Live Locations']
 const activeTab = ref('Active Drivers')
@@ -1127,13 +1287,80 @@ const activeLogType = ref('Fuel Logs')
 // Vehicle Management state
 const isVehicleModalOpen = ref(false)
 const vehicleModalMode = ref('add') // 'add' or 'edit'
+const isSubmitting = ref(false)
 const vehicleFormData = ref({})
+
+// Driver Management state
+const isDriverModalOpen = ref(false)
+const isDriverSubmitting = ref(false)
+const driverFormData = ref({})
+const driverError = ref('')
 
 // Document Viewing State
 const activeDoc = ref(null)
 const expandedDocs = ref([]) // IDs of expanded rows
 
+
+// Document Upload State
+const isUploadModalOpen = ref(false)
+const uploadMode = ref('VEHICLE') // 'VEHICLE' or 'DRIVER'
+const uploadFormData = ref({
+    entityId: '',
+    docType: '',
+    expiryDate: '',
+    fileBase64: null,
+    fileName: ''
+})
+
+const openUploadModal = (mode) => {
+    uploadMode.value = mode
+    uploadFormData.value = {
+        entityId: '',
+        docType: '',
+        expiryDate: '',
+        fileBase64: null,
+        fileName: ''
+    }
+    isUploadModalOpen.value = true
+}
+
+const closeUploadModal = () => {
+    isUploadModalOpen.value = false
+}
+
+const handleFileUpload = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+        uploadFormData.value.fileName = file.name
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            uploadFormData.value.fileBase64 = e.target.result
+        }
+        reader.readAsDataURL(file)
+    }
+}
+
+const submitDocument = async () => {
+    if (!uploadFormData.value.entityId || !uploadFormData.value.docType) return
+    
+    await store.uploadDocument({
+        entity_type: uploadMode.value,
+        entity_id: uploadFormData.value.entityId,
+        hub_id: store.activeWarehouse === 'all' ? null : store.activeWarehouse,
+        doc_type: uploadFormData.value.docType,
+        document_url: uploadFormData.value.fileBase64 || `https://placehold.co/400x500?text=${uploadFormData.value.docType.replace(/ /g, '+')}+Upload`,
+        expiry_date: uploadFormData.value.expiryDate ? new Date(uploadFormData.value.expiryDate).toISOString() : null
+    })
+    closeUploadModal()
+}
+
+const verifyDocumentStatus = async (docId, status) => {
+    await store.updateDocumentStatus(docId, status)
+    activeDoc.value = null // Close the viewer
+}
+
 // Share Modal State
+
 const isShareModalOpen = ref(false)
 const shareStep = ref('select') // 'select' or 'form'
 const shareFormData = ref({
@@ -1439,17 +1666,54 @@ const closeDropdowns = () => {
 
 onMounted(() => {
     document.addEventListener('click', closeDropdowns)
+    // Force-refresh vehicles/drivers so driver assignments from active orders are always current
+    store.refresh().catch(() => {})
 })
 
 onUnmounted(() => {
     document.removeEventListener('click', closeDropdowns)
 })
 
+// Driver form helpers
+const openDriverModal = () => {
+    driverFormData.value = {
+        name: '',
+        email: '',
+        phone: '',
+        status: 'Active',
+        warehouse_id: store.activeWarehouse === 'all' ? 'all' : store.activeWarehouse,
+        current_location: '',
+    }
+    driverError.value = ''
+    isDriverModalOpen.value = true
+}
+
+const closeDriverModal = () => {
+    isDriverModalOpen.value = false
+    driverFormData.value = {}
+    driverError.value = ''
+}
+
+const submitDriver = async () => {
+    driverError.value = ''
+    isDriverSubmitting.value = true
+    try {
+        await store.addDriver({ ...driverFormData.value })
+        closeDriverModal()
+    } catch (e) {
+        driverError.value = e.message || 'Failed to add driver. Please try again.'
+    } finally {
+        isDriverSubmitting.value = false
+    }
+}
+
 // Vehicle form helpers
 const openVehicleModal = (mode, vehicle = null) => {
     vehicleModalMode.value = mode
     if (mode === 'edit' && vehicle) {
-        vehicleFormData.value = { ...vehicle }
+        // Find the driver currently assigned to this vehicle
+        const assignedDriver = store.filteredDrivers.find(d => d.vehicle === vehicle.code || d.vehicle === vehicle.id)
+        vehicleFormData.value = { ...vehicle, driverId: assignedDriver?.id || null }
     } else {
         vehicleFormData.value = {
             id: `VH-${Math.floor(Math.random() * 9000) + 1000}`,
@@ -1457,10 +1721,29 @@ const openVehicleModal = (mode, vehicle = null) => {
             model: '',
             type: 'Delivery Van',
             hubId: store.activeWarehouse === 'all' ? 1 : store.activeWarehouse,
-            year: new Date().getFullYear()
+            year: new Date().getFullYear(),
+            driverId: null,
         }
     }
     isVehicleModalOpen.value = true
+}
+
+
+const handleVehicleDocUpload = (event, docType) => {
+    const file = event.target.files[0]
+    if (file) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            if (docType === 'insurance') {
+                vehicleFormData.value.insuranceFile = e.target.result
+                vehicleFormData.value.insuranceFileName = file.name
+            } else if (docType === 'registration') {
+                vehicleFormData.value.registrationFile = e.target.result
+                vehicleFormData.value.registrationFileName = file.name
+            }
+        }
+        reader.readAsDataURL(file)
+    }
 }
 
 const closeVehicleModal = () => {
@@ -1468,14 +1751,47 @@ const closeVehicleModal = () => {
     vehicleFormData.value = {}
 }
 
-const submitVehicle = () => {
-    if (vehicleModalMode.value === 'add') {
-        store.addVehicle({ ...vehicleFormData.value })
-    } else {
-        // Mock update handler
-        // store.updateVehicle({...})
+const submitVehicle = async () => {
+    try {
+        isSubmitting.value = true
+        if (vehicleModalMode.value === 'add') {
+            await store.addVehicle({ ...vehicleFormData.value })
+            
+            let targetHub = vehicleFormData.value.hubId
+            if (targetHub === 'all' || targetHub === 1) targetHub = null
+
+            if (vehicleFormData.value.insuranceFile && vehicleFormData.value.insuranceExpiry) {
+                await store.uploadDocument({
+                    entity_type: 'VEHICLE',
+                    entity_id: vehicleFormData.value.id,
+                    hub_id: targetHub,
+                    doc_type: 'Insurance Policy',
+                    document_url: vehicleFormData.value.insuranceFile,
+                    expiry_date: new Date(vehicleFormData.value.insuranceExpiry).toISOString()
+                })
+            }
+            
+            if (vehicleFormData.value.registrationFile && vehicleFormData.value.registrationExpiry) {
+                await store.uploadDocument({
+                    entity_type: 'VEHICLE',
+                    entity_id: vehicleFormData.value.id,
+                    hub_id: targetHub,
+                    doc_type: 'Vehicle Registration',
+                    document_url: vehicleFormData.value.registrationFile,
+                    expiry_date: new Date(vehicleFormData.value.registrationExpiry).toISOString()
+                })
+            }
+        } else {
+            await store.updateVehicle(vehicleFormData.value.id, {
+                model: vehicleFormData.value.model,
+                license_plate: vehicleFormData.value.licensePlate,
+                assigned_driver_id: vehicleFormData.value.driverId || null,
+            })
+        }
+    } finally {
+        isSubmitting.value = false
+        closeVehicleModal()
     }
-    closeVehicleModal()
 }
 
 // Helper: get performance stats from topDrivers list

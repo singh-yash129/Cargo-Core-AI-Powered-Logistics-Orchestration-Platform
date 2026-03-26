@@ -81,6 +81,7 @@ const menuItems = [
   { label: 'Recurring Orders', icon: 'update', route: '/vendor/recurring' },
   { label: 'Bulk Upload', icon: 'upload_file', route: '/vendor/bulk-upload' },
   { label: 'Shipment Tracking', icon: 'local_shipping', route: '/vendor/tracking' },
+  { label: 'Wallet', icon: 'account_balance_wallet', route: '/vendor/wallet' },
   { label: 'Invoices', icon: 'receipt', route: '/vendor/invoices' },
   { label: 'Analytics', icon: 'analytics', route: '/vendor/analytics' },
 ]
@@ -97,7 +98,7 @@ const vendorMetrics = computed(() => ([
 ]))
 
 async function handleLogout() {
-  await authStore.logout()
-  router.replace('/login')
+  const loginPath = authStore.logout()
+  router.replace(loginPath)
 }
 </script>

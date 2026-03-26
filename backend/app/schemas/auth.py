@@ -99,6 +99,13 @@ class MessageResponse(BaseModel):
     message: str
 
 
+class SignupOtpSendResponse(BaseModel):
+    message: str
+    email: str
+    sent_at: datetime | None = None
+    debug_otp: str | None = None
+
+
 class OTPVerifiedResponse(BaseModel):
     verified: bool
     message: str

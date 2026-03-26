@@ -42,6 +42,11 @@ class VendorShipmentSummary(BaseModel):
     status_key: str
     pickup_addr: str
     delivery_addr: str
+    assigned_driver_id: UUID | None = None
+    assigned_driver_name: str | None = None
+    assigned_driver_phone: str | None = None
+    assigned_vehicle_id: UUID | None = None
+    assigned_vehicle_code: str | None = None
     cargo_type: str | None = None
     vehicle_type: str | None = None
     payment_mode: str | None = None
@@ -79,6 +84,11 @@ class VendorInvoiceRecord(BaseModel):
     amount: float
     paid: float = 0
     status: str
+
+
+class VendorInvoicePayRequest(BaseModel):
+    amount: float
+    payment_method: str = "Bank Transfer"
 
 
 class VendorInvoiceSummary(BaseModel):

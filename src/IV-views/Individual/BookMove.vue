@@ -223,7 +223,7 @@
                                     <button @click="form.laborCount++"
                                         class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-white flex items-center justify-center text-xl font-bold transition-colors">+</button>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-2">₹800/helper per move</p>
+                                <p class="text-xs text-gray-500 mt-2">₹{{ (rates.individualLaborRate ?? 800).toLocaleString() }}/helper per move</p>
                             </div>
                             <div v-if="form.packingRequired">
                                 <label class="block text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Packing
@@ -444,7 +444,7 @@
                                     quote.vehicle.toLocaleString() }}</span></div>
                             <div class="flex justify-between text-sm"><span
                                     class="text-gray-500 dark:text-gray-400">Labor ({{ form.laborCount }} ×
-                                    ₹800)</span><span class="text-gray-900 dark:text-white font-mono">₹{{
+                                    ₹{{ (rates.individualLaborRate ?? 800).toLocaleString() }})</span><span class="text-gray-900 dark:text-white font-mono">₹{{
                                     quote.labor.toLocaleString() }}</span></div>
                             <div v-if="form.packingRequired" class="flex justify-between text-sm"><span
                                     class="text-gray-500 dark:text-gray-400">Packing Service</span><span
@@ -495,8 +495,11 @@
                                     class="text-gray-900 dark:text-white font-mono">₹{{ pkgBase.toLocaleString()
                                     }}</span></div>
                             <div class="flex justify-between text-sm"><span
-                                    class="text-gray-500 dark:text-gray-400">Delivery Fee{{ distanceKm ? ' (' + distanceKm + ' km × ₹12)' : '' }}</span><span
+                                    class="text-gray-500 dark:text-gray-400">Delivery Fee{{ distanceKm ? ' (' + distanceKm + ' km × ₹' + (rates.smallPackagePerKmRate ?? 12) + ')' : '' }}</span><span
                                     class="text-gray-900 dark:text-white font-mono">₹{{ pkgDeliveryFee.toLocaleString() }}</span></div>
+                            <div v-if="pkgMinimumAdjustment > 0" class="flex justify-between text-sm"><span
+                                    class="text-gray-500 dark:text-gray-400">Minimum Charge Adjustment</span><span
+                                    class="text-gray-900 dark:text-white font-mono">₹{{ pkgMinimumAdjustment.toLocaleString() }}</span></div>
                         </div>
                         <div class="border-t border-gray-200 dark:border-white/10 pt-4 mb-4">
                             <div class="flex justify-between items-end">
@@ -589,7 +592,11 @@
                     <!-- Dummy text removed -->
                 </div>
                 <template #footer>
-                    <div class="flex gap-3 w-full">
+                    <div class="flex gap-3 w-full flex-wrap">
+                        <button @click="openSlipWithData('bookingConfirmation', confirmedOrder, authStore.currentUser)"
+                            class="flex-1 py-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-1.5 hover:bg-indigo-500/20">
+                            <span class="material-symbols-outlined text-sm">receipt_long</span> Booking Slip
+                        </button>
                         <router-link to="/individual/orders"
                             class="flex-1 py-2 rounded-lg hover:opacity-90 transition text-sm font-bold text-center text-white"
                             :class="moveType === 'house-shift' ? 'bg-green-600' : 'bg-blue-600'">View Orders</router-link>
@@ -600,50 +607,16 @@
             </BaseModal>
         </Teleport>
 
-        <!-- Payment Processing Modal -->
-        <Teleport to="body">
-            <BaseModal :isOpen="showPaymentModal" @close="showPaymentModal = false">
-                <template #title>Make Payment</template>
-                <div class="space-y-4">
-                    <div class="text-center py-4">
-                        <div class="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 mx-auto mb-3">
-                            <span class="material-symbols-outlined text-3xl">credit_card</span>
-                        </div>
-                        <p class="text-gray-700 dark:text-gray-300 text-sm">Please pay the required amount to confirm your booking.</p>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-white mt-2 font-mono hover:scale-105 transition-transform">
-                            ₹{{ (paymentAmount).toLocaleString() }}
-                        </div>
-                    </div>
-                    <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
-                        <div class="flex items-center gap-3 mb-3">
-                            <span class="material-symbols-outlined text-gray-500">receipt_long</span>
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">Order Summary</div>
-                        </div>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Service</span>
-                                <span class="font-medium text-gray-900 dark:text-white">{{ moveType === 'house-shift' ? 'House Shift' : 'Small Package' }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Payment Mode</span>
-                                <span class="font-medium text-gray-900 dark:text-white">{{ form.paymentMode }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <template #footer>
-                    <div class="flex flex-col gap-3 w-full">
-                        <button @click="processPaymentAndConfirm" :disabled="isProcessingPayment"
-                            class="w-full py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
-                            <span v-if="isProcessingPayment" class="material-symbols-outlined animate-spin text-sm">cycle</span>
-                            {{ isProcessingPayment ? 'Processing...' : 'Pay Securely' }}
-                        </button>
-                        <button @click="showPaymentModal = false" :disabled="isProcessingPayment"
-                            class="w-full py-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-sm font-medium">Cancel</button>
-                    </div>
-                </template>
-            </BaseModal>
-        </Teleport>
+        <!-- Razorpay Checkout -->
+        <RazorpayCheckout
+            v-model="showPaymentModal"
+            :amount="paymentAmount"
+            :description="moveType === 'house-shift' ? 'House Shift — ' + form.cargoType : 'Small Package'"
+            :name="authStore.currentUser?.name || ''"
+            :email="authStore.currentUser?.email || ''"
+            @success="onRazorpaySuccess"
+        />
+
 
         <!-- Map Picker Modal -->
         <MapPicker 
@@ -656,12 +629,18 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useIndividualStore } from '@/stores/individualStore'
+import { useAuthStore } from '@/stores/authStore'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+import { fetchRoadDistanceKm } from '@/composables/useOsrmDistance'
+import { useRates } from '@/composables/useRates'
 import BaseModal from '@/components/BaseModal.vue'
 import MapPicker from '@/components/MapPicker.vue'
+import RazorpayCheckout from '@/components/RazorpayCheckout.vue'
 
 const store = useIndividualStore()
+const { rates } = useRates()
 const moveType = ref('house-shift')
 
 // Show AI prefill banner temporarily
@@ -678,25 +657,15 @@ const form = reactive({
 const pickupCoords = ref(null)   // { lat, lon }
 const destCoords   = ref(null)   // { lat, lon }
 
-// Haversine formula — straight-line km; road multiplier 1.35x for realistic estimate
-function haversineKm(lat1, lon1, lat2, lon2) {
-    const R = 6371
-    const dLat = (lat2 - lat1) * Math.PI / 180
-    const dLon = (lon2 - lon1) * Math.PI / 180
-    const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon / 2) ** 2
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
+// Road distance via OSRM (async). Falls back to Haversine × 1.35 if OSRM fails.
+const distanceKm = ref(null)
+const distanceLoading = ref(false)
 
-// Live distance (road estimate). Returns null until both ends are selected.
-const distanceKm = computed(() => {
-    if (!pickupCoords.value || !destCoords.value) return null
-    const straight = haversineKm(
-        pickupCoords.value.lat, pickupCoords.value.lon,
-        destCoords.value.lat,   destCoords.value.lon
-    )
-    return Math.max(1, Math.round(straight * 1.35 * 10) / 10)  // minimum 1 km
+watch([pickupCoords, destCoords], async ([p, d]) => {
+    if (!p || !d) { distanceKm.value = null; return }
+    distanceLoading.value = true
+    distanceKm.value = await fetchRoadDistanceKm(p.lat, p.lon, d.lat, d.lon)
+    distanceLoading.value = false
 })
 
 // Map picker state
@@ -754,13 +723,15 @@ const serviceTimeBlock = computed(() => { const v = selectedVehicle.value; retur
 const materialsCostTotal = computed(() => { let t = 0; for (const mat of store.materialsCatalog) { t += (form.materials[mat.key] || 0) * mat.price }; return t })
 // Use real distance if both locations selected, otherwise fall back to 10 km minimum
 const effectiveDistanceKm = computed(() => distanceKm.value ?? 10)
-const quote = computed(() => store.calculateQuote(effectiveDistanceKm.value, form.laborCount, form.packingRequired, materialsCostTotal.value, form.vehicleType))
+const quote = computed(() => store.calculateQuote(effectiveDistanceKm.value, form.laborCount, form.packingRequired, materialsCostTotal.value, form.vehicleType, rates.value))
 const totalCost = computed(() => quote.value.total)
 
-// Small Package pricing — base by weight + ₹12/km delivery fee
-const pkgBase = computed(() => Math.round((pkg.weight || 1) * 120))
-const pkgDeliveryFee = computed(() => distanceKm.value ? Math.round(distanceKm.value * 12) : 50)
-const pkgTotal = computed(() => pkgBase.value + pkgDeliveryFee.value)
+// Small Package pricing — base by weight + per-km delivery fee (from rate governance)
+const pkgBase = computed(() => Math.round((pkg.weight || 1) * (rates.value.smallPackagePerKgRate ?? 120)))
+const pkgDeliveryFee = computed(() => distanceKm.value ? Math.round(distanceKm.value * (rates.value.smallPackagePerKmRate ?? 12)) : 50)
+const pkgSubtotal = computed(() => pkgBase.value + pkgDeliveryFee.value)
+const pkgMinimumAdjustment = computed(() => Math.max((rates.value.minimumCharge ?? 500) - pkgSubtotal.value, 0))
+const pkgTotal = computed(() => pkgSubtotal.value + pkgMinimumAdjustment.value)
 const estimatedDelivery = computed(() => {
     if (!pkg.preferredDate) return null
     const d = new Date(pkg.preferredDate); d.setDate(d.getDate() + 2)
@@ -770,8 +741,11 @@ const estimatedDelivery = computed(() => {
 const toast = reactive({ show: false, message: '', type: 'success' })
 function showToast(message, type = 'success') { toast.show = true; toast.message = message; toast.type = type; setTimeout(() => { toast.show = false }, 3000) }
 
+const authStore = useAuthStore()
+const { openSlipWithData } = useSlipPrinter()
 const showConfirmModal = ref(false)
 const confirmedOrderId = ref('')
+const confirmedOrder = ref(null)
 
 const showPaymentModal = ref(false)
 const isProcessingPayment = ref(false)
@@ -794,16 +768,15 @@ function handleBookingClick() {
     }
 }
 
-function processPaymentAndConfirm() {
-    isProcessingPayment.value = true
-    setTimeout(() => {
-        isProcessingPayment.value = false
-        showPaymentModal.value = false
-        confirmBooking()
-    }, 1500)
+const razorpayMethod = ref('Online')
+
+function onRazorpaySuccess({ payment_id, method, amount }) {
+    razorpayMethod.value = method
+    showPaymentModal.value = false
+    confirmBooking(payment_id, method)
 }
 
-async function confirmBooking() {
+async function confirmBooking(payment_id = null, method = null) {
     try {
         const order = await store.createOrder({
             moveType: moveType.value, cargoType: moveType.value === 'house-shift' ? form.cargoType : pkg.packageType,
@@ -824,17 +797,18 @@ async function confirmBooking() {
         // Add payment record if paid
         if (form.paymentMode !== 'COD') {
             store.payments.push({
-                id: 'PAY-' + Math.floor(1000 + Math.random() * 9000),
+                id: payment_id || ('PAY-' + Math.floor(1000 + Math.random() * 9000)),
                 orderId: order.id,
                 amount: paymentAmount.value,
                 date: new Date().toLocaleDateString('en-IN'),
                 status: 'completed',
-                mode: 'Card / UPI',
+                mode: method || razorpayMethod.value || 'Online',
                 isDummy: false
             })
         }
 
         confirmedOrderId.value = order.id
+        confirmedOrder.value = order
         showConfirmModal.value = true
         showToast('Order created successfully!', 'success')
     } catch (error) {

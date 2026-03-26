@@ -157,6 +157,9 @@ watch(() => props.isOpen, async (isOpen) => {
         searchResults.value = []
         await nextTick()
         initMap()
+        setTimeout(() => {
+            map?.invalidateSize()
+        }, 0)
     } else {
         if (map) {
             map.remove()
@@ -164,7 +167,7 @@ watch(() => props.isOpen, async (isOpen) => {
             marker = null
         }
     }
-})
+}, { immediate: true })
 
 function initMap() {
     if (!mapContainer.value || map) return

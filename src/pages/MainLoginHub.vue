@@ -5,7 +5,8 @@
     <Navbar />
     <AIHelpOrb />
 
-    <div class="min-h-screen flex items-center justify-center px-8 pt-32 pb-20">
+
+<div class="min-h-screen flex items-center justify-center px-8 pt-32 pb-20">
       <div class="max-w-7xl w-full">
         <!-- Header -->
         <div
@@ -233,7 +234,9 @@
 </template>
 
 <script setup>
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/authStore';
 import {
   Truck,
   Warehouse,
@@ -251,6 +254,26 @@ import { useToast } from '../composables/useToast';
 
 const router = useRouter();
 const toast = useToast();
+const authStore = useAuthStore();
+
+const loggedInUser = computed(() => authStore.currentUser)
+const loggedInDashboard = computed(() => {
+  const role = loggedInUser.value?.role
+  const map = {
+    INDIVIDUAL: '/individual/dashboard', VENDOR: '/vendor/dashboard',
+    LOGISTIC_MANAGER: '/logistic/dashboard', manager: '/logistic/dashboard',
+    WAREHOUSE_MANAGER: '/warehouse/dashboard', warehouse: '/warehouse/dashboard',
+    DISPATCHER: '/dispatcher/dashboard', dispatcher: '/dispatcher/dashboard',
+    DRIVER: '/driver/dashboard', driver: '/driver/dashboard',
+  }
+  return map[role] || null
+})
+
+onMounted(() => {
+  if (loggedInUser.value && loggedInDashboard.value) {
+    router.replace(loggedInDashboard.value)
+  }
+})
 
 const featuredRoles = [
   {

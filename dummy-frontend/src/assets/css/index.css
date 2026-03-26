@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    .h-74 {
+        height: 18.5rem; /* 296px */
+    }
+}
+
+@layer base {
+    body {
+        min-height: max(884px, 100dvh);
+        @apply font-display antialiased;
+    }
+}
+
+@layer components {
+
+    /* Glassmorphism utilities */
+    /* Glassmorphism utilities */
+    .glass-panel {
+        @apply bg-white/80 dark:bg-white/5 border border-gray-200 dark:border-white/10 shadow-lg dark:shadow-none backdrop-blur-xl transition-colors duration-300;
+    }
+
+    .dark .glass-panel {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+        box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    .glass-input {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .glass-input:focus-within {
+        border-color: #44e996;
+        background: rgba(0, 0, 0, 0.4);
+        box-shadow: 0 0 0 1px rgba(68, 233, 150, 0.1);
+    }
+
+    /* Ambient glow */
+    .ambient-glow {
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(68, 233, 150, 0.15) 0%, rgba(17, 33, 25, 0) 70%);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* Neon glow effect */
+    .neon-glow {
+        filter: drop-shadow(0 0 15px rgba(68, 233, 150, 0.4));
+    }
+
+    /* Background gradient radial */
+    .bg-gradient-radial {
+        background-image: radial-gradient(circle at center, var(--tw-gradient-stops));
+    }
+
+    /* GPS Ring Animation */
+    @keyframes pulse-ring {
+        0% {
+            transform: scale(0.33);
+        }
+
+        80%,
+        100% {
+            opacity: 0;
+        }
+    }
+
+    @keyframes pulse-dot {
+        0% {
+            transform: scale(0.8);
+        }
+
+        50% {
+            transform: scale(1);
+        }
+
+        100% {
+            transform: scale(0.8);
+        }
+    }
+
+    .gps-ring {
+        animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+
+    .gps-dot {
+        animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -0.4s infinite;
+    }
+
+    /* Hide scrollbar for clean mobile look */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    /* Timeline line for manifest view */
+    .timeline-line {
+        background: linear-gradient(to bottom, #44e996 0%, #44e996 40%, #2d4a3e 100%);
+    }
+
+    .timeline-line-future {
+        background: #2d4a3e;
+    }
+}
+
+@layer utilities {
+    .selection-custom {
+        @apply selection:bg-primary selection:text-background-dark;
+    }
+}
+
+/* Custom webkit scrollbar (minimal) */
+::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}

@@ -5,19 +5,21 @@
         </h2>
 
         <!-- Active Orders Selector -->
-        <div v-if="displayOrders.length > 1" class="flex overflow-x-auto gap-4 pb-2 scrollbar-hide"
-            @wheel="handleHorizontalScroll" ref="scrollContainer"
-            style="scrollbar-width: none;max-width: calc(100vw - 2rem);">
+        <div v-if="displayOrders.length > 1" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
             <button v-for="order in displayOrders" :key="order.id" @click="selectOrder(order.id)"
-                class="flex-none px-4 py-3 rounded-xl border transition-all text-left min-w-[240px]"
+                class="px-4 py-3 rounded-xl border transition-all text-left w-full shadow-sm"
                 :class="selectedOrderId === order.id ? 'bg-green-50 dark:bg-green-900/20 border-green-500' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-green-500/50'">
                 <div class="flex justify-between items-center mb-1.5">
                     <span class="font-bold text-sm font-mono"
                         :class="selectedOrderId === order.id ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-white'">{{
                             order.id }}</span>
                     <span
-                        class="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 font-bold uppercase">{{
-                            order.status.replace('-', ' ') }}</span>
+                        class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase"
+                        :class="order.status === 'in-transit' ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'
+                            : order.status === 'dispatched' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
+                            : order.status === 'delivered' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400'">{{
+                            order.status === 'dispatched' ? 'ASSIGNED' : order.status.replace('-', ' ') }}</span>
                 </div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]"><span
                         class="font-medium">{{ order.cargoType }}</span></div>
@@ -30,14 +32,30 @@
             <!-- Map Area -->
             <div class="lg:col-span-2 space-y-4">
                 <div class="glass-panel rounded-xl overflow-hidden">
-                    <div
-                        class="h-72 sm:h-96 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900 relative">
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <div class="text-center"><span
-                                    class="material-symbols-outlined text-6xl text-gray-400 dark:text-gray-600">map</span>
-                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Live GPS Map</p>
-                            </div>
-                        </div>
+                    <div class="h-72 sm:h-96 relative z-0 rounded-t-xl overflow-hidden">
+                        <l-map ref="map" v-model:zoom="zoom" :center="mapCenter" :use-global-leaflet="false">
+                            <l-tile-layer
+                                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                                layer-type="base"
+                                name="CartoDB Voyager"
+                            ></l-tile-layer>
+                            
+                            <!-- Truck pin -->
+                            <l-marker v-if="trackingDriver?.latitude" :lat-lng="[trackingDriver.latitude, trackingDriver.longitude]">
+                                <l-popup>
+                                    <div class="text-xs p-1">
+                                        <div class="font-bold flex items-center gap-1 mb-1">
+                                            <span class="material-symbols-outlined text-[14px] text-green-500">local_shipping</span>
+                                            {{ trackingDriver.driver_name }}
+                                        </div>
+                                        <div class="text-gray-500 mb-0.5">Vehicle: <span class="text-gray-900 font-medium whitespace-nowrap">{{ trackingDriver.vehicle_code || activeMove?.vehicleType }}</span></div>
+                                        <div class="text-gray-500 mt-1 uppercase text-[9px] font-bold bg-gray-100 rounded px-1.5 py-0.5 inline-block">
+                                            {{ trackingDriver.status }}
+                                        </div>
+                                    </div>
+                                </l-popup>
+                            </l-marker>
+                        </l-map>
                         <div
                             class="absolute top-3 left-3 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-4 py-2 rounded-lg shadow-sm">
                             <div class="text-[10px] text-gray-500 uppercase font-bold">ETA</div>
@@ -104,16 +122,27 @@
                         <span class="material-symbols-outlined text-blue-500 text-lg">timeline</span> Transport Log
                     </h3>
                     <div class="relative pl-8">
-                        <div class="absolute left-[11px] top-2 bottom-0 w-[2px] bg-gray-200 dark:bg-white/10"></div>
-                        <div v-for="(log, i) in activeMove.transportLog" :key="i" class="relative pb-5 last:pb-0">
-                            <div class="absolute -left-8 top-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px]"
+                        <div class="absolute left-[11px] top-2 bottom-0 w-[2px] bg-gradient-to-b from-green-500 via-blue-500 to-gray-200 dark:to-gray-700"></div>
+                        <div v-for="(log, i) in activeMove.transportLog" :key="i" class="relative pb-5 last:pb-0 group">
+                            <div class="absolute -left-8 top-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] shadow-md transition-transform group-hover:scale-110"
                                 :style="{ backgroundColor: logColor(log.color) }">
                                 <span class="material-symbols-outlined text-[12px]">{{ log.icon }}</span>
                             </div>
-                            <div class="ml-0">
-                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ log.event }}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ log.time }}</div>
+                            <div class="p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ log.event }}</span>
+                                    <span v-if="isWarehouseEvent(log.event)" class="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[9px] font-bold rounded uppercase">
+                                        Warehouse
+                                    </span>
+                                </div>
+                                <div v-if="log.description" class="text-[11px] text-gray-600 dark:text-gray-400 mt-1 leading-snug">
+                                    {{ log.description }}
+                                </div>
+                                <div class="text-[10px] text-gray-500 dark:text-gray-500 font-mono mt-0.5">{{ log.time }}</div>
                             </div>
+                        </div>
+                        <div v-if="!activeMove.transportLog?.length" class="text-center py-4 text-gray-400 text-sm">
+                            No transport events yet
                         </div>
                     </div>
                 </div>
@@ -221,6 +250,18 @@
                         'notifications' }}</span>
                     {{ geofenceAlert ? 'Geofence Alert Active' : 'Simulate Arrival Alert' }}
                 </button>
+
+                <!-- Slip downloads for delivered orders -->
+                <div v-if="activeMove?.status === 'delivered'" class="flex gap-2">
+                    <button @click="openSlipWithData('proofOfDelivery', activeMove, authStore.currentUser)"
+                        class="flex-1 py-2.5 bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-sm">verified</span> PoD
+                    </button>
+                    <button @click="openSlipWithData('finalTaxInvoice', activeMove, authStore.currentUser)"
+                        class="flex-1 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-sm">request_quote</span> Invoice
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -332,13 +373,29 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onActivated, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useIndividualStore } from '@/stores/individualStore'
+import { useAuthStore } from '@/stores/authStore'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+import { useRealTimeTracking } from '@/composables/useRealTimeTracking'
+import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+// Fix Leaflet icons issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
+  iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
+  shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
+});
 
 const route = useRoute()
 const router = useRouter()
 const store = useIndividualStore()
+const authStore = useAuthStore()
+const { openSlipWithData } = useSlipPrinter()
 
 const allOrders = computed(() => store.orders)
 
@@ -350,6 +407,17 @@ const displayOrders = computed(() => {
 })
 
 const selectedOrderId = ref(route.query.orderId || (allOrders.value.length > 0 ? allOrders.value[0].id : null))
+
+// ─── Real-Time Tracking Integration ───
+const { driver: trackingDriver } = useRealTimeTracking(selectedOrderId)
+
+const mapCenter = computed(() => {
+    if (trackingDriver.value && trackingDriver.value.latitude && trackingDriver.value.longitude) {
+        return [trackingDriver.value.latitude, trackingDriver.value.longitude]
+    }
+    return [19.0760, 72.8777] // Default Mumbai center
+})
+const zoom = ref(13)
 
 watch(() => route.query.orderId, (newId) => {
     if (newId) {
@@ -374,26 +442,30 @@ const geofenceAlert = ref(false)
 function toggleGeofence() { geofenceAlert.value = !geofenceAlert.value }
 function logColor(c) { return { green: '#22c55e', blue: '#3b82f6', amber: '#f59e0b', purple: '#a855f7', red: '#ef4444' }[c] || '#6b7280' }
 
-const scrollContainer = ref(null)
-function handleHorizontalScroll(e) {
-    if (scrollContainer.value) {
-        // If vertical scroll (mouse wheel), map to horizontal
-        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-            e.preventDefault()
-            scrollContainer.value.scrollLeft += e.deltaY > 0 ? 100 : -100
-        }
-        // If horizontal scroll (trackpad), let browser handle it natively
-    }
+function isWarehouseEvent(event) {
+    const warehouseEvents = ['labourer', 'picking', 'packing', 'quality check', 'dispatch', 'queued', 'on hold']
+    return warehouseEvents.some(w => event.toLowerCase().includes(w))
 }
 
+
+
 const serviceChecklist = computed(() => {
+    const status = activeMove.value?.warehouseSubstatus || ''
+    const orderStatus = activeMove.value?.status || ''
     const progress = activeMove.value?.progress ?? 0
+
+    // Define status progression
+    const statusOrder = ['AWAITING_PICK', 'PICKING', 'PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED']
+    const currentIdx = statusOrder.indexOf(status)
+
     return [
-        { text: 'Order confirmed', done: progress >= 15 },
-        { text: 'Crew assigned', done: progress >= 35 },
-        { text: 'Shipment in transit', done: progress >= 65 },
-        { text: 'Arrive at destination', done: progress >= 85 },
-        { text: 'Delivery completed', done: progress >= 100 },
+        { text: 'Order confirmed', done: progress >= 5 || orderStatus !== 'pending' },
+        { text: 'Crew assigned', done: progress >= 10 || (activeMove.value?.laborCount > 0 && currentIdx >= 0) },
+        { text: 'Picking completed', done: currentIdx >= statusOrder.indexOf('PICKED') || progress >= 30 },
+        { text: 'Packing completed', done: currentIdx >= statusOrder.indexOf('PACKED') || progress >= 50 },
+        { text: 'Quality verified', done: currentIdx >= statusOrder.indexOf('QC_PASSED') || progress >= 60 },
+        { text: 'Shipment in transit', done: currentIdx >= statusOrder.indexOf('DISPATCHED') || progress >= 70 },
+        { text: 'Delivery completed', done: orderStatus === 'delivered' || progress >= 100 },
     ]
 })
 
@@ -423,10 +495,26 @@ const sendChatMessage = () => {
     })
 }
 
+let pollTimer = null
+
 onMounted(async () => {
     await store.fetchTrackingOrders()
     if (!selectedOrderId.value && allOrders.value.length > 0) {
         selectedOrderId.value = allOrders.value[0].id
     }
+    // Poll every 15 seconds for live warehouse updates
+    pollTimer = setInterval(() => store.fetchTrackingOrders(), 15000)
+})
+
+onActivated(async () => {
+    await store.fetchTrackingOrders()
+    if (!pollTimer) {
+        pollTimer = setInterval(() => store.fetchTrackingOrders(), 15000)
+    }
+})
+
+onUnmounted(() => {
+    clearInterval(pollTimer)
+    pollTimer = null
 })
 </script>

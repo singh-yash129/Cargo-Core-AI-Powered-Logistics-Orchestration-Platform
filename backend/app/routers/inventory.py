@@ -8,6 +8,16 @@ from app.database import get_db
 from app.dependencies import get_current_user, require_role
 from app.models.user import User
 from app.schemas.auth import MessageResponse
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_db
+from app.dependencies import get_current_user, require_role
+from app.models.user import User
+from app.schemas.auth import MessageResponse
 from app.schemas.inventory import (
     InventoryCreate,
     InventoryListResponse,
@@ -16,6 +26,10 @@ from app.schemas.inventory import (
     InventoryResponse,
     InventoryUpdate,
     PickingListResponse,
+    RestockRequestCreate,
+    RestockRequestStatusUpdate,
+    RestockRequestResponse,
+    RestockRequestListResponse,
 )
 from app.services import inventory_service
 
@@ -51,35 +65,6 @@ async def create_inventory_item(
     return await inventory_service.create_item(db, data)
 
 
-@router.get("/{item_id}", response_model=InventoryResponse)
-async def get_inventory_item(
-    item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
-):
-    return await inventory_service.get_item_detail(db, item_id)
-
-
-@router.put("/{item_id}", response_model=InventoryResponse)
-async def update_inventory_item(
-    item_id: UUID,
-    data: InventoryUpdate,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
-):
-    return await inventory_service.update_item(db, item_id, data)
-
-
-@router.delete("/{item_id}", response_model=MessageResponse)
-async def delete_inventory_item(
-    item_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
-):
-    await inventory_service.delete_item(db, item_id)
-    return MessageResponse(message="Inventory item deleted")
-
-
 @router.post("/movements", response_model=InventoryMovementResponse, status_code=status.HTTP_201_CREATED)
 async def create_inventory_movement(
     data: InventoryMovementCreate,
@@ -111,6 +96,35 @@ async def low_stock(
     return await inventory_service.low_stock_items(db, warehouse_id)
 
 
+@router.get("/{item_id:uuid}", response_model=InventoryResponse)
+async def get_inventory_item(
+    item_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+):
+    return await inventory_service.get_item_detail(db, item_id)
+
+
+@router.put("/{item_id:uuid}", response_model=InventoryResponse)
+async def update_inventory_item(
+    item_id: UUID,
+    data: InventoryUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+):
+    return await inventory_service.update_item(db, item_id, data)
+
+
+@router.delete("/{item_id:uuid}", response_model=MessageResponse)
+async def delete_inventory_item(
+    item_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+):
+    await inventory_service.delete_item(db, item_id)
+    return MessageResponse(message="Inventory item deleted")
+
+
 @router.post("/pick-list/{order_id}", response_model=PickingListResponse)
 async def pick_list(
     order_id: UUID,
@@ -118,3 +132,44 @@ async def pick_list(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
 ):
     return await inventory_service.generate_pick_list(db, order_id)
+
+
+@router.post("/restock-requests", response_model=RestockRequestResponse, status_code=status.HTTP_201_CREATED)
+async def create_restock_request(
+    data: RestockRequestCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    return await inventory_service.create_restock_request(db, data, user)
+
+
+@router.get("/restock-requests", response_model=RestockRequestListResponse)
+async def list_restock_requests(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    warehouse_id: UUID | None = Query(default=None),
+    status_filter: str | None = Query(default=None),
+):
+    return await inventory_service.list_restock_requests(db, page, page_size, warehouse_id, status_filter, user)
+
+
+@router.put("/restock-requests/{request_id:uuid}/status", response_model=RestockRequestResponse)
+async def update_restock_request_status(
+    request_id: UUID,
+    data: RestockRequestStatusUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+):
+    return await inventory_service.update_restock_request_status(db, request_id, data, user)
+
+
+@router.post("/restock-requests/{request_id:uuid}/escalate", response_model=RestockRequestResponse)
+async def escalate_restock_request(
+    request_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("WAREHOUSE_MANAGER", "LOGISTIC_MANAGER"))],
+):
+    """Escalate a pending restock request to Logistics Manager urgently."""
+    return await inventory_service.escalate_restock_request(db, request_id, user)

@@ -1,0 +1,1185 @@
+DATABASE DESIGN
+===============
+Software: Cargo-Core | Team: QuadCore-Devs (Team-003)
+
+
+========================================================
+SECTION 1: DATABASE OVERVIEW
+========================================================
+
+Cargo-Core uses a PostgreSQL relational database with 39 tables organized
+into 9 functional modules. The schema is designed to support multi-warehouse
+logistics operations, real-time order tracking, inventory management,
+workforce coordination, and AI-powered querying.
+
+All primary keys use UUID format for security and scalability.
+All tables include created_at timestamps. Most include updated_at for
+full change tracking and audit history.
+
+Modules:
+  1. Authentication & User Management   (2 tables)
+  2. Order Management                   (5 tables)
+  3. Warehouse Management               (6 tables)
+  4. Inventory Management               (3 tables)
+  5. Workforce & Labour Management      (2 tables)
+  6. Logistics & Fleet Management      (13 tables)
+  7. Vendor Management                  (5 tables)
+  8. AI & Escalation                    (2 tables)
+  9. Rate & Pricing Governance          (1 table)
+
+
+========================================================
+SECTION 2: TABLE DESCRIPTIONS (All 39 Tables)
+========================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODULE 1: AUTHENTICATION & USER MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. roles
+   Purpose: Defines the fixed set of access roles in the system.
+            Every user must belong to exactly one role.
+
+   Attributes:
+   - id           : Integer, primary key, auto-incremented.
+   - name         : Unique role name. Values: INDIVIDUAL, VENDOR,
+                    WAREHOUSE_MANAGER, DISPATCHER, LOGISTIC_MANAGER, DRIVER.
+
+   Relationships:
+   - One role can be assigned to many users.
+
+
+2. users
+   Purpose: Central identity table for all platform users. Stores login
+            credentials, contact information, role assignment, and
+            optional warehouse assignment for operational staff.
+
+   Attributes:
+   - id           : UUID, primary key, uniquely identifies each user.
+   - name         : Full name of the user.
+   - username     : Unique alphanumeric handle (max 64 chars), used for
+                    display and login identification.
+   - email        : Unique email address, used for login and OTP delivery.
+   - phone        : Optional contact number for communication.
+   - date_of_birth: Optional date field for identity verification.
+   - address      : Physical address of the user (text field).
+   - password_hash: Bcrypt-hashed password. Never stored in plain text.
+   - role_id      : Foreign key to roles. Determines the user's access level
+                    and which dashboard they see after login.
+   - warehouse_id : Foreign key to warehouses. Set for WAREHOUSE_MANAGER,
+                    DISPATCHER, DRIVER roles to bind them to a location.
+   - is_active    : Boolean flag. False means account is deactivated without
+                    deleting historical records (soft delete).
+   - created_at   : Timestamp of account creation.
+   - updated_at   : Timestamp of last profile update.
+
+   Relationships:
+   - Belongs to one Role.
+   - Optionally assigned to one Warehouse.
+   - Can place many Orders (as customer).
+   - Can be assigned many Orders (as driver).
+   - Can have one Driver Profile.
+   - Can have one Labourer Profile.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODULE 2: ORDER MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3. orders
+   Purpose: The core operational table of the entire system. Records every
+            logistics booking from creation to delivery. Tracks the full
+            lifecycle, pricing, assignment, and warehouse processing status.
+
+   Attributes:
+   - id                  : UUID, primary key.
+   - tracking_code       : Unique 32-char alphanumeric code given to the
+                           customer for order tracking.
+   - order_type          : Type of move (e.g., LOCAL, LONG_DISTANCE, STORAGE).
+   - status              : Current lifecycle stage of the order.
+                           Values: DRAFT, CONFIRMED, ASSIGNED, WAREHOUSE_PROCESSING,
+                           PICKED, PACKED, QC_PASSED, DISPATCHED, DELIVERED,
+                           CANCELLED.
+   - warehouse_substatus : Fine-grained warehouse stage within processing
+                           (e.g., PICKING, PACKING, QUALITY_CHECK).
+   - customer_id         : Foreign key to users. The customer who placed the order.
+   - warehouse_id        : Foreign key to warehouses. The warehouse handling
+                           this order.
+   - assigned_driver_id  : Foreign key to users (DRIVER role). The driver
+                           responsible for delivery.
+   - assigned_vehicle_id : UUID reference to logistics_vehicles. The vehicle
+                           assigned for this delivery.
+   - pickup_addr         : Full text address of the pickup location.
+   - delivery_addr       : Full text address of the delivery destination.
+   - cargo_type          : Type of goods (e.g., Grains, Furniture, Electronics).
+   - vehicle_type        : Type of vehicle required (e.g., Mini Truck, Lorry).
+   - labor_count         : Number of labourers required for loading/unloading.
+   - base_amount         : Base service charge for the order.
+   - vehicle_amount      : Charge for vehicle usage.
+   - labor_amount        : Charge for labourers.
+   - materials_amount    : Charge for packing materials used.
+   - packing_amount      : Charge for packing service.
+   - platform_fee        : Cargo-Core platform service fee.
+   - tax_amount          : Applicable tax on the total.
+   - total_amount        : Final payable amount (sum of all charges + tax).
+   - payment_mode        : Mode of payment (Cash, UPI, Bank Transfer).
+   - payment_status      : Current payment state (pending, partial, paid).
+   - service_otp         : One-time PIN given to customer for delivery
+                           confirmation at the site.
+   - service_time_block  : Scheduled delivery time window (e.g., 9AM-12PM).
+   - scheduled_at        : Exact datetime when delivery is scheduled.
+   - cancel_reason       : Reason text if the order was cancelled.
+   - picking_started_at  : Timestamp when warehouse picking began.
+   - picking_completed_at: Timestamp when picking was completed.
+   - packing_started_at  : Timestamp when packing began.
+   - packing_completed_at: Timestamp when packing was completed.
+   - created_at          : Timestamp of order creation.
+   - updated_at          : Timestamp of last update.
+
+   Relationships:
+   - Belongs to one Customer (users).
+   - Belongs to one Warehouse.
+   - Assigned to one Driver (users).
+   - Has many Order Items.
+   - Has many Picked Items.
+   - Has one Quality Check.
+   - Can have one Return Grading.
+   - Can have one Loading Dock assignment.
+   - Can have one Packing Station assignment.
+
+
+4. order_items
+   Purpose: Stores the itemized list of goods within each order. Supports
+            multi-item orders where different SKUs are transported together.
+
+   Attributes:
+   - id               : UUID, primary key.
+   - order_id         : Foreign key to orders. The order this item belongs to.
+   - sku              : Stock Keeping Unit code identifying the product type.
+   - quantity         : Number of units of this item in the order.
+   - box_count        : Number of boxes used to pack this item (optional).
+   - estimated_volume : Estimated cubic volume of this item in the shipment.
+   - created_at       : Timestamp of item creation.
+
+   Constraints:
+   - Unique constraint on (order_id, sku) — same SKU cannot appear twice
+     in the same order; quantities must be updated instead.
+
+   Relationships:
+   - Belongs to one Order.
+
+
+5. picked_items
+   Purpose: Tracks the real-time picking progress for each item in an order
+            at the warehouse. Enables partial picking and picker accountability.
+
+   Attributes:
+   - id                : UUID, primary key.
+   - order_id          : Foreign key to orders.
+   - sku               : SKU of the item being picked.
+   - quantity_picked   : How many units have been physically picked so far.
+   - quantity_required : Total units required as per the order.
+   - picked_by         : Foreign key to users. The warehouse worker who
+                         performed the picking task.
+   - location          : Physical location in warehouse where item was found
+                         (e.g., Aisle-3 / Shelf-B / Bin-12).
+   - notes             : Any special notes during picking (damage, shortage).
+   - created_at        : Timestamp of record creation.
+   - updated_at        : Timestamp of last pick update.
+
+   Relationships:
+   - Belongs to one Order.
+   - Linked to one User (picker).
+
+
+6. customer_quotes
+   Purpose: Stores price estimates generated for customers before they
+            commit to a booking. Allows customers to compare costs and
+            convert a quote into a confirmed order.
+
+   Attributes:
+   - id             : UUID, primary key.
+   - reference_code : Unique 32-char code shared with customer for reference.
+   - customer_id    : Foreign key to users. The customer who requested the quote.
+   - cargo_type     : Type of goods to be transported.
+   - from_location  : Origin address for the shipment.
+   - to_location    : Destination address for the shipment.
+   - labor_count    : Recommended number of labourers for this job.
+   - packing        : Boolean — whether packing service is included.
+   - total_amount   : Total estimated cost for the shipment.
+   - status         : Quote lifecycle state (active, converted, expired).
+   - created_at     : Timestamp of quote generation.
+   - updated_at     : Timestamp of last update.
+
+   Relationships:
+   - Belongs to one Customer (users).
+   - Can be converted into one Order.
+
+
+7. damage_reports
+   Purpose: Records damage claims raised by customers or vendors for goods
+            that were damaged during transport. Each report has a unique
+            QR code for physical tracking and dispute resolution.
+
+   Attributes:
+   - id             : UUID, primary key.
+   - reference_code : Unique code for easy retrieval and reference.
+   - customer_id    : Foreign key to users. Who raised the damage report.
+   - order_id       : Foreign key to orders. The order associated with the
+                      damage (optional — can be raised without an order).
+   - description    : Detailed text description of the damage observed.
+   - photos         : JSON array of photo URLs uploaded as evidence.
+   - status         : Current state of the claim
+                      (reported, under_review, resolved, rejected).
+   - qr_code        : Unique QR code string generated for physical labelling
+                      of the damaged goods at the warehouse.
+   - created_at     : Timestamp of report submission.
+   - updated_at     : Timestamp of last status update.
+
+   Relationships:
+   - Belongs to one Customer (users).
+   - Optionally linked to one Order.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODULE 3: WAREHOUSE MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+8. warehouses
+   Purpose: Stores all registered warehouse/godown locations in the logistics
+            network. Acts as the central hub connecting inventory, staff,
+            vehicles, and orders. Every operational record in the system
+            is scoped to a warehouse.
+
+   Attributes:
+   - id              : UUID, primary key.
+   - name            : Unique name/identifier of the warehouse.
+   - address         : Full physical address of the warehouse location.
+   - lat             : GPS latitude coordinate for map display and geofencing.
+   - lng             : GPS longitude coordinate for map display and geofencing.
+   - manager_id      : Foreign key to users. The WAREHOUSE_MANAGER responsible
+                       for this location.
+   - floor_plan_json : JSONB field storing the warehouse floor layout — zones,
+                       aisles, racks, and cell grid data for the visual
+                       floor plan editor.
+   - capacity_limit  : Maximum number of items or orders the warehouse can
+                       handle simultaneously.
+   - is_active       : Boolean flag for soft deactivation of a warehouse
+                       without deleting historical data.
+   - created_at      : Timestamp of warehouse registration.
+   - updated_at      : Timestamp of last update.
+
+   Relationships:
+   - Managed by one User (WAREHOUSE_MANAGER).
+   - Has many Users assigned to it (staff).
+   - Has many Inventory Items.
+   - Has many Labourers.
+   - Has many Loading Docks.
+   - Has many Packing Stations.
+   - Has many Logistics Zones.
+   - Has many Vehicles.
+
+
+9. loading_docks
+   Purpose: Tracks individual loading bays within a warehouse. Monitors
+            which truck is at which dock, for which order, and the full
+            timeline of the loading operation.
+
+   Attributes:
+   - id                 : UUID, primary key.
+   - warehouse_id       : Foreign key to warehouses.
+   - dock_number        : Label for the dock bay (e.g., DOCK-1, DOCK-A).
+   - status             : Current state of the dock
+                          (FREE, OCCUPIED, LOADING, MAINTENANCE).
+   - assigned_truck_id  : Identifier of the truck occupying this dock
+                          (stored as string, e.g., vehicle code or number plate).
+   - assigned_carrier   : Name of the carrier or transport company at this dock.
+   - assigned_order_id  : Foreign key to orders. Which order is being loaded.
+   - arrived_at         : Timestamp when the truck arrived at the dock.
+   - loading_started_at : Timestamp when loading operations began.
+   - released_at        : Timestamp when the truck left and dock was freed.
+   - created_at         : Timestamp of dock record creation.
+   - updated_at         : Timestamp of last status update.
+
+   Relationships:
+   - Belongs to one Warehouse.
+   - Linked to one Order (optional).
+
+
+10. packing_stations
+    Purpose: Represents individual packing workstations inside a warehouse.
+             Each station is assigned a labourer and tracks which order
+             is currently being packed and daily packing output.
+
+    Attributes:
+    - id                   : UUID, primary key.
+    - warehouse_id         : Foreign key to warehouses.
+    - station_number       : Label for the station (e.g., STATION-1).
+    - status               : Current state (OPEN, BUSY, CLOSED).
+    - assigned_labourer_id : Foreign key to labourers. Who is working at
+                             this station right now.
+    - current_order_id     : Foreign key to orders. Which order is being
+                             packed at this station.
+    - items_packed_today   : Counter of items packed at this station today.
+                             Resets daily for performance tracking.
+    - created_at           : Timestamp of station creation.
+    - updated_at           : Timestamp of last update.
+
+    Relationships:
+    - Belongs to one Warehouse.
+    - Assigned to one Labourer.
+    - Processing one Order at a time.
+
+
+11. quality_checks
+    Purpose: Records the mandatory pre-dispatch quality verification for
+             each order. Contains a structured checklist that must be
+             completed and passed before an order is allowed to be dispatched.
+
+    Attributes:
+    - id                  : UUID, primary key.
+    - order_id            : Foreign key to orders (unique — one QC per order).
+    - warehouse_id        : Foreign key to warehouses where check is performed.
+    - performed_by        : Foreign key to users. The staff who performed
+                            the quality check.
+    - goods_correct       : Boolean — are the correct goods present?
+    - count_correct       : Boolean — do quantities match the order?
+    - packaging_verified  : Boolean — is packaging secure and appropriate?
+    - labor_assigned      : Boolean — is the required labour confirmed?
+    - weight_verified     : Boolean — is the weight within expected range?
+    - label_attached      : Boolean — are shipping labels properly attached?
+    - is_passed           : Boolean — overall pass/fail result of the check.
+                            Set to true only when all individual checks pass.
+    - notes               : Free text field for observations or issues found.
+    - checked_at          : Timestamp when the quality check was performed.
+    - created_at          : Timestamp of record creation.
+    - updated_at          : Timestamp of last update.
+
+    Relationships:
+    - Belongs to one Order (unique — one-to-one).
+    - Belongs to one Warehouse.
+    - Performed by one User.
+
+
+12. return_gradings
+    Purpose: Records the physical assessment of returned goods when a
+             customer sends items back to the warehouse. Captures condition
+             details, disposition decision, and grading outcome.
+
+    Attributes:
+    - id               : UUID, primary key.
+    - warehouse_id     : Foreign key to warehouses where return is processed.
+    - order_id         : Foreign key to orders. The original order this
+                         return is linked to (optional).
+    - rma_code         : Unique Return Merchandise Authorization code
+                         assigned to this return case.
+    - item_condition   : Physical condition of returned item
+                         (Like New, Minor Wear, Damaged, Broken).
+    - condition_notes  : Detailed text notes on the condition observed.
+    - disposition      : What to do with the returned item
+                         (Restock, Dispose, Repair, Return to Vendor).
+    - damage_photo_url : URL of the photo taken of the damaged item.
+    - graded_by        : Foreign key to users. The staff who performed
+                         the grading assessment.
+    - graded_at        : Timestamp when grading was performed.
+    - status           : Current grading status (pending, completed, disputed).
+    - created_at       : Timestamp of grading record creation.
+    - updated_at       : Timestamp of last update.
+
+    Relationships:
+    - Belongs to one Warehouse.
+    - Optionally linked to one Order.
+    - Graded by one User.
+
+
+13. warehouse_zone_metrics
+    Purpose: Stores daily performance data per zone within a warehouse.
+             Used by the Warehouse Manager to monitor zone efficiency,
+             picking accuracy, and capacity utilization over time.
+
+    Attributes:
+    - id                       : UUID, primary key.
+    - warehouse_id             : Foreign key to warehouses.
+    - zone_id                  : String identifier for the zone within the
+                                 warehouse (e.g., ZONE-A, ZONE-COLD).
+    - metric_date              : The date for which these metrics apply.
+    - orders_processed         : Count of orders processed in this zone today.
+    - picking_accuracy_pct     : Percentage of picks that were error-free.
+    - active_pickers           : Number of pickers active in this zone today.
+    - capacity_used_pct        : Percentage of zone capacity currently in use.
+    - throughput_items_per_hour: Average items processed per hour in this zone.
+    - created_at               : Timestamp of record creation.
+    - updated_at               : Timestamp of last update.
+
+    Relationships:
+    - Belongs to one Warehouse.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODULE 4: INVENTORY MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+14. inventory_items
+    Purpose: Master catalog of all goods stocked inside each warehouse.
+             Each item is uniquely identified by its SKU within its warehouse.
+             Stores physical location details and stock thresholds.
+
+    Attributes:
+    - id               : UUID, primary key.
+    - warehouse_id     : Foreign key to warehouses. Enforces warehouse-level
+                         isolation — same SKU can exist in multiple warehouses.
+    - sku              : Stock Keeping Unit code (unique per warehouse).
+    - name             : Human-readable name of the item.
+    - category         : Item category (e.g., Grains, Fertilizers, Furniture).
+    - unit             : Unit of measurement (pcs, kg, litres, boxes).
+    - quantity_on_hand : Current physical stock count available in warehouse.
+    - safety_stock     : Minimum stock level. If quantity_on_hand falls below
+                         this, a low-stock alert is triggered automatically.
+    - aisle            : Aisle identifier in the warehouse (e.g., A, B, C).
+    - shelf            : Shelf number within the aisle (e.g., 1, 2, 3).
+    - bin              : Specific bin/slot on the shelf (e.g., BIN-12).
+    - created_at       : Timestamp of item registration.
+    - updated_at       : Timestamp of last stock or location update.
+
+    Constraints:
+    - Unique constraint on (warehouse_id, sku) ensures no duplicate SKUs
+      within the same warehouse.
+
+    Relationships:
+    - Belongs to one Warehouse.
+    - Has many Inventory Movements.
+    - Can have many Restock Requests.
+
+
+15. inventory_movements
+    Purpose: Complete audit log of every stock change for every item.
+             Every inbound, outbound, or transfer movement is recorded
+             here with a reference to the triggering order and the user
+             who performed it. Enables full stock traceability.
+
+    Attributes:
+    - id                 : UUID, primary key.
+    - item_id            : Foreign key to inventory_items. Which item moved.
+    - movement_type      : Type of movement (IN, OUT, TRANSFER, ADJUSTMENT).
+    - quantity           : Number of units moved (positive for IN, can
+                           be tracked directionally via movement_type).
+    - reference_order_id : Foreign key to orders. The order that triggered
+                           this movement (optional for manual adjustments).
+    - performed_by       : Foreign key to users. Who recorded this movement.
+    - created_at         : Timestamp of the movement.
+
+    Relationships:
+    - Belongs to one Inventory Item.
+    - Optionally linked to one Order.
+    - Performed by one User.
+
+
+16. restock_requests
+    Purpose: Tracks formal requests raised when a warehouse item falls
+             below its safety stock threshold. Supports an approval
+             workflow from request creation to fulfillment.
+
+    Attributes:
+    - id            : UUID, primary key.
+    - item_id       : Foreign key to inventory_items. Which item needs restocking.
+    - warehouse_id  : Foreign key to warehouses. Which warehouse the request
+                      is for.
+    - quantity      : How many units are being requested for restocking.
+    - status        : Workflow stage of the request
+                      (PENDING, APPROVED, REJECTED, FULFILLED).
+    - requested_by  : Foreign key to users. Who raised the restock request.
+    - manager_notes : Text field for manager to add approval or rejection notes.
+    - created_at    : Timestamp of request creation.
+    - updated_at    : Timestamp of last status update.
+
+    Relationships:
+    - Belongs to one Inventory Item.
+    - Belongs to one Warehouse.
+    - Raised by one User.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODULE 5: WORKFORCE & LABOUR MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+17. labourers
+    Purpose: Stores the profile of every physical worker (helper/labourer)
+             registered under a warehouse. Links the labourer to their
+             user account and tracks their current order assignment and
+             availability.
+
+    Attributes:
+    - id               : UUID, primary key.
+    - user_id          : Foreign key to users (unique — one profile per user).
+                         Links the labourer to their login account.
+    - warehouse_id     : Foreign key to warehouses. Which warehouse this
+                         labourer is assigned to.
+    - assigned_order_id: Foreign key to orders. The order currently assigned
+                         to this labourer (null if idle).
+    - skill_tags       : JSONB array of skill labels for this worker
+                         (e.g., ["heavy_lifting", "packing", "forklift"]).
+                         Used for smart assignment matching.
+    - is_active        : Boolean — whether the labourer is currently active
+                         in the workforce roster.
+    - created_at       : Timestamp of labourer registration.
+    - updated_at       : Timestamp of last update.
+
+    Relationships:
+    - Linked to one User account.
+    - Belongs to one Warehouse.
+    - Can be assigned to one active Order.
+    - Has many Attendance records.
+    - Can be assigned to one Packing Station.
+
+
+18. labour_attendance
+    Purpose: Records every check-in and check-out event for each labourer.
+             This raw attendance log is the foundation for work hour
+             calculation, payroll generation, and dispute resolution.
+
+    Attributes:
+    - id          : UUID, primary key.
+    - labourer_id : Foreign key to labourers. Whose attendance this is.
+    - event_type  : Type of attendance event (CHECK_IN or CHECK_OUT).
+    - created_at  : Exact timestamp of the check-in or check-out event.
+                    Work hours are calculated from paired CHECK_IN/CHECK_OUT
+                    records for each labourer per day.
+
+    Relationships:
+    - Belongs to one Labourer.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODULE 6: LOGISTICS & FLEET MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+19. logistics_driver_profiles
+    Purpose: Extended operational profile for users with the DRIVER role.
+             Supplements the base users table with driver-specific details
+             like current location, active job, and performance score.
+
+    Attributes:
+    - id               : UUID, primary key.
+    - user_id          : Foreign key to users (unique — one profile per driver).
+    - warehouse_id     : Foreign key to warehouses. The base warehouse for
+                         this driver.
+    - status           : Current operational status
+                         (Active, On Delivery, Idle, Offline).
+    - current_location : Last known location of the driver (text — city or
+                         area name). Updated during active deliveries.
+    - current_job      : Description of the current job being handled
+                         (e.g., order tracking code or route description).
+    - efficiency_score : Integer score (0-100) representing the driver's
+                         performance based on on-time deliveries and feedback.
+    - created_at       : Timestamp of profile creation.
+    - updated_at       : Timestamp of last update.
+
+    Relationships:
+    - Linked to one User account.
+    - Belongs to one Warehouse.
+
+
+20. logistics_vehicles
+    Purpose: Stores the complete fleet of vehicles operated by the logistics
+             business. Tracks vehicle details, current assignment, maintenance
+             schedule, and operational status.
+
+    Attributes:
+    - id                : UUID, primary key.
+    - code              : Unique vehicle code used for internal identification
+                          (e.g., VEH-001, TRK-KA05).
+    - vehicle_type      : Category of vehicle (Mini Truck, Lorry, Pickup Van,
+                          Container Truck).
+    - warehouse_id      : Foreign key to warehouses. Base location for this
+                          vehicle.
+    - assigned_driver_id: Foreign key to users (DRIVER). The driver currently
+                          assigned to this vehicle.
+    - model             : Vehicle model name (e.g., Tata Ace, Ashok Leyland).
+    - year              : Year of manufacture of the vehicle.
+    - license_plate     : Vehicle registration number for identification.
+    - status            : Current operational status
+                          (Active, On Route, Under Maintenance, Retired).
+    - mileage           : Total kilometers/miles recorded on this vehicle.
+                          Used to track fuel efficiency and maintenance needs.
+    - next_service_date : Scheduled date for next maintenance service.
+    - maintenance_issue : Description of any current known maintenance problem.
+    - created_at        : Timestamp of vehicle registration.
+    - updated_at        : Timestamp of last update.
+
+    Relationships:
+    - Belongs to one Warehouse.
+    - Assigned to one Driver (User).
+
+
+21. logistics_zones
+    Purpose: Defines geographic delivery zones managed by the logistics
+             team. Used for geofencing, route planning, and zone-based
+             pricing or delivery restrictions.
+
+    Attributes:
+    - id           : UUID, primary key.
+    - warehouse_id : Foreign key to warehouses. Which warehouse manages
+                     this zone.
+    - name         : Name of the delivery zone (e.g., Zone-North, Rural-Belt).
+    - zone_type    : Type of zone boundary (Polygon for custom-shaped areas,
+                     Radius for circle-based zones).
+    - radius_km    : Radius in kilometers (used when zone_type is Radius).
+    - status       : Whether the zone is Active or Inactive.
+    - color_token  : Color code used to render this zone on the map UI.
+    - created_at   : Timestamp of zone creation.
+    - updated_at   : Timestamp of last update.
+
+    Relationships:
+    - Belongs to one Warehouse.
+
+
+22. logistics_transactions
+    Purpose: Financial ledger recording every monetary transaction related
+             to logistics operations. Covers payments received, fuel
+             expenses, driver advances, and maintenance costs.
+
+    Attributes:
+    - id               : UUID, primary key.
+    - warehouse_id     : Foreign key to warehouses. Which warehouse this
+                         transaction belongs to.
+    - transaction_code : Unique code for each transaction (for reference
+                         and receipt generation).
+    - transaction_date : Date and time of the transaction.
+    - description      : Human-readable description of what the transaction
+                         is for.
+    - transaction_type : Category of transaction (PAYMENT, FUEL, MAINTENANCE,
+                         ADVANCE, REFUND).
+    - amount           : Monetary amount of the transaction (in INR).
+    - status           : Transaction state (Completed, Pending, Reversed).
+    - metadata_json    : JSONB field for any additional structured data
+                         specific to the transaction type.
+    - created_at       : Timestamp of transaction recording.
+
+    Relationships:
+    - Belongs to one Warehouse.
+
+
+23. logistics_alerts
+    Purpose: Stores system-generated or manually created operational alerts.
+             Used by logistics managers to monitor and respond to issues
+             such as vehicle breakdowns, low stock, or route delays.
+
+    Attributes:
+    - id             : UUID, primary key.
+    - warehouse_id   : Foreign key to warehouses. Which warehouse the alert
+                       is relevant to.
+    - alert_type     : Category of alert (VEHICLE_BREAKDOWN, LOW_STOCK,
+                       ROUTE_DELAY, WEATHER, CAPACITY).
+    - title          : Short title summarizing the alert.
+    - description    : Full description of the alert and what happened.
+    - severity       : Urgency level (low, medium, high, critical).
+    - location       : Physical location where the alert occurred.
+    - recommendation : Suggested action to resolve the alert.
+    - is_active      : Boolean — whether this alert is still unresolved.
+    - created_at     : Timestamp when alert was raised.
+
+    Relationships:
+    - Belongs to one Warehouse.
+
+
+24. logistics_chat_threads
+    Purpose: Represents individual communication channels between the
+             logistics team and external parties. Each thread is a
+             persistent conversation tied to a warehouse context.
+
+    Attributes:
+    - id              : UUID, primary key.
+    - warehouse_id    : Foreign key to warehouses. Context for this thread.
+    - name            : Display name of the contact or channel
+                        (e.g., driver name, vendor name).
+    - status          : Online/Offline status of the contact.
+    - phone           : Phone number of the contact for reference.
+    - muted           : Boolean — whether notifications for this thread
+                        are muted by the manager.
+    - last_message    : Preview text of the most recent message in thread.
+    - last_message_at : Timestamp of the most recent message (for sorting).
+    - created_at      : Timestamp of thread creation.
+
+    Relationships:
+    - Belongs to one Warehouse.
+    - Has many Chat Messages.
+
+
+25. logistics_chat_messages
+    Purpose: Stores individual messages exchanged within a chat thread.
+             Provides complete message history for every communication
+             channel between the logistics team and field staff.
+
+    Attributes:
+    - id         : UUID, primary key.
+    - thread_id  : Foreign key to logistics_chat_threads. Which conversation
+                   this message belongs to.
+    - sender     : Role or name of the message sender
+                   (e.g., manager, driver, system).
+    - text       : Full text content of the message.
+    - created_at : Timestamp when the message was sent.
+
+    Relationships:
+    - Belongs to one Chat Thread.
+
+
+26. logistics_escalations
+    Purpose: Tracks operational issues raised by any team member that
+             require managerial intervention. Used for crisis management,
+             exception handling, and accountability tracking.
+
+    Attributes:
+    - id              : UUID, primary key.
+    - warehouse_id    : Foreign key to warehouses. Where the issue occurred.
+    - title           : Brief title of the escalation issue.
+    - priority        : Urgency level (Low, Medium, High, Critical).
+    - requester_name  : Name of the person who raised the escalation.
+    - requester_role  : Role of the person (Driver, Dispatcher, Customer).
+    - description     : Detailed description of the issue being escalated.
+    - action_details  : Steps taken or action plan noted by the manager.
+    - status          : Current state (OPEN, IN_PROGRESS, RESOLVED, CLOSED).
+    - created_at      : Timestamp when escalation was raised.
+
+    Relationships:
+    - Belongs to one Warehouse.
+
+
+27. logistics_return_cases
+    Purpose: Tracks reverse logistics cases — situations where goods are
+             being returned by a customer to the warehouse. Records the
+             full return lifecycle including reason, condition, and refund.
+
+    Attributes:
+    - id              : UUID, primary key.
+    - warehouse_id    : Foreign key to warehouses handling the return.
+    - order_id        : Foreign key to orders. The original order being
+                        returned (optional).
+    - reference_code  : Unique return reference code for tracking.
+    - customer_name   : Name of the customer initiating the return.
+    - reason          : Reason for the return (Damaged, Wrong Item, Delayed,
+                        Changed Mind).
+    - condition       : Physical state of returned goods (Good, Damaged,
+                        Partial).
+    - status          : Return lifecycle status (Pending, Received, Inspected,
+                        Refunded, Rejected).
+    - original_price  : Original value of the goods being returned.
+    - refund_amount   : Approved refund amount after inspection.
+    - images          : JSONB array of photo URLs for the returned goods.
+    - created_at      : Timestamp of return case creation.
+    - updated_at      : Timestamp of last status update.
+
+    Relationships:
+    - Belongs to one Warehouse.
+    - Optionally linked to one Order.
+
+
+28. logistics_daily_stats
+    Purpose: Aggregated daily performance summary per warehouse.
+             Provides the data for owner dashboards and trend analysis
+             reports. One record is created per warehouse per day.
+
+    Attributes:
+    - id                    : UUID, primary key.
+    - warehouse_id          : Foreign key to warehouses.
+    - stat_date             : The date these statistics cover.
+    - orders_count          : Total number of orders processed on this date.
+    - revenue               : Total revenue generated on this date (in INR).
+    - deliveries_completed  : Number of deliveries successfully completed.
+    - deliveries_failed     : Number of deliveries that failed or were
+                              cancelled on this date.
+    - sla_compliance        : Percentage of deliveries completed within the
+                              agreed service level timeframe.
+    - created_at            : Timestamp of record creation.
+
+    Relationships:
+    - Belongs to one Warehouse.
+
+
+29. logistics_metrics
+    Purpose: Flexible KPI storage for logistics manager dashboard.
+             Each row represents one metric data point. Supports dynamic
+             reporting without requiring schema changes for new metrics.
+
+    Attributes:
+    - id              : UUID, primary key.
+    - warehouse_id    : Foreign key to warehouses.
+    - metric_type     : Category of the metric (e.g., DELIVERY_RATE,
+                        VEHICLE_UTILIZATION, FUEL_EFFICIENCY).
+    - label           : Human-readable label for display on dashboard.
+    - value_main      : Primary numeric value of the metric.
+    - value_secondary : Optional secondary value (e.g., comparison period,
+                        target value, or percentage change).
+    - created_at      : Timestamp of metric recording.
+
+    Relationships:
+    - Belongs to one Warehouse.
+
+
+30. logistics_equipment_ledger
+    Purpose: Tracks issuance and return of physical reusable equipment
+             (crates, belts, blankets, trolleys) per job. Prevents
+             equipment losses and enables accountability tracking.
+
+    Attributes:
+    - id             : UUID, primary key.
+    - warehouse_id   : Foreign key to warehouses managing the equipment.
+    - item_type      : Type of equipment (Crate, Belt, Blanket, Trolley,
+                       Rope).
+    - issued_count   : Number of units issued for a specific job.
+    - returned_count : Number of units returned after job completion.
+    - reference_code : Optional job or order reference code for tracing
+                       which job this equipment was issued for.
+    - status         : Reconciliation state (Pending, Returned, Partial,
+                       Lost).
+    - created_at     : Timestamp of issuance.
+    - updated_at     : Timestamp of last return or status update.
+
+    Relationships:
+    - Belongs to one Warehouse.
+
+
+31. logistics_documents
+    Purpose: Stores compliance and verification documents for vehicles
+             and drivers. Supports fleet regulatory compliance by tracking
+             document types, expiry dates, and verification status.
+
+    Attributes:
+    - entity_type    : What this document belongs to (VEHICLE or DRIVER).
+    - entity_id      : The ID of the vehicle or driver this document is for.
+    - hub_id         : Foreign key to warehouses. The warehouse managing
+                       this document.
+    - doc_type       : Type of document (Insurance, Driving License, RC Book,
+                       Fitness Certificate, Permit).
+    - document_url   : URL of the uploaded document file.
+    - status         : Verification status (Pending Verification, Verified,
+                       Expired, Rejected).
+    - expiry_date    : Date when this document expires. Used to trigger
+                       expiry alerts for compliance management.
+    - notes          : Additional notes from the verification team.
+    - created_at     : Timestamp of document upload.
+    - updated_at     : Timestamp of last status update.
+
+    Relationships:
+    - Belongs to one Warehouse (hub).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODULE 7: VENDOR MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+32. vendor_team_members
+    Purpose: Stores team members that a vendor has added to their account
+             to help manage shipments and operations. Each member has
+             a defined role controlling what they can view or edit.
+
+    Attributes:
+    - id        : UUID, primary key.
+    - vendor_id : Foreign key to users. The vendor account that owns this
+                  team.
+    - name      : Full name of the team member.
+    - email     : Email address of the team member (for invitation).
+    - role      : Access level within the vendor account
+                  (Admin, Editor, Viewer).
+    - status    : Invitation state (Invited, Active, Deactivated).
+    - created_at: Timestamp of invitation or member creation.
+
+    Relationships:
+    - Belongs to one Vendor (User).
+
+
+33. vendor_recurring_rules
+    Purpose: Stores automated shipment scheduling rules created by vendors.
+             Allows vendors with predictable shipping patterns (e.g.,
+             weekly grain deliveries) to automate order creation.
+
+    Attributes:
+    - id          : UUID, primary key.
+    - vendor_id   : Foreign key to users. The vendor who owns this rule.
+    - name        : Name of the recurring rule (e.g., Weekly Grain Delivery).
+    - description : Optional description of the rule's purpose.
+    - frequency   : How often to repeat (Daily, Weekly, Monthly, Custom).
+    - route       : The route this recurring shipment follows
+                    (origin → destination).
+    - next_run    : The next scheduled execution time for this rule.
+    - active      : Boolean — whether this rule is currently enabled.
+    - created_at  : Timestamp of rule creation.
+    - updated_at  : Timestamp of last modification.
+
+    Relationships:
+    - Belongs to one Vendor (User).
+
+
+34. vendor_bulk_uploads
+    Purpose: Records CSV bulk order upload jobs submitted by vendors.
+             Vendors with large order volumes can upload multiple orders
+             at once instead of creating them individually.
+
+    Attributes:
+    - id           : UUID, primary key.
+    - vendor_id    : Foreign key to users. The vendor who uploaded the file.
+    - filename     : Original name of the uploaded CSV file.
+    - file_size_kb : Size of the uploaded file in kilobytes.
+    - orders       : Number of orders found/processed in the CSV file.
+    - status       : Processing state of the upload
+                     (Processing, Processed, Failed, Partial).
+    - errors       : Number of rows in the CSV that failed to process.
+    - created_at   : Timestamp of upload submission.
+
+    Relationships:
+    - Belongs to one Vendor (User).
+
+
+35. vendor_support_tickets
+    Purpose: Stores support requests raised by vendors about order issues,
+             billing disputes, or platform problems. Supports a threaded
+             reply system for resolution tracking.
+
+    Attributes:
+    - id          : UUID, primary key.
+    - vendor_id   : Foreign key to users. The vendor who raised the ticket.
+    - order_id    : Foreign key to orders. The specific order this ticket
+                    is about (optional — can be a general inquiry).
+    - subject     : Short subject line summarizing the issue.
+    - description : Full description of the problem or request.
+    - priority    : Ticket urgency (Low, Medium, High, Critical).
+    - status      : Ticket lifecycle state (Open, In Progress, Resolved,
+                    Closed).
+    - created_at  : Timestamp of ticket creation.
+    - updated_at  : Timestamp of last status update.
+
+    Relationships:
+    - Belongs to one Vendor (User).
+    - Optionally linked to one Order.
+    - Has many Support Replies.
+
+
+36. vendor_support_replies
+    Purpose: Stores individual reply messages within a vendor support ticket
+             thread. Enables a back-and-forth conversation between the
+             vendor and the support team for issue resolution.
+
+    Attributes:
+    - id         : UUID, primary key.
+    - ticket_id  : Foreign key to vendor_support_tickets. Which ticket
+                   this reply belongs to.
+    - from_name  : Display name of the person who sent this reply
+                   (e.g., vendor name or "Support Team").
+    - message    : Full text of the reply message.
+    - created_at : Timestamp when the reply was sent.
+
+    Relationships:
+    - Belongs to one Support Ticket.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODULE 8: AI & ESCALATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+37. ai_conversations
+    Purpose: Logs every message in AI-powered chat sessions initiated by
+             logistics managers. Stores both the user's natural language
+             question and the AI's response, maintaining full conversation
+             history per session for context-aware follow-up queries.
+
+    Attributes:
+    - id            : UUID, primary key.
+    - session_id    : UUID grouping all messages of one chat session together.
+                      Multiple rows share the same session_id to form a
+                      single conversation thread.
+    - user_id       : Foreign key to users. The manager who initiated the
+                      AI session.
+    - role          : Who sent this particular message — 'user' for the
+                      manager's question or 'assistant' for the AI response.
+    - message       : The actual text content of the message.
+    - intent        : Classified intent of the message
+                      (db_query, general, greeting, error).
+    - sql_generated : The SQL query generated by Gemini AI to answer a
+                      database question. Stored for audit and debugging.
+    - created_at    : Timestamp of the message.
+
+    Relationships:
+    - Belongs to one User.
+    - Can trigger one Escalation.
+
+
+38. escalations
+    Purpose: Tracks cases where the AI was unable to resolve a query
+             and escalated it to a human support agent. Records the
+             full escalation lifecycle from creation to resolution.
+
+    Attributes:
+    - escalated_to_user_id: Foreign key to users. The human agent assigned
+                            to handle this escalated case.
+    - conversation_id     : Foreign key to ai_conversations. The specific
+                            AI message that triggered the escalation.
+    - reason              : Text explanation of why the AI could not handle
+                            this query and why it needs human review.
+    - escalated_at        : Timestamp when the escalation was created.
+    - resolved_at         : Timestamp when the human agent resolved the case
+                            (null if still open).
+    - status              : Current state of the escalation (OPEN, RESOLVED).
+
+    Relationships:
+    - Linked to one AI Conversation.
+    - Assigned to one User (human agent).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODULE 9: RATE & PRICING GOVERNANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+39. rate_governance
+    Purpose: Stores the system-wide pricing and rate configuration
+             managed by the Logistic Manager. Defines how customer
+             charges and driver/labourer payments are calculated
+             across all orders. Acts as the single source of truth
+             for all monetary calculations in the platform.
+
+    Attributes:
+    - id                   : UUID, primary key.
+    - warehouse_id         : Foreign key to warehouses. Each warehouse
+                             can have its own rate configuration,
+                             allowing different pricing per location.
+    - base_booking_fee     : Fixed base fee charged to the customer for
+                             every booking regardless of distance
+                             (e.g., ₹500).
+    - per_km_rate          : Variable charge per kilometre of distance
+                             covered during delivery (e.g., ₹12/km).
+    - min_charge           : Minimum total charge enforced per order,
+                             regardless of distance or cargo size.
+    - per_labourer_per_hour: Hourly wage rate paid to each labourer
+                             assigned to a job. Used for payroll
+                             calculation.
+    - fuel_surcharge_pct   : Percentage added to the order total as a
+                             fuel surcharge during high fuel cost periods
+                             (e.g., 5%).
+    - peak_multiplier      : Rate multiplier applied during peak demand
+                             seasons (e.g., 1.2 = 20% extra during
+                             festive season).
+    - vehicle_rates        : JSONB field storing rate overrides per
+                             vehicle type (Mini Truck, Tata Ace, Large
+                             Truck). Allows different pricing per
+                             vehicle category.
+    - is_active            : Boolean flag indicating whether this rate
+                             configuration is currently active.
+    - updated_by           : Foreign key to users. The Logistic Manager
+                             who last deployed/modified this rate config.
+    - created_at           : Timestamp of configuration creation.
+    - updated_at           : Timestamp of last modification.
+
+    Relationships:
+    - Belongs to one Warehouse.
+    - Last updated by one User (Logistic Manager).
+
+
+========================================================
+SECTION 3: KEY RELATIONSHIPS
+========================================================
+
+USER & ROLE RELATIONSHIPS
+   - One Role has many Users
+   - One User belongs to one Role
+   - One User (staff) can be assigned to one Warehouse
+   - One Warehouse can have many Users assigned to it
+
+ORDER RELATIONSHIPS
+   - One User (Customer) can place many Orders
+   - One Order belongs to one Customer
+   - One Order can be assigned to one Driver (User)
+   - One Order can be assigned to one Warehouse
+   - One Order has many Order Items
+   - One Order has many Picked Items
+   - One Order has one Quality Check
+   - One Order can have one Return Grading
+   - One Order can have one Loading Dock assignment
+   - One Order can have one Packing Station assignment
+
+WAREHOUSE RELATIONSHIPS
+   - One Warehouse has many Inventory Items
+   - One Warehouse has many Labourers
+   - One Warehouse has many Loading Docks
+   - One Warehouse has many Packing Stations
+   - One Warehouse has many Orders
+   - One Warehouse has many Vehicles assigned to it
+   - One Warehouse has many Logistics Zones
+   - One Warehouse has many Daily Stats records
+   - One Warehouse has many Chat Threads
+
+INVENTORY RELATIONSHIPS
+   - One Inventory Item belongs to one Warehouse
+   - One Inventory Item has many Inventory Movements
+   - One Inventory Item can have many Restock Requests
+   - One Inventory Movement links to one Order (optional)
+
+LABOUR RELATIONSHIPS
+   - One Labourer is linked to one User account
+   - One Labourer belongs to one Warehouse
+   - One Labourer can be assigned to one active Order
+   - One Labourer has many Attendance records
+   - One Packing Station can be assigned one Labourer
+
+LOGISTICS RELATIONSHIPS
+   - One Driver Profile is linked to one User account
+   - One Vehicle can be assigned one Driver
+   - One Vehicle belongs to one Warehouse
+   - One Logistics Zone belongs to one Warehouse
+   - One Chat Thread has many Chat Messages
+   - One Return Case can be linked to one Order
+
+VENDOR RELATIONSHIPS
+   - One User (Vendor) can have many Team Members
+   - One User (Vendor) can have many Recurring Rules
+   - One User (Vendor) can have many Bulk Uploads
+   - One User (Vendor) can have many Support Tickets
+   - One Support Ticket has many Replies
+
+AI RELATIONSHIPS
+   - One User can have many AI Conversations
+   - One AI Conversation has many Messages (session-based)
+   - One AI Conversation can trigger one Escalation
+   - One Escalation is assigned to one User (human agent)
+
+RATE GOVERNANCE RELATIONSHIPS
+   - One Warehouse has one active Rate Governance configuration
+   - One Rate Governance record is last updated by one User (Logistic Manager)
+
+
+========================================================
+SECTION 4: DATABASE DESIGN DECISIONS
+========================================================
+
+1. UUID Primary Keys
+   All tables use UUID as primary key instead of auto-increment integers.
+   This prevents ID enumeration attacks and supports future distributed
+   database scaling.
+
+2. Role-Based Access at Database Level
+   The roles table is kept separate from users to allow clean role
+   management. Role checks are enforced at both API and database query
+   level to prevent unauthorized data access.
+
+3. Soft Deletes via is_active Flag
+   Users, warehouses, and labourers use an is_active boolean instead
+   of hard deletes. This preserves historical data integrity while
+   allowing records to be deactivated.
+
+4. JSON/JSONB for Flexible Data
+   Fields like floor_plan_json, skill_tags, photos, and metadata_json
+   use PostgreSQL's JSONB type. This allows flexible semi-structured
+   data storage without requiring additional tables for every variation.
+
+5. Audit Trail via Timestamps
+   Every table records created_at. Most operational tables also record
+   updated_at. Movement and attendance tables provide a complete
+   chronological audit trail for dispute resolution and payroll.
+
+6. Warehouse Isolation
+   Inventory items, labourers, zones, and metrics are all scoped to
+   a specific warehouse_id. This ensures data isolation between
+   warehouse locations in a multi-warehouse deployment.
+
+7. Modular Schema Design
+   Tables are grouped by functional module (Orders, Inventory, Logistics,
+   Vendor, AI). This allows independent scaling and maintenance of each
+   module without affecting others.

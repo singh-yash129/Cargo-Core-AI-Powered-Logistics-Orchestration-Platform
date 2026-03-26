@@ -14,10 +14,13 @@ from app.routers import inventory as inventory_router
 from app.routers import labourers as labourers_router
 from app.routers import logistics as logistics_router
 from app.routers import orders as orders_router
+from app.routers import rates as rates_router
+from app.routers import tracking as tracking_router
 from app.routers import users as users_router
 from app.routers import vendor as vendor_router
 from app.routers import warehouse_operations as warehouse_operations_router
 from app.routers import warehouses as warehouses_router
+from app.routers import finance as finance_router
 
 settings = get_settings()
 
@@ -61,7 +64,19 @@ def create_app() -> FastAPI:
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.allowed_origins_list,
+        allow_origins=[
+            "http://localhost",
+            "https://localhost",
+            "capacitor://localhost",
+            "ionic://localhost",
+            "http://localhost:5174",
+            "http://127.0.0.1:5174",
+            "http://192.168.1.3:5174",
+            "http://192.168.1.3:8000",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -80,6 +95,9 @@ def create_app() -> FastAPI:
     app.include_router(inventory_router.router)
     app.include_router(labourers_router.router)
     app.include_router(logistics_router.router)
+    app.include_router(rates_router.router)
+    app.include_router(tracking_router.router)
+    app.include_router(finance_router.router)
 
     # ── Health check ──────────────────────────────────────────────────────────
     @app.get("/health", tags=["Health"])

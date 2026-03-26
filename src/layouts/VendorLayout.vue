@@ -8,7 +8,7 @@
 
     <VendorSidebar :is-open="isSidebarOpen" @close="isSidebarOpen = false" />
 
-    <main class="flex-1 min-h-screen lg:ml-64 flex flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-500/5 via-surface-light to-surface-light dark:from-blue-900/10 dark:via-background-dark dark:to-background-dark">
+    <main class="flex-1 min-h-screen lg:ml-64 flex flex-col overflow-x-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-500/5 via-surface-light to-surface-light dark:from-blue-900/10 dark:via-background-dark dark:to-background-dark">
       <header class="sticky top-0 z-30 h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between border-b border-gray-200 dark:border-white/5 bg-surface-light/80 dark:bg-background-dark/80 backdrop-blur-md">
         <div class="flex items-center gap-3">
           <button
@@ -35,15 +35,12 @@
                 @click="showAddFundsModal = true"
               >
                 <span class="material-symbols-outlined text-[16px]">account_balance_wallet</span>
-                ${{ store.creditBalance.toLocaleString() }}
+                ₹{{ store.creditBalance.toLocaleString() }}
               </button>
             </div>
           </div>
 
           <div class="flex items-center gap-1 sm:gap-3">
-            <div class="hidden sm:block">
-              <HeaderWeather />
-            </div>
             <NotificationPopover
               :notifications="store.notifications"
               :unread-count="store.unreadNotificationsCount"
@@ -63,9 +60,12 @@
         </div>
       </header>
 
-      <div class="flex-1 p-4 sm:p-6 lg:p-8">
+      <div class="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
         <RouterView />
       </div>
+
+      <!-- AI chat orb - available on all vendor pages -->
+      <AIHelpOrb />
     </main>
 
     <Teleport to="body">
@@ -84,7 +84,7 @@
               <div>
                 <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">Amount</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
+                  <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
                   <input
                     v-model.number="addAmount"
                     type="number"
@@ -100,7 +100,7 @@
                   class="flex-1 py-2 rounded-lg border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-500/10 hover:border-green-500 hover:text-green-600 dark:hover:text-green-400 transition-all"
                   @click="addAmount = amt"
                 >
-                  +${{ amt.toLocaleString() }}
+                  +₹{{ amt.toLocaleString() }}
                 </button>
               </div>
             </div>
@@ -116,7 +116,7 @@
                 class="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:hover:bg-green-600 text-white font-bold rounded-xl transition-colors"
                 @click="submitAddFunds"
               >
-                Add ${{ (addAmount || 0).toLocaleString() }}
+                Add ₹{{ (addAmount || 0).toLocaleString() }}
               </button>
             </div>
           </div>
@@ -129,10 +129,10 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
-import HeaderWeather from '@/components/HeaderWeather.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'
 import VendorSidebar from '@/IV-components/VendorSidebar.vue'
 import { useVendorStore } from '@/stores/vendorStore'
+import AIHelpOrb from '@/components/AIHelpOrb.vue'
 
 const store = useVendorStore()
 const route = useRoute()

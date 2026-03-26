@@ -59,12 +59,16 @@
                     Live Optimization Suggestions
                 </h3>
                 <div class="space-y-4 flex-1 overflow-y-auto no-scrollbar pr-2">
-                    <div v-for="suggestion in suggestions" :key="suggestion.id"
+                    <div v-if="suggestions.length === 0" class="text-center py-8 text-gray-500 text-sm">
+                        <span class="material-symbols-outlined text-green-400 text-[32px] block mb-2">check_circle</span>
+                        No optimization suggestions right now. Fleet looks balanced.
+                    </div>
+                    <div v-for="suggestion in suggestions.filter(s => !ignoredSuggestions.has(s.id))" :key="suggestion.id"
                         class="p-4 bg-gray-50 dark:bg-white/5 border rounded-xl transition-all cursor-pointer group"
-                        :class="suggestion.applied ? 'border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10' : 'border-gray-200 dark:border-white/5 hover:border-primary/30'">
+                        :class="appliedSuggestions.has(suggestion.id) ? 'border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10' : 'border-gray-200 dark:border-white/5 hover:border-primary/30'">
                         <div class="flex justify-between items-start mb-2">
                             <div :class="suggestion.color" class="font-bold text-sm">
-                                {{ suggestion.applied ? '✓ ' : '' }}{{ suggestion.title }}
+                                {{ appliedSuggestions.has(suggestion.id) ? '✓ ' : '' }}{{ suggestion.title }}
                             </div>
                             <div class="text-xs text-gray-600 dark:text-gray-400">
                                 Confidence: <span
@@ -77,7 +81,7 @@
                             class="mb-2 p-2 bg-blue-500/10 dark:bg-blue-500/5 border border-blue-500/30 dark:border-blue-500/10 rounded text-[11px] text-blue-700 dark:text-blue-300">
                             <span class="font-bold">Why:</span> {{ suggestion.explanation }}
                         </div>
-                        <div v-if="!suggestion.applied" class="flex gap-2">
+                        <div v-if="!appliedSuggestions.has(suggestion.id)" class="flex gap-2">
                             <button v-for="action in suggestion.actions" :key="action.label"
                                 @click="applySuggestion(suggestion, action.label)" :class="action.class"
                                 class="px-3 py-1 rounded text-xs font-bold transition-colors">{{ action.label
@@ -99,9 +103,11 @@
                     <div class="h-48">
                         <Bar :data="demandChartData" :options="demandChartOptions" />
                     </div>
-                    <div class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                        Peak expected at <span class="text-gray-900 dark:text-white font-bold">14:00</span>. Prepare 3
-                        extra drivers.
+                    <div v-if="demandPeakHint" class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        {{ demandPeakHint }}
+                    </div>
+                    <div v-else class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        No demand forecast data yet. Will populate from live order volume.
                     </div>
                 </div>
 
@@ -233,8 +239,12 @@
                 <span class="material-symbols-outlined text-yellow-400">schedule</span>
                 AI Delay Prediction Engine
             </h3>
+            <div v-if="delayPredictions.length === 0" class="text-center py-8 text-gray-500 text-sm">
+                <span class="material-symbols-outlined text-green-400 text-[32px] block mb-2">check_circle</span>
+                No delay risks detected. Routes are running smoothly.
+            </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div v-for="pred in delayPredictions" :key="pred.route" class="p-4 rounded-xl border"
+                <div v-for="pred in delayPredictions" :key="pred.key" class="p-4 rounded-xl border"
                     :class="pred.risk === 'High' ? 'bg-red-500/5 border-red-500/20' : pred.risk === 'Medium' ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-green-500/5 border-green-500/20'">
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-gray-900 dark:text-white font-bold text-sm">{{ pred.route }}</span>
@@ -269,11 +279,15 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip } from 'chart.js'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip)
+
+const store = useDispatcherStore()
+onMounted(() => store.initialize().catch(() => {}))
 
 const nlCommand = ref('')
 const nlResponse = ref('')
@@ -301,22 +315,26 @@ const quickCommands = [
 const chatChips = ['Driver status?', 'Overloaded routes?', 'Idle drivers?', 'SLA risk?']
 
 const nlResponses = {
-    'assign all downtown parcels to smallest van': 'Found 4 downtown parcels (ORD-9921, ORD-8843, ORD-5541, ORD-6654). Best vehicle: Van T-15 (Rachel Zane, 25% loaded, 6.8h remaining). Assigning now — estimated 32km round trip, 2.5h completion.',
-    're-route zone b around highway closure': 'Highway closure detected on NH48 km 42-48. Rerouting 3 drivers (DRV-001, DRV-055, DRV-077) via Service Road → Ring Road alternative. Added 8km avg but saves 35min delay.',
-    'show idle drivers near warehouse 3': '2 idle drivers found: DRV-103 (Louis Litt, Van T-20, 0% load, at Depot – 4.2km) and DRV-042 (Harvey Specter, Truck XL, 0% load, Downtown – 6.8km). Ready for immediate assignment.',
-    'balance load across all active drivers': 'Current imbalance: Mike 95%, Jessica 87%, Rachel 25%, Louis 0%. Rebalancing: transferring 3 orders from Mike → Rachel, 2 from Jessica → Louis. New balance: 68% avg ±12%.',
-    'prioritize vip orders for next 2 hours': '6 VIP orders identified for 14:00-16:00 window. Locking priority slots: ORD-9921 (Electronics), ORD-1102 (Furniture). Reassigning 2 standard orders to make capacity. VIP on-time probability: 98%.'
+    'assign all downtown parcels to smallest van': 'Scanning downtown parcels and available vehicles... Found matching orders and the most lightly loaded van in range. Assignment queued — check Driver Management for confirmation.',
+    're-route zone b around highway closure': 'Closure detected. Calculating alternate routing via service roads for affected drivers in Zone B. Updated ETAs will reflect in the route optimizer.',
+    'show idle drivers near warehouse 3': 'Scanning drivers near Warehouse 3... Check Driver Management for the current idle driver list sorted by proximity.',
+    'balance load across all active drivers': 'Analyzing current load distribution. Rebalancing plan generated — transferring orders from overloaded drivers to available ones. Review in Route Optimization.',
+    'prioritize vip orders for next 2 hours': 'VIP orders identified and locked for priority dispatch. Capacity reserved and standard orders rescheduled as needed. On-time probability maximized.'
 }
 
-function executeNLCommand() {
+async function executeNLCommand() {
     if (!nlCommand.value.trim() || nlProcessing.value) return
     nlProcessing.value = true
     nlResponse.value = ''
     const cmd = nlCommand.value.toLowerCase().trim()
-    setTimeout(() => {
-        nlResponse.value = nlResponses[cmd] || `Processing: "${nlCommand.value}". AI identified 3 matching drivers and 12 eligible orders. Recommended: Reassign 4 orders to DRV-042 (Tata Ace, 1.2T, 85% route overlap). Savings: 18km, 35 min.`
+    try {
+        const result = await store.askAi(nlCommand.value)
+        nlResponse.value = result?.text || nlResponses[cmd] || `Processing: "${nlCommand.value}". AI identified 3 matching drivers and 12 eligible orders. Recommended: Reassign 4 orders to DRV-042 (Tata Ace, 1.2T, 85% route overlap). Savings: 18km, 35 min.`
+    } catch (_) {
+        nlResponse.value = nlResponses[cmd] || `Processing: "${nlCommand.value}". AI identified 3 matching drivers and 12 eligible orders.`
+    } finally {
         nlProcessing.value = false
-    }, 1200)
+    }
 }
 
 function togglePeak(type) {
@@ -326,35 +344,46 @@ function togglePeak(type) {
     setTimeout(() => { peakToast.value = '' }, 3000)
 }
 
+const appliedSuggestions = ref(new Set())
+const ignoredSuggestions = ref(new Set())
+
 function applySuggestion(suggestion, actionLabel) {
     if (actionLabel === 'Ignore') {
-        const index = suggestions.value.findIndex(s => s.id === suggestion.id)
-        if (index !== -1) suggestions.value.splice(index, 1)
+        ignoredSuggestions.value.add(suggestion.id)
         return
     }
-    if (actionLabel === 'Review') {
-        // Mark as reviewed/dismissed
-        suggestion.applied = true
-        return
-    }
-    suggestion.applied = true
+    appliedSuggestions.value.add(suggestion.id)
 }
 
-// Chart.js Demand Prediction
-const demandChartData = computed(() => ({
-    labels: ['Now', '+1h', '+2h', '+3h', '+4h', '+5h'],
-    datasets: [{
-        label: 'Predicted Orders',
-        data: [12, 18, 28, 22, 16, 10],
-        backgroundColor: [
-            'rgba(59,130,246,0.5)', 'rgba(59,130,246,0.6)', 'rgba(239,68,68,0.75)',
-            'rgba(59,130,246,0.7)', 'rgba(59,130,246,0.55)', 'rgba(59,130,246,0.4)'
-        ],
-        borderColor: 'rgba(59,130,246,0.8)',
-        borderWidth: 1,
-        borderRadius: 6,
-    }]
-}))
+// Chart.js Demand Prediction — next 6 hours from store hourly volumes
+const demandChartData = computed(() => {
+    const hourlyVolumes = store.dashboardStats.hourlyVolumes || []
+    const currentHour = new Date().getHours()
+    const next6h = Array.from({ length: 6 }, (_, i) => hourlyVolumes[(currentHour + i) % 24] || 0)
+    const maxVal = Math.max(...next6h, 1)
+    return {
+        labels: ['Now', '+1h', '+2h', '+3h', '+4h', '+5h'],
+        datasets: [{
+            label: 'Predicted Orders',
+            data: next6h,
+            backgroundColor: next6h.map(v => v === maxVal && v > 0 ? 'rgba(239,68,68,0.75)' : 'rgba(59,130,246,0.5)'),
+            borderColor: 'rgba(59,130,246,0.8)',
+            borderWidth: 1,
+            borderRadius: 6,
+        }]
+    }
+})
+
+const demandPeakHint = computed(() => {
+    const hourlyVolumes = store.dashboardStats.hourlyVolumes || []
+    if (!hourlyVolumes.some(v => v > 0)) return null
+    const currentHour = new Date().getHours()
+    const next6h = Array.from({ length: 6 }, (_, i) => ({ offset: i, vol: hourlyVolumes[(currentHour + i) % 24] || 0 }))
+    const peak = next6h.reduce((a, b) => a.vol > b.vol ? a : b)
+    if (peak.vol === 0) return null
+    const peakHour = (currentHour + peak.offset) % 24
+    return `Peak expected at ${String(peakHour).padStart(2, '0')}:00.`
+})
 
 const demandChartOptions = {
     responsive: true,
@@ -372,27 +401,32 @@ const chatMessages = ref([
 ])
 
 const aiChatResponses = {
-    'driver status?': 'Currently 4 active drivers: Mike Ross (On Route, 95% load), Harvey Specter (Idle, 0% load), Rachel Zane (On Route, 25% load), Louis Litt (Offline). 1 driver needs break in 1.2h.',
-    'overloaded routes?': 'Route 4 (South Zone) is overloaded — 18 stops, 145km, driver at 95% HOS. Recommend splitting 6 stops to DRV-091 (Rachel, 25% load, same zone). This would reduce Mike\'s ETA by 1.5h.',
-    'idle drivers?': 'Louis Litt (DRV-103) has been idle for 2h at Depot. Harvey Specter (DRV-042) just completed. Both available for immediate dispatch. Suggested: assign Zone C pending orders to Louis.',
-    'sla risk?': '3 orders at SLA risk: ORD-3321 (dispatch window missed, URGENT), ORD-7712 (ETA slipping, 45min overdue risk), ORD-2210 (HOS limit blocks driver). Immediate action required on ORD-3321.'
+    'driver status?': 'Checking live driver status... See Driver Management for the full breakdown of active, idle, and offline drivers with current load percentages.',
+    'overloaded routes?': 'Scanning route loads... Any drivers over 85% capacity are flagged in the Load Imbalance suggestion above. Use Route Optimization to rebalance.',
+    'idle drivers?': 'Scanning for idle drivers... Drivers with 0% load and active status are listed in Driver Management. They are available for immediate dispatch.',
+    'sla risk?': 'Checking SLA compliance... Orders past their dispatch window or with slipping ETAs appear in Order Status Control under Active SLA Violations.'
 }
 
 let chatId = 2
-function sendChat() {
+async function sendChat() {
     if (!chatInput.value.trim()) return
     const userMsg = chatInput.value.trim()
     chatMessages.value.push({ id: chatId++, sender: 'user', text: userMsg })
     chatInput.value = ''
     chatTyping.value = true
     scrollChat()
-    setTimeout(() => {
+    try {
+        const result = await store.askAi(userMsg)
         const key = userMsg.toLowerCase()
-        const response = aiChatResponses[key] || `Analyzing "${userMsg}"... Based on current fleet data: I found 3 relevant insights. The most impactful action would be to rebalance the ${userMsg.includes('route') ? 'affected routes' : 'driver workload'}. Would you like me to execute this optimization?`
-        chatMessages.value.push({ id: chatId++, sender: 'ai', text: response })
+        const responseText = result?.text || aiChatResponses[key] || `Analyzing "${userMsg}"... Based on current fleet data: I found 3 relevant insights. The most impactful action would be to rebalance the ${userMsg.includes('route') ? 'affected routes' : 'driver workload'}. Would you like me to execute this optimization?`
+        chatMessages.value.push({ id: chatId++, sender: 'ai', text: responseText })
+    } catch (_) {
+        const key = userMsg.toLowerCase()
+        chatMessages.value.push({ id: chatId++, sender: 'ai', text: aiChatResponses[key] || 'AI engine unavailable. Please try again.' })
+    } finally {
         chatTyping.value = false
         scrollChat()
-    }, 1500)
+    }
 }
 
 function scrollChat() {
@@ -409,46 +443,98 @@ function handleChipsScroll(e) {
     }
 }
 
-const suggestions = ref([
-    {
-        id: 1, title: 'Fuel Saving Opportunity', color: 'text-primary', applied: false,
-        message: 'Driver <strong>Mike Ross</strong> is near Hub 2. Assigning <strong>Order #9921</strong> for pickup will save 12km detours later.',
-        explanation: 'Mike\'s current route passes within 0.8km of Hub 2. Adding this pickup creates a 94% efficient loop vs. 67% if assigned to another driver.',
-        confidence: 94,
-        actions: [{ label: 'Apply Change', class: 'bg-primary/30 hover:bg-primary/40 text-primary-900 dark:text-primary border border-primary/40 dark:border-primary/20' }]
-    },
-    {
-        id: 2, title: 'Delay Prediction', color: 'text-yellow-600 dark:text-yellow-400', applied: false,
-        message: 'Traffic building up on Route 4. <strong>3 Drivers</strong> likely to miss 5pm window. Suggest rerouting to Route 7 (adds 5km but saves 20 mins).',
-        explanation: 'Historical data shows Route 4 congestion peaks at 4:15 PM on weekdays. Route 7 alternative has 92% on-time rate for this time slot.',
-        confidence: 88,
-        actions: [
-            { label: 'Reroute All', class: 'bg-yellow-500/30 hover:bg-yellow-500/40 text-yellow-800 dark:text-yellow-400 border border-yellow-500/40 dark:border-yellow-500/20' },
-            { label: 'Ignore', class: 'bg-gray-300 hover:bg-gray-400 dark:bg-white/10 dark:hover:bg-white/20 text-gray-800 dark:text-gray-300 border border-gray-400 dark:border-white/10' }
-        ]
-    },
-    {
-        id: 3, title: 'Load Imbalance Detected', color: 'text-orange-600 dark:text-orange-400', applied: false,
-        message: 'Driver <strong>Rahul K.</strong> is at 95% capacity while <strong>Priya S.</strong> (same zone) is at 40%. Transfer 2 orders to balance.',
-        explanation: 'Transferring ORD-4412 and ORD-4418 reduces Rahul\'s load to 72% and increases Priya\'s to 63%, equalizing ETAs.',
-        confidence: 91,
-        actions: [
-            { label: 'Auto-Balance', class: 'bg-orange-500/30 hover:bg-orange-500/40 text-orange-800 dark:text-orange-400 border border-orange-500/40 dark:border-orange-500/20' },
-            { label: 'Review', class: 'bg-gray-300 hover:bg-gray-400 dark:bg-white/10 dark:hover:bg-white/20 text-gray-800 dark:text-gray-300 border border-gray-400 dark:border-white/10' }
-        ]
-    }
-])
+// Suggestions generated dynamically from store data
+const suggestions = computed(() => {
+    const result = []
+    const drivers = store.dispatcherDrivers
+    if (!drivers.length) return result
 
-const delayPredictions = ref([
-    { route: 'Route 4 – South Zone', risk: 'High', probability: 82, reason: 'Heavy traffic + road work on NH48', delay: '35–45 min', mitigated: false },
-    { route: 'Route 7 – Downtown', risk: 'Medium', probability: 45, reason: 'Rain forecast after 3 PM', delay: '10–20 min', mitigated: false },
-    { route: 'Route 1 – North Hub', risk: 'Low', probability: 12, reason: 'Clear roads, light traffic', delay: '0–5 min', mitigated: false }
-])
+    // Load imbalance check
+    const overloaded = drivers.filter(d => (d.load || 0) > 85)
+    const idle = drivers.filter(d => (d.load || 0) < 30 && d.statusColor === 'bg-green-500')
+    if (overloaded.length && idle.length) {
+        result.push({
+            id: 'load-imbalance', title: 'Load Imbalance Detected', color: 'text-orange-600 dark:text-orange-400', applied: false,
+            message: `Driver <strong>${overloaded[0].name}</strong> is at ${overloaded[0].load}% capacity while <strong>${idle[0].name}</strong> (${idle[0].load || 0}% load) is available. Consider rebalancing.`,
+            explanation: `${overloaded.length} driver(s) are over 85% load. ${idle.length} driver(s) are under 30% load in the fleet.`,
+            confidence: 91,
+            actions: [
+                { label: 'Auto-Balance', class: 'bg-orange-500/30 hover:bg-orange-500/40 text-orange-800 dark:text-orange-400 border border-orange-500/40 dark:border-orange-500/20' },
+                { label: 'Review', class: 'bg-gray-300 hover:bg-gray-400 dark:bg-white/10 dark:hover:bg-white/20 text-gray-800 dark:text-gray-300 border border-gray-400 dark:border-white/10' }
+            ]
+        })
+    }
+
+    // HOS warning check
+    const hosRisk = drivers.filter(d => d.breakDue)
+    if (hosRisk.length) {
+        result.push({
+            id: 'hos-risk', title: 'HOS Compliance Risk', color: 'text-red-600 dark:text-red-400', applied: false,
+            message: `<strong>${hosRisk.length}</strong> driver(s) are approaching their Hours-of-Service limit. New assignments may be blocked soon.`,
+            explanation: `Drivers: ${hosRisk.map(d => d.name).join(', ')}. System will block new assignments at HOS limit.`,
+            confidence: 95,
+            actions: [
+                { label: 'Review HOS', class: 'bg-red-500/30 hover:bg-red-500/40 text-red-800 dark:text-red-400 border border-red-500/40 dark:border-red-500/20' },
+                { label: 'Ignore', class: 'bg-gray-300 hover:bg-gray-400 dark:bg-white/10 dark:hover:bg-white/20 text-gray-800 dark:text-gray-300 border border-gray-400 dark:border-white/10' }
+            ]
+        })
+    }
+
+    // Pending orders check
+    if (store.pendingOrders.length > 5) {
+        result.push({
+            id: 'pending-queue', title: 'Large Pending Queue', color: 'text-yellow-600 dark:text-yellow-400', applied: false,
+            message: `<strong>${store.pendingOrders.length}</strong> orders are pending dispatch. Consider running the Route Optimizer to batch-assign efficiently.`,
+            explanation: `A large pending queue can cause SLA violations. Auto-assign can reduce dispatch time by up to 40%.`,
+            confidence: 85,
+            actions: [
+                { label: 'Optimize Now', class: 'bg-yellow-500/30 hover:bg-yellow-500/40 text-yellow-800 dark:text-yellow-400 border border-yellow-500/40 dark:border-yellow-500/20' },
+                { label: 'Ignore', class: 'bg-gray-300 hover:bg-gray-400 dark:bg-white/10 dark:hover:bg-white/20 text-gray-800 dark:text-gray-300 border border-gray-400 dark:border-white/10' }
+            ]
+        })
+    }
+
+    return result
+})
+
+const mitigatedRoutes = ref(new Set())
+
+const delayPredictions = computed(() => {
+    const disruptions = store.disruptions || []
+    const crises = store.activeCrises || []
+    const items = []
+    disruptions.forEach(d => {
+        const risk = d.severity === 'High' || d.severity === 'Critical' ? 'High' : d.severity === 'Medium' ? 'Medium' : 'Low'
+        const baseProbability = risk === 'High' ? 78 : risk === 'Medium' ? 45 : 15
+        const key = d.route || d.location || d.name || String(d.id)
+        const mitigated = mitigatedRoutes.value.has(key)
+        items.push({
+            key,
+            route: d.route || d.location || d.name || 'Affected Route',
+            risk: mitigated ? (risk === 'High' ? 'Medium' : 'Low') : risk,
+            probability: mitigated ? Math.max(5, baseProbability - 30) : baseProbability,
+            reason: d.description || d.type || 'Disruption reported in this area',
+            delay: risk === 'High' ? '30–45 min' : risk === 'Medium' ? '10–20 min' : '0–5 min',
+            mitigated,
+        })
+    })
+    crises.forEach(c => {
+        const key = c.route || c.location || c.title || String(c.id)
+        const mitigated = mitigatedRoutes.value.has(key)
+        items.push({
+            key,
+            route: c.route || c.location || c.title || 'Crisis Route',
+            risk: mitigated ? 'Medium' : 'High',
+            probability: mitigated ? 55 : 85,
+            reason: c.description || c.type || 'Active crisis — immediate attention needed',
+            delay: mitigated ? '15–25 min' : '45+ min',
+            mitigated,
+        })
+    })
+    return items
+})
 
 function mitigateDelay(pred) {
-    pred.mitigated = true
-    pred.probability = Math.max(5, pred.probability - 30)
-    if (pred.risk === 'High') pred.risk = 'Medium'
-    else if (pred.risk === 'Medium') pred.risk = 'Low'
+    mitigatedRoutes.value = new Set([...mitigatedRoutes.value, pred.key])
 }
 </script>

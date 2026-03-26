@@ -1,0 +1,29 @@
+INFO:     Will watch for changes in these directories: ['C:\\Users\\pruth\\Downloads\\Login Signup Flow Design\\backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [2492] using WatchFiles
+INFO:     Started server process [8164]
+INFO:     Waiting for application startup.
+2026-03-26 01:14:04,644 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-26 01:14:04,645 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-03-26 01:14:04,647 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-26 01:14:04,647 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-03-26 01:14:04,648 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-26 01:14:04,648 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-03-26 01:14:04,672 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-26 01:14:04,731 INFO sqlalchemy.engine.Engine SELECT roles.id, roles.name 
+FROM roles 
+WHERE roles.name = $1::VARCHAR
+2026-03-26 01:14:04,731 INFO sqlalchemy.engine.Engine [generated in 0.00028s] ('LOGISTIC_MANAGER',)
+2026-03-26 01:14:04,739 INFO sqlalchemy.engine.Engine SELECT users.id, users.name, users.username, users.email, users.phone, users.alt_phone, users.date_of_birth, users.address, users.preferred_language, users.preferred_currency, users.default_payment_method, users.notifications_push, users.notifications_sms, users.notifications_email, users.notifications_geofence, users.notifications_promo, users.privacy_location, users.privacy_analytics, users.privacy_marketing, users.password_hash, users.role_id, users.warehouse_id, users.is_active, users.last_login, users.created_at, users.updated_at 
+FROM users 
+WHERE users.email = $1::VARCHAR
+2026-03-26 01:14:04,739 INFO sqlalchemy.engine.Engine [generated in 0.00027s] ('logisticmanager@gmail.com',)
+2026-03-26 01:14:05,029 INFO sqlalchemy.engine.Engine UPDATE users SET password_hash=$1::VARCHAR, updated_at=$2::TIMESTAMP WITH TIME ZONE WHERE users.id = $3::UUID
+2026-03-26 01:14:05,029 INFO sqlalchemy.engine.Engine [generated in 0.00039s] ('$2b$12$MvwZIT/Es6uIxqOBQJ0ky.SsboJ0TAojbx.6pNwV3jWaQHYEYK/tO', datetime.datetime(2026, 3, 25, 19, 44, 5, 29285, tzinfo=datetime.timezone.utc), UUID('d6ff263b-bfb4-427a-9213-867befa49ed2'))
+2026-03-26 01:14:05,033 INFO sqlalchemy.engine.Engine SELECT users.id 
+FROM users 
+WHERE users.id = $1::UUID
+2026-03-26 01:14:05,033 INFO sqlalchemy.engine.Engine [generated in 0.00023s] (UUID('d6ff263b-bfb4-427a-9213-867befa49ed2'),)
+2026-03-26 01:14:05.034 | INFO     | app.services.auth_service:ensure_logistic_manager_account:156 - Bootstrapped existing Logistics Manager account: logisticmanager@gmail.com
+2026-03-26 01:14:05,034 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.

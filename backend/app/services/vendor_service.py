@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.logistics import LogisticsVehicle
 from app.models.order import DamageReport as DamageReportModel
 from app.models.order import Order
 from app.models.user import User
@@ -30,6 +31,7 @@ from app.schemas.vendor import (
     VendorDamageReportCreate,
     VendorDamageReportsResponse,
     VendorDashboardResponse,
+    VendorInvoicePayRequest,
     VendorInvoiceRecord,
     VendorInvoiceSummary,
     VendorMonthlyPoint,
@@ -73,6 +75,9 @@ def _profile(user: User) -> UserProfile:
     )
 
 
+_WAREHOUSE_SUBSTATUSES = {"AWAITING_INBOUND", "AWAITING_PICK", "PICKING", "PICKED", "PACKING", "PACKED", "QC_PASSED"}
+
+
 def _status_key(value: str) -> str:
     mapping = {
         "DRAFT": "pending",
@@ -86,19 +91,27 @@ def _status_key(value: str) -> str:
     return mapping.get(value.upper(), value.lower())
 
 
+def _shipment_status_key(status: str, warehouse_substatus: str | None) -> str:
+    """Status key shown to vendor — adds 'warehouse' phase for in-warehouse orders."""
+    if warehouse_substatus and warehouse_substatus.upper() in _WAREHOUSE_SUBSTATUSES:
+        return "warehouse"
+    return _status_key(status)
+
+
 def _status_label(value: str) -> str:
     mapping = {
         "pending": "Pending",
+        "warehouse": "In Warehouse",
         "transit": "In Transit",
         "delivered": "Delivered",
         "cancelled": "Cancelled",
     }
-    return mapping.get(_status_key(value), value.replace("_", " ").title())
+    return mapping.get(value, value.replace("_", " ").title())
 
 
 def _progress(value: str) -> int:
-    mapping = {"pending": 15, "transit": 65, "delivered": 100, "cancelled": 0}
-    return mapping.get(_status_key(value), 0)
+    mapping = {"pending": 15, "warehouse": 35, "transit": 65, "delivered": 100, "cancelled": 0}
+    return mapping.get(value, 0)
 
 
 def _eta_label(order: Order) -> str:
@@ -116,6 +129,18 @@ def _history(order: Order) -> list[VendorShipmentHistoryItem]:
     items = [VendorShipmentHistoryItem(status="Created", time=created)]
     if order.status in {"CONFIRMED", "ASSIGNED", "IN_TRANSIT", "DELIVERED", "CLOSED"}:
         items.append(VendorShipmentHistoryItem(status="Confirmed", time=created))
+    sub = (order.warehouse_substatus or "").upper()
+    if sub in _WAREHOUSE_SUBSTATUSES:
+        label_map = {
+            "AWAITING_INBOUND": "Awaiting Inbound",
+            "AWAITING_PICK": "Awaiting Pick",
+            "PICKING": "Picking",
+            "PICKED": "Picked",
+            "PACKING": "Packing",
+            "PACKED": "Packed",
+            "QC_PASSED": "QC Passed",
+        }
+        items.append(VendorShipmentHistoryItem(status=label_map.get(sub, sub.title()), time=created))
     if order.status in {"ASSIGNED", "IN_TRANSIT", "DELIVERED", "CLOSED"}:
         items.append(VendorShipmentHistoryItem(status="Assigned", time=created))
     if order.status in {"IN_TRANSIT", "DELIVERED", "CLOSED"}:
@@ -132,15 +157,27 @@ def _history(order: Order) -> list[VendorShipmentHistoryItem]:
     return items
 
 
-def _shipment(order: Order) -> VendorShipmentSummary:
+def _shipment(
+    order: Order,
+    *,
+    driver_name: str | None = None,
+    driver_phone: str | None = None,
+    vehicle_code: str | None = None,
+) -> VendorShipmentSummary:
+    key = _shipment_status_key(order.status, order.warehouse_substatus)
     return VendorShipmentSummary(
         id=order.id,
         tracking_code=order.tracking_code,
         status=order.status,
-        status_label=_status_label(order.status),
-        status_key=_status_key(order.status),
+        status_label=_status_label(key),
+        status_key=key,
         pickup_addr=order.pickup_addr,
         delivery_addr=order.delivery_addr,
+        assigned_driver_id=order.assigned_driver_id,
+        assigned_driver_name=driver_name,
+        assigned_driver_phone=driver_phone,
+        assigned_vehicle_id=order.assigned_vehicle_id,
+        assigned_vehicle_code=vehicle_code,
         cargo_type=order.cargo_type,
         vehicle_type=order.vehicle_type,
         payment_mode=order.payment_mode,
@@ -150,7 +187,7 @@ def _shipment(order: Order) -> VendorShipmentSummary:
         scheduled_at=order.scheduled_at,
         created_at=order.created_at,
         eta_label=_eta_label(order),
-        progress=_progress(order.status),
+        progress=_progress(key),
         cost=VendorShipmentCost(
             base=order.base_amount,
             vehicle=order.vehicle_amount,
@@ -165,20 +202,56 @@ def _shipment(order: Order) -> VendorShipmentSummary:
     )
 
 
+async def _resolve_assignment_maps(
+    db: AsyncSession,
+    orders: list[Order],
+) -> tuple[dict, dict, dict]:
+    driver_ids = {order.assigned_driver_id for order in orders if order.assigned_driver_id}
+    vehicle_ids = {order.assigned_vehicle_id for order in orders if order.assigned_vehicle_id}
+
+    driver_names: dict = {}
+    driver_phones: dict = {}
+    if driver_ids:
+        rows = (
+            await db.execute(select(User.id, User.name, User.phone).where(User.id.in_(driver_ids)))
+        ).all()
+        driver_names = {row.id: row.name for row in rows}
+        driver_phones = {row.id: row.phone for row in rows}
+
+    vehicle_codes: dict = {}
+    if vehicle_ids:
+        rows = (
+            await db.execute(
+                select(LogisticsVehicle.id, LogisticsVehicle.code, LogisticsVehicle.license_plate).where(
+                    LogisticsVehicle.id.in_(vehicle_ids)
+                )
+            )
+        ).all()
+        vehicle_codes = {
+            row.id: (f"{row.code} · {row.license_plate}" if row.license_plate else row.code)
+            for row in rows
+        }
+
+    return driver_names, driver_phones, vehicle_codes
+
+
 def _invoice_status(order: Order, now: datetime) -> str:
     if order.payment_status == "paid":
         return "Paid"
+    paid_amount = getattr(order, 'paid_amount', 0) or 0
+    if paid_amount > 0:
+        return "Partial"
     due_date = order.created_at + timedelta(days=30)
     if due_date.date() < now.date():
         return "Overdue"
-    if order.payment_status == "partial":
-        return "Partial"
     return "Unpaid"
 
 
 def _invoice_record(order: Order, now: datetime) -> VendorInvoiceRecord:
     invoice_status = _invoice_status(order, now)
-    paid = order.total_amount if invoice_status == "Paid" else 0
+    paid = getattr(order, 'paid_amount', 0) or 0
+    if invoice_status == "Paid":
+        paid = order.total_amount
     return VendorInvoiceRecord(
         id=f"INV-{order.tracking_code}",
         order_id=order.id,
@@ -309,6 +382,7 @@ def _ticket_response(ticket: VendorSupportTicket) -> VendorSupportTicketResponse
 async def get_vendor_dashboard(db: AsyncSession, user: User) -> VendorDashboardResponse:
     _ensure_vendor(user)
     orders = await _orders_for_vendor(db, user)
+    driver_names, driver_phones, vehicle_codes = await _resolve_assignment_maps(db, orders)
     analytics = _analytics(orders)
     invoices = _invoice_summary(orders)
     status_keys = [_status_key(order.status) for order in orders]
@@ -335,7 +409,15 @@ async def get_vendor_dashboard(db: AsyncSession, user: User) -> VendorDashboardR
     return VendorDashboardResponse(
         profile=_profile(user),
         stats=stats,
-        recent_shipments=[_shipment(order) for order in orders[:5]],
+        recent_shipments=[
+            _shipment(
+                order,
+                driver_name=driver_names.get(order.assigned_driver_id),
+                driver_phone=driver_phones.get(order.assigned_driver_id),
+                vehicle_code=vehicle_codes.get(order.assigned_vehicle_id),
+            )
+            for order in orders[:5]
+        ],
         analytics=analytics,
         invoices=invoices,
     )
@@ -344,7 +426,18 @@ async def get_vendor_dashboard(db: AsyncSession, user: User) -> VendorDashboardR
 async def get_vendor_shipments(db: AsyncSession, user: User) -> VendorShipmentsResponse:
     _ensure_vendor(user)
     orders = await _orders_for_vendor(db, user)
-    return VendorShipmentsResponse(shipments=[_shipment(order) for order in orders])
+    driver_names, driver_phones, vehicle_codes = await _resolve_assignment_maps(db, orders)
+    return VendorShipmentsResponse(
+        shipments=[
+            _shipment(
+                order,
+                driver_name=driver_names.get(order.assigned_driver_id),
+                driver_phone=driver_phones.get(order.assigned_driver_id),
+                vehicle_code=vehicle_codes.get(order.assigned_vehicle_id),
+            )
+            for order in orders
+        ]
+    )
 
 
 async def get_vendor_settings(user: User) -> VendorSettingsResponse:
@@ -770,3 +863,32 @@ async def resolve_support_ticket(
     await db.flush()
     await db.refresh(ticket, attribute_names=["replies"])
     return _ticket_response(ticket)
+
+
+async def pay_invoice(
+    db: AsyncSession, user: User, order_id: uuid.UUID, data: VendorInvoicePayRequest
+) -> VendorInvoiceRecord:
+    _ensure_vendor(user)
+    order = (
+        await db.execute(
+            select(Order).where(Order.id == order_id, Order.customer_id == user.id)
+        )
+    ).scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
+    if order.payment_status == "paid":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invoice already paid")
+
+    current_paid = getattr(order, 'paid_amount', 0) or 0
+    new_paid = min(current_paid + float(data.amount), order.total_amount)
+    order.paid_amount = new_paid
+
+    if new_paid >= order.total_amount:
+        order.payment_status = "paid"
+    else:
+        order.payment_status = "partial"
+
+    db.add(order)
+    await db.flush()
+    await db.refresh(order)
+    return _invoice_record(order, datetime.now())

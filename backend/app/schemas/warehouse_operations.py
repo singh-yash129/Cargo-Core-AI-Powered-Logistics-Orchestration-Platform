@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 # ======================
 
 WAREHOUSE_SUBSTATUSES = {
+    "AWAITING_INBOUND",
     "AWAITING_PICK",
     "PICKING",
     "PICKED",
@@ -22,15 +23,16 @@ WAREHOUSE_SUBSTATUSES = {
 }
 
 WAREHOUSE_SUBSTATUS_TRANSITIONS = {
+    "AWAITING_INBOUND": {"AWAITING_PICK", "ON_HOLD"},
     "AWAITING_PICK": {"PICKING", "ON_HOLD"},
-    "PICKING": {"PICKED", "ON_HOLD"},
-    "PICKED": {"PACKING", "ON_HOLD"},
-    "PACKING": {"PACKED", "ON_HOLD"},
-    "PACKED": {"QC_PASSED", "ON_HOLD"},
-    "QC_PASSED": {"READY_FOR_DISPATCH", "ON_HOLD"},
+    "PICKING": {"PICKED", "ON_HOLD", "AWAITING_PICK"},
+    "PICKED": {"PACKING", "ON_HOLD", "PICKING"},
+    "PACKING": {"PACKED", "ON_HOLD", "PICKED"},
+    "PACKED": {"QC_PASSED", "ON_HOLD", "PACKING"},
+    "QC_PASSED": {"READY_FOR_DISPATCH", "ON_DOCK", "ON_HOLD"},
     "READY_FOR_DISPATCH": {"ON_DOCK", "ON_HOLD"},
     "ON_DOCK": {"DISPATCHED", "ON_HOLD"},
-    "ON_HOLD": {"AWAITING_PICK", "PICKING", "PACKING"},
+    "ON_HOLD": {"AWAITING_INBOUND", "AWAITING_PICK", "PICKING", "PACKING"},
     "DISPATCHED": set(),
 }
 
@@ -173,7 +175,8 @@ class LoadingDockResponse(BaseModel):
     warehouse_id: UUID
     dock_number: str
     status: str
-    assigned_truck_id: str | None
+    assigned_vehicle_id: UUID | None = None
+    assigned_vehicle_code: str | None = None  # derived from vehicle relationship
     assigned_carrier: str | None
     assigned_order_id: UUID | None
     assigned_order_tracking: str | None = None
@@ -191,7 +194,7 @@ class LoadingDockCreate(BaseModel):
 
 
 class AssignTruckRequest(BaseModel):
-    truck_id: str = Field(..., min_length=1, max_length=50)
+    vehicle_id: UUID  # proper FK to logistics_vehicles
     carrier: str = Field(..., min_length=1, max_length=100)
     order_id: UUID | None = None
 

@@ -268,9 +268,11 @@ import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
 import IdCard from '@/components/IdCard.vue'
 import { useWarehouseFloorStore } from '@/stores/warehouseFloorStore'
+import { useLogisticStore } from '@/stores/logisticStore'
 import { getEffectiveWarehouseSubstatus, isWarehouseOrderAccepted } from '@/utils/warehouseOrderState'
 
 const store = useWarehouseFloorStore()
+const logisticStore = useLogisticStore()
 
 // State for User Menu and Modals
 const isUserMenuOpen = ref(false)
@@ -327,13 +329,14 @@ const authStore = useAuthStore()
 
 const handleLogout = async () => {
     showLogoutConfirm.value = false
-    await authStore.logout()
-    router.replace('/login')
+    const loginPath = authStore.logout()
+    router.replace(loginPath)
 }
 
 // Live badge counts
-const pendingOrdersBadge = ref(null)
 const inboundBadge = ref(null)
+// Track order IDs we've already notified about so we don't re-notify on refresh
+const notifiedOrderIds = ref(new Set())
 
 async function fetchSidebarBadges() {
     try {
@@ -348,33 +351,41 @@ async function fetchSidebarBadges() {
             fetch('http://localhost:8000/api/v1/orders?page=1&page_size=50&status_filter=CONFIRMED', { headers })
         ])
 
-        // New Orders badge = only brand-new DRAFT orders awaiting warehouse action
+        // New Orders → push to notification bell instead of sidebar badge
         if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
             const data = await ordersRes.value.json()
             const orders = (data.items || []).filter(o =>
                 warehouseId ? o.warehouse_id === warehouseId : true
             )
-            const pendingCount = orders.filter(o =>
-                o.status === 'DRAFT' || (
+            const newOrders = orders.filter(o =>
+                (o.status === 'DRAFT' || (
                     o.status === 'CONFIRMED' &&
                     !isWarehouseOrderAccepted(o, warehouseId) &&
                     (!getEffectiveWarehouseSubstatus(o, warehouseId) || getEffectiveWarehouseSubstatus(o, warehouseId) === 'AWAITING_PICK')
-                )
-            ).length
-            pendingOrdersBadge.value = pendingCount > 0 ? String(pendingCount) : null
+                )) && !notifiedOrderIds.value.has(o.id)
+            )
+            newOrders.forEach(o => {
+                notifiedOrderIds.value.add(o.id)
+                logisticStore.notifications.unshift({
+                    id: `new-order-${o.id}`,
+                    title: 'New Order Received',
+                    message: `Order ${o.tracking_code} is awaiting warehouse processing.`,
+                    time: 'Just now',
+                    read: false,
+                    type: 'order',
+                })
+            })
         }
 
-        // Inbound badge = vendor-side confirmed orders only
+        // Inbound badge = vendor orders not yet received (no warehouse_substatus set)
         if (inboundRes.status === 'fulfilled' && inboundRes.value.ok) {
             const data = await inboundRes.value.json()
             const items = (data.items || []).filter(o =>
-                o.order_type === 'VENDOR' && (warehouseId ? o.warehouse_id === warehouseId : true)
+                o.order_type === 'VENDOR' &&
+                (warehouseId ? o.warehouse_id === warehouseId : true) &&
+                !o.warehouse_substatus
             )
-            const todayInbound = items.filter(o => {
-                if (!o.created_at) return false
-                return new Date(o.created_at).toDateString() === new Date().toDateString()
-            })
-            inboundBadge.value = todayInbound.length > 0 ? String(todayInbound.length) : null
+            inboundBadge.value = items.length > 0 ? String(items.length) : null
         }
     } catch (error) {
         console.warn('Sidebar badge fetch failed:', error)
@@ -383,7 +394,7 @@ async function fetchSidebarBadges() {
 
 const menuItems = computed(() => [
     { label: 'Overview', icon: 'grid_view', route: '/warehouse/dashboard' },
-    { label: 'New Orders', icon: 'orders', route: '/warehouse/new-orders', badge: pendingOrdersBadge.value },
+    { label: 'New Orders', icon: 'orders', route: '/warehouse/new-orders' },
     { label: 'Inventory', icon: 'inventory', route: '/warehouse/inventory' },
     { label: 'Inbound', icon: 'input', route: '/warehouse/inbound', badge: inboundBadge.value },
     { label: 'Floor Plan', icon: 'map', route: '/warehouse/floor-plan' },

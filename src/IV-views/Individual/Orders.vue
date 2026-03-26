@@ -13,6 +13,7 @@
                     class="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-green-500/50 outline-none">
                     <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All</option>
                     <option value="pending" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pending</option>
+                    <option value="dispatched" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Dispatched</option>
                     <option value="in-transit" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Transit</option>
                     <option value="delivered" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delivered</option>
                     <option value="cancelled" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Cancelled</option>
@@ -105,16 +106,28 @@
 
                             <!-- Actions -->
                             <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-200 dark:border-white/5">
-                                <router-link v-if="order.status === 'in-transit'"
+                                <router-link v-if="order.status === 'in-transit' || order.status === 'dispatched'"
                                     :to="'/individual/tracking?orderId=' + order.id"
                                     class="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-sm">gps_fixed</span> Track
                                 </router-link>
+                                <button @click="openSlipWithData('bookingConfirmation', order, authStore.currentUser)"
+                                    class="px-4 py-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-sm font-bold rounded-lg hover:bg-indigo-500/20 transition-colors flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-sm">receipt_long</span> Booking Slip
+                                </button>
+                                <button v-if="order.status === 'delivered'" @click="openSlipWithData('proofOfDelivery', order, authStore.currentUser)"
+                                    class="px-4 py-2 bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-bold rounded-lg hover:bg-green-500/20 transition-colors flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-sm">verified</span> PoD
+                                </button>
+                                <button v-if="order.status === 'delivered'" @click="openSlipWithData('finalTaxInvoice', order, authStore.currentUser)"
+                                    class="px-4 py-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-sm font-bold rounded-lg hover:bg-blue-500/20 transition-colors flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-sm">request_quote</span> Invoice
+                                </button>
                                 <button v-if="order.status === 'pending'" @click="showRescheduleModal(order)"
                                     class="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-sm">schedule</span> Reschedule
                                 </button>
-                                <button v-if="order.status === 'pending' || order.status === 'in-transit'"
+                                <button v-if="order.status === 'pending' || order.status === 'dispatched' || order.status === 'in-transit'"
                                     @click="showCancelModal(order)"
                                     class="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-sm">cancel</span> Cancel Order
@@ -229,9 +242,13 @@
 <script setup>
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useIndividualStore } from '@/stores/individualStore'
+import { useAuthStore } from '@/stores/authStore'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
 import BaseModal from '@/components/BaseModal.vue'
 
 const store = useIndividualStore()
+const authStore = useAuthStore()
+const { openSlipWithData } = useSlipPrinter()
 const search = ref('')
 const statusFilter = ref('all')
 const expandedOrder = ref(null)
@@ -252,9 +269,9 @@ watch(statusFilter, () => {
     store.fetchOrders(statusFilter.value)
 })
 
-function statusIcon(st) { return { 'delivered': 'check_circle', 'in-transit': 'local_shipping', 'pending': 'schedule', 'cancelled': 'cancel' }[st] || 'package_2' }
-function statusBg(st) { return { 'delivered': 'bg-green-500/20 text-green-500', 'in-transit': 'bg-blue-500/20 text-blue-500', 'pending': 'bg-amber-500/20 text-amber-500', 'cancelled': 'bg-red-500/20 text-red-500' }[st] || '' }
-function statusBadge(st) { return { 'delivered': 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400', 'in-transit': 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', 'pending': 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400', 'cancelled': 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' }[st] || '' }
+function statusIcon(st) { return { 'delivered': 'check_circle', 'in-transit': 'local_shipping', 'dispatched': 'person_pin_circle', 'pending': 'schedule', 'cancelled': 'cancel' }[st] || 'package_2' }
+function statusBg(st) { return { 'delivered': 'bg-green-500/20 text-green-500', 'in-transit': 'bg-blue-500/20 text-blue-500', 'dispatched': 'bg-purple-500/20 text-purple-500', 'pending': 'bg-amber-500/20 text-amber-500', 'cancelled': 'bg-red-500/20 text-red-500' }[st] || '' }
+function statusBadge(st) { return { 'delivered': 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400', 'in-transit': 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', 'dispatched': 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400', 'pending': 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400', 'cancelled': 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' }[st] || '' }
 
 // Cancel
 const cancelModal = reactive({ show: false, order: null })

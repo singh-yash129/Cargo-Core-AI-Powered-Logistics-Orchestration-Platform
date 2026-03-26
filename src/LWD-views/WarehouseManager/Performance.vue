@@ -259,17 +259,30 @@ const filteredOrders = computed(() => {
 const totalOrders = computed(() => filteredOrders.value.length)
 
 // Use warehouse_substatus for warehouse-specific metrics
+// Use warehouse_substatus for warehouse-specific metrics; fall back to order.status
+function getSubstatus(o) {
+    return o.warehouse_substatus || null
+}
+function matchesStage(o, ...substatuses) {
+    const sub = getSubstatus(o)
+    return substatuses.some(s => o.warehouse_substatus === s)
+}
+
 const packedOrders = computed(() => filteredOrders.value.filter(o =>
     o.warehouse_substatus === 'PACKED' ||
     o.warehouse_substatus === 'DISPATCHED' ||
     o.status === 'DELIVERED' ||
-    o.status === 'CLOSED'
+    o.status === 'CLOSED' ||
+    // Fall back: treat IN_TRANSIT as dispatched when no substatus set
+    (!o.warehouse_substatus && (o.status === 'IN_TRANSIT' || o.status === 'DISPATCHED'))
 ).length)
 
 const pendingOrders = computed(() => filteredOrders.value.filter(o =>
     o.warehouse_substatus === 'AWAITING_PICK' ||
     o.status === 'PENDING' ||
-    o.status === 'CONFIRMED'
+    o.status === 'CONFIRMED' ||
+    // Fall back: orders confirmed but not yet in flow
+    (!o.warehouse_substatus && o.status === 'CONFIRMED')
 ).length)
 
 const onHoldOrders = computed(() => filteredOrders.value.filter(o =>
@@ -321,15 +334,51 @@ const laborBreakdown = computed(() => [
 ])
 
 const orderPipeline = computed(() => [
-    { label: 'Awaiting Pick', count: filteredOrders.value.filter(o => o.warehouse_substatus === 'AWAITING_PICK').length, color: 'text-yellow-600 dark:text-yellow-400', barColor: 'bg-yellow-500' },
-    { label: 'Picking', count: filteredOrders.value.filter(o => o.warehouse_substatus === 'PICKING').length, color: 'text-blue-600 dark:text-blue-400', barColor: 'bg-blue-500' },
-    { label: 'Picked', count: filteredOrders.value.filter(o => o.warehouse_substatus === 'PICKED').length, color: 'text-cyan-600 dark:text-cyan-400', barColor: 'bg-cyan-500' },
-    { label: 'Packing', count: packingOrders.value, color: 'text-purple-600 dark:text-purple-400', barColor: 'bg-purple-500' },
-    { label: 'Packed', count: filteredOrders.value.filter(o => o.warehouse_substatus === 'PACKED').length, color: 'text-indigo-600 dark:text-indigo-400', barColor: 'bg-indigo-500' },
-    { label: 'QC Passed', count: qcPassedOrders.value, color: 'text-teal-600 dark:text-teal-400', barColor: 'bg-teal-500' },
-    { label: 'On Dock', count: onDockOrders.value, color: 'text-pink-600 dark:text-pink-400', barColor: 'bg-pink-500' },
-    { label: 'Dispatched', count: filteredOrders.value.filter(o => o.warehouse_substatus === 'DISPATCHED').length, color: 'text-green-600 dark:text-green-400', barColor: 'bg-green-500' },
-    { label: 'On Hold', count: onHoldOrders.value, color: 'text-orange-600 dark:text-orange-400', barColor: 'bg-orange-500' },
+    {
+        label: 'Awaiting Pick',
+        count: filteredOrders.value.filter(o => o.warehouse_substatus === 'AWAITING_PICK' || (!o.warehouse_substatus && o.status === 'CONFIRMED')).length,
+        color: 'text-yellow-600 dark:text-yellow-400', barColor: 'bg-yellow-500'
+    },
+    {
+        label: 'Picking',
+        count: filteredOrders.value.filter(o => o.warehouse_substatus === 'PICKING' || (!o.warehouse_substatus && o.status === 'ASSIGNED')).length,
+        color: 'text-blue-600 dark:text-blue-400', barColor: 'bg-blue-500'
+    },
+    {
+        label: 'Picked',
+        count: filteredOrders.value.filter(o => o.warehouse_substatus === 'PICKED').length,
+        color: 'text-cyan-600 dark:text-cyan-400', barColor: 'bg-cyan-500'
+    },
+    {
+        label: 'Packing',
+        count: packingOrders.value,
+        color: 'text-purple-600 dark:text-purple-400', barColor: 'bg-purple-500'
+    },
+    {
+        label: 'Packed',
+        count: filteredOrders.value.filter(o => o.warehouse_substatus === 'PACKED').length,
+        color: 'text-indigo-600 dark:text-indigo-400', barColor: 'bg-indigo-500'
+    },
+    {
+        label: 'QC Passed',
+        count: qcPassedOrders.value,
+        color: 'text-teal-600 dark:text-teal-400', barColor: 'bg-teal-500'
+    },
+    {
+        label: 'On Dock',
+        count: onDockOrders.value,
+        color: 'text-pink-600 dark:text-pink-400', barColor: 'bg-pink-500'
+    },
+    {
+        label: 'Dispatched',
+        count: filteredOrders.value.filter(o => o.warehouse_substatus === 'DISPATCHED' || (!o.warehouse_substatus && (o.status === 'IN_TRANSIT' || o.status === 'DELIVERED' || o.status === 'CLOSED'))).length,
+        color: 'text-green-600 dark:text-green-400', barColor: 'bg-green-500'
+    },
+    {
+        label: 'On Hold',
+        count: onHoldOrders.value,
+        color: 'text-orange-600 dark:text-orange-400', barColor: 'bg-orange-500'
+    },
 ])
 
 const primaryKPIs = computed(() => [

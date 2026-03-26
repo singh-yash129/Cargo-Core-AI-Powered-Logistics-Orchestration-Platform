@@ -29,6 +29,17 @@
             <div class="mt-2 text-gray-600 dark:text-gray-400">Loading dock status...</div>
         </div>
 
+        <!-- Error / Empty State -->
+        <div v-else-if="fetchError || docks.length === 0" class="glass-panel p-10 rounded-xl text-center">
+            <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">dock</span>
+            <div class="mt-3 text-lg font-semibold text-gray-700 dark:text-gray-300">
+                {{ fetchError || 'No loading docks found' }}
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Docks are created by the Logistics Manager from the fleet management panel.
+            </div>
+        </div>
+
         <div v-else>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- Dock Status Cards -->
@@ -44,10 +55,6 @@
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-600 dark:text-gray-400">Truck:</span>
                             <span class="text-gray-900 dark:text-white font-mono">{{ dock.truck || '--' }}</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-600 dark:text-gray-400">Carrier:</span>
-                            <span class="text-gray-900 dark:text-white">{{ dock.carrier || '--' }}</span>
                         </div>
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-600 dark:text-gray-400">Progress:</span>
@@ -98,7 +105,7 @@
                             class="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 py-2 rounded text-xs font-bold transition-colors">Clear
                             Maintenance</button>
                         <button @click="openSettingsModal(dock)"
-                            class="px-3 py-2 bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-colors"><span
+                            class="px-3 py-2 bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"><span
                                 class="material-symbols-outlined text-sm">settings</span></button>
                     </div>
                 </div>
@@ -152,33 +159,36 @@
                     </div>
                     <div class="p-6 space-y-4">
                         <div>
-                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Truck ID</label>
-                            <input type="text" v-model="assignForm.truck" placeholder="TRK-XXXX"
-                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono" />
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Carrier</label>
-                            <select v-model="assignForm.carrier"
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Vehicle</label>
+                            <select v-if="fleetVehicles.length" v-model="assignForm.truck"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">UPS Freight</option>
-                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">FedEx Ground</option>
-                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">DHL Express</option>
-                                <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Internal Fleet</option>
+                                <option value="">— Select vehicle —</option>
+                                <option v-for="v in availableVehicles" :key="v.id" :value="v.id"
+                                    class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                                    {{ v.code }}{{ v.license_plate ? ' · ' + v.license_plate : '' }} — {{ v.type }}{{ v.status !== 'Active' ? ' (' + v.status + ')' : '' }}
+                                </option>
                             </select>
+                            <input v-else type="text" v-model="assignForm.truck" placeholder="TRK-XXXX"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 font-mono" />
                         </div>
                         <div>
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Dispatch Order</label>
                             <select v-model="assignForm.orderId"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option value="">Truck only</option>
-                                <option v-for="order in outboundOrders" :key="order.id" :value="order.id">
+                                <option value="" disabled>— Select Order (required) —</option>
+                                <option v-for="order in availableOrders" :key="order.id" :value="order.id">
                                     {{ order.tracking }} - {{ order.status }}
                                 </option>
                             </select>
                         </div>
-                        <button @click="confirmAssign" :disabled="!assignForm.truck"
+                        <button @click="confirmAssign" :disabled="!assignForm.truck || !assignForm.orderId"
                             class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors disabled:opacity-50">Assign
                             to Dock</button>
+                        <button @click="openSlip('assetCheckout')"
+                            class="w-full flex items-center justify-center gap-2 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-bold transition-colors">
+                            <span class="material-symbols-outlined text-[16px]">inventory_2</span>
+                            Print Asset Checkout Slip
+                        </button>
                     </div>
                 </div>
             </div>
@@ -322,6 +332,9 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { getEffectiveWarehouseSubstatus, patchWarehouseOrderUiState } from '@/utils/warehouseOrderState'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+
+const { openSlip } = useSlipPrinter()
 
 const authStore = useAuthStore()
 
@@ -343,6 +356,8 @@ const settingsForm = reactive({ status: 'Free' })
 // Dynamic docks generated from warehouse capacity info
 const docks = ref([])
 const outboundOrders = ref([])
+const fleetVehicles = ref([])
+const fetchError = ref('')
 
 const verifyChecklist = ref([
     { label: 'All items scanned and loaded', checked: false },
@@ -354,6 +369,25 @@ const verifyChecklist = ref([
 ])
 
 const allChecked = computed(() => verifyChecklist.value.every(item => item.checked))
+
+const availableVehicles = computed(() => {
+    const assignedVehicleIds = new Set(
+        docks.value
+            .filter(d => d.status === 'Occupied' && d.vehicleId && d.rawId !== assignDock.value?.rawId)
+            .map(d => String(d.vehicleId))
+    )
+    return fleetVehicles.value.filter(v => v.status === 'Active' && !assignedVehicleIds.has(String(v.id)))
+})
+
+const availableOrders = computed(() => {
+    const assignedOrderIds = new Set(
+        docks.value
+            .filter(d => d.status === 'Occupied' && d.assignedOrderId && d.id !== assignDock.value?.id)
+            .map(d => d.assignedOrderId)
+    )
+    return outboundOrders.value.filter(o => !assignedOrderIds.has(o.id))
+})
+
 const avgDwell = computed(() => {
     const occupied = docks.value.filter(d => d.status === 'Occupied')
     if (!occupied.length) return 0
@@ -376,12 +410,6 @@ function getWarehouseId() {
     return authStore.currentWarehouse?.id || authStore.currentUser?.warehouse_id
 }
 
-// Calculate dwell minutes from timestamps
-function getDwellMinutes(arrivedAt) {
-    if (!arrivedAt) return 0
-    const diff = Date.now() - new Date(arrivedAt).getTime()
-    return Math.floor(diff / 60000)
-}
 
 function getEfficiency(dwell) {
     if (dwell <= 20) return 'Excellent'
@@ -395,10 +423,10 @@ async function fetchDockData() {
     loading.value = true
     const warehouseId = getWarehouseId()
 
+    fetchError.value = ''
     try {
         if (!warehouseId) {
-            console.error('No warehouse_id found')
-            initDefaultDocks()
+            fetchError.value = 'No warehouse linked to your account.'
             return
         }
 
@@ -415,28 +443,26 @@ async function fetchDockData() {
         // Process docks from API
         if (docksRes.status === 'fulfilled' && docksRes.value.ok) {
             const data = await docksRes.value.json()
-            if (data.items && data.items.length > 0) {
-                docks.value = data.items.map(dock => ({
-                    id: dock.dock_number,
-                    rawId: dock.id,
-                    status: dock.status === 'OCCUPIED' ? 'Occupied' : dock.status === 'MAINTENANCE' ? 'Maintenance' : 'Free',
-                    truck: dock.assigned_truck_id,
-                    carrier: dock.assigned_carrier,
-                    progress: dock.status === 'OCCUPIED' ? Math.min(90, Math.floor((dock.dwell_minutes / 60) * 100)) : 0,
-                    statusClass: dock.status === 'OCCUPIED' ? 'bg-yellow-500' : dock.status === 'MAINTENANCE' ? 'bg-red-500' : 'bg-green-500',
-                    badgeClass: dock.status === 'OCCUPIED' ? 'bg-yellow-500' : dock.status === 'MAINTENANCE' ? 'bg-red-500 text-white' : 'bg-green-500',
-                    arrivedAt: formatTime(dock.arrived_at),
-                    loadingSince: formatTime(dock.loading_started_at),
-                    dwellMinutes: dock.dwell_minutes || 0,
-                    efficiency: getEfficiency(dock.dwell_minutes || 0),
-                    assignedOrderId: dock.assigned_order_id,
-                    assignedOrderTracking: dock.assigned_order_tracking
-                }))
-            } else {
-                initDefaultDocks(6)
-            }
+            docks.value = (data.items || []).map(dock => ({
+                id: dock.dock_number,
+                rawId: dock.id,
+                status: dock.status === 'OCCUPIED' ? 'Occupied' : dock.status === 'MAINTENANCE' ? 'Maintenance' : 'Free',
+                truck: dock.assigned_vehicle_code,
+                vehicleId: dock.assigned_vehicle_id,
+                carrier: dock.assigned_carrier,
+                progress: dock.status === 'OCCUPIED' ? Math.min(90, Math.floor((dock.dwell_minutes / 60) * 100)) : 0,
+                statusClass: dock.status === 'OCCUPIED' ? 'bg-yellow-500' : dock.status === 'MAINTENANCE' ? 'bg-red-500' : 'bg-green-500',
+                badgeClass: dock.status === 'OCCUPIED' ? 'bg-yellow-500' : dock.status === 'MAINTENANCE' ? 'bg-red-500 text-white' : 'bg-green-500',
+                arrivedAt: formatTime(dock.arrived_at),
+                loadingSince: formatTime(dock.loading_started_at),
+                dwellMinutes: dock.dwell_minutes || 0,
+                efficiency: getEfficiency(dock.dwell_minutes || 0),
+                assignedOrderId: dock.assigned_order_id,
+                assignedOrderTracking: dock.assigned_order_tracking
+            }))
         } else {
-            initDefaultDocks(6)
+            fetchError.value = 'Failed to load docks from server.'
+            docks.value = []
         }
 
         // Get outbound orders (PACKED or QC_PASSED)
@@ -460,34 +486,13 @@ async function fetchDockData() {
 
     } catch (error) {
         console.error('Error fetching dock data:', error)
-        initDefaultDocks(6)
+        fetchError.value = 'Could not connect to server.'
+        docks.value = []
     } finally {
         loading.value = false
     }
 }
 
-// Initialize dock cards (static structure, dynamic data fills in)
-function initDefaultDocks(count = 6) {
-    docks.value = Array.from({ length: count }, (_, i) => ({
-        id: String(i + 1),
-        status: 'Free',
-        truck: null,
-        carrier: null,
-        progress: 0,
-        statusClass: 'bg-green-500',
-        badgeClass: 'bg-green-500',
-        arrivedAt: null,
-        loadingSince: null,
-        dwellMinutes: 0,
-        efficiency: '--'
-    }))
-    // One maintenance dock
-    if (docks.value.length >= 3) {
-        docks.value[2].status = 'Maintenance'
-        docks.value[2].statusClass = 'bg-red-500'
-        docks.value[2].badgeClass = 'bg-red-500 text-white'
-    }
-}
 
 function openVerifyModal(dock) {
     verifyDock.value = dock
@@ -526,25 +531,10 @@ async function completeDock() {
             trucksLoaded.value++
             showVerifyModal.value = false
             showToast(`Dock ${verifyDock.value?.id} — Truck released!`)
-            await fetchDockData()
+            await Promise.all([fetchDockData(), fetchFleetVehicles()])
         } else {
-            // Fallback to local update
-            verifyDock.value.status = 'Free'
-            verifyDock.value.truck = null
-            verifyDock.value.carrier = null
-            verifyDock.value.progress = 0
-            verifyDock.value.statusClass = 'bg-green-500'
-            verifyDock.value.badgeClass = 'bg-green-500'
-            verifyDock.value.dwellMinutes = 0
-            if (verifyDock.value.assignedOrderId) {
-                patchWarehouseOrderUiState(warehouseId, verifyDock.value.assignedOrderId, {
-                    accepted: true,
-                    warehouse_substatus: 'DISPATCHED',
-                })
-            }
-            trucksLoaded.value++
-            showVerifyModal.value = false
-            showToast(`Dock ${verifyDock.value?.id} — Truck released!`)
+            const errData = await response.json().catch(() => ({}))
+            showToast(`Failed to release dock: ${errData.detail || response.statusText}`)
         }
     } catch (error) {
         console.error('Error releasing dock:', error)
@@ -572,8 +562,8 @@ async function confirmAssign() {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                truck_id: assignForm.truck,
-                carrier: assignForm.carrier,
+                vehicle_id: assignForm.truck,
+                carrier: assignForm.carrier || 'Internal Fleet',
                 order_id: assignForm.orderId || null
             })
         })
@@ -587,29 +577,13 @@ async function confirmAssign() {
             }
             showAssignModal.value = false
             showToast(`${assignForm.truck} assigned to Dock ${assignDock.value?.id}`)
-            await fetchDockData()
+            await Promise.all([fetchDockData(), fetchFleetVehicles()])
         } else {
-            // Fallback to local update
-            const now = new Date()
-            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-            assignDock.value.status = 'Occupied'
-            assignDock.value.truck = assignForm.truck
-            assignDock.value.carrier = assignForm.carrier
-            assignDock.value.progress = 0
-            assignDock.value.statusClass = 'bg-yellow-500'
-            assignDock.value.badgeClass = 'bg-yellow-500'
-            assignDock.value.arrivedAt = timeStr
-            assignDock.value.loadingSince = timeStr
-            assignDock.value.dwellMinutes = 0
-            assignDock.value.efficiency = 'Just Started'
-            if (assignForm.orderId) {
-                patchWarehouseOrderUiState(warehouseId, assignForm.orderId, {
-                    accepted: true,
-                    warehouse_substatus: 'ON_DOCK',
-                })
-            }
-            showAssignModal.value = false
-            showToast(`${assignForm.truck} assigned to Dock ${assignDock.value?.id}`)
+            const errData = await response.json().catch(() => ({}))
+            const msg = Array.isArray(errData.detail)
+                ? errData.detail.map(e => e.msg || JSON.stringify(e)).join(', ')
+                : (errData.detail || response.statusText)
+            showToast(`Failed to assign truck: ${msg}`)
         }
     } catch (error) {
         console.error('Error assigning truck:', error)
@@ -640,7 +614,22 @@ function clearMaintenance(dock) {
     showToast(`Dock ${dock.id} — maintenance cleared`)
 }
 
+async function fetchFleetVehicles() {
+    try {
+        const res = await fetch('http://localhost:8000/api/v1/logistics/vehicles', {
+            headers: { 'Authorization': `Bearer ${authStore.authToken}` }
+        })
+        if (res.ok) {
+            const data = await res.json()
+            fleetVehicles.value = Array.isArray(data) ? data : (data.items || [])
+        }
+    } catch (e) {
+        console.warn('Could not fetch fleet vehicles', e)
+    }
+}
+
 onMounted(() => {
     fetchDockData()
+    fetchFleetVehicles()
 })
 </script>

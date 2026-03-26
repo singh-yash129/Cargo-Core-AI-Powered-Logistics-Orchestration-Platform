@@ -22,6 +22,9 @@ class LogisticsHubItem(BaseModel):
     hub_code: str
     name: str
     location: str
+    address: str | None = None
+    lat: float | None = None
+    lng: float | None = None
     manager: str
     manager_initials: str
     capacity: int
@@ -44,6 +47,10 @@ class LogisticsDriverItem(BaseModel):
     location: str | None
     vehicle: str | None
     efficiency: int
+    rating: float = 4.8
+    safety_incidents: int = 0
+    fuel_efficiency_score: str = "8.2 mpg"
+    avg_speed: str = "55 mph"
     phone: str | None
     current_job: str | None
     avatar_color: str | None
@@ -64,6 +71,12 @@ class LogisticsVehicleItem(BaseModel):
     mileage: int
     next_service: str | None
     maintenance_issue: str | None = None
+    fuel_level_pct: int | None = None
+    range_km: int | None = None
+    seat_capacity: int | None = None
+    cargo_capacity_tons: float | None = None
+    telemetry_status: str | None = None
+    telemetry_last_seen: datetime | None = None
 
 
 class LogisticsMaintenanceItem(BaseModel):
@@ -190,6 +203,16 @@ class LogisticsTaskItem(BaseModel):
     remaining: str = ""
 
 
+class LogisticsEquipmentItem(BaseModel):
+    id: UUID
+    hub_id: UUID | None
+    item_type: str
+    issued_count: int
+    returned_count: int
+    reference_code: str | None = None
+    status: str
+
+
 class LogisticsReportItem(BaseModel):
     id: str
     hub_id: UUID | str | None
@@ -230,6 +253,7 @@ class LogisticsBootstrapResponse(BaseModel):
     report_damage_claims: list[dict] = Field(default_factory=list)
     report_security_logs: list[dict] = Field(default_factory=list)
     report_metrics: dict = Field(default_factory=dict)
+    equipment_ledger: list[LogisticsEquipmentItem] = Field(default_factory=list)
 
 
 class LogisticsVehicleCreate(BaseModel):
@@ -260,6 +284,23 @@ class LogisticsVehicleUpdate(BaseModel):
     maintenance_issue: str | None = None
 
 
+class LogisticsDriverCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    email: str = Field(..., min_length=5, max_length=255)
+    phone: str | None = None
+    warehouse_id: UUID | None = None
+    status: str = "Active"
+    current_location: str | None = None
+
+
+class LogisticsDriverUpdate(BaseModel):
+    status: str | None = None
+    current_location: str | None = None
+    current_job: str | None = None
+    warehouse_id: UUID | None = None
+    efficiency_score: int | None = None
+
+
 class LogisticsTransactionCreate(BaseModel):
     warehouse_id: UUID | None = None
     description: str = Field(..., min_length=2, max_length=255)
@@ -267,6 +308,14 @@ class LogisticsTransactionCreate(BaseModel):
     amount: float
     status: str = "Completed"
     metadata_json: dict | None = None
+
+
+class CapitalInvestmentCreate(BaseModel):
+    amount: float = Field(..., gt=0)
+    description: str = Field(..., min_length=2, max_length=255)
+    funding_source: str = Field(default="OFFLINE_CAPITAL", max_length=30)
+    warehouse_id: UUID | None = None
+    investment_date: str | None = None
 
 
 class LogisticsReturnCaseUpdate(BaseModel):
@@ -306,6 +355,37 @@ class LogisticsNotificationUpdate(BaseModel):
     read: bool
 
 
+class LogisticsDocumentItem(BaseModel):
+    id: UUID
+    entity_type: str
+    entity_id: str
+    hub_id: UUID | None = None
+    doc_type: str
+    document_url: str | None = None
+    status: str
+    expiry_date: datetime | None = None
+    notes: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class LogisticsDocumentCreate(BaseModel):
+    entity_type: str = Field(..., min_length=2, max_length=50)
+    entity_id: str = Field(..., min_length=2, max_length=50)
+    hub_id: UUID | None = None
+    doc_type: str = Field(..., min_length=2, max_length=100)
+    document_url: str | None = None
+    expiry_date: datetime | None = None
+
+
+class LogisticsDocumentUpdateStatus(BaseModel):
+    status: str = Field(..., min_length=2, max_length=50)
+    notes: str | None = None
+
+
 class LogisticsAiQueryRequest(BaseModel):
     query: str = Field(..., min_length=2)
 
@@ -313,3 +393,93 @@ class LogisticsAiQueryRequest(BaseModel):
 class LogisticsAiQueryResponse(BaseModel):
     text: str
     data: dict | None = None
+
+
+class DriverValidationItem(BaseModel):
+    id: str
+    label: str
+    status: str
+    ok: bool
+    icon: str
+
+
+class DriverShiftSummary(BaseModel):
+    shift_code: str
+    status: str
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    warehouse_name: str | None = None
+    active_order_count: int = 0
+    last_vehicle_code: str | None = None
+    profile_stats: dict = Field(default_factory=dict)
+    validations: list[DriverValidationItem] = Field(default_factory=list)
+
+
+class DriverHosSummary(BaseModel):
+    used_minutes: int
+    remaining_minutes: int
+    max_minutes: int = 14 * 60
+    progress_percent: int
+    used_label: str
+    remaining_label: str
+    max_label: str
+    warning_level: str = "ok"
+
+
+class DriverCrewMemberItem(BaseModel):
+    labourer_id: UUID
+    user_id: UUID
+    name: str
+    role: str
+    phone: str | None = None
+    status: str
+    checked_in: bool = False
+    check_in_time: str | None = None
+    photo: str | None = None
+
+
+class DriverTelemetryResponse(BaseModel):
+    gps_live: bool
+    latitude: float | None = None
+    longitude: float | None = None
+    speed_kmh: int = 0
+    distance_covered_km: float = 0
+    fuel_level_pct: int | None = None
+    range_km: int | None = None
+    odometer_km: int | None = None
+    capacity_tons: float | None = None
+    seat_capacity: int | None = None
+    vehicle_id: UUID | None = None
+    vehicle_code: str | None = None
+    telemetry_status: str | None = None
+    last_updated: datetime | None = None
+
+
+class DriverManifestSummary(BaseModel):
+    route_id: str | None = None
+    date: str
+    total_stops: int
+    completed_stops: int
+    total_distance_km: float
+    estimated_duration_minutes: int
+    estimated_end_time: str
+    zone: str | None = None
+    parcel_count: int = 0
+    crew_count: int = 0
+    current_location_label: str | None = None
+
+
+class DriverDashboardContext(BaseModel):
+    profile: dict = Field(default_factory=dict)
+    shift: DriverShiftSummary
+    hos: DriverHosSummary
+    telemetry: DriverTelemetryResponse
+    manifest: DriverManifestSummary
+    crew: list[DriverCrewMemberItem] = Field(default_factory=list)
+    current_vehicle: LogisticsVehicleItem | None = None
+    current_job: dict | None = None
+
+
+class DriverVehicleBindRequest(BaseModel):
+    vehicle_id: UUID | None = None
+    vehicle_code: str | None = None

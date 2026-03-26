@@ -1,83 +1,125 @@
 <template>
   <Teleport to="body">
-    <!-- Trigger Button -->
+    <!-- Floating Orb Button -->
     <button
-      v-motion
-      :initial="{ scale: 0, opacity: 0 }"
-      :enter="{ scale: 1, opacity: 1, transition: { delay: 500, type: 'spring', stiffness: 260, damping: 20 } }"
       @click="toggleOpen"
-      class="fixed bottom-8 right-8 z-50"
+      class="fixed bottom-8 right-8 z-50 group"
+      aria-label="Open AI Chat"
     >
-      <div
-        class="w-16 h-16 rounded-full bg-gradient-to-br from-[#00C4FF] to-[#1E3A8A] flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-300 shadow-[0_0_24px_rgba(0,196,255,0.35)]"
-      >
-        <HelpCircle class="w-7 h-7 text-white" />
+      <div class="relative w-16 h-16 rounded-full bg-gradient-to-br from-[#00C4FF] to-[#1E3A8A] flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-300 shadow-[0_0_28px_rgba(0,196,255,0.4)]">
+        <!-- Pulse ring when open -->
+        <span v-if="isOpen" class="absolute inset-0 rounded-full animate-ping bg-blue-400 opacity-20"></span>
+        <span class="material-symbols-outlined text-white text-[26px]">{{ isOpen ? 'close' : 'smart_toy' }}</span>
       </div>
-      <span class="absolute -top-1 -left-1 bg-[#00C4FF] text-[10px] text-white font-bold px-1.5 py-0.5 rounded-full leading-none">FAQ</span>
+      <!-- Badge: unread count or label -->
+      <span class="absolute -top-1 -left-1 bg-[#00C4FF] text-[10px] text-white font-bold px-1.5 py-0.5 rounded-full leading-none">
+        {{ unreadCount > 0 ? unreadCount : 'AI' }}
+      </span>
     </button>
 
-    <!-- Q&A Panel -->
-    <Transition name="fade">
+    <!-- Chat Panel -->
+    <Transition name="chat-panel">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-        @click="close"
+        class="fixed bottom-32 right-8 z-50 w-[380px] max-w-[calc(100vw-2rem)] bg-[#07111f]/96 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex flex-col overflow-hidden"
+        style="height: 520px;"
       >
-        <div
-          v-motion
-          :initial="{ scale: 0.95, opacity: 0, y: 30 }"
-          :enter="{ scale: 1, opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 24 } }"
-          class="w-full max-w-md bg-[#07111f]/95 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden"
-          @click.stop
-        >
-          <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#00C4FF] to-[#1E3A8A] flex items-center justify-center">
-                <HelpCircle class="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 class="text-white font-semibold text-sm">Help Centre</h3>
-                <p class="text-white/40 text-xs">Common questions answered</p>
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-white/5 flex-shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#00C4FF] to-[#1E3A8A] flex items-center justify-center">
+              <span class="material-symbols-outlined text-white text-[18px]">smart_toy</span>
+            </div>
+            <div>
+              <h3 class="text-white font-semibold text-sm">Cargo AI Assistant</h3>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                <span class="text-[10px] text-gray-400">Online · Powered by Gemini</span>
               </div>
             </div>
-            <button @click="close" class="p-1.5 rounded-lg hover:bg-white/10 transition-colors duration-300">
-              <X class="w-4 h-4 text-white/60" />
+          </div>
+          <div class="flex items-center gap-1">
+            <button @click="startNewChat" title="New chat" class="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+              <span class="material-symbols-outlined text-white/50 hover:text-white text-[18px]">add_comment</span>
+            </button>
+            <button @click="close" class="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+              <span class="material-symbols-outlined text-white/50 hover:text-white text-[18px]">close</span>
             </button>
           </div>
+        </div>
 
-          <!-- Question List / Answer View -->
-          <div class="max-h-[420px] overflow-y-auto">
-            <!-- Answer view -->
-            <div v-if="activeIndex !== null" class="p-5">
-              <button @click="activeIndex = null" class="flex items-center gap-1.5 text-[#00C4FF] text-xs mb-4 hover:underline">
-                <ChevronLeft class="w-3.5 h-3.5" />
-                Back to questions
-              </button>
-              <p class="text-[#00C4FF] font-semibold text-sm mb-2">{{ faqs[activeIndex].q }}</p>
-              <p class="text-white/75 text-sm leading-relaxed">{{ faqs[activeIndex].a }}</p>
+        <!-- Messages -->
+        <div ref="chatContainer" class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          <!-- Welcome state -->
+          <div v-if="messages.length === 0" class="flex flex-col items-center justify-center h-full gap-3 text-center opacity-70">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00C4FF] to-[#1E3A8A] flex items-center justify-center shadow-lg">
+              <span class="material-symbols-outlined text-white text-2xl">smart_toy</span>
             </div>
+            <p class="text-white/80 font-medium text-sm">Hi! I'm your AI Assistant.</p>
+            <p class="text-white/40 text-xs leading-relaxed max-w-[220px]">Ask me about your orders, bookings, tracking, estimates, or anything about Cargo Core.</p>
+          </div>
 
-            <!-- Question list -->
-            <div v-else class="divide-y divide-white/5">
-              <button
-                v-for="(faq, i) in faqs"
-                :key="i"
-                @click="activeIndex = i"
-                class="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors duration-200 text-left group"
-              >
-                <div class="flex items-start gap-3">
-                  <span class="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-[#00C4FF]/15 text-[#00C4FF] text-xs font-bold flex items-center justify-center">{{ i + 1 }}</span>
-                  <span class="text-white/85 text-sm group-hover:text-white transition-colors">{{ faq.q }}</span>
-                </div>
-                <ChevronRight class="w-4 h-4 text-white/30 group-hover:text-[#00C4FF] flex-shrink-0 ml-2 transition-colors" />
-              </button>
+          <!-- Message bubbles -->
+          <div
+            v-for="(msg, i) in messages"
+            :key="msg.id || i"
+            class="flex gap-2.5"
+            :class="msg.role === 'user' ? 'flex-row-reverse' : ''"
+          >
+            <!-- Avatar -->
+            <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold mt-0.5"
+              :class="msg.role === 'ai' ? 'bg-gradient-to-br from-[#00C4FF] to-[#1E3A8A] text-white' : 'bg-white/10 text-white/70'">
+              {{ msg.role === 'ai' ? 'AI' : 'ME' }}
+            </div>
+            <div class="max-w-[78%] space-y-1">
+              <div class="px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed"
+                :class="msg.role === 'ai'
+                  ? 'bg-white/8 border border-white/10 rounded-tl-none text-white/90'
+                  : 'bg-[#00C4FF]/20 border border-[#00C4FF]/30 rounded-tr-none text-white'">
+                <span v-html="msg.text"></span>
+              </div>
+              <div class="text-[10px] text-white/30 px-1" :class="msg.role === 'user' ? 'text-right' : ''">{{ msg.time }}</div>
             </div>
           </div>
 
-          <!-- Footer -->
-          <div class="px-5 py-3 border-t border-white/10 bg-white/5 text-center text-white/30 text-xs">
-            Cargo Core · Support Docs
+          <!-- Typing indicator -->
+          <div v-if="isTyping" class="flex gap-2.5 animate-pulse">
+            <div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#00C4FF] to-[#1E3A8A] flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white">AI</div>
+            <div class="bg-white/8 border border-white/10 px-4 py-3 rounded-2xl rounded-tl-none flex items-center gap-1">
+              <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style="animation-delay:0ms"></span>
+              <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style="animation-delay:150ms"></span>
+              <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style="animation-delay:300ms"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Suggestion chips -->
+        <div v-if="messages.length === 0" class="px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar">
+          <button
+            v-for="chip in defaultChips"
+            :key="chip"
+            @click="sendChip(chip)"
+            class="whitespace-nowrap text-[11px] px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white/60 hover:text-white transition-colors flex-shrink-0"
+          >{{ chip }}</button>
+        </div>
+
+        <!-- Input -->
+        <div class="px-4 py-3 border-t border-white/10 bg-white/3 flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <input
+              v-model="userInput"
+              @keydown.enter.exact.prevent="handleSend"
+              type="text"
+              placeholder="Type a message…"
+              class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#00C4FF]/50 transition-colors"
+            />
+            <button
+              @click="handleSend"
+              :disabled="!userInput.trim() || isTyping"
+              class="w-9 h-9 flex items-center justify-center bg-[#00C4FF] hover:bg-[#00b3eb] rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+            >
+              <span class="material-symbols-outlined text-white text-[16px]">send</span>
+            </button>
           </div>
         </div>
       </div>
@@ -86,58 +128,106 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { HelpCircle, X, ChevronRight, ChevronLeft } from 'lucide-vue-next';
+import { ref, nextTick, computed } from 'vue'
+import { sendChat } from '@/utils/aiApi'
 
-const isOpen = ref(false);
-const activeIndex = ref(null);
+const isOpen = ref(false)
+const userInput = ref('')
+const isTyping = ref(false)
+const chatContainer = ref(null)
+const messages = ref([])
+const sessionId = ref(null)
 
-const faqs = [
-  {
-    q: 'How do I log in to Cargo Core?',
-    a: 'Select your role on the login page (Customer, Vendor, Manager, etc.), then enter your registered email and password. After successful login you will receive a one-time OTP on your email for 2-factor verification.',
-  },
-  {
-    q: 'I forgot my password. How do I reset it?',
-    a: 'Click "Forgot Password?" on the login screen, enter your registered email address, and we will send you a 6-digit verification code. Enter the code on the Reset Password page, then set your new password.',
-  },
-  {
-    q: 'What roles are available on the platform?',
-    a: 'Cargo Core supports six roles: Customer (places orders), Vendor (logistics partner), Operations Manager (oversees operations), Warehouse Staff (handles inventory), Dispatcher (assigns drivers), and Driver (fulfils deliveries).',
-  },
-  {
-    q: 'How do I create a new account?',
-    a: 'Click "Create Account" on the login page, choose either Customer or Vendor, fill in your personal details and address across the sign-up steps, and verify your email with the OTP sent at the end.',
-  },
-  {
-    q: 'What is the 2-factor authentication (2FA) step?',
-    a: 'After entering correct credentials, a 6-digit OTP is sent to your registered email. Enter that code on the verification screen to complete login. This extra step keeps your account secure.',
-  },
-  {
-    q: 'Why can\'t I see certain role options?',
-    a: 'Roles like Operations Manager, Warehouse Staff, Dispatcher, and Driver are internal staff roles. Accounts for these must be created by an admin. If you are staff and cannot log in, contact your operations manager.',
-  },
-];
+const defaultChips = [
+  'Where is my order?',
+  'How do I book a move?',
+  'Estimate cost for my move',
+  'Talk to a human agent',
+]
 
-const toggleOpen = () => {
-  isOpen.value = !isOpen.value;
-  if (!isOpen.value) activeIndex.value = null;
-};
+const unreadCount = ref(0)
 
-const close = () => {
-  isOpen.value = false;
-  activeIndex.value = null;
-};
+const scrollToBottom = async () => {
+  await nextTick()
+  if (chatContainer.value) {
+    chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+  }
+}
+
+function formatText(raw) {
+  return String(raw)
+    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+    .replace(/\*(.*?)\*/g, '<i>$1</i>')
+    .replace(/\n/g, '<br>')
+}
+
+function now() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+async function handleSend() {
+  const text = userInput.value.trim()
+  if (!text || isTyping.value) return
+
+  userInput.value = ''
+  messages.value.push({ id: `u-${Date.now()}`, role: 'user', text, time: now() })
+  isTyping.value = true
+  await scrollToBottom()
+
+  try {
+    const res = await sendChat(text, sessionId.value)
+    if (res.session_id) sessionId.value = res.session_id
+
+    const reply = formatText(res.message || `I'm here to help!`)
+    messages.value.push({ id: `ai-${Date.now()}`, role: 'ai', text: reply, time: now() })
+
+    // Only increment unread if panel is closed
+    if (!isOpen.value) unreadCount.value++
+  } catch (err) {
+    messages.value.push({
+      id: `ai-err-${Date.now()}`,
+      role: 'ai',
+      text: `<span class="text-red-400">⚠ ${err.message || 'Something went wrong. Please try again.'}</span>`,
+      time: now(),
+    })
+  } finally {
+    isTyping.value = false
+    await scrollToBottom()
+  }
+}
+
+function sendChip(chip) {
+  userInput.value = chip
+  handleSend()
+}
+
+function startNewChat() {
+  messages.value = []
+  sessionId.value = null
+  unreadCount.value = 0
+}
+
+function toggleOpen() {
+  isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    unreadCount.value = 0
+    nextTick(scrollToBottom)
+  }
+}
+
+function close() {
+  isOpen.value = false
+}
 </script>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
+.chat-panel-enter-active, .chat-panel-leave-active {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-
-.fade-enter-from,
-.fade-leave-to {
+.chat-panel-enter-from, .chat-panel-leave-to {
   opacity: 0;
+  transform: translateY(20px) scale(0.96);
 }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

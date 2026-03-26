@@ -1,0 +1,1023 @@
+@startuml Cargo-Core Class Diagram
+
+scale max 16384 width
+scale max 16384 height
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 10
+skinparam classBackgroundColor #FAFAFA
+skinparam classBorderColor #555555
+skinparam arrowColor #333333
+skinparam classHeaderBackgroundColor #D6EAF8
+skinparam packageBackgroundColor #EBF5FB
+skinparam packageBorderColor #2E86C1
+hide circle
+
+' ══════════════════════════════════════════════
+' MODULE 1: AUTH & USER
+' ══════════════════════════════════════════════
+
+package "Authentication & User Management" {
+
+  class Role {
+    - id: int
+    - name: String
+    --
+    + assignToUser(userId: UUID): void
+  }
+
+  class User {
+    - id: UUID
+    - name: String
+    - username: String
+    - email: String
+    - phone: String
+    - altPhone: String
+    - dateOfBirth: Date
+    - address: String
+    - preferredLanguage: String
+    - preferredCurrency: String
+    - defaultPaymentMethod: String
+    - passwordHash: String
+    - roleId: int
+    - warehouseId: UUID
+    - isActive: Boolean
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    --
+    + register(userData: Map): User
+    + login(email: String, password: String): Token
+    + verifyOTP(otp: String): Boolean
+    + logout(): void
+    + resetPassword(token: String, newPwd: String): void
+    + updateProfile(data: Map): User
+    + getDashboardRoute(): String
+    + deactivate(): void
+  }
+
+}
+
+' ══════════════════════════════════════════════
+' MODULE 2: ORDER MANAGEMENT
+' ══════════════════════════════════════════════
+
+package "Order Management" {
+
+  class Order {
+    - id: UUID
+    - trackingCode: String
+    - orderType: String
+    - status: String
+    - warehouseSubstatus: String
+    - customerId: UUID
+    - warehouseId: UUID
+    - assignedDriverId: UUID
+    - assignedVehicleId: UUID
+    - pickupAddr: String
+    - deliveryAddr: String
+    - cargoType: String
+    - vehicleType: String
+    - laborCount: int
+    - baseAmount: Decimal
+    - vehicleAmount: Decimal
+    - laborAmount: Decimal
+    - materialsAmount: Decimal
+    - packingAmount: Decimal
+    - platformFee: Decimal
+    - taxAmount: Decimal
+    - totalAmount: Decimal
+    - paymentMode: String
+    - paymentStatus: String
+    - serviceOtp: String
+    - serviceTimeBlock: String
+    - scheduledAt: DateTime
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    --
+    + create(customerData: Map): Order
+    + confirm(): void
+    + assignDriver(driverId: UUID): void
+    + assignVehicle(vehicleId: UUID): void
+    + updateStatus(status: String): void
+    + cancel(reason: String): void
+    + generateTrackingCode(): String
+    + verifyOTP(otp: String): Boolean
+  }
+
+  class OrderItem {
+    - id: UUID
+    - orderId: UUID
+    - sku: String
+    - quantity: int
+    - boxCount: int
+    - estimatedVolume: Float
+    - createdAt: DateTime
+    --
+    + addToOrder(orderId: UUID): void
+    + updateQuantity(qty: int): void
+  }
+
+  class PickedItem {
+    - id: UUID
+    - orderId: UUID
+    - sku: String
+    - quantityPicked: int
+    - quantityRequired: int
+    - pickedBy: UUID
+    - location: String
+    - notes: String
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    --
+    + recordPick(qty: int, location: String): void
+    + completePicking(): void
+  }
+
+  class CustomerQuote {
+    - id: UUID
+    - referenceCode: String
+    - customerId: UUID
+    - cargoType: String
+    - fromLocation: String
+    - toLocation: String
+    - laborCount: int
+    - packing: Boolean
+    - totalAmount: Decimal
+    - status: String
+    - createdAt: DateTime
+    --
+    + generate(quoteData: Map): CustomerQuote
+    + calculateCost(): Decimal
+    + convertToOrder(): Order
+    + expire(): void
+  }
+
+  class DamageReport {
+    - id: UUID
+    - referenceCode: String
+    - customerId: UUID
+    - orderId: UUID
+    - description: String
+    - photos: JSON
+    - status: String
+    - qrCode: String
+    - createdAt: DateTime
+    --
+    + submit(reportData: Map): DamageReport
+    + updateStatus(status: String): void
+    + generateQRCode(): String
+    + attachPhoto(url: String): void
+  }
+
+}
+
+' ══════════════════════════════════════════════
+' MODULE 3: WAREHOUSE MANAGEMENT
+' ══════════════════════════════════════════════
+
+package "Warehouse Management" {
+
+  class Warehouse {
+    - id: UUID
+    - name: String
+    - address: String
+    - lat: Float
+    - lng: Float
+    - managerId: UUID
+    - floorPlanJson: JSON
+    - capacityLimit: int
+    - isActive: Boolean
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    --
+    + register(data: Map): Warehouse
+    + updateFloorPlan(json: JSON): void
+    + getCapacityUsage(): Float
+    + deactivate(): void
+  }
+
+  class LoadingDock {
+    - id: UUID
+    - warehouseId: UUID
+    - dockNumber: String
+    - status: String
+    - assignedTruckId: String
+    - assignedCarrier: String
+    - assignedOrderId: UUID
+    - arrivedAt: DateTime
+    - loadingStartedAt: DateTime
+    - releasedAt: DateTime
+    - createdAt: DateTime
+    --
+    + assignTruck(truckId: String, orderId: UUID): void
+    + startLoading(): void
+    + release(): void
+  }
+
+  class PackingStation {
+    - id: UUID
+    - warehouseId: UUID
+    - stationNumber: String
+    - status: String
+    - assignedLabourerId: UUID
+    - currentOrderId: UUID
+    - itemsPackedToday: int
+    - createdAt: DateTime
+    --
+    + assignLabourer(labourerId: UUID): void
+    + startPacking(orderId: UUID): void
+    + recordPackedItem(): void
+    + close(): void
+  }
+
+  class QualityCheck {
+    - id: UUID
+    - orderId: UUID
+    - warehouseId: UUID
+    - performedBy: UUID
+    - goodsCorrect: Boolean
+    - countCorrect: Boolean
+    - packagingVerified: Boolean
+    - laborAssigned: Boolean
+    - weightVerified: Boolean
+    - labelAttached: Boolean
+    - isPassed: Boolean
+    - notes: String
+    - checkedAt: DateTime
+    - createdAt: DateTime
+    --
+    + perform(checkData: Map): QualityCheck
+    + pass(): void
+    + fail(notes: String): void
+  }
+
+  class ReturnGrading {
+    - id: UUID
+    - warehouseId: UUID
+    - orderId: UUID
+    - rmaCode: String
+    - itemCondition: String
+    - conditionNotes: String
+    - disposition: String
+    - damagePhotoUrl: String
+    - gradedBy: UUID
+    - gradedAt: DateTime
+    - status: String
+    - createdAt: DateTime
+    --
+    + grade(assessmentData: Map): ReturnGrading
+    + setDisposition(action: String): void
+    + complete(): void
+  }
+
+  class WarehouseZoneMetrics {
+    - id: UUID
+    - warehouseId: UUID
+    - zoneId: String
+    - metricDate: Date
+    - ordersProcessed: int
+    - pickingAccuracyPct: Float
+    - activePickers: int
+    - capacityUsedPct: Float
+    - throughputItemsPerHour: Float
+    - createdAt: DateTime
+    --
+    + record(metricsData: Map): WarehouseZoneMetrics
+    + getDailyReport(date: Date): Map
+  }
+
+}
+
+' ══════════════════════════════════════════════
+' MODULE 4: INVENTORY
+' ══════════════════════════════════════════════
+
+package "Inventory Management" {
+
+  class InventoryItem {
+    - id: UUID
+    - warehouseId: UUID
+    - sku: String
+    - name: String
+    - category: String
+    - unit: String
+    - quantityOnHand: int
+    - safetyStock: int
+    - aisle: String
+    - shelf: String
+    - bin: String
+    - createdAt: DateTime
+    --
+    + updateStock(qty: int): void
+    + checkSafetyStock(): Boolean
+    + triggerRestockAlert(): RestockRequest
+    + recordMovement(type: String, qty: int): InventoryMovement
+    + getLocation(): String
+  }
+
+  class InventoryMovement {
+    - id: UUID
+    - itemId: UUID
+    - movementType: String
+    - quantity: int
+    - referenceOrderId: UUID
+    - performedBy: UUID
+    - createdAt: DateTime
+    --
+    + record(type: String, qty: int): InventoryMovement
+  }
+
+  class RestockRequest {
+    - id: UUID
+    - itemId: UUID
+    - warehouseId: UUID
+    - quantity: int
+    - status: String
+    - requestedBy: UUID
+    - managerNotes: String
+    - createdAt: DateTime
+    --
+    + submit(qty: int): RestockRequest
+    + approve(notes: String): void
+    + reject(notes: String): void
+    + fulfill(): void
+  }
+
+}
+
+' ══════════════════════════════════════════════
+' MODULE 5: LABOUR
+' ══════════════════════════════════════════════
+
+package "Workforce & Labour Management" {
+
+  class Labourer {
+    - id: UUID
+    - userId: UUID
+    - warehouseId: UUID
+    - assignedOrderId: UUID
+    - skillTags: JSON
+    - isActive: Boolean
+    - createdAt: DateTime
+    --
+    + checkIn(): LabourAttendance
+    + checkOut(): LabourAttendance
+    + assignToOrder(orderId: UUID): void
+    + getWorkHours(date: Date): Float
+    + generateWeeklyPayroll(): Map
+    + deactivate(): void
+  }
+
+  class LabourAttendance {
+    - id: UUID
+    - labourerId: UUID
+    - eventType: String
+    - createdAt: DateTime
+    --
+    + recordEvent(type: String): LabourAttendance
+    + calculateHours(): Float
+  }
+
+}
+
+' ══════════════════════════════════════════════
+' MODULE 6: LOGISTICS & FLEET
+' ══════════════════════════════════════════════
+
+package "Logistics & Fleet Management" {
+
+  class LogisticsVehicle {
+    - id: UUID
+    - code: String
+    - vehicleType: String
+    - warehouseId: UUID
+    - assignedDriverId: UUID
+    - model: String
+    - year: int
+    - licensePlate: String
+    - status: String
+    - fuelEfficiency: String
+    - mileage: int
+    - nextServiceDate: DateTime
+    - maintenanceIssue: String
+    - createdAt: DateTime
+    --
+    + assignDriver(driverId: UUID): void
+    + updateStatus(status: String): void
+    + logMileage(km: int): void
+    + scheduleMaintenance(date: DateTime): void
+    + uploadDocument(docType: String, url: String): void
+  }
+
+  class LogisticsDriverProfile {
+    - id: UUID
+    - userId: UUID
+    - warehouseId: UUID
+    - status: String
+    - currentLocation: String
+    - currentJob: String
+    - efficiencyScore: int
+    - avatarColor: String
+    - createdAt: DateTime
+    --
+    + updateLocation(location: String): void
+    + updateStatus(status: String): void
+    + getAssignedOrders(): List
+    + updateEfficiencyScore(score: int): void
+  }
+
+  class LogisticsZone {
+    - id: UUID
+    - warehouseId: UUID
+    - name: String
+    - zoneType: String
+    - radiusKm: Float
+    - status: String
+    - colorToken: String
+    - createdAt: DateTime
+    --
+    + create(zoneData: Map): LogisticsZone
+    + activate(): void
+    + deactivate(): void
+    + checkIfInZone(lat: Float, lng: Float): Boolean
+  }
+
+  class LogisticsAlert {
+    - id: UUID
+    - warehouseId: UUID
+    - alertType: String
+    - title: String
+    - description: String
+    - severity: String
+    - location: String
+    - recommendation: String
+    - impactJson: JSON
+    - isActive: Boolean
+    - createdAt: DateTime
+    --
+    + raise(alertData: Map): LogisticsAlert
+    + resolve(): void
+    + escalate(): void
+  }
+
+  class LogisticsTransaction {
+    - id: UUID
+    - warehouseId: UUID
+    - transactionCode: String
+    - transactionDate: DateTime
+    - description: String
+    - transactionType: String
+    - amount: Decimal
+    - status: String
+    - metadataJson: JSON
+    - createdAt: DateTime
+    --
+    + record(transactionData: Map): LogisticsTransaction
+    + reverse(): void
+    + generateReceipt(): String
+  }
+
+  class LogisticsChatThread {
+    - id: UUID
+    - warehouseId: UUID
+    - name: String
+    - status: String
+    - phone: String
+    - muted: Boolean
+    - lastMessage: String
+    - lastMessageAt: DateTime
+    - createdAt: DateTime
+    --
+    + create(name: String): LogisticsChatThread
+    + mute(): void
+    + unmute(): void
+    + updateLastMessage(text: String): void
+  }
+
+  class LogisticsChatMessage {
+    - id: UUID
+    - threadId: UUID
+    - sender: String
+    - text: String
+    - createdAt: DateTime
+    --
+    + send(sender: String, text: String): LogisticsChatMessage
+  }
+
+  class LogisticsEscalation {
+    - id: UUID
+    - warehouseId: UUID
+    - title: String
+    - priority: String
+    - requesterName: String
+    - requesterRole: String
+    - description: String
+    - actionDetails: String
+    - status: String
+    - createdAt: DateTime
+    --
+    + raise(escalationData: Map): LogisticsEscalation
+    + addActionDetails(details: String): void
+    + resolve(): void
+    + close(): void
+  }
+
+  class LogisticsReturnCase {
+    - id: UUID
+    - warehouseId: UUID
+    - orderId: UUID
+    - referenceCode: String
+    - customerName: String
+    - reason: String
+    - condition: String
+    - status: String
+    - originalPrice: Decimal
+    - refundAmount: Decimal
+    - images: JSON
+    - createdAt: DateTime
+    --
+    + create(returnData: Map): LogisticsReturnCase
+    + inspect(): void
+    + approveRefund(amount: Decimal): void
+    + reject(): void
+  }
+
+  class LogisticsDailyStats {
+    - id: UUID
+    - warehouseId: UUID
+    - statDate: Date
+    - ordersCount: int
+    - revenue: Decimal
+    - deliveriesCompleted: int
+    - deliveriesFailed: int
+    - slaCompliance: Float
+    - createdAt: DateTime
+    --
+    + record(statsData: Map): LogisticsDailyStats
+    + getWeeklySummary(warehouseId: UUID): List
+    + getMonthlySummary(warehouseId: UUID): List
+  }
+
+  class LogisticsMetric {
+    - id: UUID
+    - warehouseId: UUID
+    - metricType: String
+    - label: String
+    - valueMain: Float
+    - valueSecondary: Float
+    - createdAt: DateTime
+    --
+    + record(type: String, value: Float): LogisticsMetric
+    + getByType(type: String): List
+  }
+
+  class LogisticsEquipmentLedger {
+    - id: UUID
+    - warehouseId: UUID
+    - itemType: String
+    - issuedCount: int
+    - returnedCount: int
+    - referenceCode: String
+    - status: String
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    --
+    + issue(itemType: String, count: int): LogisticsEquipmentLedger
+    + recordReturn(count: int): void
+    + reconcile(): void
+  }
+
+  class LogisticsDocument {
+    - id: UUID
+    - entityType: String
+    - entityId: String
+    - hubId: UUID
+    - docType: String
+    - documentUrl: String
+    - status: String
+    - expiryDate: DateTime
+    - notes: String
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    --
+    + upload(docData: Map): LogisticsDocument
+    + verify(): void
+    + reject(notes: String): void
+    + checkExpiry(): Boolean
+  }
+
+}
+
+' ══════════════════════════════════════════════
+' MODULE 7: VENDOR
+' ══════════════════════════════════════════════
+
+package "Vendor Management" {
+
+  class VendorTeamMember {
+    - id: UUID
+    - vendorId: UUID
+    - name: String
+    - email: String
+    - role: String
+    - status: String
+    - createdAt: DateTime
+    --
+    + invite(email: String, role: String): VendorTeamMember
+    + activate(): void
+    + deactivate(): void
+    + changeRole(role: String): void
+  }
+
+  class VendorRecurringRule {
+    - id: UUID
+    - vendorId: UUID
+    - name: String
+    - description: String
+    - frequency: String
+    - route: String
+    - details: String
+    - nextRun: String
+    - active: Boolean
+    - createdAt: DateTime
+    --
+    + create(ruleData: Map): VendorRecurringRule
+    + activate(): void
+    + deactivate(): void
+    + triggerOrder(): Order
+  }
+
+  class VendorBulkUpload {
+    - id: UUID
+    - vendorId: UUID
+    - filename: String
+    - fileSizeKb: int
+    - orders: int
+    - status: String
+    - errors: int
+    - scheduledFor: String
+    - createdAt: DateTime
+    --
+    + upload(file: File): VendorBulkUpload
+    + process(): void
+    + getErrorReport(): List
+  }
+
+  class VendorSupportTicket {
+    - id: UUID
+    - vendorId: UUID
+    - orderId: UUID
+    - subject: String
+    - description: String
+    - priority: String
+    - status: String
+    - createdAt: DateTime
+    --
+    + raise(ticketData: Map): VendorSupportTicket
+    + resolve(): void
+    + close(): void
+  }
+
+  class VendorSupportReply {
+    - id: UUID
+    - ticketId: UUID
+    - fromName: String
+    - message: String
+    - createdAt: DateTime
+    --
+    + send(from: String, message: String): VendorSupportReply
+  }
+
+}
+
+' ══════════════════════════════════════════════
+' MODULE 8: AI & ESCALATION
+' ══════════════════════════════════════════════
+
+package "AI & Escalation" {
+
+  class AIConversation {
+    - id: UUID
+    - sessionId: UUID
+    - userId: UUID
+    - role: String
+    - message: String
+    - intent: String
+    - sqlGenerated: String
+    - queryResult: JSON
+    - createdAt: DateTime
+    --
+    + sendMessage(text: String): AIConversation
+    + classifyIntent(message: String): String
+    + generateSQL(query: String): String
+    + executeQuery(sql: String): JSON
+    + escalateToHuman(reason: String): Escalation
+  }
+
+  class Escalation {
+    - id: UUID
+    - conversationId: UUID
+    - escalatedToUserId: UUID
+    - reason: String
+    - status: String
+    - escalatedAt: DateTime
+    - resolvedAt: DateTime
+    --
+    + create(reason: String): Escalation
+    + assignToAgent(userId: UUID): void
+    + resolve(): void
+  }
+
+}
+
+' ══════════════════════════════════════════════
+' MODULE 9: RATE GOVERNANCE
+' ══════════════════════════════════════════════
+
+package "Rate & Pricing Governance" {
+
+  class RateGovernance {
+    - id: UUID
+    - warehouseId: UUID
+    - baseBookingFee: Decimal
+    - perKmRate: Decimal
+    - minCharge: Decimal
+    - perLabourerPerHour: Decimal
+    - fuelSurchargePct: Decimal
+    - peakMultiplier: Decimal
+    - vehicleRates: JSON
+    - isActive: Boolean
+    - updatedBy: UUID
+    - createdAt: DateTime
+    --
+    + deployRates(): void
+    + calculateOrderCost(order: Order): Decimal
+    + applyPeakMultiplier(amount: Decimal): Decimal
+    + getVehicleRate(vehicleType: String): Decimal
+    + lockRates(): void
+  }
+
+}
+
+' ══════════════════════════════════════════════
+' MODULE 10: DRIVER APP
+' ══════════════════════════════════════════════
+
+package "Driver App" {
+
+  class Driver {
+    - id: UUID
+    - driverId: String
+    - name: String
+    - phone: String
+    - email: String
+    - passwordHash: String
+    - deviceId: String
+    - status: String
+    - rating: Decimal
+    - totalDeliveries: int
+    - onTimePercent: Decimal
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    --
+    + register(driverData: Map): Driver
+    + login(phone: String, password: String): Token
+    + bindDevice(deviceId: String): void
+    + updateStatus(status: String): void
+    + suspend(): void
+    + getPerformanceStats(): Map
+  }
+
+  class Job {
+    - id: UUID
+    - jobType: String
+    - currentState: String
+    - driverId: UUID
+    - vehicleId: UUID
+    - manifestId: String
+    - assignedAt: DateTime
+    - startedAt: DateTime
+    - completedAt: DateTime
+    - estimatedDuration: int
+    - actualDuration: int
+    - routeData: JSON
+    - metadata: JSON
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    --
+    + assign(driverId: UUID, vehicleId: UUID): void
+    + start(): void
+    + complete(): void
+    + transitionState(toState: String): JobStateTransition
+    + getStops(): List<Stop>
+    + calculateActualDuration(): int
+  }
+
+  class JobStateTransition {
+    - id: UUID
+    - jobId: UUID
+    - fromState: String
+    - toState: String
+    - transitionedAt: DateTime
+    - locationLat: Decimal
+    - locationLng: Decimal
+    - metadata: JSON
+    --
+    + record(fromState: String, toState: String, lat: Decimal, lng: Decimal): JobStateTransition
+  }
+
+  class Stop {
+    - id: UUID
+    - jobId: UUID
+    - sequenceNumber: int
+    - stopType: String
+    - customerName: String
+    - address: String
+    - lat: Decimal
+    - lng: Decimal
+    - specialInstructions: String
+    - timeWindowStart: Time
+    - timeWindowEnd: Time
+    - status: String
+    - arrivedAt: DateTime
+    - completedAt: DateTime
+    - proofOfDelivery: JSON
+    - codAmount: Decimal
+    - codCollectedAt: DateTime
+    --
+    + arrive(): void
+    + complete(pod: Map): void
+    + fail(reason: String): void
+    + collectCOD(amount: Decimal): void
+    + captureProofOfDelivery(photo: String, signature: String): void
+  }
+
+  class LocationLog {
+    - id: BigInt
+    - driverId: UUID
+    - jobId: UUID
+    - lat: Decimal
+    - lng: Decimal
+    - accuracy: Float
+    - speed: Float
+    - heading: Float
+    - isMocked: Boolean
+    - recordedAt: DateTime
+    - syncedAt: DateTime
+    --
+    + record(lat: Decimal, lng: Decimal): LocationLog
+    + detectFakeGPS(): Boolean
+    + batchSync(logs: List): void
+  }
+
+  class VehicleInspection {
+    - id: UUID
+    - driverId: UUID
+    - vehicleId: UUID
+    - inspectionDate: Date
+    - fuelLevel: int
+    - odometerReading: int
+    - tirePhotos: JSON
+    - checklistItems: JSON
+    - issuesReported: String
+    - inspectorSignature: String
+    - createdAt: DateTime
+    --
+    + perform(checklistData: Map): VehicleInspection
+    + captureSignature(signature: String): void
+    + flagIssues(issues: String): void
+    + isComplete(): Boolean
+  }
+
+  class Issue {
+    - id: UUID
+    - driverId: UUID
+    - jobId: UUID
+    - issueType: String
+    - description: String
+    - locationLat: Decimal
+    - locationLng: Decimal
+    - photos: JSON
+    - reportedAt: DateTime
+    - resolvedAt: DateTime
+    - resolutionNotes: String
+    --
+    + report(issueData: Map): Issue
+    + attachPhoto(url: String): void
+    + resolve(notes: String): void
+  }
+
+  class WalletTransaction {
+    - id: UUID
+    - driverId: UUID
+    - jobId: UUID
+    - transactionType: String
+    - amount: Decimal
+    - balanceAfter: Decimal
+    - description: String
+    - createdAt: DateTime
+    --
+    + creditEarning(jobId: UUID, amount: Decimal): WalletTransaction
+    + applyBonus(amount: Decimal, reason: String): WalletTransaction
+    + applyPenalty(amount: Decimal, reason: String): WalletTransaction
+    + withdraw(amount: Decimal): WalletTransaction
+    + getBalance(): Decimal
+  }
+
+  class SyncConflict {
+    - id: UUID
+    - driverId: UUID
+    - entityType: String
+    - entityId: UUID
+    - clientData: JSON
+    - serverData: JSON
+    - createdAt: DateTime
+    - resolvedAt: DateTime
+    --
+    + detect(entityType: String, clientData: JSON, serverData: JSON): SyncConflict
+    + resolveWithClient(): void
+    + resolveWithServer(): void
+    + getPendingConflicts(driverId: UUID): List
+  }
+
+}
+
+' ══════════════════════════════════════════════
+' RELATIONSHIPS
+' ══════════════════════════════════════════════
+
+' Auth
+Role "1" <-- "0..*" User : has
+
+' Order relationships
+User "1" --> "0..*" Order : places
+User "1" --> "0..*" CustomerQuote : requests
+User "1" --> "0..*" DamageReport : submits
+Order "1" *-- "1..*" OrderItem : contains
+Order "1" *-- "0..*" PickedItem : tracked by
+Order "1" --> "0..1" QualityCheck : verified by
+Order "1" --> "0..1" ReturnGrading : graded by
+Order "1" --> "0..1" LoadingDock : loaded at
+Order "1" --> "0..1" PackingStation : packed at
+CustomerQuote ..> Order : converts to
+
+' Warehouse relationships
+Warehouse "1" *-- "0..*" LoadingDock : has
+Warehouse "1" *-- "0..*" PackingStation : has
+Warehouse "1" --> "0..*" InventoryItem : stores
+Warehouse "1" --> "0..*" Labourer : employs
+Warehouse "1" --> "0..*" LogisticsVehicle : manages
+Warehouse "1" --> "0..*" LogisticsZone : defines
+Warehouse "1" --> "0..*" WarehouseZoneMetrics : tracks
+Warehouse "1" --> "0..1" RateGovernance : configured by
+
+' Inventory relationships
+InventoryItem "1" *-- "0..*" InventoryMovement : records
+InventoryItem "1" --> "0..*" RestockRequest : triggers
+
+' Labour relationships
+User "1" --> "0..1" Labourer : has profile
+Labourer "1" *-- "0..*" LabourAttendance : logs
+PackingStation "0..1" --> "0..1" Labourer : assigned to
+
+' Logistics relationships
+User "1" --> "0..1" LogisticsDriverProfile : has
+User "1" --> "0..1" LogisticsVehicle : drives
+LogisticsChatThread "1" *-- "0..*" LogisticsChatMessage : has
+Warehouse "1" --> "0..*" LogisticsChatThread : hosts
+Warehouse "1" --> "0..*" LogisticsTransaction : records
+Warehouse "1" --> "0..*" LogisticsAlert : raises
+Warehouse "1" --> "0..*" LogisticsEscalation : tracks
+Warehouse "1" --> "0..*" LogisticsReturnCase : manages
+Warehouse "1" --> "0..*" LogisticsDailyStats : generates
+Warehouse "1" --> "0..*" LogisticsMetric : measures
+Warehouse "1" --> "0..*" LogisticsEquipmentLedger : tracks
+Warehouse "1" --> "0..*" LogisticsDocument : stores
+
+' Vendor relationships
+User "1" --> "0..*" VendorTeamMember : manages
+User "1" --> "0..*" VendorRecurringRule : creates
+User "1" --> "0..*" VendorBulkUpload : uploads
+User "1" --> "0..*" VendorSupportTicket : raises
+VendorSupportTicket "1" *-- "0..*" VendorSupportReply : has
+
+' AI relationships
+User "1" --> "0..*" AIConversation : initiates
+AIConversation "1" --> "0..1" Escalation : triggers
+
+' Driver App relationships
+Driver "1" --> "0..*" Job : assigned to
+LogisticsVehicle "1" --> "0..*" Job : used in
+Job "1" *-- "0..*" JobStateTransition : tracks
+Job "1" *-- "1..*" Stop : contains
+Driver "1" --> "0..*" LocationLog : tracked by
+Job "1" --> "0..*" LocationLog : recorded during
+Driver "1" --> "0..*" VehicleInspection : performs
+LogisticsVehicle "1" --> "0..*" VehicleInspection : inspected by
+Driver "1" --> "0..*" Issue : reports
+Job "1" --> "0..*" Issue : has
+Driver "1" *-- "0..*" WalletTransaction : earns
+Job "1" --> "0..*" WalletTransaction : generates
+Driver "1" --> "0..*" SyncConflict : has
+
+@enduml

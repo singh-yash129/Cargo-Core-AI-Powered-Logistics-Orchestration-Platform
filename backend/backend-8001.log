@@ -1,0 +1,66 @@
+INFO:     Started server process [32384]
+INFO:     Waiting for application startup.
+2026-03-24 23:22:47,004 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-24 23:22:47,004 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-03-24 23:22:47,009 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-24 23:22:47,009 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-03-24 23:22:47,010 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-24 23:22:47,010 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-03-24 23:22:47,011 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-24 23:22:47,064 INFO sqlalchemy.engine.Engine SELECT roles.id, roles.name 
+FROM roles 
+WHERE roles.name = $1::VARCHAR
+2026-03-24 23:22:47,064 INFO sqlalchemy.engine.Engine [generated in 0.00018s] ('LOGISTIC_MANAGER',)
+2026-03-24 23:22:47,069 INFO sqlalchemy.engine.Engine SELECT users.id, users.name, users.username, users.email, users.phone, users.alt_phone, users.date_of_birth, users.address, users.preferred_language, users.preferred_currency, users.default_payment_method, users.notifications_push, users.notifications_sms, users.notifications_email, users.notifications_geofence, users.notifications_promo, users.privacy_location, users.privacy_analytics, users.privacy_marketing, users.password_hash, users.role_id, users.warehouse_id, users.is_active, users.last_login, users.created_at, users.updated_at 
+FROM users 
+WHERE users.email = $1::VARCHAR
+2026-03-24 23:22:47,070 INFO sqlalchemy.engine.Engine [generated in 0.00016s] ('logisticmanager@gmail.com',)
+2026-03-24 23:22:47,336 INFO sqlalchemy.engine.Engine UPDATE users SET password_hash=$1::VARCHAR, updated_at=$2::TIMESTAMP WITH TIME ZONE WHERE users.id = $3::UUID
+2026-03-24 23:22:47.337 | INFO     | app.services.auth_service:ensure_logistic_manager_account:155 - Bootstrapped existing Logistics Manager account: logisticmanager@gmail.com
+2026-03-24 23:22:47,336 INFO sqlalchemy.engine.Engine [generated in 0.00021s] ('$2b$12$k/5EXC.64HRpfdy4Px.hP.aO.MtfdV079AybchclrD/D/W0GfSkKW', datetime.datetime(2026, 3, 24, 17, 52, 47, 336262, tzinfo=datetime.timezone.utc), UUID('d6ff263b-bfb4-427a-9213-867befa49ed2'))
+2026-03-24 23:22:47,337 INFO sqlalchemy.engine.Engine SELECT users.id 
+FROM users 
+WHERE users.id = $1::UUID
+2026-03-24 23:22:47,337 INFO sqlalchemy.engine.Engine [generated in 0.00014s] (UUID('d6ff263b-bfb4-427a-9213-867befa49ed2'),)
+2026-03-24 23:22:47,337 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+2026-03-24 23:23:30.301 | WARNING  | app.utils.redis:get_redis_pool:29 - Redis unavailable ù running without cache/blacklist: Timeout connecting to server
+2026-03-24 23:23:30,301 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-24 23:23:30,308 INFO sqlalchemy.engine.Engine SELECT users.id, users.name, users.username, users.email, users.phone, users.alt_phone, users.date_of_birth, users.address, users.preferred_language, users.preferred_currency, users.default_payment_method, users.notifications_push, users.notifications_sms, users.notifications_email, users.notifications_geofence, users.notifications_promo, users.privacy_location, users.privacy_analytics, users.privacy_marketing, users.password_hash, users.role_id, users.warehouse_id, users.is_active, users.last_login, users.created_at, users.updated_at 
+FROM users 
+WHERE users.email = $1::VARCHAR OR users.username = $2::VARCHAR
+2026-03-24 23:23:30,309 INFO sqlalchemy.engine.Engine [generated in 0.00038s] ('driver1@gmail.com', 'driver1_gmail_com')
+2026-03-24 23:23:31,023 INFO sqlalchemy.engine.Engine UPDATE users SET last_login=$1::TIMESTAMP WITH TIME ZONE, updated_at=$2::TIMESTAMP WITH TIME ZONE WHERE users.id = $3::UUID
+2026-03-24 23:23:31,023 INFO sqlalchemy.engine.Engine [generated in 0.00050s] (datetime.datetime(2026, 3, 24, 17, 53, 31, 22966, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 3, 24, 17, 53, 31, 23990, tzinfo=datetime.timezone.utc), UUID('8ce4bdac-8306-4b07-b065-a2a232c94f47'))
+2026-03-24 23:23:31,025 INFO sqlalchemy.engine.Engine SELECT users.id 
+FROM users 
+WHERE users.id = $1::UUID
+2026-03-24 23:23:31,025 INFO sqlalchemy.engine.Engine [cached since 43.69s ago] (UUID('8ce4bdac-8306-4b07-b065-a2a232c94f47'),)
+2026-03-24 23:23:31,032 INFO sqlalchemy.engine.Engine SELECT roles.id AS roles_id, roles.name AS roles_name 
+FROM roles 
+WHERE roles.id = $1::INTEGER
+2026-03-24 23:23:31,032 INFO sqlalchemy.engine.Engine [generated in 0.00098s] (4,)
+2026-03-24 23:23:31.038 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'POST', 'path': '/api/v1/auth/login', 'status_code': 200, 'duration_ms': 1770.96, 'client': '127.0.0.1'}
+INFO:     127.0.0.1:60807 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+2026-03-24 23:23:31,041 INFO sqlalchemy.engine.Engine COMMIT
+2026-03-24 23:23:31,066 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-24 23:23:31,070 INFO sqlalchemy.engine.Engine SELECT users.id, users.name, users.username, users.email, users.phone, users.alt_phone, users.date_of_birth, users.address, users.preferred_language, users.preferred_currency, users.default_payment_method, users.notifications_push, users.notifications_sms, users.notifications_email, users.notifications_geofence, users.notifications_promo, users.privacy_location, users.privacy_analytics, users.privacy_marketing, users.password_hash, users.role_id, users.warehouse_id, users.is_active, users.last_login, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = $1::UUID
+2026-03-24 23:23:31,070 INFO sqlalchemy.engine.Engine [generated in 0.00034s] (UUID('8ce4bdac-8306-4b07-b065-a2a232c94f47'),)
+2026-03-24 23:23:31,074 INFO sqlalchemy.engine.Engine SELECT users.id 
+FROM users 
+WHERE users.id = $1::UUID
+2026-03-24 23:23:31,074 INFO sqlalchemy.engine.Engine [cached since 43.73s ago] (UUID('8ce4bdac-8306-4b07-b065-a2a232c94f47'),)
+2026-03-24 23:23:31,074 INFO sqlalchemy.engine.Engine SELECT roles.id AS roles_id, roles.name AS roles_name 
+FROM roles 
+WHERE roles.id = $1::INTEGER
+2026-03-24 23:23:31,074 INFO sqlalchemy.engine.Engine [cached since 0.04488s ago] (4,)
+2026-03-24 23:23:31.078 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/api/v1/auth/me', 'status_code': 200, 'duration_ms': 14.71, 'client': '127.0.0.1'}
+INFO:     127.0.0.1:60807 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+2026-03-24 23:23:31,078 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     127.0.0.1:63627 - "OPTIONS /api/v1/auth/login HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:63647 - "OPTIONS /api/v1/auth/login HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:63643 - "GET /health HTTP/1.1" 200 OK
+2026-03-25 00:43:21.044 | INFO     | app.middleware.logging_middleware:dispatch:40 - {'method': 'GET', 'path': '/health', 'status_code': 200, 'duration_ms': 122.4, 'client': '127.0.0.1'}

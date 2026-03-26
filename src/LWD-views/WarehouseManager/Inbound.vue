@@ -2,10 +2,16 @@
     <div class="space-y-6">
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Inbound Shipments</h2>
-            <button @click="showScheduleModal = true"
-                class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
-                <span class="material-symbols-outlined">calendar_today</span> Schedule Delivery
-            </button>
+            <div class="flex gap-2">
+                <button @click="openSlip('aiVolumeEstimate')"
+                    class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
+                    <span class="material-symbols-outlined">model_training</span> AI Estimate
+                </button>
+                <button @click="showScheduleModal = true"
+                    class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
+                    <span class="material-symbols-outlined">calendar_today</span> Schedule Delivery
+                </button>
+            </div>
         </div>
 
         <!-- Stats -->
@@ -38,9 +44,9 @@
             <div class="mt-2 text-gray-600 dark:text-gray-400 text-sm">Loading inbound shipments...</div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
             <!-- Dock Schedule -->
-            <div class="glass-panel p-6 rounded-xl">
+            <div class="glass-panel p-6 rounded-xl xl:col-span-1">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4">Dock Schedule (Today)</h3>
                 <div class="space-y-3">
                     <div v-for="slot in dockSchedule" :key="slot.id" @click="selectedSlot = slot; showSlotDetail = true"
@@ -60,9 +66,9 @@
             </div>
 
             <!-- Pending Receipt with Mismatch & Damage -->
-            <div class="lg:col-span-2 glass-panel rounded-xl overflow-hidden">
+            <div class="xl:col-span-3 glass-panel rounded-xl overflow-hidden">
                 <div
-                    class="p-6 border-b border-gray-100 dark:border-white/5 font-bold text-gray-900 dark:text-white flex justify-between items-center">
+                    class="p-4 border-b border-gray-100 dark:border-white/5 font-bold text-gray-900 dark:text-white flex flex-wrap gap-2 justify-between items-center">
                     <span>ASN Verification & Receiving</span>
                     <div class="flex gap-2">
                         <button @click="showMismatchModal = true"
@@ -75,69 +81,67 @@
                         </button>
                     </div>
                 </div>
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 uppercase">
+                <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm min-w-[700px]">
+                    <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 uppercase text-[11px]">
                         <tr>
-                            <th class="p-4">ASN ID</th>
-                            <th class="p-4">Supplier</th>
-                            <th class="p-4">Expected</th>
-                            <th class="p-4">Received</th>
-                            <th class="p-4">ETA</th>
-                            <th class="p-4">Status</th>
-                            <th class="p-4">Issues</th>
-                            <th class="p-4">Action</th>
+                            <th class="px-4 py-3">ASN ID</th>
+                            <th class="px-4 py-3">Supplier</th>
+                            <th class="px-4 py-3">Exp / Rcvd</th>
+                            <th class="px-4 py-3">ETA</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">Issues</th>
+                            <th class="px-4 py-3">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                         <tr v-for="asn in asns" :key="asn.id"
-                            class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
-                            <td class="p-4 font-mono text-gray-600 dark:text-gray-300">{{ asn.id }}</td>
-                            <td class="p-4 text-gray-900 dark:text-white">{{ asn.supplier }}</td>
-                            <td class="p-4 text-gray-600 dark:text-gray-400">{{ asn.expected }}</td>
-                            <td class="p-4">
-                                <span
-                                :class="asn.received !== asn.expected && asn.received > 0 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-gray-600 dark:text-gray-300'">{{
-                                        asn.received || '--' }}</span>
+                            class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <td class="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-300">{{ asn.id }}</td>
+                            <td class="px-4 py-3 text-gray-900 dark:text-white text-xs">{{ asn.supplier }}</td>
+                            <td class="px-4 py-3 text-xs">
+                                <span class="text-gray-600 dark:text-gray-400">{{ asn.expected }}</span>
+                                <span class="text-gray-400 mx-1">/</span>
+                                <span :class="asn.received !== asn.expected && asn.received > 0 ? 'text-red-500 font-bold' : 'text-gray-500'">
+                                    {{ asn.received || '--' }}
+                                </span>
                             </td>
-                            <td class="p-4 text-gray-600 dark:text-gray-300">{{ asn.eta }}</td>
-                            <td class="p-4">
+                            <td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ asn.eta }}</td>
+                            <td class="px-4 py-3">
                                 <span class="px-2 py-1 rounded text-[10px] font-bold border" :class="asn.statusClass">
                                     {{ asn.status }}
                                 </span>
                             </td>
-                            <td class="p-4">
-                                <div class="flex gap-1">
+                            <td class="px-4 py-3">
+                                <div class="flex gap-1 flex-wrap">
                                     <span v-if="asn.mismatch"
                                         class="px-1.5 py-0.5 bg-red-500/20 text-red-600 dark:text-red-400 text-[9px] font-bold rounded border border-red-500/20">MISMATCH</span>
                                     <span v-if="asn.damaged"
                                         class="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-[9px] font-bold rounded border border-yellow-500/20">DAMAGED</span>
-                                    <span v-if="!asn.mismatch && !asn.damaged" class="text-gray-600 text-xs">—</span>
+                                    <span v-if="!asn.mismatch && !asn.damaged" class="text-gray-500 text-xs">—</span>
                                 </div>
                             </td>
-                            <td class="p-4">
-                                <div class="flex gap-1">
-                                    <button v-if="asn.status === 'Arrived'" @click="startReceiving(asn)"
-                                        class="bg-primary/20 hover:bg-primary/30 text-primary px-3 py-1 rounded text-xs font-bold transition-colors">
-                                        Start Receiving
-                                    </button>
-                                    <button v-if="asn.status === 'Receiving'" @click="completeReceiving(asn)"
-                                        class="bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 px-3 py-1 rounded text-xs font-bold transition-colors">
-                                        Complete & Update Stock
-                                    </button>
-                                    <span v-if="asn.status === 'Completed'" class="text-green-600 dark:text-green-400 text-xs font-bold">✓
-                                        Done</span>
-                                    <span v-if="asn.status === 'Scheduled'" class="text-gray-500 text-xs">Awaiting
-                                        arrival</span>
-                                </div>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <button v-if="asn.status === 'Arrived'" @click="startReceiving(asn)"
+                                    class="bg-primary/20 hover:bg-primary/30 text-primary px-3 py-1.5 rounded text-xs font-bold transition-colors">
+                                    Start Receiving
+                                </button>
+                                <button v-else-if="asn.status === 'Receiving'" @click="completeReceiving(asn)"
+                                    class="bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 px-3 py-1.5 rounded text-xs font-bold transition-colors whitespace-nowrap">
+                                    Complete & Update Stock
+                                </button>
+                                <span v-else-if="asn.status === 'Completed'" class="text-green-500 text-xs font-bold">✓ Done</span>
+                                <span v-else class="text-gray-500 text-xs">Awaiting arrival</span>
                             </td>
                         </tr>
                         <tr v-if="asns.length === 0">
-                            <td colspan="8" class="p-8 text-center text-gray-500">
+                            <td colspan="7" class="p-8 text-center text-gray-500 text-sm">
                                 No vendor inbound shipments are scheduled for this warehouse.
                             </td>
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
 
@@ -366,6 +370,9 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import SmartScannerModal from '@/components/SmartScannerModal.vue'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+
+const { openSlip } = useSlipPrinter()
 
 const authStore = useAuthStore()
 const showMismatchModal = ref(false)
@@ -418,28 +425,41 @@ async function fetchInboundShipments() {
         if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
             const data = await ordersRes.value.json()
             vendorOrders = (data.items || []).filter(order =>
-                order.order_type === 'VENDOR' && (warehouseId ? order.warehouse_id === warehouseId : true)
+                order.order_type === 'VENDOR' &&
+                (warehouseId ? order.warehouse_id === warehouseId : true) &&
+                order.warehouse_substatus === 'AWAITING_INBOUND'
             )
         }
+
+        const statusClassMap = {
+            Arrived: 'bg-green-500/10 text-green-500 border-green-500/20',
+            Scheduled: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
+            Receiving: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+            Completed: 'bg-green-500/10 text-green-500 border-green-500/20',
+        }
+        const RECEIVED_SUBSTATUSES = new Set(['AWAITING_PICK', 'PICKING', 'PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'DISPATCHED'])
 
         asns.value = vendorOrders.map((order, idx) => {
             const vendor = vendors[idx % vendors.length]
             const supplierName = vendor?.name || vendor?.company_name || `Supplier ${idx + 1}`
             const expected = order.items?.reduce((sum, i) => sum + (i.quantity || 1), 0) || Math.floor(10 + Math.random() * 40)
-            const isToday = new Date(order.created_at).toDateString() === new Date().toDateString()
-            const status = isToday ? 'Arrived' : 'Scheduled'
-            const statusClassMap = {
-                Arrived: 'bg-green-500/10 text-green-500 border-green-500/20',
-                Scheduled: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
-                Receiving: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-                Completed: 'bg-green-500/10 text-green-500 border-green-500/20',
+
+            // Derive status from DB warehouse_substatus (persists across refreshes)
+            let status
+            if (RECEIVED_SUBSTATUSES.has(order.warehouse_substatus)) {
+                status = 'Completed'
+            } else {
+                const isToday = new Date(order.created_at).toDateString() === new Date().toDateString()
+                status = isToday ? 'Arrived' : 'Scheduled'
             }
+
             return {
                 id: order.tracking_code || `ASN-${order.id?.slice(0, 6).toUpperCase()}`,
                 rawId: order.id,
+                warehouseId,
                 supplier: supplierName,
                 expected,
-                received: status === 'Arrived' ? 0 : null,
+                received: status === 'Completed' ? expected : 0,
                 eta: order.scheduled_at
                     ? new Date(order.scheduled_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
                     : 'TBD',
@@ -503,11 +523,28 @@ function startReceiving(asn) {
     showToast(`Started receiving ${asn.id}`)
 }
 
-function completeReceiving(asn) {
-    asn.status = 'Completed'
-    asn.statusClass = 'bg-green-500/10 text-green-500 border-green-500/20'
-    if (!asn.received) asn.received = asn.expected
-    showToast(`${asn.id} completed — stock updated`)
+async function completeReceiving(asn) {
+    try {
+        const warehouseId = asn.warehouseId || authStore.currentUser?.warehouse_id
+        const res = await fetch(
+            `http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/orders/${asn.rawId}/receive-inbound`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authStore.authToken}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        )
+        if (!res.ok) throw new Error('Failed to complete receiving')
+        asn.status = 'Completed'
+        asn.statusClass = 'bg-green-500/10 text-green-500 border-green-500/20'
+        asn.received = asn.expected
+        showToast(`${asn.id} received — stock updated`)
+    } catch (e) {
+        console.error(e)
+        showToast('Failed to complete receiving')
+    }
 }
 
 function submitMismatch() {

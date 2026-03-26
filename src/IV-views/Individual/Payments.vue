@@ -110,7 +110,7 @@
                             }}</div>
                         </div>
                     </div>
-                    <button
+                    <button @click="openSlipWithData('finalTaxInvoice', store.orders.find(o => o.id === detailModal.payment.orderId), authStore.currentUser)"
                         class="w-full py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-sm">download</span> Download Invoice
                     </button>
@@ -122,39 +122,17 @@
             </BaseModal>
         </Teleport>
 
-        <!-- Payment Processing Modal -->
-        <Teleport to="body">
-            <BaseModal :isOpen="showPaymentModal" @close="showPaymentModal = false">
-                <template #title>Make Payment</template>
-                <div class="space-y-4" v-if="selectedOrder">
-                    <div class="text-center py-4">
-                        <div
-                            class="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 mx-auto mb-3">
-                            <span class="material-symbols-outlined text-3xl">credit_card</span>
-                        </div>
-                        <p class="text-gray-700 dark:text-gray-300 text-sm">Please pay the required amount to confirm
-                            your
-                            order.</p>
-                        <div
-                            class="text-3xl font-bold text-gray-900 dark:text-white mt-2 font-mono hover:scale-105 transition-transform">
-                            ₹{{ selectedOrder.cost.total.toLocaleString() }}
-                        </div>
-                    </div>
-                </div>
-                <template #footer>
-                    <div class="flex flex-col gap-3 w-full">
-                        <button @click="processPaymentAndConfirm" :disabled="isProcessingPayment"
-                            class="w-full py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
-                            <span v-if="isProcessingPayment"
-                                class="material-symbols-outlined animate-spin text-sm">cycle</span>
-                            {{ isProcessingPayment ? 'Processing...' : 'Pay Securely' }}
-                        </button>
-                        <button @click="showPaymentModal = false" :disabled="isProcessingPayment"
-                            class="w-full py-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-sm font-medium">Cancel</button>
-                    </div>
-                </template>
-            </BaseModal>
-        </Teleport>
+        <!-- Razorpay Checkout -->
+        <RazorpayCheckout
+            v-model="showPaymentModal"
+            :amount="selectedOrder ? selectedOrder.cost.total : 0"
+            :order-id="selectedOrder ? selectedOrder.id : ''"
+            :description="selectedOrder ? ('Order ' + selectedOrder.id) : ''"
+            :name="authStore.currentUser?.name || ''"
+            :email="authStore.currentUser?.email || ''"
+            @success="onRazorpaySuccess"
+        />
+
 
         <!-- Toast -->
         <Teleport to="body">
@@ -174,9 +152,14 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useIndividualStore } from '@/stores/individualStore'
+import { useAuthStore } from '@/stores/authStore'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
 import BaseModal from '@/components/BaseModal.vue'
+import RazorpayCheckout from '@/components/RazorpayCheckout.vue'
 
 const store = useIndividualStore()
+const authStore = useAuthStore()
+const { openSlipWithData } = useSlipPrinter()
 
 const totalPaid = computed(() => store.paymentsSummary?.total_paid ?? store.payments.filter(p => p.status === 'completed').reduce((s, p) => s + p.amount, 0))
 const pendingAmount = computed(() => store.paymentsSummary?.pending_amount ?? store.orders.filter(o => o.paymentStatus === 'pending').reduce((s, o) => s + o.cost.total, 0))
@@ -194,14 +177,11 @@ function initiatePayment(order) {
     showPaymentModal.value = true
 }
 
-function processPaymentAndConfirm() {
-    isProcessingPayment.value = true
-    setTimeout(() => {
-        isProcessingPayment.value = false
-        showPaymentModal.value = false
-        store.makePayment(selectedOrder.value.id, selectedOrder.value.cost.total, 'Card / UPI', false)
-        showToast(`₹${selectedOrder.value.cost.total.toLocaleString()} paid for ${selectedOrder.value.id}!`)
-    }, 1500)
+function onRazorpaySuccess({ payment_id, method, amount }) {
+    showPaymentModal.value = false
+    store.makePayment(selectedOrder.value.id, amount, method, false, payment_id)
+    showToast(`₹${amount.toLocaleString()} paid via ${method}! (${payment_id})`)
+    selectedOrder.value = null
 }
 
 const toast = reactive({ show: false, message: '' })
