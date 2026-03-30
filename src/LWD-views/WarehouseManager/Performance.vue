@@ -210,6 +210,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js'
 import { useAuthStore } from '@/stores/authStore'
+import { API_BASE_URL } from '@/config/api'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
@@ -217,12 +218,10 @@ const authStore = useAuthStore()
 const timeRange = ref('today')
 const toastMsg = ref('')
 const loading = ref(false)
-const warehouseId = ref(null)
 
 // Live data
 const allOrders = ref([])
 const labourers = ref([])
-const performanceMetrics = ref(null)  // From new performance endpoint
 
 // Time range filter - returns date string for API
 function getTimeRangeFilter() {
@@ -410,25 +409,6 @@ const primaryKPIs = computed(() => [
     },
 ])
 
-async function fetchWarehouseId() {
-    try {
-        const headers = {
-            'Authorization': `Bearer ${authStore.authToken}`,
-            'Content-Type': 'application/json'
-        }
-        const response = await fetch('http://localhost:8000/api/v1/warehouses?page=1&page_size=10', { headers })
-        if (response.ok) {
-            const data = await response.json()
-            const warehouses = data.items || data || []
-            if (warehouses.length > 0) {
-                warehouseId.value = warehouses[0].id
-            }
-        }
-    } catch (error) {
-        console.error('Error fetching warehouse ID:', error)
-    }
-}
-
 async function fetchPerformance() {
     loading.value = true
     try {
@@ -436,20 +416,15 @@ async function fetchPerformance() {
             'Authorization': `Bearer ${authStore.authToken}`,
             'Content-Type': 'application/json'
         }
+        const warehouseId = authStore.currentUser?.warehouse_id
+        const labourUrl = warehouseId
+            ? `${API_BASE_URL}/api/v1/labourers?page=1&page_size=100&warehouse_id=${warehouseId}`
+            : `${API_BASE_URL}/api/v1/labourers?page=1&page_size=100`
 
-        const fetchPromises = [
-            fetch('http://localhost:8000/api/v1/orders?page=1&page_size=500', { headers }),
-            fetch('http://localhost:8000/api/v1/labourers?page=1&page_size=100', { headers })
-        ]
-
-        // Try to fetch performance metrics from new endpoint if warehouse is available
-        if (warehouseId.value) {
-            fetchPromises.push(
-                fetch(`http://localhost:8000/api/v1/warehouses/${warehouseId.value}/operations/performance?time_range=${timeRange.value}`, { headers })
-            )
-        }
-
-        const [ordersRes, labourRes, perfRes] = await Promise.allSettled(fetchPromises)
+        const [ordersRes, labourRes] = await Promise.allSettled([
+            fetch(`${API_BASE_URL}/api/v1/orders?page=1&page_size=500`, { headers }),
+            fetch(labourUrl, { headers })
+        ])
 
         if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
             const data = await ordersRes.value.json()
@@ -459,10 +434,6 @@ async function fetchPerformance() {
         if (labourRes.status === 'fulfilled' && labourRes.value.ok) {
             const data = await labourRes.value.json()
             labourers.value = data.items || []
-        }
-
-        if (perfRes?.status === 'fulfilled' && perfRes.value?.ok) {
-            performanceMetrics.value = await perfRes.value.json()
         }
     } catch (error) {
         console.error('Error fetching performance data:', error)
@@ -477,6 +448,29 @@ function showToast(msg) {
 }
 
 function exportReport() {
+    const rows = [
+        ['Metric', 'Value'],
+        ...primaryKPIs.value.map(k => [k.label, k.value]),
+        [],
+        ['Pipeline Stage', 'Order Count'],
+        ...orderPipeline.value.map(s => [s.label, s.count]),
+        [],
+        ['Labour', 'Count'],
+        ['Available', laborStats.value.available],
+        ['On Duty / Assigned', laborStats.value.busy],
+        ['Off Duty', laborStats.value.offDuty],
+        ['Total', laborStats.value.total],
+    ]
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `performance_${timeRange.value}_${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
     showToast(`Performance report (${timeRange.value}) exported`)
 }
 
@@ -568,7 +562,6 @@ const demandChartOptions = {
 }
 
 onMounted(async () => {
-    await fetchWarehouseId()
     await fetchPerformance()
 })
 </script>

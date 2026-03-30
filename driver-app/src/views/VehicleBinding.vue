@@ -321,11 +321,27 @@ const vehicle = ref(null)
 const fleet = ref([])
 
 onMounted(async () => {
-    await driverStore.refreshDashboard()
-    fleet.value = await driverStore.fetchVehicles()
-    if (driverStore.vehicleBound && driverStore.vehicle) {
-        vehicle.value = driverStore.vehicle
-        phase.value = 'confirm'
+    // If vehicle already in persisted store, skip immediately — no API needed
+    if (driverStore.vehicle?.vehicleId || driverStore.vehicle?.id) {
+        driverStore.bindVehicle(driverStore.vehicle)
+        return router.replace({ name: 'vehicle-inspection' })
+    }
+
+    // Try to get vehicle from backend dashboard
+    try {
+        await driverStore.refreshDashboard()
+    } catch { /* offline — continue to manual entry */ }
+
+    const dashVehicle = driverStore.dashboard?.current_vehicle
+    if (dashVehicle?.vehicleId) {
+        driverStore.bindVehicle(dashVehicle)
+        return router.replace({ name: 'vehicle-inspection' })
+    }
+
+    // Seed manual-entry fleet list
+    fleet.value = await driverStore.fetchVehicles().catch(() => [])
+    if (dashVehicle?.vehicleId && !fleet.value.find(v => v.vehicleId === dashVehicle.vehicleId)) {
+        fleet.value = [...fleet.value, dashVehicle]
     }
 })
 

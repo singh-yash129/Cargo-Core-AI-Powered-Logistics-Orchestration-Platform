@@ -23,6 +23,11 @@ class UserRegister(BaseModel):
         default="INDIVIDUAL",
         description="Self-service registration is restricted to INDIVIDUAL and VENDOR roles only.",
     )
+    company_name: str | None = Field(default=None, max_length=255)
+    tax_id: str | None = Field(default=None, max_length=100)
+    contact_person: str | None = Field(default=None, max_length=255)
+    business_email: EmailStr | None = None
+    business_phone: str | None = Field(default=None, max_length=20)
 
 
 class UserLogin(BaseModel):
@@ -90,9 +95,24 @@ class UserProfile(BaseModel):
     role: str
     warehouse_id: UUID | None = None
     is_active: bool
+    approval_status: str = "APPROVED"
+    company_name: str | None = None
+    tax_id: str | None = None
+    contact_person: str | None = None
+    business_email: str | None = None
+    business_phone: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class RegistrationResponse(BaseModel):
+    access_token: str | None = None
+    refresh_token: str | None = None
+    token_type: str = "bearer"
+    user: UserProfile | None = None
+    pending_approval: bool = False
+    message: str | None = None
 
 
 class MessageResponse(BaseModel):
@@ -109,6 +129,7 @@ class SignupOtpSendResponse(BaseModel):
 class OTPVerifiedResponse(BaseModel):
     verified: bool
     message: str
+
 
 class GoogleLoginRequest(BaseModel):
     credential: str

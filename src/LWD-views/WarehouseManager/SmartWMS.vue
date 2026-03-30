@@ -120,12 +120,12 @@
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
+import { API_BASE_URL } from '@/config/api'
 
 const authStore = useAuthStore()
 const chatInput = ref('')
 const chatContainer = ref(null)
 const chatLoading = ref(false)
-const warehouseId = ref(null)
 
 // Live data
 const allOrders = ref([])
@@ -156,34 +156,19 @@ const predictedStaffNeeded = computed(() => Math.round(totalStaff.value * 1.15))
 const extraStaffNeeded = computed(() => Math.max(0, predictedStaffNeeded.value - availableStaff.value))
 const capacityPercent = computed(() => totalOrders.value > 0 ? Math.round((pickingOrders.value / totalOrders.value) * 100) : 0)
 
-async function fetchWarehouseId() {
-    try {
-        const headers = {
-            'Authorization': `Bearer ${authStore.authToken}`,
-            'Content-Type': 'application/json'
-        }
-        const response = await fetch('http://localhost:8000/api/v1/warehouses?page=1&page_size=10', { headers })
-        if (response.ok) {
-            const data = await response.json()
-            const warehouses = data.items || data || []
-            if (warehouses.length > 0) {
-                warehouseId.value = warehouses[0].id
-            }
-        }
-    } catch (error) {
-        console.error('Error fetching warehouse ID:', error)
-    }
-}
-
 async function fetchLiveData() {
     try {
         const headers = {
             'Authorization': `Bearer ${authStore.authToken}`,
             'Content-Type': 'application/json'
         }
+        const warehouseId = authStore.currentUser?.warehouse_id
+        const labourUrl = warehouseId
+            ? `${API_BASE_URL}/api/v1/labourers?page=1&page_size=100&warehouse_id=${warehouseId}`
+            : `${API_BASE_URL}/api/v1/labourers?page=1&page_size=100`
         const [ordersRes, labourRes] = await Promise.allSettled([
-            fetch('http://localhost:8000/api/v1/orders?page=1&page_size=200', { headers }),
-            fetch('http://localhost:8000/api/v1/labourers?page=1&page_size=100', { headers })
+            fetch(`${API_BASE_URL}/api/v1/orders?page=1&page_size=200`, { headers }),
+            fetch(labourUrl, { headers })
         ])
         if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
             const data = await ordersRes.value.json()
@@ -193,6 +178,7 @@ async function fetchLiveData() {
             const data = await labourRes.value.json()
             labourers.value = data.items || []
         }
+        updateAIResponses()
     } catch (error) {
         console.error('SmartWMS fetch error:', error)
     }
@@ -365,7 +351,6 @@ const aiInsights = computed(() => [
 ])
 
 onMounted(async () => {
-    await fetchWarehouseId()
     await fetchLiveData()
 })
 </script>

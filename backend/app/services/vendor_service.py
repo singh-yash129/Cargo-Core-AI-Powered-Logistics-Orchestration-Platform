@@ -70,7 +70,14 @@ def _profile(user: User) -> UserProfile:
         phone=user.phone,
         address=user.address,
         role=user.role.name,
+        warehouse_id=user.warehouse_id,
         is_active=user.is_active,
+        approval_status=user.approval_status,
+        company_name=user.company_name,
+        tax_id=user.tax_id,
+        contact_person=user.contact_person,
+        business_email=user.business_email,
+        business_phone=user.business_phone,
         created_at=user.created_at,
     )
 
@@ -317,7 +324,7 @@ def _analytics(orders: list[Order]) -> VendorAnalytics:
     )
 
 
-def _invoice_summary(orders: list[Order]) -> VendorInvoiceSummary:
+def _invoice_summary(orders: list[Order], credit_balance: float = 0.0) -> VendorInvoiceSummary:
     now = datetime.now()
     invoices = [_invoice_record(order, now) for order in orders if order.total_amount > 0]
     total_overdue = sum(invoice.amount - invoice.paid for invoice in invoices if invoice.status == "Overdue")
@@ -333,7 +340,7 @@ def _invoice_summary(orders: list[Order]) -> VendorInvoiceSummary:
         total_overdue=total_overdue,
         total_unpaid=total_unpaid,
         total_paid_this_month=total_paid_this_month,
-        credit_balance=0,
+        credit_balance=round(credit_balance, 2),
     )
 
 
@@ -384,7 +391,6 @@ async def get_vendor_dashboard(db: AsyncSession, user: User) -> VendorDashboardR
     orders = await _orders_for_vendor(db, user)
     driver_names, driver_phones, vehicle_codes = await _resolve_assignment_maps(db, orders)
     analytics = _analytics(orders)
-    invoices = _invoice_summary(orders)
     status_keys = [_status_key(order.status) for order in orders]
     current_month = datetime.now().strftime("%Y-%m")
 
@@ -393,6 +399,12 @@ async def get_vendor_dashboard(db: AsyncSession, user: User) -> VendorDashboardR
         for order in orders
         if order.created_at.strftime("%Y-%m") == current_month
     )
+
+    # Fetch real wallet balance from WalletTransaction table
+    from app.services.wallet_service import get_wallet_balance
+    wallet_balance = await get_wallet_balance(db, user.id)
+
+    invoices = _invoice_summary(orders, credit_balance=wallet_balance)
 
     stats = VendorStats(
         total_shipments=len(orders),
@@ -403,7 +415,7 @@ async def get_vendor_dashboard(db: AsyncSession, user: User) -> VendorDashboardR
         monthly_spend=monthly_spend,
         outstanding_amount=sum(invoice.amount - invoice.paid for invoice in invoices.invoices if invoice.status != "Paid"),
         paid_this_month=invoices.total_paid_this_month,
-        credit_balance=0,
+        credit_balance=round(wallet_balance, 2),
     )
 
     return VendorDashboardResponse(
@@ -444,11 +456,11 @@ async def get_vendor_settings(user: User) -> VendorSettingsResponse:
     _ensure_vendor(user)
     return VendorSettingsResponse(
         settings=VendorSettings(
-            company_name=user.name,
-            tax_id="",
-            contact_person=user.name,
-            phone=user.phone,
-            email=user.email,
+            company_name=user.company_name or user.name,
+            tax_id=user.tax_id or "",
+            contact_person=user.contact_person or user.name,
+            phone=user.business_phone or user.phone,
+            email=user.business_email or user.email,
             address=user.address,
             notification_prefs={
                 "email": user.notifications_email,
@@ -466,8 +478,12 @@ async def update_vendor_settings(
     db: AsyncSession, user: User, data: VendorSettings
 ) -> VendorSettingsResponse:
     _ensure_vendor(user)
-    user.name = data.company_name or user.name
-    user.phone = data.phone
+    user.company_name = data.company_name or user.company_name or user.name
+    user.tax_id = data.tax_id or user.tax_id
+    user.contact_person = data.contact_person or user.contact_person or user.name
+    user.business_email = data.email or user.business_email or user.email
+    user.business_phone = data.phone
+    user.phone = data.phone or user.phone
     user.address = data.address
     user.notifications_email = data.notification_prefs.get("email", True)
     user.notifications_sms = data.notification_prefs.get("sms", bool(user.phone))
@@ -879,16 +895,27 @@ async def pay_invoice(
     if order.payment_status == "paid":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invoice already paid")
 
-    current_paid = getattr(order, 'paid_amount', 0) or 0
-    new_paid = min(current_paid + float(data.amount), order.total_amount)
-    order.paid_amount = new_paid
+    outstanding = max(float(order.total_amount or 0.0) - float(order.paid_amount or 0.0), 0.0)
+    if outstanding <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invoice already settled")
 
-    if new_paid >= order.total_amount:
-        order.payment_status = "paid"
-    else:
-        order.payment_status = "partial"
+    payment_amount = min(float(data.amount or 0.0), outstanding)
+    if payment_amount <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payment amount must be greater than zero")
 
-    db.add(order)
+    from app.services import finance_service
+
+    await finance_service.record_order_payment(
+        db=db,
+        order_id=order.id,
+        amount=payment_amount,
+        payment_mode="ONLINE",
+        payment_method=data.payment_method,
+        payment_ref=None,
+        collected_by_user=None,
+        notes="Vendor invoice payment",
+    )
+
     await db.flush()
     await db.refresh(order)
     return _invoice_record(order, datetime.now())

@@ -134,7 +134,7 @@ onMounted(async () => {
                 return {
                     type: job.jobType,
                     label: isHouseShift ? 'House Shifting' : (isPickup ? 'Parcel Pickup' : 'Parcel Delivery'),
-                    description: `Assigned Job: ${job.id}. ${job.stops.length} stop(s). Route ending at ${job.deliveryAddr}.`,
+                    description: `Assigned Job: ${job.jobId || job.id}. ${job.stops?.length || 1} stop(s). Route ending at ${job.deliveryAddr || job.destinationLocation?.address || job.sourceLocation?.address || 'TBD'}.`,
                     icon: isHouseShift ? 'moving' : (isPickup ? 'assignment_return' : 'local_shipping'),
                     iconBg: isHouseShift ? 'bg-purple-500/15' : (isPickup ? 'bg-blue-500/15' : 'bg-green-500/15'),
                     iconColor: isHouseShift ? 'text-purple-400' : (isPickup ? 'text-blue-400' : 'text-green-400'),

@@ -467,6 +467,8 @@ export const useJobStore = defineStore('job', () => {
 
     // ── Live GPS Tracking ───────────────────────────────
     let geoWatchId = null
+    let lastLocationPushAt = 0
+    const LOCATION_PUSH_INTERVAL_MS = 5000 // push at most every 5 seconds
 
     function startSimulatedTracking() {
         if (geoWatchId !== null || typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -484,8 +486,13 @@ export const useJobStore = defineStore('job', () => {
                     timestamp: new Date(position.timestamp).toISOString(),
                 }
 
-                api.updateDriverLocation(currentLocation.value.lat, currentLocation.value.lng)
-                    .catch(err => console.warn('Failed to push GPS update', err))
+                // Throttle: only push to backend if ≥5s since last push
+                const now = Date.now()
+                if (now - lastLocationPushAt >= LOCATION_PUSH_INTERVAL_MS) {
+                    lastLocationPushAt = now
+                    api.updateDriverLocation(currentLocation.value.lat, currentLocation.value.lng)
+                        .catch(err => console.warn('Failed to push GPS update', err))
+                }
             },
             error => {
                 console.warn('Live GPS tracking unavailable', error)

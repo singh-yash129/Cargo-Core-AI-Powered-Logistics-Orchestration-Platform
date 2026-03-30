@@ -108,6 +108,7 @@
 import { ref, computed } from 'vue'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
+import * as api from '../services/api.js'
 
 const uiStore = useUiStore()
 const driverStore = useDriverStore()
@@ -115,11 +116,21 @@ const isDark = computed(() => uiStore.theme !== 'light')
 
 const cashoutRequested = ref(false)
 
-function handleCashout() {
+async function handleCashout() {
     if (cashoutRequested.value) return
+    const total = currentEarnings.value.total
+    if (!total) {
+        uiStore.showToast('No earnings to cashout', 'warning', 2000)
+        return
+    }
     cashoutRequested.value = true
-    uiStore.showToast(`Cashout of ₹${currentEarnings.value.total.toLocaleString('en-IN')} initiated ✓`, 'success', 3000)
-    setTimeout(() => { cashoutRequested.value = false }, 5000)
+    try {
+        await api.requestCashout(total)
+        uiStore.showToast(`Cashout of ₹${total.toLocaleString('en-IN')} requested ✓`, 'success', 3000)
+    } catch (err) {
+        uiStore.showToast(err.message || 'Cashout failed', 'error', 2500)
+        cashoutRequested.value = false
+    }
 }
 
 const periods = ['Today', 'Week', 'Month']
@@ -171,6 +182,6 @@ const driverProfile = computed(() => driverStore.driver || {})
 const scorecard = computed(() => [
     { label: 'Rating', value: `${driverProfile.value.rating || 0}★`, color: 'text-accent-gold' },
     { label: 'On-Time', value: `${driverProfile.value.onTimePercent || 0}%`, color: 'text-primary' },
-    { label: 'Safety', value: driverProfile.value.safetyScore || dashboardEarnings.value.safety_score || '98', color: 'text-accent-blue' },
+    { label: 'Safety', value: `${dashboardEarnings.value.safety_score ?? driverProfile.value.safetyScore ?? 0}`, color: 'text-accent-blue' },
 ])
 </script>

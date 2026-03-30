@@ -57,6 +57,14 @@ class User(Base):
     privacy_analytics: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     privacy_marketing: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    approval_status: Mapped[str] = mapped_column(String(20), nullable=False, default="APPROVED")
+    approval_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    approval_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    company_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    tax_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    contact_person: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    business_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    business_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     role_id: Mapped[int] = mapped_column(Integer, ForeignKey("roles.id"), nullable=False)
 

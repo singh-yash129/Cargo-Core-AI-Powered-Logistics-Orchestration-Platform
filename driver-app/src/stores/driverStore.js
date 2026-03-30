@@ -11,6 +11,9 @@ export const useDriverStore = defineStore('driver', () => {
     const loading = ref(false)
     const error = ref(null)
 
+    // Survives jobStore.reset() so ShiftSummary can detect the last job type
+    const lastJobType = ref(null)
+
     // ── Shift Flow State ──────────────────────────
     const preShiftDone = ref(false)
     const vehicleBound = ref(false)
@@ -89,6 +92,7 @@ export const useDriverStore = defineStore('driver', () => {
 
     function bindVehicle(v) {
         vehicle.value = v
+        vehicleBound.value = true
     }
 
     function applyDashboardContext(context) {
@@ -148,6 +152,7 @@ export const useDriverStore = defineStore('driver', () => {
     return {
         driver, vehicle, dashboard, isAuthenticated, shiftStartTime, loading, error,
         preShiftDone, vehicleBound, inspectionDone, jobTypeSelected, crewCheckedIn, loadVerified, gateExited,
+        lastJobType,
         driverName, driverId, vehicleId, shiftFlowComplete,
         login, logout, bindVehicle, fetchVehicles, applyDashboardContext, refreshDashboard
     }

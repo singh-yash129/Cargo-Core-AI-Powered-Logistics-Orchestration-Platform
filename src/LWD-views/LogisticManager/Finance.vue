@@ -136,8 +136,13 @@
                                     </div>
                                 </td>
                                 <td v-if="activeTab !== 'cod'" class="py-4 px-4">
-                                    <span class="px-2 py-0.5 rounded text-[11px] bg-white/10 text-slate-300 border border-white/10">
-                                        {{ item.role || item.type }}
+                                    <span class="px-2 py-0.5 rounded text-[11px] border"
+                                        :class="item.type === 'REVENUE_REFUND'
+                                            ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                                            : item.type === 'PAYROLL_RUN'
+                                            ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
+                                            : 'bg-white/10 text-slate-300 border-white/10'">
+                                        {{ item.role || txTypeLabel(item.type) }}
                                     </span>
                                 </td>
                                 <td class="py-4 px-4 font-bold font-mono text-right"
@@ -322,9 +327,11 @@
 
                     <div class="p-4 bg-slate-800/80 flex justify-end gap-2 border-t border-white/10">
                         <button @click="showBulkActionModal = false" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900">Cancel</button>
-                        <button @click="applyBulkAction" :disabled="bulkTargetUsers.length === 0 || bulkForm.amount <= 0" 
+                        <button @click="applyBulkAction" :disabled="bulkTargetUsers.length === 0 || bulkForm.amount <= 0 || bulkApplying"
                             class="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg shadow-lg shadow-purple-500/20 transition-all flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[18px]">done_all</span> Apply to {{ bulkTargetUsers.length }} Users
+                            <span v-if="bulkApplying" class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                            <span v-else class="material-symbols-outlined text-[18px]">done_all</span>
+                            {{ bulkApplying ? 'Applying...' : `Apply to ${bulkTargetUsers.length} Users` }}
                         </button>
                     </div>
                 </div>
@@ -561,15 +568,17 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
+import salarySlipTemplate from '../../../html-slips/SalarySlip.html?raw'
+import salaryLogoUrl from '../../../html-slips/assets/cargocore-logo.jpeg'
 
 const store = useLogisticStore()
 const {
     filteredTransactions,
     filteredUsers,
-    financeSummary,
+    activeFinanceSummary,
     filteredFinanceCodRecords,
     filteredFinanceStaffRecords,
     filteredFinanceDriverRecords,
@@ -578,6 +587,11 @@ const {
 } = storeToRefs(store)
 
 const financeLoaded = computed(() => initialized.value && !isLoading.value)
+
+onMounted(() => {
+    store.initialize().catch(() => {})
+    store.fetchFinanceSummary(store.activeWarehouse).catch(() => {})
+})
 
 // View State
 const activeTab = ref('overview') // overview, cod, staff, drivers
@@ -603,6 +617,7 @@ const paymentSuccess = ref(false)
 
 // Bulk Action State
 const showBulkActionModal = ref(false)
+const bulkApplying = ref(false)
 const bulkForm = ref({
     type: 'Bonus', // Bonus or Deduct
     amount: 0,
@@ -652,30 +667,31 @@ const openBulkActionModal = () => {
 }
 
 const applyBulkAction = async () => {
-    if (!bulkTargetUsers.value.length) return
-    
-    // In a real app, this would be a batch API call
-    // Here we simulate individual transactions
-    const totalAmount = bulkTargetUsers.value.length * bulkForm.value.amount
-    
-    // Add a summary transaction to the ledger
-    await store.addTransaction({
-        id: Date.now(),
-        date: new Date().toISOString().split('T')[0],
-        desc: `Bulk ${bulkForm.value.type}: ${bulkTargetUsers.value.length} users`,
-        amount: bulkForm.value.type === 'Bonus' ? -totalAmount : totalAmount, // Details logic inverted for expense/income representation
-        type: bulkForm.value.type === 'Bonus' ? 'Expense' : 'Income',
-        status: 'Completed',
-        hubId: store.activeWarehouse
-    })
+    if (!bulkTargetUsers.value.length || bulkApplying.value) return
+    bulkApplying.value = true
+    try {
+        const isBonus = bulkForm.value.type === 'Bonus'
+        const txType = isBonus ? 'Expense' : 'Income'
+        const amountSign = isBonus ? -1 : 1
+        const date = new Date().toISOString().split('T')[0]
 
-    // Update individual users (Mock update)
-    bulkTargetUsers.value.forEach(user => {
-        // e.g., store.updateUserBalance(user.id, amount)
-        console.log(`Applied ${bulkForm.value.type} of ${bulkForm.value.amount} to ${user.name}`)
-    })
-
-    showBulkActionModal.value = false
+        // Create one transaction record per affected user
+        await Promise.all(bulkTargetUsers.value.map(user =>
+            store.addTransaction({
+                date,
+                desc: `${bulkForm.value.type} – ${user.name}${bulkForm.value.reason ? ': ' + bulkForm.value.reason : ''}`,
+                amount: bulkForm.value.amount * amountSign,
+                type: txType,
+                status: 'Completed',
+                hubId: store.activeWarehouse
+            })
+        ))
+        showBulkActionModal.value = false
+    } catch (e) {
+        alert(`Failed to apply: ${e.message || 'Unknown error'}`)
+    } finally {
+        bulkApplying.value = false
+    }
 }
 
 const openPayrollModal = () => {
@@ -697,34 +713,35 @@ const openPayrollModal = () => {
 
 const confirmPayrollRun = async () => {
     payrollProcessing.value = true
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 2000))
 
-    await store.addTransaction({
-        id: Date.now(),
-        date: new Date().toISOString().split('T')[0],
-        desc: `Batch Payroll Run (${payrollSummary.value.count} staff)`,
-        amount: -payrollSummary.value.total, 
-        type: 'Expense',
-        status: 'Completed',
-        hubId: store.activeWarehouse
-    })
-    
-    // Clear pending payoutsMock
-    payrollSummary.value.pendingUsers.forEach(u => {
-        // In real app, call store action to clear
-        u.pending_payout = 0
-    })
-    filteredFinanceStaffRecords.value
-        .filter(item => item.status === 'Pending')
-        .forEach(item => store.markFinanceRecordPaid('staff', item.id))
-    filteredFinanceDriverRecords.value
-        .filter(item => item.status === 'Pending')
-        .forEach(item => store.markFinanceRecordPaid('drivers', item.id))
+    // Build per-user payout list for the backend
+    const staffPayouts = filteredFinanceStaffRecords.value
+        .filter(item => item.status === 'Pending' && item.amount > 0)
+        .map(item => ({ user_id: item.userId, amount: item.amount, record_type: 'staff', name: item.name }))
+    const driverPayouts = filteredFinanceDriverRecords.value
+        .filter(item => item.status === 'Pending' && item.amount > 0)
+        .map(item => ({ user_id: item.userId, amount: item.amount, record_type: 'driver', name: item.name }))
 
-    payrollProcessing.value = false
-    payrollSuccess.value = true
+    try {
+        await store.runPayroll([...staffPayouts, ...driverPayouts])
+
+        // Update local record statuses so UI responds immediately without refresh
+        filteredFinanceStaffRecords.value
+            .filter(item => item.status === 'Pending')
+            .forEach(item => store.markFinanceRecordPaid('staff', item.id))
+        filteredFinanceDriverRecords.value
+            .filter(item => item.status === 'Pending')
+            .forEach(item => store.markFinanceRecordPaid('drivers', item.id))
+
+        // Clear pending_payout on user objects
+        payrollSummary.value.pendingUsers.forEach(u => { u.pending_payout = 0 })
+
+        payrollSuccess.value = true
+    } catch (e) {
+        console.error('Payroll run failed:', e)
+    } finally {
+        payrollProcessing.value = false
+    }
 }
 
 // Tabs Configuration
@@ -740,18 +757,18 @@ const activeTabLabel = computed(() => {
     return tabs.find(t => t.id === activeTab.value)?.label || 'Transactions'
 })
 
-const totalRevenue = computed(() => financeSummary.value.total_revenue ??
+const totalRevenue = computed(() => activeFinanceSummary.value.total_revenue ??
     filteredTransactions.value
         .filter(t => t.amount > 0 && t.type !== 'CAPITAL_INVESTMENT')
         .reduce((sum, t) => sum + t.amount, 0))
-const totalExpenses = computed(() => financeSummary.value.total_expenses ??
+const totalExpenses = computed(() => activeFinanceSummary.value.total_expenses ??
     Math.abs(filteredTransactions.value.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0)))
 const totalPayrollDue = computed(() =>
     [...filteredFinanceStaffRecords.value, ...filteredFinanceDriverRecords.value]
         .filter(item => item.status === 'Pending')
         .reduce((sum, item) => sum + (item.amount || 0), 0)
 )
-const capitalInflow = computed(() => financeSummary.value.capital_invested ??
+const capitalInflow = computed(() => activeFinanceSummary.value.capital_invested ??
     filteredTransactions.value.filter(t => t.type === 'CAPITAL_INVESTMENT').reduce((sum, t) => sum + t.amount, 0))
 const pendingCOD = computed(() => filteredFinanceCodRecords.value
     .filter(item => item.status === 'Pending')
@@ -859,8 +876,74 @@ const confirmSinglePayment = async () => {
 }
 
 const downloadSlip = (item) => {
-    console.log(`Downloading slip for ${item.id}`)
+    const now = new Date()
+    const period = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+    const paymentDate = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+    const shortDate = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+
+    const net = Math.round(item.amount || 0)
+    const profTax = 200
+    const tds = Math.round(net * 0.1)
+    const totalDeductions = profTax + tds
+    const gross = net + totalDeductions
+    const basic = Math.round(gross * 0.70)
+    const hra = Math.round(gross * 0.20)
+    const transport = 2500
+    const special = Math.max(0, gross - basic - hra - transport)
+
+    const empId = (item.userId || item.id || '').slice(0, 6).toUpperCase()
+    const name = item.name || 'Employee'
+    const role = item.role || 'Staff'
+
+    const html = salarySlipTemplate
+        // fix asset paths so they resolve correctly in blob context
+        .replaceAll('assets/cargocore-logo.jpeg', salaryLogoUrl)
+        // meta & title
+        .replace('Salary Slip – February 2026', `Salary Slip – ${period}`)
+        .replace('For the month of February 2026', `For the month of ${period}`)
+        // employee details
+        .replace('Siddarth S', name)
+        .replace('WM001', empId)
+        .replace('Warehouse Manager', role)
+        .replace('28 February 2026', paymentDate)
+        // earnings
+        .replace('42,000</td>', `${basic.toLocaleString('en-IN')}</td>`)
+        .replace('12,000</td>', `${hra.toLocaleString('en-IN')}</td>`)
+        .replace('2,500</td>', `${transport.toLocaleString('en-IN')}</td>`)
+        .replace('3,500</td>', `${special.toLocaleString('en-IN')}</td>`)
+        .replace('₹60,000</td>', `₹${gross.toLocaleString('en-IN')}</td>`)
+        // deductions
+        .replace('200</td>', `${profTax}</td>`)
+        .replace('4,200</td>', `${tds.toLocaleString('en-IN')}</td>`)
+        .replace('₹4,400</td>', `₹${totalDeductions.toLocaleString('en-IN')}</td>`)
+        // net pay
+        .replace('₹55,600</div>', `₹${net.toLocaleString('en-IN')}</div>`)
+        // signature date
+        .replace('28 Feb 2026', shortDate)
+
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    const win = window.open(url, '_blank')
+    if (win) win.addEventListener('load', () => URL.revokeObjectURL(url))
 }
+
+const TX_TYPE_LABELS = {
+    'REVENUE_ONLINE': 'Online Payment',
+    'REVENUE_COD': 'COD Collection',
+    'REVENUE_REFUND': 'Cancellation Refund',
+    'EXPENSE_DRIVER': 'Driver Cost',
+    'EXPENSE_LABOUR': 'Labour Cost',
+    'EXPENSE_FUEL': 'Fuel',
+    'EXPENSE_WAREHOUSE': 'Warehouse',
+    'EXPENSE_PROCUREMENT': 'Procurement',
+    'PAYROLL_RUN': 'Payroll',
+    'CAPITAL_INVESTMENT': 'Capital Investment',
+    'Expense': 'Expense',
+    'Incoming': 'Income',
+    'Payroll': 'Payroll',
+}
+const txTypeLabel = (type) => TX_TYPE_LABELS[type] || type
+
 
 </script>
 

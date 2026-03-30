@@ -14,7 +14,7 @@ from app.models.inventory import InventoryItem, InventoryMovement
 from app.models.labour import Labourer
 from app.models.logistics import LogisticsDriverProfile, LogisticsVehicle
 from app.models.order import Order, OrderItem
-from app.models.user import User
+from app.models.user import Role, User
 from app.models.warehouse import Warehouse
 from app.services import geocoding_service
 from app.utils.email import delivery_otp_email_html, send_email
@@ -41,6 +41,7 @@ ORDER_STATUSES = {
     "CANCELLED",
 }
 TERMINAL_ORDER_STATUSES = {"CLOSED", "CANCELLED"}
+AUTO_ASSIGN_READY_ROLES = {"DISPATCHER", "DRIVER", "LABOURER"}
 ALLOWED_TRANSITIONS = {
     "DRAFT": {"CONFIRMED", "CANCELLED"},
     "CONFIRMED": {"ASSIGNED", "CANCELLED"},
@@ -98,42 +99,125 @@ async def _resolve_warehouse_id(
     warehouse_id: UUID | None,
 ) -> UUID:
     if warehouse_id:
-        warehouse = (
-            await db.execute(
-                select(Warehouse).where(Warehouse.id == warehouse_id, Warehouse.is_active.is_(True))
-            )
-        ).scalar_one_or_none()
-        if not warehouse:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Active warehouse not found",
-            )
+        warehouse = await _get_active_warehouse(db, warehouse_id)
         return warehouse.id
 
-    selected_warehouse_id = (
+    warehouse = await _select_auto_assignment_warehouse(db)
+    return warehouse.id
+
+
+async def _get_active_warehouse(
+    db: AsyncSession,
+    warehouse_id: UUID,
+) -> Warehouse:
+    warehouse = (
         await db.execute(
-            select(Warehouse.id)
-            .outerjoin(
-                Order,
-                and_(
-                    Order.warehouse_id == Warehouse.id,
-                    Order.status.not_in(TERMINAL_ORDER_STATUSES),
-                ),
-            )
-            .where(Warehouse.is_active.is_(True))
-            .group_by(Warehouse.id, Warehouse.created_at)
-            .order_by(func.count(Order.id).asc(), Warehouse.created_at.asc())
-            .limit(1)
+            select(Warehouse).where(Warehouse.id == warehouse_id, Warehouse.is_active.is_(True))
         )
     ).scalar_one_or_none()
+    if not warehouse:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Active warehouse not found",
+        )
+    return warehouse
 
-    if not selected_warehouse_id:
+
+async def _select_auto_assignment_warehouse(db: AsyncSession) -> Warehouse:
+    active_warehouses = (
+        await db.execute(
+            select(Warehouse)
+            .where(Warehouse.is_active.is_(True))
+            .order_by(Warehouse.created_at.asc())
+        )
+    ).scalars().all()
+
+    if not active_warehouses:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="No active warehouses available for assignment",
         )
 
-    return selected_warehouse_id
+    open_order_counts = {
+        warehouse_id: count
+        for warehouse_id, count in (
+            await db.execute(
+                select(Order.warehouse_id, func.count(Order.id))
+                .where(
+                    Order.warehouse_id.is_not(None),
+                    Order.status.not_in(TERMINAL_ORDER_STATUSES),
+                )
+                .group_by(Order.warehouse_id)
+            )
+        ).all()
+        if warehouse_id is not None
+    }
+    operational_user_counts = {
+        warehouse_id: count
+        for warehouse_id, count in (
+            await db.execute(
+                select(User.warehouse_id, func.count(User.id))
+                .join(Role, Role.id == User.role_id)
+                .where(
+                    User.warehouse_id.is_not(None),
+                    User.is_active.is_(True),
+                    Role.name.in_(AUTO_ASSIGN_READY_ROLES),
+                )
+                .group_by(User.warehouse_id)
+            )
+        ).all()
+        if warehouse_id is not None
+    }
+    labour_counts = {
+        warehouse_id: count
+        for warehouse_id, count in (
+            await db.execute(
+                select(Labourer.warehouse_id, func.count(Labourer.id))
+                .group_by(Labourer.warehouse_id)
+            )
+        ).all()
+        if warehouse_id is not None
+    }
+
+    def is_operationally_ready(candidate: Warehouse) -> bool:
+        return any((
+            open_order_counts.get(candidate.id, 0) > 0,
+            operational_user_counts.get(candidate.id, 0) > 0,
+            labour_counts.get(candidate.id, 0) > 0,
+        ))
+
+    candidate_warehouses = [
+        warehouse for warehouse in active_warehouses if is_operationally_ready(warehouse)
+    ] or active_warehouses
+
+    return min(
+        candidate_warehouses,
+        key=lambda item: (open_order_counts.get(item.id, 0), item.created_at),
+    )
+
+
+async def get_order_assignment_preview(
+    db: AsyncSession,
+    warehouse_id: UUID | None = None,
+) -> dict:
+    if warehouse_id:
+        warehouse = await _get_active_warehouse(db, warehouse_id)
+        return {
+            "warehouse_id": warehouse.id,
+            "warehouse_name": warehouse.name,
+            "warehouse_address": warehouse.address,
+            "assignment_type": "selected",
+            "message": f"This order will go to {warehouse.name} because you selected it.",
+        }
+
+    warehouse = await _select_auto_assignment_warehouse(db)
+    return {
+        "warehouse_id": warehouse.id,
+        "warehouse_name": warehouse.name,
+        "warehouse_address": warehouse.address,
+        "assignment_type": "auto",
+        "message": f"If you book now, the order will auto-assign to {warehouse.name} based on current hub readiness and open load.",
+    }
 
 
 def _validate_transition(current_status: str, next_status: str) -> None:
@@ -199,6 +283,9 @@ def _to_order_response(
         delivery_notes=order.delivery_notes,
         pod_photos=order.pod_photos or [],
         pod_signature=order.pod_signature,
+        poc_signature=order.poc_signature,
+        job_rating=order.job_rating,
+        job_feedback=order.job_feedback,
         customer_name=customer_name,
         customer_phone=customer_phone,
         created_at=order.created_at,
@@ -208,13 +295,13 @@ def _to_order_response(
 
 def _cancellation_terms(order: Order) -> tuple[float, str]:
     if order.status in {"DRAFT", "CONFIRMED"}:
-        return 0.0, "Cancelled before dispatch — No fee"
+        return 0.0, "Cancelled before dispatch - No fee"
     if order.status == "ASSIGNED":
         fee = round(float(order.total_amount or 0.0) * 0.05, 2)
-        return fee, "Cancelled after driver assigned — 5% fee"
+        return fee, "Cancelled after driver assigned - 5% fee"
     if order.status == "IN_TRANSIT":
         fee = round(float(order.total_amount or 0.0) * 0.25, 2)
-        return fee, "Cancelled mid-transit — 25% fee"
+        return fee, "Cancelled mid-transit - 25% fee"
     return 0.0, "Cancelled"
 
 
@@ -286,6 +373,21 @@ async def create_order(db: AsyncSession, data: OrderCreate, user: User) -> Order
     )
     db.add(order)
     await db.flush()
+
+    initial_payment_amount = min(float(data.initial_payment_amount or 0.0), float(order.total_amount or 0.0))
+    if initial_payment_amount > 0:
+        from app.services import finance_service
+
+        await finance_service.record_order_payment(
+            db=db,
+            order_id=order.id,
+            amount=initial_payment_amount,
+            payment_mode=data.initial_payment_mode or "ONLINE",
+            payment_method=data.initial_payment_method,
+            payment_ref=data.initial_payment_ref,
+            notes="Initial payment captured during order booking",
+        )
+
     await db.refresh(order, attribute_names=["items"])
     return _to_order_response(order)
 
@@ -513,6 +615,7 @@ async def assign_order(db: AsyncSession, order_id: UUID, data: OrderAssignReques
             expense_type="EXPENSE_LABOUR",
             amount=order.labor_count * _fs.LABOUR_RATE_PER_HEAD,
             description=f"Labour ({order.labor_count} helpers) for {order.tracking_code}",
+            warehouse_id=order.warehouse_id,
             order_id=order.id,
             tracking_code=order.tracking_code,
         )
@@ -521,6 +624,7 @@ async def assign_order(db: AsyncSession, order_id: UUID, data: OrderAssignReques
         expense_type="EXPENSE_DRIVER",
         amount=_fs.DRIVER_SHIFT_RATE,
         description=f"Driver shift fee for {order.tracking_code}",
+        warehouse_id=order.warehouse_id,
         order_id=order.id,
         tracking_code=order.tracking_code,
     )
@@ -603,7 +707,8 @@ async def transition_order(
             db,
             expense_type="EXPENSE_FUEL",
             amount=rate * est_km,
-            description=f"Fuel estimate ({est_km}km @ ₹{rate}/km) for {order.tracking_code}",
+            description=f"Fuel estimate ({est_km}km @ INR {rate}/km) for {order.tracking_code}",
+            warehouse_id=order.warehouse_id,
             order_id=order.id,
             tracking_code=order.tracking_code,
         )
@@ -741,15 +846,30 @@ async def cancel_order(
     cancellation_fee, cancellation_note = _cancellation_terms(order)
     wallet_refund_amount = 0.0
 
-    if float(order.paid_amount or 0.0) > 0:
+    # Determine the effective paid amount.
+    # paid_amount is only set when a payment is explicitly recorded via /pay or /wallet-pay.
+    # If the order was created with payment_status='paid' (e.g. Razorpay/online flow where
+    # the frontend marks it paid but never calls the /pay endpoint), paid_amount stays 0.
+    # In that case we treat total_amount as the effective paid amount for refund purposes.
+    effective_paid = float(order.paid_amount or 0.0)
+    if effective_paid <= 0 and order.payment_status in {"paid", "partial"}:
+        # Infer from total_amount — the order was paid but paid_amount wasn't recorded
+        effective_paid = float(order.total_amount or 0.0)
+    elif effective_paid <= 0 and (order.payment_mode or "").strip().lower() == "partial":
+        # Legacy booking flow: partial payments were captured in the UI but the backend order
+        # stayed at payment_status='pending' with payment_mode='Partial'. Refund the expected 50%.
+        effective_paid = round(float(order.total_amount or 0.0) / 2, 2)
+
+    if effective_paid > 0:
         from app.services import wallet_service
 
         wallet_refund_amount = await wallet_service.credit_cancellation_refund(
             db,
             order=order,
-            refund_amount=max(float(order.paid_amount or 0.0) - cancellation_fee, 0.0),
+            refund_amount=max(effective_paid - cancellation_fee, 0.0),
             fee_amount=cancellation_fee,
         )
+
 
     # Release all assigned resources
     await _release_order_resources(db, order)
@@ -1010,3 +1130,78 @@ async def upload_proof_of_delivery(
         customer_phone=cp.get(order.customer_id),
     )
 
+
+async def house_shift_signoff(
+    db: AsyncSession,
+    order_id: UUID,
+    user: User,
+    *,
+    signature_data: str | None,
+    customer_name: str | None = None,
+    notes: str | None = None,
+):
+    """Record customer sign-off for a house-shift job (no OTP required)."""
+    order = await _get_order(db, order_id)
+    _ensure_driver_access(order, user)
+    _validate_transition(order.status, "DELIVERED")
+
+    if not signature_data:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Customer signature is required for house-shift sign-off",
+        )
+
+    delivered_at = _now()
+    order.status = "DELIVERED"
+    order.delivered_at = delivered_at
+    order.poc_signature = _normalize_data_url(signature_data, "image/png")
+    if customer_name:
+        order.delivery_notes = f"{notes or ''}\nSigned off by: {customer_name}".strip()
+    elif notes:
+        order.delivery_notes = notes
+
+    await _release_order_resources(db, order)
+    db.add(order)
+    await db.flush()
+    await db.refresh(order, attribute_names=["items"])
+    dn, vc, cn, cp = await _resolve_names(db, [order])
+    return _to_order_response(
+        order,
+        driver_name=dn.get(order.assigned_driver_id),
+        vehicle_code=vc.get(order.assigned_vehicle_id),
+        customer_name=cn.get(order.customer_id),
+        customer_phone=cp.get(order.customer_id),
+    )
+
+
+async def submit_job_rating(
+    db: AsyncSession,
+    order_id: UUID,
+    user: User,
+    *,
+    rating: int,
+    feedback: str | None = None,
+):
+    """Store driver self-rating (1–5) and optional feedback note for a completed job."""
+    order = await _get_order(db, order_id)
+    _ensure_driver_access(order, user)
+
+    if not 1 <= rating <= 5:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Rating must be between 1 and 5",
+        )
+
+    order.job_rating = rating
+    order.job_feedback = feedback or None
+    db.add(order)
+    await db.flush()
+    await db.refresh(order, attribute_names=["items"])
+    dn, vc, cn, cp = await _resolve_names(db, [order])
+    return _to_order_response(
+        order,
+        driver_name=dn.get(order.assigned_driver_id),
+        vehicle_code=vc.get(order.assigned_vehicle_id),
+        customer_name=cn.get(order.customer_id),
+        customer_phone=cp.get(order.customer_id),
+    )

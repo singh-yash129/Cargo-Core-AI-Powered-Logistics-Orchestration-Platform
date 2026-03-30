@@ -13,6 +13,7 @@ from app.schemas.orders import (
     CancelOrderRequest,
     ClusterResponse,
     DeliveryOtpSendResponse,
+    OrderAssignmentPreview,
     OrderAssignRequest,
     OrderCreate,
     OrderItemResponse,
@@ -47,6 +48,15 @@ async def list_orders(
     status_filter: str | None = Query(default=None),
 ):
     return await orders_service.list_orders(db, user, page, page_size, status_filter)
+
+
+@router.get("/assignment-preview", response_model=OrderAssignmentPreview)
+async def get_assignment_preview(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[User, Depends(get_current_user)],
+    warehouse_id: UUID | None = Query(default=None),
+):
+    return await orders_service.get_order_assignment_preview(db, warehouse_id)
 
 
 @router.post("/cluster")
@@ -235,7 +245,7 @@ async def upsert_items(
     return await orders_service.upsert_order_items(db, order_id, items)
 
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DeliveryOtpSendRequest(BaseModel):
@@ -460,3 +470,49 @@ async def pay_order(
         "payment_mode": pmt.payment_mode,
         "payment_method": pmt.payment_method,
     }
+
+
+class HouseShiftSignoffRequest(BaseModel):
+    signature_data: str
+    customer_name: str | None = None
+    notes: str | None = None
+
+
+@router.post("/{order_id}/house-shift-signoff", response_model=OrderResponse)
+async def house_shift_signoff(
+    order_id: UUID,
+    data: HouseShiftSignoffRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("DRIVER"))],
+):
+    """Complete a house-shift job with customer sign-off signature (no OTP required)."""
+    return await orders_service.house_shift_signoff(
+        db,
+        order_id,
+        user,
+        signature_data=data.signature_data,
+        customer_name=data.customer_name,
+        notes=data.notes,
+    )
+
+
+class JobRatingRequest(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+    feedback: str | None = None
+
+
+@router.post("/{order_id}/job-rating", response_model=OrderResponse)
+async def submit_job_rating(
+    order_id: UUID,
+    data: JobRatingRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("DRIVER"))],
+):
+    """Submit driver's self-rating (1–5 stars) and optional feedback for a completed job."""
+    return await orders_service.submit_job_rating(
+        db,
+        order_id,
+        user,
+        rating=data.rating,
+        feedback=data.feedback,
+    )

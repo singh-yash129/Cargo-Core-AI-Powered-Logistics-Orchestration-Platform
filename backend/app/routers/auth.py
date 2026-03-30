@@ -15,6 +15,7 @@ from app.schemas.auth import (
     LoginResponse,
     MessageResponse,
     OTPVerifiedResponse,
+    RegistrationResponse,
     RefreshTokenRequest,
     ResetPasswordRequest,
     SignupOtpSendResponse,
@@ -34,7 +35,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
 @router.post(
     "/register",
-    response_model=TokenResponse,
+    response_model=RegistrationResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Self-service sign-up (Individual & Vendor only)",
     description=(
@@ -141,6 +142,12 @@ async def get_me(
         role=current_user.role.name,
         warehouse_id=current_user.warehouse_id,
         is_active=current_user.is_active,
+        approval_status=current_user.approval_status,
+        company_name=current_user.company_name,
+        tax_id=current_user.tax_id,
+        contact_person=current_user.contact_person,
+        business_email=current_user.business_email,
+        business_phone=current_user.business_phone,
         created_at=current_user.created_at,
     )
 

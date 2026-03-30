@@ -305,6 +305,38 @@ export async function uploadProofOfDelivery(orderId, imagesBase64 = [], signatur
     return await res.json()
 }
 
+export async function submitHouseShiftSignoff(orderId, signatureData, customerName = null, notes = null) {
+    const res = await fetchWithNetworkHelp(`/api/v1/orders/${orderId}/house-shift-signoff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+            signature_data: signatureData,
+            customer_name: customerName,
+            notes,
+        })
+    })
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: 'Failed to submit house-shift sign-off' }))
+        throw new Error(error.detail || error.message || 'Failed to submit house-shift sign-off')
+    }
+    return await res.json()
+}
+
+export async function submitJobRating(orderId, rating, feedback = null) {
+    const res = await fetchWithNetworkHelp(`/api/v1/orders/${orderId}/job-rating`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ rating, feedback })
+    })
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: 'Failed to submit job rating' }))
+        throw new Error(error.detail || error.message || 'Failed to submit job rating')
+    }
+    return await res.json()
+}
+
 // ── Location Tracking ──────────────────────────────────────────────────────
 
 export async function updateDriverLocation(latitude, longitude) {
@@ -343,5 +375,91 @@ export async function endShift() {
     })
 
     if (!res.ok) throw new Error('Failed to end shift')
+    return await res.json()
+}
+
+export async function returnVehicle({ odometerKm = null, fuelLevelPct = null, notes = null, conditionPhoto = null } = {}) {
+    const res = await fetchWithNetworkHelp('/api/v1/logistics/drivers/me/return-vehicle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+            odometer_km: odometerKm,
+            fuel_level_pct: fuelLevelPct,
+            notes: notes || null,
+            condition_photo: conditionPhoto || null,
+        }),
+    })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || 'Failed to return vehicle')
+    }
+    return await res.json()
+}
+
+// ── Fuel Receipt ───────────────────────────────────────────────────────────────
+
+export async function submitFuelReceipt({ amount, liters, station, photoBase64 = null }) {
+    const res = await fetchWithNetworkHelp('/api/v1/logistics/drivers/me/fuel-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+            amount: parseFloat(amount),
+            liters: parseFloat(liters),
+            station: station || '',
+            photo_base64: photoBase64,
+        })
+    })
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: 'Failed to submit fuel receipt' }))
+        throw new Error(error.detail || 'Failed to submit fuel receipt')
+    }
+    return await res.json()
+}
+
+// ── Dispatch Chat ──────────────────────────────────────────────────────────────
+
+export async function getDispatchThread() {
+    const res = await fetchWithNetworkHelp('/api/v1/logistics/drivers/me/dispatch-thread', {
+        headers: { 'Content-Type': 'application/json', ...authHeaders() }
+    })
+    if (!res.ok) throw new Error('Failed to load dispatch thread')
+    return await res.json()
+}
+
+export async function sendDispatchMessage(text) {
+    const res = await fetchWithNetworkHelp('/api/v1/logistics/drivers/me/dispatch-thread/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ text })
+    })
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: 'Failed to send message' }))
+        throw new Error(error.detail || 'Failed to send message')
+    }
+    return await res.json()
+}
+
+// ── Audit Log ──────────────────────────────────────────────────────────────────
+
+export async function getDriverAuditLog() {
+    const res = await fetchWithNetworkHelp('/api/v1/logistics/drivers/me/audit', {
+        headers: { 'Content-Type': 'application/json', ...authHeaders() }
+    })
+    if (!res.ok) throw new Error('Failed to fetch audit log')
+    return await res.json()
+}
+
+// ── Cashout ────────────────────────────────────────────────────────────────────
+
+export async function requestCashout(amount) {
+    const res = await fetchWithNetworkHelp('/api/v1/logistics/drivers/me/cashout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ amount: parseFloat(amount) })
+    })
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: 'Failed to request cashout' }))
+        throw new Error(error.detail || 'Failed to request cashout')
+    }
     return await res.json()
 }

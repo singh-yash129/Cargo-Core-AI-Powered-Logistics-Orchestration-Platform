@@ -87,10 +87,13 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
+import * as api from '../services/api.js'
 
 const router = useRouter()
 const jobStore = useJobStore()
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const selectedRating = ref(5)
 const feedbackNote = ref('')
@@ -145,7 +148,19 @@ const completionStats = computed(() => {
     }
 })
 
-function returnToDashboard() {
+async function returnToDashboard() {
+    // Submit rating to backend before clearing job state
+    const orderId = jobStore.jobData?.id || jobStore.jobData?.jobId || null
+    if (orderId) {
+        try {
+            await api.submitJobRating(orderId, selectedRating.value, feedbackNote.value.trim() || null)
+        } catch (err) {
+            console.error('Failed to submit job rating:', err)
+            // Non-blocking — continue to dashboard regardless
+        }
+    }
+    // Preserve job type so ShiftSummary can show correct stats after reset
+    driverStore.lastJobType = jobStore.jobType
     jobStore.reset()
     router.push('/dashboard')
 }

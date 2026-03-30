@@ -6,10 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import require_role
+from app.models.user import User
 from app.schemas.auth import MessageResponse
 from app.schemas.logistics import (
+    DispatchContactItem,
+    DriverAuditEventItem,
+    DriverCashoutRequest,
     DriverCrewMemberItem,
     DriverDashboardContext,
+    DriverDispatchMessageCreate,
+    DriverDispatchThreadItem,
+    DriverFuelReceiptCreate,
     DriverHosSummary,
     DriverShiftSummary,
     DriverTelemetryResponse,
@@ -18,6 +25,8 @@ from app.schemas.logistics import (
     LogisticsAiQueryResponse,
     LogisticsBootstrapResponse,
     LogisticsChatMessageCreate,
+    LogisticsChatThreadCreate,
+    LogisticsChatThreadUpdate,
     LogisticsChatThreadItem,
     LogisticsDriverCreate,
     LogisticsDriverItem,
@@ -26,6 +35,7 @@ from app.schemas.logistics import (
     LogisticsNotificationUpdate,
     LogisticsReturnCaseItem,
     LogisticsReturnCaseUpdate,
+    LogisticsTaskCreate,
     LogisticsTaskItem,
     LogisticsTaskUpdate,
     LogisticsTransactionCreate,
@@ -93,14 +103,6 @@ async def list_drivers(
         return await logistics_service.list_drivers(db, warehouse_id=warehouse_id)
     return await logistics_service.list_drivers(db)
 
-
-@router.post("/drivers", response_model=LogisticsDriverItem, status_code=status.HTTP_201_CREATED)
-async def create_driver(
-    data: LogisticsDriverCreate,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
-):
-    return await logistics_service.create_driver(db, data)
 
 
 @router.put("/drivers/{driver_id}", response_model=LogisticsDriverItem)
@@ -198,14 +200,75 @@ async def delete_zone(
     return await logistics_service.delete_zone(db, zone_id)
 
 
+@router.get("/dispatch-contacts", response_model=list[DispatchContactItem])
+async def get_dispatch_contacts(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.get_dispatch_contacts(db)
+
+
+@router.get("/chats", response_model=list[LogisticsChatThreadItem])
+async def list_chats(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER", "WAREHOUSE_MANAGER"))],
+):
+    return await logistics_service.list_chat_threads(db)
+
+
+@router.post("/chats", response_model=LogisticsChatThreadItem, status_code=status.HTTP_201_CREATED)
+async def create_chat(
+    data: LogisticsChatThreadCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.create_chat_thread(db, data)
+
+
 @router.post("/chats/{thread_id}/messages", response_model=LogisticsChatThreadItem)
 async def add_chat_message(
     thread_id: UUID,
     data: LogisticsChatMessageCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER", "WAREHOUSE_MANAGER"))],
 ):
     return await logistics_service.add_chat_message(db, thread_id, data)
+
+
+@router.put("/chats/{thread_id}", response_model=LogisticsChatThreadItem)
+async def update_chat(
+    thread_id: UUID,
+    data: LogisticsChatThreadUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER", "WAREHOUSE_MANAGER"))],
+):
+    return await logistics_service.mute_chat_thread(db, thread_id, data)
+
+
+@router.delete("/chats/{thread_id}", response_model=MessageResponse)
+async def delete_chat(
+    thread_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.delete_chat_thread(db, thread_id)
+
+
+@router.get("/tasks", response_model=list[LogisticsTaskItem])
+async def list_tasks(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.list_tasks(db)
+
+
+@router.post("/tasks", response_model=LogisticsTaskItem, status_code=status.HTTP_201_CREATED)
+async def create_task(
+    data: LogisticsTaskCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.create_task(db, data)
 
 
 @router.put("/tasks/{task_id}", response_model=LogisticsTaskItem)
@@ -213,9 +276,26 @@ async def update_task(
     task_id: UUID,
     data: LogisticsTaskUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
 ):
     return await logistics_service.update_task(db, task_id, data)
+
+
+@router.delete("/tasks/{task_id}", response_model=MessageResponse)
+async def delete_task(
+    task_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.delete_task(db, task_id)
+
+
+@router.get("/notifications", response_model=list[LogisticsNotificationItem])
+async def get_notifications(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+):
+    return await logistics_service.get_notifications(db, current_user)
 
 
 @router.put("/notifications/{notification_id}", response_model=LogisticsNotificationItem)
@@ -223,25 +303,34 @@ async def update_notification(
     notification_id: UUID,
     data: LogisticsNotificationUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
 ):
-    return await logistics_service.update_notification(db, notification_id, data)
+    return await logistics_service.update_notification(db, notification_id, data, current_user)
 
 
 @router.post("/notifications/mark-all-read", response_model=MessageResponse)
 async def mark_all_notifications_read(
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
 ):
-    return await logistics_service.mark_all_notifications_read(db)
+    return await logistics_service.mark_all_notifications_read(db, current_user)
 
 
 @router.delete("/notifications", response_model=MessageResponse)
 async def clear_notifications(
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER"))],
 ):
-    return await logistics_service.clear_notifications(db)
+    return await logistics_service.clear_notifications(db, current_user)
+
+
+@router.post("/notifications/broadcast", response_model=MessageResponse)
+async def send_broadcast(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+    payload: dict = Body(...),
+):
+    return await logistics_service.send_broadcast(db, payload)
 
 
 @router.post("/alerts", response_model=dict)
@@ -357,6 +446,29 @@ async def end_shift(
 
 
 from pydantic import BaseModel
+
+
+class VehicleReturnRequest(BaseModel):
+    odometer_km: int | None = None
+    fuel_level_pct: int | None = None
+    notes: str | None = None
+    condition_photo: str | None = None  # base64, stored client-side only for now
+
+
+@router.post("/drivers/me/return-vehicle", response_model=dict)
+async def return_vehicle(
+    data: VehicleReturnRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.return_vehicle(
+        db, user,
+        odometer_km=data.odometer_km,
+        fuel_level_pct=data.fuel_level_pct,
+        notes=data.notes,
+    )
+
+
 class LocationUpdateParams(BaseModel):
     latitude: float
     longitude: float
@@ -368,3 +480,48 @@ async def update_driver_location(
     user: Annotated[object, Depends(require_role("DRIVER"))],
 ):
     return await logistics_service.update_driver_location(db, user, data.latitude, data.longitude)
+
+
+@router.post("/drivers/me/fuel-receipt", response_model=dict)
+async def submit_fuel_receipt(
+    data: DriverFuelReceiptCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    result = await logistics_service.submit_fuel_receipt(db, user, data)
+    return {"message": result.message}
+
+
+@router.get("/drivers/me/dispatch-thread", response_model=DriverDispatchThreadItem)
+async def get_dispatch_thread(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.get_driver_dispatch_thread(db, user)
+
+
+@router.post("/drivers/me/dispatch-thread/messages", response_model=DriverDispatchThreadItem)
+async def send_dispatch_message(
+    data: DriverDispatchMessageCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.add_driver_dispatch_message(db, user, data)
+
+
+@router.get("/drivers/me/audit", response_model=list[DriverAuditEventItem])
+async def get_driver_audit(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.get_driver_audit_log(db, user)
+
+
+@router.post("/drivers/me/cashout", response_model=dict)
+async def request_cashout(
+    data: DriverCashoutRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    result = await logistics_service.request_driver_cashout(db, user, data)
+    return {"message": result.message}

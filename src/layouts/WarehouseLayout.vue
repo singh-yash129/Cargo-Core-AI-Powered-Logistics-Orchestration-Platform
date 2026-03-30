@@ -49,7 +49,8 @@
                     <div class="flex items-center gap-1 sm:gap-3">
                         <!-- Notifications -->
                         <NotificationPopover :notifications="store.notifications"
-                            :unread-count="store.unreadNotificationsCount" @mark-read="store.markNotificationRead"
+                            :unread-count="store.unreadNotificationsCount" @open="store.fetchNotifications()"
+                            @mark-read="store.markNotificationRead"
                             @mark-all-read="store.markAllNotificationsRead" @clear-all="store.clearNotifications" />
 
                         <!-- Meeting Scheduler -->
@@ -145,5 +146,6 @@ const handleGlobalCamera = (image) => {
 onMounted(async () => {
     await authStore.ensureWarehouseContext()
     warehouseContextReady.value = true
+    store.fetchNotifications().catch(() => {})
 })
 </script>

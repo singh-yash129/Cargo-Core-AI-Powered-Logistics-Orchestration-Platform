@@ -63,12 +63,13 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useJobStore } from '../stores/jobStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
 
 const route = useRoute()
+const router = useRouter()
 const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
 const jobStore = useJobStore()
@@ -119,6 +120,20 @@ const progressPct = computed(() => checklist.value.length ? Math.round(done.valu
 const allRequiredDone = computed(() => checklist.value.filter(c => c.required).every(c => c.checked))
 
 function proceed() {
-    advanceAndNavigate('POD_CAPTURE')
+    if (jobStore.jobType === 'HOUSE_SHIFT') {
+        // HOUSE_SHIFT path: UNLOADING_INVENTORY → FINAL_CHECKLIST → POC_CAPTURE
+        // Step through FINAL_CHECKLIST first if needed
+        if (jobStore.canTransitionTo('FINAL_CHECKLIST')) {
+            try { jobStore.transition('FINAL_CHECKLIST') } catch { /* already past it */ }
+        }
+        if (jobStore.canTransitionTo('POC_CAPTURE')) {
+            advanceAndNavigate('POC_CAPTURE')
+        } else {
+            // FSM state is inconsistent — force navigate directly
+            router.push('/customer-signoff')
+        }
+    } else {
+        advanceAndNavigate('POD_CAPTURE')
+    }
 }
 </script>

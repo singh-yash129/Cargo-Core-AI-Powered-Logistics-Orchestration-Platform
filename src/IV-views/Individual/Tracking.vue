@@ -18,7 +18,8 @@
                         :class="order.status === 'in-transit' ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'
                             : order.status === 'dispatched' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
                             : order.status === 'delivered' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
-                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400'">{{
+                            : order.status === 'cancelled' ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
+                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400'">{{ 
                             order.status === 'dispatched' ? 'ASSIGNED' : order.status.replace('-', ' ') }}</span>
                 </div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]"><span
@@ -28,7 +29,7 @@
             </button>
         </div>
 
-        <div v-if="activeMove" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div v-if="activeMove && activeMove.status !== 'cancelled'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Map Area -->
             <div class="lg:col-span-2 space-y-4">
                 <div class="glass-panel rounded-xl overflow-hidden">
@@ -263,6 +264,60 @@
                     </button>
                 </div>
             </div>
+        </div>
+
+        <!-- Cancelled Order View -->
+        <div v-else-if="activeMove && activeMove.status === 'cancelled'" class="space-y-4">
+            <!-- Cancellation Banner -->
+            <div class="glass-panel p-6 rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50/50 dark:bg-red-500/5">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-red-500 text-3xl">cancel</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-red-700 dark:text-red-400 mb-1">Order Cancelled</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ activeMove.cancellation?.reason || 'This order was cancelled.' }}</p>
+                        <div class="flex items-center gap-3 mt-2 flex-wrap">
+                            <span class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ activeMove.id }}</span>
+                            <span v-if="activeMove.cancellation?.fee > 0" class="text-xs font-bold text-red-600 dark:text-red-400">
+                                Cancellation fee: ₹{{ activeMove.cancellation.fee.toLocaleString('en-IN') }}
+                            </span>
+                            <span v-else class="text-xs text-green-600 dark:text-green-400 font-medium">No cancellation fee</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transport Log for cancelled order -->
+            <div class="glass-panel p-4 sm:p-5 rounded-xl">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4 text-sm flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-500 text-lg">timeline</span> Transport Log
+                </h3>
+                <div class="relative pl-8">
+                    <div class="absolute left-[11px] top-2 bottom-0 w-[2px] bg-gradient-to-b from-green-500 via-blue-500 to-red-400"></div>
+                    <div v-for="(log, i) in activeMove.transportLog" :key="i" class="relative pb-5 last:pb-0 group">
+                        <div class="absolute -left-8 top-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] shadow-md"
+                            :style="{ backgroundColor: logColor(log.color) }">
+                            <span class="material-symbols-outlined text-[12px]">{{ log.icon }}</span>
+                        </div>
+                        <div class="p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ log.event }}</span>
+                            </div>
+                            <div v-if="log.description" class="text-[11px] text-gray-600 dark:text-gray-400 mt-1 leading-snug">{{ log.description }}</div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-500 font-mono mt-0.5">{{ log.time }}</div>
+                        </div>
+                    </div>
+                    <div v-if="!activeMove.transportLog?.length" class="text-center py-4 text-gray-400 text-sm">
+                        No transport events recorded.
+                    </div>
+                </div>
+            </div>
+
+            <router-link to="/individual/book-move"
+                class="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl transition-colors">
+                <span class="material-symbols-outlined text-sm">add_circle</span> Book a New Move
+            </router-link>
         </div>
 
         <div v-else class="glass-panel p-12 rounded-xl text-center text-gray-500 dark:text-gray-400">

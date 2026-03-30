@@ -22,56 +22,74 @@
 
         <!-- User List -->
         <div class="glass-panel rounded-xl overflow-hidden p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
                 <!-- User Card -->
                 <div v-for="user in displayedUsers" :key="user.email"
-                    class="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-gray-200 dark:border-white/5 hover:border-primary/50 dark:hover:border-primary/30 transition-all group relative shadow-sm">
-                    <div class="flex items-start justify-between gap-3 mb-4">
-                        <div class="flex items-center gap-4 min-w-0 flex-1">
-                            <img :src="user.avatar"
-                                class="w-14 h-14 rounded-full border-2 border-white dark:border-card-dark shadow-sm shrink-0">
-                            <div class="min-w-0 flex-1">
-                                <div
-                                    class="font-bold text-gray-900 dark:text-white text-lg leading-tight flex items-center gap-1.5 min-w-0">
-                                    <span class="truncate">{{ user.name }}</span>
-                                    <span v-if="user.mobileVerified && user.emailVerified"
-                                        class="text-green-500 material-symbols-outlined text-[18px] shrink-0"
-                                        title="Fully Verified">verified</span>
-                                </div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5 min-w-0">
-                                    <span class="material-symbols-outlined text-[14px] shrink-0">mail</span>
-                                    <span class="truncate">{{ user.email }}</span>
-                                    <span v-if="user.emailVerified"
-                                        class="material-symbols-outlined text-[14px] text-green-500 shrink-0"
-                                        title="Email Verified">check_circle</span>
-                                    <span v-else
-                                        class="text-[10px] bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider shrink-0">Unverified</span>
-                                </div>
-                                <div v-if="user.mobile"
-                                    class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5 min-w-0">
-                                    <span class="material-symbols-outlined text-[14px] shrink-0">call</span>
-                                    <span class="truncate">{{ user.mobile }}</span>
-                                    <span v-if="user.mobileVerified"
-                                        class="material-symbols-outlined text-[14px] text-green-500 shrink-0"
-                                        title="Mobile Verified">check_circle</span>
-                                    <span v-else
-                                        class="text-[10px] bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider shrink-0">Unverified</span>
-                                </div>
+                    class="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-200 dark:border-white/5 hover:border-primary/50 dark:hover:border-primary/30 transition-all group relative shadow-sm flex flex-col gap-3 self-start">
+
+                    <!-- Top row: avatar + name/contact + actions -->
+                    <div class="flex items-start gap-3">
+                        <!-- Initials avatar -->
+                        <div class="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 select-none"
+                            :style="{ background: avatarGradient(user.name) }">
+                            {{ getInitials(user.name) }}
+                        </div>
+
+                        <!-- Name + contact details -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-bold text-gray-900 dark:text-white text-sm leading-tight">{{ user.name }}</span>
+                                <span v-if="user.mobileVerified && user.emailVerified"
+                                    class="text-green-500 material-symbols-outlined text-[15px]"
+                                    title="Fully Verified">verified</span>
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                                <span class="material-symbols-outlined text-[13px] flex-shrink-0">mail</span>
+                                <span class="break-all leading-tight">{{ user.email }}</span>
+                                <span v-if="user.emailVerified"
+                                    class="material-symbols-outlined text-[13px] text-green-500 flex-shrink-0">check_circle</span>
+                            </div>
+                            <div v-if="user.mobile"
+                                class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                                <span class="material-symbols-outlined text-[13px] flex-shrink-0">call</span>
+                                <span>{{ user.mobile }}</span>
+                                <span v-if="user.mobileVerified"
+                                    class="material-symbols-outlined text-[13px] text-green-500 flex-shrink-0">check_circle</span>
                             </div>
                         </div>
-                        <div class="relative shrink-0 flex items-center gap-1 self-start" @click.stop>
+
+                        <!-- Actions -->
+                        <div class="relative flex items-center gap-0.5 flex-shrink-0" @click.stop>
                             <button v-if="user.username" @click="openCreds(user)"
                                 class="text-gray-400 hover:text-primary transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10"
                                 title="View Credentials">
-                                <span class="material-symbols-outlined text-[20px]">visibility</span>
+                                <span class="material-symbols-outlined text-[18px]">visibility</span>
                             </button>
                             <button @click="toggleDropdown(user.email)"
-                                class="text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white cursor-pointer transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
-                                <span class="material-symbols-outlined">more_vert</span>
+                                class="text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
+                                <span class="material-symbols-outlined text-[20px]">more_vert</span>
                             </button>
-
                             <div v-if="activeDropdown === user.email"
                                 class="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-card-dark border border-gray-200 dark:border-white/10 rounded-xl shadow-lg z-10 py-1 overflow-hidden">
+                                <template v-if="isVendorRequest(user)">
+                                    <button @click="openVendorReview(user)"
+                                        class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2 transition-colors">
+                                        <span class="material-symbols-outlined text-[18px]">description</span>
+                                        Review Request
+                                    </button>
+                                    <div class="h-px bg-gray-200 dark:bg-white/5 my-1"></div>
+                                    <button @click="handleVendorApproval(user, 'APPROVED')"
+                                        class="w-full text-left px-4 py-2 text-sm text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-500/10 flex items-center gap-2 transition-colors">
+                                        <span class="material-symbols-outlined text-[18px]">verified</span>
+                                        Approve Request
+                                    </button>
+                                    <button @click="handleVendorApproval(user, 'REJECTED')"
+                                        class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2 transition-colors">
+                                        <span class="material-symbols-outlined text-[18px]">cancel</span>
+                                        Reject Request
+                                    </button>
+                                    <div class="h-px bg-gray-200 dark:bg-white/5 my-1"></div>
+                                </template>
                                 <button @click="openModal('edit-profile', user); activeDropdown = null"
                                     class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2 transition-colors">
                                     <span class="material-symbols-outlined text-[18px]">edit</span>
@@ -79,9 +97,7 @@
                                 </button>
                                 <button @click="store.toggleUserStatus(user.email); activeDropdown = null"
                                     class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2 transition-colors">
-                                    <span class="material-symbols-outlined text-[18px]">
-                                        {{ user.status === 'Active' ? 'block' : 'check_circle' }}
-                                    </span>
+                                    <span class="material-symbols-outlined text-[18px]">{{ user.status === 'Active' ? 'block' : 'check_circle' }}</span>
                                     {{ user.status === 'Active' ? 'Suspend User' : 'Activate User' }}
                                 </button>
                                 <div class="h-px bg-gray-200 dark:bg-white/5 my-1"></div>
@@ -94,22 +110,43 @@
                         </div>
                     </div>
 
-                    <div class="flex gap-2 mb-4">
-                        <span
-                            class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 text-[10px] uppercase font-bold tracking-wider border border-blue-200 dark:border-blue-500/20 shadow-sm">{{
-                                user.role }}</span>
+                    <!-- Role + status badges -->
+                    <div class="flex gap-2 flex-wrap">
+                        <span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 text-[10px] uppercase font-bold tracking-wider border border-blue-200 dark:border-blue-500/20">{{ user.role }}</span>
                         <span v-if="user.status === 'Active'"
-                            class="px-2 py-0.5 rounded-full bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400 text-[10px] uppercase font-bold tracking-wider border border-green-200 dark:border-green-500/20 shadow-sm">Active</span>
+                            class="px-2 py-0.5 rounded-full bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400 text-[10px] uppercase font-bold tracking-wider border border-green-200 dark:border-green-500/20">Active</span>
                         <span v-else
-                            class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-500/10 dark:text-gray-400 text-[10px] uppercase font-bold tracking-wider border border-gray-200 dark:border-gray-500/20 shadow-sm">Inactive</span>
+                            class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-500/10 dark:text-gray-400 text-[10px] uppercase font-bold tracking-wider border border-gray-200 dark:border-gray-500/20">Inactive</span>
+                        <span v-if="user.role === 'Vendor'"
+                            class="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider border"
+                            :class="approvalBadgeClass(user.approvalStatus)">
+                            {{ formatApprovalStatus(user.approvalStatus) }}
+                        </span>
                     </div>
 
-                    <div
-                        class="pt-4 border-t border-gray-200 dark:border-white/5 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 font-medium">
-                        <span>Last Login: {{ user.lastLogin }}</span>
+                    <!-- Footer -->
+                    <div v-if="isVendorRequest(user)"
+                        class="pt-2 border-t border-gray-200 dark:border-white/5 flex justify-between items-center gap-2">
+                        <div class="text-xs text-gray-500 dark:text-gray-400 leading-tight">
+                            <span class="block text-[10px] uppercase font-semibold tracking-wider mb-0.5">Submitted</span>
+                            <span>{{ formatSubmittedAt(user.submittedAt) }}</span>
+                        </div>
+                        <button @click="openVendorReview(user)"
+                            class="text-xs font-semibold text-primary hover:text-primary/80 transition-colors whitespace-nowrap flex items-center gap-1 px-2 py-1 rounded hover:bg-primary/10">
+                            <span class="material-symbols-outlined text-[14px]">description</span>
+                            Review Request
+                        </button>
+                    </div>
+                    <div v-else class="pt-2 border-t border-gray-200 dark:border-white/5 flex justify-between items-center gap-2">
+                        <div class="text-xs text-gray-500 dark:text-gray-400 leading-tight">
+                            <span class="block text-[10px] uppercase font-semibold tracking-wider mb-0.5">Last Login</span>
+                            <span>{{ formatLastLogin(user.lastLogin) }}</span>
+                        </div>
                         <button @click="openModal('edit-access', user)"
-                            class="text-primary hover:text-primary/80 transition-colors hover:underline">Edit
-                            Access</button>
+                            class="text-xs font-semibold text-primary hover:text-primary/80 transition-colors whitespace-nowrap flex items-center gap-1 px-2 py-1 rounded hover:bg-primary/10">
+                            <span class="material-symbols-outlined text-[14px]">manage_accounts</span>
+                            Edit Access
+                        </button>
                     </div>
                 </div>
 
@@ -131,6 +168,18 @@
                         <span class="material-symbols-outlined text-[24px]">local_shipping</span>
                     </div>
                     <span class="font-medium">Add Driver</span>
+                </div>
+
+                <div v-if="displayedUsers.length === 0 && activeTab === 'Vendor Requests'"
+                    class="col-span-full rounded-2xl border border-dashed border-amber-200/30 bg-amber-50/30 dark:bg-amber-500/5 px-6 py-10 text-center">
+                    <div
+                        class="w-14 h-14 mx-auto rounded-2xl bg-amber-100/70 dark:bg-amber-500/10 text-amber-600 dark:text-amber-300 flex items-center justify-center mb-4">
+                        <span class="material-symbols-outlined text-[28px]">verified_user</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">No vendor requests pending</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        New vendor applications will appear here for Logistics Manager review.
+                    </p>
                 </div>
             </div>
 
@@ -258,9 +307,6 @@
                                         <div class="relative">
                                             <select v-model="formData.hubId"
                                                 class="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none">
-                                                <option value="all"
-                                                    class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-                                                    Global (All Warehouses)</option>
                                                 <option v-for="h in store.hubs" :key="h.id" :value="h.id"
                                                     class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                                                     {{
@@ -610,6 +656,107 @@
                 </div>
             </Teleport>
 
+            <!-- Vendor Review Modal -->
+            <Teleport to="body">
+                <div v-if="reviewingVendor"
+                    class="fixed inset-0 z-[115] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                    @click.self="closeVendorReview">
+                    <div
+                        class="bg-slate-950/98 w-full max-w-2xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden flex flex-col backdrop-blur-xl">
+                        <div
+                            class="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-slate-900/90">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">Vendor Request Review</h3>
+                                <p class="text-sm text-gray-400 mt-1">{{ reviewingVendor.companyName || reviewingVendor.name }}</p>
+                            </div>
+                            <button @click="closeVendorReview"
+                                class="text-gray-400 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div class="p-6 space-y-5 max-h-[78vh] overflow-y-auto bg-slate-950/95">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 text-[10px] uppercase font-bold tracking-wider border border-blue-200 dark:border-blue-500/20">
+                                    {{ reviewingVendor.role }}
+                                </span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider border"
+                                    :class="approvalBadgeClass(reviewingVendor.approvalStatus)">
+                                    {{ formatApprovalStatus(reviewingVendor.approvalStatus) }}
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="rounded-xl border border-white/10 bg-slate-900/70 p-4 space-y-3">
+                                    <h4 class="text-sm font-bold text-white uppercase tracking-wider">Application Details</h4>
+                                    <div class="space-y-2 text-sm text-gray-300">
+                                        <div class="flex justify-between gap-4">
+                                            <span class="text-gray-400">Company</span>
+                                            <span class="text-right font-medium">{{ reviewingVendor.companyName || 'Not provided' }}</span>
+                                        </div>
+                                        <div class="flex justify-between gap-4">
+                                            <span class="text-gray-400">Contact Person</span>
+                                            <span class="text-right font-medium">{{ reviewingVendor.contactPerson || reviewingVendor.name }}</span>
+                                        </div>
+                                        <div class="flex justify-between gap-4">
+                                            <span class="text-gray-400">GST / Tax ID</span>
+                                            <span class="text-right font-medium">{{ reviewingVendor.taxId || 'Not provided' }}</span>
+                                        </div>
+                                        <div class="flex justify-between gap-4">
+                                            <span class="text-gray-400">Submitted</span>
+                                            <span class="text-right font-medium">{{ formatSubmittedAt(reviewingVendor.submittedAt) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="rounded-xl border border-white/10 bg-slate-900/70 p-4 space-y-3">
+                                    <h4 class="text-sm font-bold text-white uppercase tracking-wider">Contact Details</h4>
+                                    <div class="space-y-2 text-sm text-gray-300">
+                                        <div class="flex justify-between gap-4">
+                                            <span class="text-gray-400">Login Email</span>
+                                            <span class="text-right font-medium break-all">{{ reviewingVendor.email }}</span>
+                                        </div>
+                                        <div class="flex justify-between gap-4">
+                                            <span class="text-gray-400">Business Email</span>
+                                            <span class="text-right font-medium break-all">{{ reviewingVendor.businessEmail || 'Not provided' }}</span>
+                                        </div>
+                                        <div class="flex justify-between gap-4">
+                                            <span class="text-gray-400">Business Phone</span>
+                                            <span class="text-right font-medium">{{ reviewingVendor.businessPhone || 'Not provided' }}</span>
+                                        </div>
+                                        <div class="flex justify-between gap-4">
+                                            <span class="text-gray-400">Mobile</span>
+                                            <span class="text-right font-medium">{{ reviewingVendor.mobile || 'Not provided' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="reviewingVendor.approvalNote"
+                                class="rounded-xl border border-amber-200/20 bg-amber-50/30 dark:bg-amber-500/5 p-4">
+                                <h4 class="text-sm font-bold text-amber-300 uppercase tracking-wider mb-2">Review Note</h4>
+                                <p class="text-sm text-gray-300 leading-relaxed">{{ reviewingVendor.approvalNote }}</p>
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-4 border-t border-white/10 flex justify-end gap-3 bg-slate-900/90">
+                            <button @click="closeVendorReview"
+                                class="px-4 py-2 rounded-lg font-medium text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors shadow-sm">
+                                Close
+                            </button>
+                            <button @click="handleVendorApproval(reviewingVendor, 'REJECTED')"
+                                class="px-4 py-2 rounded-lg font-medium text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors shadow-sm">
+                                Reject
+                            </button>
+                            <button @click="handleVendorApproval(reviewingVendor, 'APPROVED')"
+                                class="px-4 py-2 rounded-lg font-medium text-white bg-primary hover:bg-primary/90 transition-colors shadow-sm">
+                                Approve
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Teleport>
+
 
             <!-- OTP Verification Modal -->
             <Teleport to="body">
@@ -665,13 +812,14 @@ const { filteredUsers } = storeToRefs(store)
 const toast = useToast()
 
 const activeTab = ref('All Users')
-const tabs = ['All Users', 'Managers', 'Dispatchers', 'Drivers', 'Support']
+const tabs = ['All Users', 'Vendor Requests', 'Managers', 'Dispatchers', 'Drivers', 'Support']
 
 const displayedUsers = computed(() => {
     let list = filteredUsers.value
 
     if (activeTab.value !== 'All Users') {
         list = list.filter(u => {
+            if (activeTab.value === 'Vendor Requests') return isVendorRequest(u)
             if (activeTab.value === 'Managers') return u.role.includes('Manager')
             if (activeTab.value === 'Dispatchers') return u.role.includes('Dispatcher')
             if (activeTab.value === 'Drivers') return u.role.includes('Driver')
@@ -682,6 +830,68 @@ const displayedUsers = computed(() => {
 
     return list
 })
+
+// --- Avatar & formatting helpers ---
+const getInitials = (name) => {
+    if (!name) return '?'
+    return name.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase()).join('')
+}
+
+const avatarGradient = (name) => {
+    const colors = [
+        'linear-gradient(135deg,#667eea,#764ba2)',
+        'linear-gradient(135deg,#f093fb,#f5576c)',
+        'linear-gradient(135deg,#4facfe,#00f2fe)',
+        'linear-gradient(135deg,#43e97b,#38f9d7)',
+        'linear-gradient(135deg,#fa709a,#fee140)',
+        'linear-gradient(135deg,#a18cd1,#fbc2eb)',
+        'linear-gradient(135deg,#ffecd2,#fcb69f)',
+        'linear-gradient(135deg,#ff9a9e,#fecfef)',
+    ]
+    const idx = (name || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % colors.length
+    return colors[idx]
+}
+
+const formatLastLogin = (dateStr) => {
+    if (!dateStr) return 'Never'
+    try {
+        return new Date(dateStr).toLocaleString('en-IN', {
+            day: 'numeric', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        })
+    } catch {
+        return dateStr
+    }
+}
+
+const isVendorRequest = (user) => user.role === 'Vendor' && user.approvalStatus === 'PENDING'
+
+const hasVendorApplicationData = (user) => user.role === 'Vendor' && Boolean(
+    user.companyName || user.contactPerson || user.businessEmail || user.businessPhone || user.taxId
+)
+
+const formatApprovalStatus = (status) => {
+    if (!status) return 'Approved'
+    return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+const approvalBadgeClass = (status) => {
+    if (status === 'PENDING') return 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 border-amber-200 dark:border-amber-500/20'
+    if (status === 'REJECTED') return 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300 border-red-200 dark:border-red-500/20'
+    return 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20'
+}
+
+const formatSubmittedAt = (dateStr) => {
+    if (!dateStr) return 'New request'
+    try {
+        return new Date(dateStr).toLocaleString('en-IN', {
+            day: 'numeric', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        })
+    } catch {
+        return dateStr
+    }
+}
 
 // --- Dropdown Management ---
 import { onMounted, onUnmounted } from 'vue'
@@ -753,13 +963,16 @@ const verifyOtp = () => {
 
 const formData = ref({})
 const unlockedFields = ref({})
+const defaultHubId = () => store.activeWarehouse !== 'all'
+    ? store.activeWarehouse
+    : (store.hubs[0]?.id || null)
 
 const initEmptyForm = (mode) => {
     if (mode === 'create') {
         formData.value = {
             role: 'Warehouse Manager',
             status: 'Active',
-            hubId: store.hubs.length > 0 ? store.hubs[0].id : null,
+            hubId: defaultHubId(),
             username: '',
             password: '',
             mobileVerified: false,
@@ -769,7 +982,7 @@ const initEmptyForm = (mode) => {
         formData.value = {
             role: 'Customer Support',
             status: 'Active',
-            hubId: 'all', // Customer Support can be global
+            hubId: defaultHubId(),
             username: '',
             password: '',
             mobileVerified: false,
@@ -779,7 +992,7 @@ const initEmptyForm = (mode) => {
         formData.value = {
             role: 'Driver',
             status: 'Active',
-            hubId: store.hubs.length > 0 ? store.hubs[0].id : null,
+            hubId: defaultHubId(),
             username: '',
             password: '',
             mobileVerified: false,
@@ -846,6 +1059,7 @@ const selectHub = (hubId) => {
 
 // Credential View Modal
 const viewingUserCreds = ref(null)
+const reviewingVendor = ref(null)
 
 const openCreds = (user) => {
     viewingUserCreds.value = user
@@ -854,6 +1068,15 @@ const openCreds = (user) => {
 
 const closeCreds = () => {
     viewingUserCreds.value = null
+}
+
+const openVendorReview = (user) => {
+    reviewingVendor.value = user
+    activeDropdown.value = null
+}
+
+const closeVendorReview = () => {
+    reviewingVendor.value = null
 }
 
 const openModal = (mode, user = null) => {
@@ -879,6 +1102,24 @@ const closeModal = () => {
     isHubMenuOpen.value = false
 }
 
+const handleVendorApproval = async (user, nextStatus) => {
+    activeDropdown.value = null
+    try {
+        if (nextStatus === 'APPROVED') {
+            await store.approveVendor(user.id)
+            toast.success(`${user.companyName || user.name} approved successfully.`)
+        } else {
+            await store.rejectVendor(user.id)
+            toast.success(`${user.companyName || user.name} rejected.`)
+        }
+        if (reviewingVendor.value?.id === user.id) {
+            closeVendorReview()
+        }
+    } catch (error) {
+        toast.error(error.message || 'Unable to update this vendor request right now.')
+    }
+}
+
 const submitForm = async () => {
     try {
         if (modalMode.value === 'create') {
@@ -893,6 +1134,10 @@ const submitForm = async () => {
         }
 
         if (modalMode.value === 'create' || modalMode.value === 'create-support' || modalMode.value === 'create-driver') {
+            if (!formData.value.hubId || formData.value.hubId === 'all') {
+                toast.error('Please assign the user to a warehouse hub.')
+                return
+            }
             await store.addUser({
                 ...formData.value,
                 lastLogin: 'Never',

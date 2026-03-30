@@ -148,22 +148,38 @@
                     </div>
 
                     <!-- Live Map -->
-                    <div v-if="globalTab === 'map'" class="flex-1 glass-panel rounded-2xl overflow-hidden relative">
-                        <div class="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-gray-900/50 dark:from-blue-900/30 dark:to-gray-900/70">
-                            <div class="absolute inset-0 opacity-10 dark:opacity-20" style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzk5OSIvPjwvc3ZnPg=='); background-size: 40px 40px;"></div>
-                        </div>
-                        <div v-for="(s, idx) in store.activeShipments" :key="'gmap-' + s.id"
-                            class="absolute z-10 cursor-pointer group"
-                            :style="{ top: (20 + (idx * 15) % 60) + '%', left: (10 + s.progress * 0.6) + '%', transform: 'translate(-50%, -50%)' }"
-                            @click="selected = s">
-                            <div class="w-4 h-4 bg-blue-500 rounded-full animate-ping absolute opacity-70"></div>
-                            <div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white relative z-10 shadow-lg group-hover:scale-125 transition-transform"></div>
-                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black/80 text-white text-[9px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
-                                {{ s.id }} · {{ s.destination }}
-                            </div>
+                    <div v-if="globalTab === 'map'" class="flex-1 glass-panel rounded-2xl overflow-hidden relative" style="min-height:500px;">
+                        <!-- Real Leaflet Map -->
+                        <l-map v-model:zoom="globalMapZoom" :center="globalMapCenter" :use-global-leaflet="false"
+                            style="position:absolute; inset:0; height:100%; width:100%;">
+                            <l-tile-layer
+                                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                                layer-type="base"
+                                name="CartoDB Voyager"
+                            ></l-tile-layer>
+                            <!-- Active driver markers -->
+                            <l-marker v-for="d in activeDrivers" :key="'drv-' + d.order_id"
+                                :lat-lng="[d.latitude, d.longitude]">
+                                <l-popup>
+                                    <div class="text-xs p-1">
+                                        <div class="font-bold flex items-center gap-1 mb-1">
+                                            <span class="material-symbols-outlined text-[14px] text-blue-500">local_shipping</span>
+                                            {{ d.driver_name }}
+                                        </div>
+                                        <div class="text-gray-500 mb-0.5">Order: <span class="font-medium text-gray-800">{{ d.order_id }}</span></div>
+                                        <div class="text-gray-500 mb-0.5">Vehicle: <span class="font-medium text-gray-800">{{ d.vehicle_code }}</span></div>
+                                        <div class="mt-1 text-[9px] uppercase font-bold bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 inline-block">{{ d.status }}</div>
+                                    </div>
+                                </l-popup>
+                            </l-marker>
+                        </l-map>
+                        <!-- No drivers overlay -->
+                        <div v-if="activeDrivers.length === 0" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style="z-index:500;">
+                            <span class="material-symbols-outlined text-5xl text-gray-400/50 mb-2">location_off</span>
+                            <p class="text-gray-400/70 text-sm font-medium">No active drivers on the road</p>
                         </div>
                         <!-- Fleet overlay -->
-                        <div class="absolute top-4 right-4 bottom-4 w-52 bg-white/90 dark:bg-black/50 backdrop-blur-md rounded-xl border border-gray-200 dark:border-white/10 hidden md:flex flex-col overflow-hidden z-20 shadow-lg">
+                        <div class="absolute top-4 right-4 bottom-16 w-52 bg-white/90 dark:bg-black/50 backdrop-blur-md rounded-xl border border-gray-200 dark:border-white/10 hidden md:flex flex-col overflow-hidden shadow-lg" style="z-index:1000;">
                             <div class="p-3 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
                                 <span class="text-[10px] font-bold text-gray-900 dark:text-white uppercase tracking-wider">Active Fleet</span>
                                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -184,7 +200,7 @@
                             </div>
                         </div>
                         <!-- Legend -->
-                        <div class="absolute bottom-4 left-4 right-4 md:right-60 bg-white/90 dark:bg-black/60 backdrop-blur-md p-3 rounded-xl border border-gray-200 dark:border-white/10 flex items-center justify-between">
+                        <div class="absolute bottom-4 left-4 right-4 md:right-60 bg-white/90 dark:bg-black/60 backdrop-blur-md p-3 rounded-xl border border-gray-200 dark:border-white/10 flex items-center justify-between" style="z-index:1000;">
                             <div>
                                 <div class="text-[11px] font-bold text-gray-900 dark:text-white mb-1">Global Live Tracking</div>
                                 <div class="flex items-center gap-3 text-[9px] text-gray-600 dark:text-gray-300">
@@ -346,37 +362,49 @@
 
                     <!-- Route Hero Card -->
                     <div class="glass-panel rounded-2xl overflow-hidden">
-                        <!-- Map visualization -->
-                        <div class="relative h-40 bg-gradient-to-br from-blue-900/20 to-slate-900/40 dark:from-blue-900/40 dark:to-slate-900/70">
-                            <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzk5OSIvPjwvc3ZnPg=='); background-size: 40px 40px;"></div>
-                            <!-- Origin -->
-                            <div class="absolute top-1/2 left-[12%] -translate-y-1/2 z-10">
-                                <div class="w-4 h-4 bg-green-400 rounded-full border-2 border-white shadow-lg shadow-green-500/30"></div>
-                                <div class="mt-1.5 bg-black/70 text-white text-[9px] px-2 py-0.5 rounded-lg whitespace-nowrap font-medium">{{ selected.origin }}</div>
+                        <!-- Map visualization - Real Leaflet Map -->
+                        <div class="relative h-52 overflow-hidden">
+                            <l-map :zoom="selectedMapZoom" :center="selectedMapCenter" :use-global-leaflet="false"
+                                style="position:absolute; inset:0; height:100%; width:100%;">
+                                <l-tile-layer
+                                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                                    layer-type="base"
+                                ></l-tile-layer>
+                                <!-- Driver live position -->
+                                <l-marker v-if="selected?.driverLat && selected?.driverLng"
+                                    :lat-lng="[selected.driverLat, selected.driverLng]">
+                                    <l-popup>
+                                        <div class="text-xs p-1">
+                                            <div class="font-bold flex items-center gap-1 mb-1">
+                                                <span class="material-symbols-outlined text-[14px] text-blue-500">local_shipping</span>
+                                                {{ selected.driver || 'Driver' }}
+                                            </div>
+                                            <div class="text-gray-500">Vehicle: <span class="font-medium text-gray-800">{{ selected.vehicle }}</span></div>
+                                            <div class="mt-1 text-[9px] uppercase font-bold bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 inline-block">In Transit</div>
+                                        </div>
+                                    </l-popup>
+                                </l-marker>
+                            </l-map>
+                            <!-- No GPS fallback -->
+                            <div v-if="!selected?.driverLat" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style="z-index:500;">
+                                <span class="material-symbols-outlined text-3xl text-gray-400/50 mb-1">gps_off</span>
+                                <p class="text-gray-400/60 text-xs font-medium">Live GPS not available</p>
                             </div>
-                            <!-- Dashed route line -->
-                            <div class="absolute top-1/2 left-[14%] right-[14%] -translate-y-1/2 z-0">
-                                <div class="w-full h-0.5 border-t-2 border-dashed border-white/20"></div>
-                                <div class="h-0.5 bg-gradient-to-r from-green-400 via-blue-500 to-transparent absolute top-0 left-0 transition-all"
-                                    :style="{ width: selected.progress + '%' }"></div>
-                            </div>
-                            <!-- Vehicle marker -->
-                            <div v-if="selected.statusKey === 'transit' || selected.statusKey === 'delivery'"
-                                class="absolute z-20"
-                                :style="{ top: '50%', left: (14 + selected.progress * 0.72) + '%', transform: 'translate(-50%, -50%)' }">
-                                <div class="w-5 h-5 bg-blue-500 rounded-full border-2 border-white shadow-lg shadow-blue-500/40 relative">
-                                    <div class="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-60"></div>
+                            <!-- Origin label -->
+                            <div class="absolute top-3 left-3" style="z-index:1000;">
+                                <div class="bg-black/70 text-white text-[9px] px-2 py-1 rounded-lg whitespace-nowrap font-medium flex items-center gap-1.5 shadow">
+                                    <span class="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"></span>{{ selected.origin }}
                                 </div>
-                                <div class="mt-1.5 bg-blue-600 text-white text-[9px] px-2 py-0.5 rounded-lg whitespace-nowrap font-medium text-center">{{ selected.vehicle || 'In Transit' }}</div>
                             </div>
-                            <!-- Destination -->
-                            <div class="absolute top-1/2 right-[12%] translate-x-1/2 -translate-y-1/2 z-10">
-                                <div class="w-4 h-4 bg-red-400 rounded-full border-2 border-white shadow-lg shadow-red-500/30"></div>
-                                <div class="mt-1.5 bg-black/70 text-white text-[9px] px-2 py-0.5 rounded-lg whitespace-nowrap font-medium">{{ selected.destination }}</div>
+                            <!-- Destination label -->
+                            <div class="absolute top-3 right-3" style="z-index:1000;">
+                                <div class="bg-black/70 text-white text-[9px] px-2 py-1 rounded-lg whitespace-nowrap font-medium flex items-center gap-1.5 shadow">
+                                    {{ selected.destination }}<span class="w-2 h-2 bg-red-400 rounded-full flex-shrink-0"></span>
+                                </div>
                             </div>
                             <!-- Arriving Soon badge -->
                             <div v-if="selected.progress >= 80 && selected.statusKey !== 'delivered'"
-                                class="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-green-500 text-white px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 animate-pulse shadow-lg shadow-green-500/30">
+                                class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 animate-pulse shadow-lg shadow-green-500/30" style="z-index:1000;">
                                 <span class="material-symbols-outlined text-sm">my_location</span>
                                 Arriving in ~{{ Math.max(5, Math.round((100 - selected.progress) * 1.5)) }} min
                             </div>
@@ -835,6 +863,18 @@ import { useVendorStore } from '@/stores/vendorStore'
 import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
 import { useSlipPrinter } from '@/composables/useSlipPrinter'
+import { useRealTimeTracking } from '@/composables/useRealTimeTracking'
+import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+// Fix Leaflet default icon URLs
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
+    iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
+    shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
+});
 
 const { openSlip, openSlipWithData } = useSlipPrinter()
 const authStore = useAuthStore()
@@ -888,6 +928,23 @@ const fileInput = ref(null)
 const damageForm = reactive({ severity: 'Medium', description: '' })
 const globalTab = ref('map')
 const detailTab = ref('overview')
+
+// ─── Real-Time Tracking (all active drivers for vendor global view) ───
+const { activeDrivers } = useRealTimeTracking()
+
+const globalMapCenter = computed(() =>
+    activeDrivers.value.length > 0
+        ? [activeDrivers.value[0].latitude, activeDrivers.value[0].longitude]
+        : [20.5937, 78.9629]
+)
+const globalMapZoom = ref(5)
+
+const selectedMapCenter = computed(() =>
+    selected.value?.driverLat && selected.value?.driverLng
+        ? [selected.value.driverLat, selected.value.driverLng]
+        : [20.5937, 78.9629]
+)
+const selectedMapZoom = ref(10)
 
 // Transport Log — real status history from backend
 const STATUS_ICONS = {

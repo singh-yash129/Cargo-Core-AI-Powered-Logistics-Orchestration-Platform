@@ -111,41 +111,61 @@
 
             <!-- Live Fleet Map (Takes up 2 columns) -->
             <div class="lg:col-span-2 glass-panel rounded-2xl p-0 overflow-hidden flex flex-col relative group">
-                <div class="absolute top-4 left-4 z-10 glass-panel px-3 py-1 rounded-full flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <div class="absolute top-4 left-4 z-10 glass-panel px-3 py-1 rounded-full flex items-center gap-2" style="z-index:1000">
+                    <span class="w-2 h-2 rounded-full animate-pulse" :class="wsConnected ? 'bg-green-500' : 'bg-yellow-500'"></span>
                     <span class="text-xs font-semibold text-gray-900 dark:text-white">LIVE FLEET VIEW</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ liveDrivers.length }} active</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded font-mono" :class="wsConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'">
+                        {{ wsConnected ? 'WS' : 'POLL' }}
+                    </span>
                 </div>
 
-                <!-- Placeholder for Map -->
-                <div
-                    class="flex-1 bg-gray-100 dark:bg-gray-800/50 flex items-center justify-center relative bg-[url('/src/assets/map-placeholder.png')] bg-cover bg-center">
-                    <div class="absolute inset-0 bg-white/30 dark:bg-background-dark/30 backdrop-blur-[1px]"></div>
+                <!-- Real Leaflet Map -->
+                <div class="flex-1 relative" style="min-height:0">
+                    <l-map
+                        ref="fleetMap"
+                        :zoom="fleetMapZoom"
+                        :center="fleetMapCenter"
+                        :use-global-leaflet="false"
+                        style="height:100%;width:100%;z-index:1"
+                        @ready="onMapReady"
+                    >
+                        <l-tile-layer
+                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                            layer-type="base"
+                            name="CartoDB Voyager"
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                        />
+                        <l-marker
+                            v-for="driver in liveDrivers"
+                            :key="driver.driver_id"
+                            :lat-lng="[driver.latitude, driver.longitude]"
+                            :icon="getDriverIcon(driver)"
+                        >
+                            <l-popup>
+                                <div style="min-width:140px">
+                                    <div style="font-weight:700;font-size:13px;margin-bottom:4px">{{ driver.driver_name }}</div>
+                                    <div style="font-size:11px;color:#6b7280;text-transform:capitalize">{{ driver.status }}</div>
+                                    <div v-if="driver.vehicle_code" style="font-size:11px;color:#6b7280">Vehicle: {{ driver.vehicle_code }}</div>
+                                    <div v-if="driver.last_updated" style="font-size:10px;color:#9ca3af;margin-top:4px">
+                                        Updated {{ new Date(driver.last_updated).toLocaleTimeString() }}
+                                    </div>
+                                </div>
+                            </l-popup>
+                        </l-marker>
+                    </l-map>
 
-                    <!-- Simulated Map Elements -->
-                    <div v-for="marker in driverMapMarkers" :key="marker.id"
-                        class="absolute transform -translate-x-1/2 -translate-y-1/2"
-                        :style="{ top: marker.top, left: marker.left }">
-                        <div class="relative group cursor-pointer" @click="store.openModal('driver-profile', marker)">
-                            <div class="absolute inset-0 rounded-full" :class="marker.pulseClass"></div>
-                            <div
-                                class="bg-white dark:bg-background-dark/80 rounded-full border-2 flex items-center justify-center relative z-10 shadow-lg"
-                                :class="[marker.borderClass, marker.sizeClass]">
-                                <span class="material-symbols-outlined" :class="[marker.iconClass, marker.iconSizeClass]">local_shipping</span>
-                            </div>
-                            <div
-                                class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 bg-white dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg p-2 hidden group-hover:block z-20 shadow-xl">
-                                <div class="text-xs font-bold text-gray-900 dark:text-white">{{ marker.vehicle || marker.name }}</div>
-                                <div class="text-[10px] text-gray-500 dark:text-gray-400 capitalize">{{ marker.status }} • {{ marker.location || 'Route active' }}</div>
-                            </div>
-                        </div>
+                    <!-- Empty state overlay when no drivers have location -->
+                    <div v-if="liveDrivers.length === 0 && !fleetLoading"
+                        class="absolute inset-0 flex flex-col items-center justify-center bg-white/60 dark:bg-background-dark/60 pointer-events-none"
+                        style="z-index:2">
+                        <span class="material-symbols-outlined text-4xl text-gray-400 mb-2">local_shipping</span>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">No active drivers with location data</div>
                     </div>
-
-                    <div class="text-gray-500 dark:text-gray-500 font-mono text-sm z-0">Iterative Map Component
-                        Loading...</div>
                 </div>
 
                 <!-- Map Controls Overlay -->
-                <div class="absolute bottom-4 right-4 flex flex-col gap-2">
+                <div class="absolute bottom-4 right-4 flex flex-col gap-2" style="z-index:1000">
                     <button @click="mapZoomIn"
                         class="w-8 h-8 glass-panel rounded-lg flex items-center justify-center hover:bg-white/10 text-gray-700 dark:text-white transition-colors"><span
                             class="material-symbols-outlined text-[18px]">add</span></button>
@@ -567,11 +587,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import AlertDetailsModal from '@/LWD-components/AlertDetailsModal.vue'
 import DriverProfileModal from '@/LWD-components/DriverProfileModal.vue'
 import ContactHubModal from '@/LWD-components/ContactHubModal.vue'
+import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+import { apiUrl } from '@/config/api'
 
 const store = useLogisticStore()
 const EMPTY_HUB = {
@@ -591,12 +615,152 @@ const EMPTY_HUB = {
     statusColor: 'yellow',
     bg: 'bg-slate-700',
 }
-const mapMarkerPositions = [
-    { top: '50%', left: '33%' },
-    { top: '33%', left: '75%' },
-    { top: '68%', left: '58%' },
-    { top: '24%', left: '42%' },
-]
+// ─── Live Fleet Map ────────────────────────────────────────────────────────────
+import { API_BASE_URL } from '@/config/api'
+
+const fleetMap = ref(null)
+const fleetMapZoom = ref(5)
+const fleetMapCenter = ref([20.5937, 78.9629]) // India center
+const liveDrivers = ref([])
+const fleetLoading = ref(false)
+const wsConnected = ref(false)
+
+let fleetWs = null
+let wsReconnectTimer = null
+let wsReconnectDelay = 2000   // start at 2s, backs off to 30s max
+let pollFallbackTimer = null  // only used when WS is down
+
+function getDriverIcon(driver) {
+    const isAttention = ['breakdown', 'deviation', 'delayed'].includes((driver.status || '').toLowerCase())
+    const color = isAttention ? '#f59e0b' : '#3b82f6'
+    return L.divIcon({
+        html: `<div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:${color}22;border:2px solid ${color};border-radius:50%;font-size:14px">🚚</div>`,
+        className: '',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -18],
+    })
+}
+
+// ── WebSocket ──────────────────────────────────────────────────────────────────
+function buildWsUrl() {
+    const token = localStorage.getItem('auth_token') || ''
+    // Convert http(s):// → ws(s)://
+    const wsBase = API_BASE_URL.replace(/^http/, 'ws')
+    return `${wsBase}/ws/fleet?token=${encodeURIComponent(token)}`
+}
+
+function applyLocationUpdate(msg) {
+    if (msg.latitude == null || msg.longitude == null) return
+    const existing = liveDrivers.value.findIndex(d => d.driver_id === msg.driver_id)
+    const entry = {
+        driver_id: msg.driver_id,
+        driver_name: msg.driver_name,
+        latitude: msg.latitude,
+        longitude: msg.longitude,
+        status: msg.status,
+        vehicle_code: msg.vehicle_code,
+        vehicle_id: msg.vehicle_id,
+        last_updated: msg.last_updated,
+    }
+    if (existing >= 0) {
+        liveDrivers.value[existing] = entry
+    } else {
+        liveDrivers.value.push(entry)
+    }
+}
+
+function connectFleetWs() {
+    if (fleetWs && fleetWs.readyState <= WebSocket.OPEN) return
+
+    try {
+        fleetWs = new WebSocket(buildWsUrl())
+    } catch (e) {
+        scheduleWsReconnect()
+        return
+    }
+
+    fleetWs.onopen = () => {
+        wsConnected.value = true
+        wsReconnectDelay = 2000
+        // WebSocket is up — stop polling fallback
+        clearInterval(pollFallbackTimer)
+        pollFallbackTimer = null
+    }
+
+    fleetWs.onmessage = (event) => {
+        try {
+            const msg = JSON.parse(event.data)
+            if (msg.type === 'location_update') applyLocationUpdate(msg)
+            if (msg.type === 'ping') fleetWs.send(JSON.stringify({ type: 'pong' }))
+        } catch (e) { /* ignore malformed frames */ }
+    }
+
+    fleetWs.onerror = () => { /* handled in onclose */ }
+
+    fleetWs.onclose = () => {
+        wsConnected.value = false
+        fleetWs = null
+        // Fall back to polling while WS is reconnecting
+        if (!pollFallbackTimer) {
+            pollFallbackTimer = setInterval(fetchLiveDrivers, 30000)
+        }
+        scheduleWsReconnect()
+    }
+}
+
+function scheduleWsReconnect() {
+    clearTimeout(wsReconnectTimer)
+    wsReconnectTimer = setTimeout(() => {
+        connectFleetWs()
+        wsReconnectDelay = Math.min(wsReconnectDelay * 2, 30000) // cap at 30s
+    }, wsReconnectDelay)
+}
+
+function disconnectFleetWs() {
+    clearTimeout(wsReconnectTimer)
+    clearInterval(pollFallbackTimer)
+    if (fleetWs) {
+        fleetWs.onclose = null // prevent reconnect loop on intentional close
+        fleetWs.close()
+        fleetWs = null
+    }
+    wsConnected.value = false
+}
+
+// ── Initial REST fetch (fills map before first WS update) ──────────────────────
+async function fetchLiveDrivers() {
+    fleetLoading.value = true
+    try {
+        const token = localStorage.getItem('auth_token')
+        const res = await fetch(apiUrl('api/v1/tracking/drivers'), {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        liveDrivers.value = data.filter(d => d.latitude != null && d.longitude != null)
+        if (liveDrivers.value.length > 0 && fleetMap.value?.leafletObject) {
+            const bounds = L.latLngBounds(liveDrivers.value.map(d => [d.latitude, d.longitude]))
+            fleetMap.value.leafletObject.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 })
+        }
+    } catch (e) { /* silent */ } finally {
+        fleetLoading.value = false
+    }
+}
+
+function onMapReady() {
+    fetchLiveDrivers()
+}
+
+onMounted(() => {
+    connectFleetWs()
+    // Always do one immediate REST fetch to pre-populate the map
+    fetchLiveDrivers()
+})
+
+onUnmounted(() => {
+    disconnectFleetWs()
+})
 
 // --- Active Hub Logic ---
 function resolveNetworkStatus(hubs) {
@@ -705,20 +869,6 @@ const vehicleFillPercent = computed(() => {
     return Math.round(((Number(currentHub.value.vehiclesActive) || 0) / total) * 100)
 })
 
-const driverMapMarkers = computed(() => store.filteredDrivers.slice(0, mapMarkerPositions.length).map((driver, index) => {
-    const isPrimary = index === 0
-    const attentionStatuses = ['breakdown', 'deviation', 'delayed']
-    const isAttention = attentionStatuses.includes((driver.status || '').toLowerCase())
-
-    return {
-        ...driver,
-        ...mapMarkerPositions[index],
-        pulseClass: isPrimary ? 'w-12 h-12 bg-primary/20 animate-ping' : 'w-8 h-8 bg-yellow-500/20',
-        sizeClass: isPrimary ? 'w-12 h-12 border-primary' : `w-8 h-8 ${isAttention ? 'border-yellow-500' : 'border-blue-500'}`,
-        iconClass: isPrimary ? 'text-primary' : (isAttention ? 'text-yellow-500' : 'text-blue-500'),
-        iconSizeClass: isPrimary ? '' : 'text-[16px]',
-    }
-}))
 
 // --- Chart Controls ---
 const selectedTimePeriod = ref('week')
@@ -748,13 +898,8 @@ const contactHub = () => {
     store.openModal('contact-hub', currentHub.value)
 }
 
-const mapZoomIn = () => {
-
-}
-
-const mapZoomOut = () => {
-
-}
+const mapZoomIn = () => { fleetMapZoom.value = Math.min(fleetMapZoom.value + 1, 18) }
+const mapZoomOut = () => { fleetMapZoom.value = Math.max(fleetMapZoom.value - 1, 2) }
 
 // --- Chart.js Setup ---
 import {

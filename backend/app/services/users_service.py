@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -5,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.logistics import LogisticsDriverProfile
 from app.models.user import Role, User
 from app.models.warehouse import Warehouse
 from app.schemas.users import (
@@ -17,6 +19,8 @@ from app.schemas.users import (
 )
 from app.utils.hashing import hash_password
 from app.utils.username import generate_unique_username, normalize_username
+
+WAREHOUSE_SCOPED_ROLES = {"WAREHOUSE_MANAGER", "DISPATCHER", "DRIVER"}
 
 
 async def _get_user(db: AsyncSession, user_id: UUID) -> User:
@@ -47,6 +51,14 @@ def _to_response(user: User) -> UserAdminResponse:
         role=user.role.name,
         warehouse_id=user.warehouse_id,
         is_active=user.is_active,
+        approval_status=user.approval_status,
+        approval_note=user.approval_note,
+        approval_reviewed_at=user.approval_reviewed_at,
+        company_name=user.company_name,
+        tax_id=user.tax_id,
+        contact_person=user.contact_person,
+        business_email=user.business_email,
+        business_phone=user.business_phone,
         created_at=user.created_at,
     )
 
@@ -126,6 +138,14 @@ async def list_users(
     )
 
 
+def _require_warehouse_for_role(role_name: str, warehouse_id: UUID | None) -> None:
+    if role_name in WAREHOUSE_SCOPED_ROLES and warehouse_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"warehouse_id is required for {role_name} users",
+        )
+
+
 async def create_user(db: AsyncSession, data: UserAdminCreate) -> UserAdminResponse:
     existing = await db.execute(select(User).where(User.email == data.email.lower()))
     if existing.scalar_one_or_none():
@@ -140,6 +160,7 @@ async def create_user(db: AsyncSession, data: UserAdminCreate) -> UserAdminRespo
         normalized_username = await generate_unique_username(db, normalized_username)
 
     role = await _get_role(db, data.role)
+    _require_warehouse_for_role(role.name, data.warehouse_id)
     user = User(
         name=data.name,
         username=normalized_username,
@@ -152,6 +173,14 @@ async def create_user(db: AsyncSession, data: UserAdminCreate) -> UserAdminRespo
     )
     db.add(user)
     await db.flush()
+    if role.name == "DRIVER":
+        db.add(LogisticsDriverProfile(
+            user_id=user.id,
+            warehouse_id=data.warehouse_id,
+            status="Active",
+            efficiency_score=85,
+            avatar_color="bg-blue-600",
+        ))
     await _sync_warehouse_manager_assignment(db, user, role.name, data.warehouse_id)
     await db.refresh(user, attribute_names=["role"])
     return _to_response(user)
@@ -170,6 +199,18 @@ async def update_user(db: AsyncSession, user_id: UUID, data: UserAdminUpdate) ->
         user.phone = data.phone
     if data.is_active is not None:
         user.is_active = data.is_active
+    if data.approval_note is not None:
+        user.approval_note = data.approval_note
+    if data.approval_status is not None:
+        approval_status = data.approval_status.strip().upper()
+        if approval_status not in {"PENDING", "APPROVED", "REJECTED"}:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid approval status")
+        if user.role.name != "VENDOR":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Approval status can only be updated for vendor users")
+        user.approval_status = approval_status
+        user.approval_reviewed_at = datetime.now(timezone.utc)
+        if data.is_active is None:
+            user.is_active = approval_status != "REJECTED"
 
     db.add(user)
     await db.flush()
@@ -187,6 +228,7 @@ async def soft_delete_user(db: AsyncSession, user_id: UUID) -> None:
 async def assign_role(db: AsyncSession, user_id: UUID, data: AssignRoleRequest) -> UserAdminResponse:
     user = await _get_user(db, user_id)
     role = await _get_role(db, data.role)
+    _require_warehouse_for_role(role.name, user.warehouse_id)
     user.role_id = role.id
     db.add(user)
     await db.flush()

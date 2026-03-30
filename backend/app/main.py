@@ -21,6 +21,7 @@ from app.routers import vendor as vendor_router
 from app.routers import warehouse_operations as warehouse_operations_router
 from app.routers import warehouses as warehouses_router
 from app.routers import finance as finance_router
+from app.routers import ws_fleet as ws_fleet_router
 
 settings = get_settings()
 
@@ -98,6 +99,7 @@ def create_app() -> FastAPI:
     app.include_router(rates_router.router)
     app.include_router(tracking_router.router)
     app.include_router(finance_router.router)
+    app.include_router(ws_fleet_router.router)
 
     # ── Health check ──────────────────────────────────────────────────────────
     @app.get("/health", tags=["Health"])

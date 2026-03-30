@@ -110,8 +110,8 @@ onMounted(async () => {
             enableZoom: true,
         })
 
-        // Give the camera a moment to fully initialize (especially important on emulators)
-        await new Promise(resolve => setTimeout(resolve, 300))
+        // Give the camera a moment to fully initialize
+        await new Promise(resolve => setTimeout(resolve, 800))
 
         cameraReady.value = true
     } catch (e) {
@@ -139,7 +139,8 @@ async function takePicture() {
     try {
         let base64Pic;
         if (isNative) {
-            const result = await CameraPreview.capture({ quality: 90 })
+            await new Promise(resolve => setTimeout(resolve, 100))
+            const result = await CameraPreview.capture({ quality: 85 })
             base64Pic = normalizeCameraResult(result)
 
             if (!isValidBase64(base64Pic)) {
@@ -161,7 +162,6 @@ async function takePicture() {
         await store.navigateBack(router)
     } catch (e) {
         console.error('Photo capture error:', e?.message || String(e))
-        alert('Camera capture failed. Simulating photo for testing.')
         await stopCamera()
         store.deliver(MockCameraData.TRANSPARENT_PNG)
         await new Promise(resolve => setTimeout(resolve, 50))

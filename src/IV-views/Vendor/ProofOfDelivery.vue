@@ -177,9 +177,13 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useVendorStore } from '@/stores/vendorStore'
+import { useAuthStore } from '@/stores/authStore'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
 import BaseModal from '@/components/BaseModal.vue'
 
 const store = useVendorStore()
+const authStore = useAuthStore()
+const { openSlipWithData } = useSlipPrinter()
 const searchQuery = ref('')
 const viewMode = ref('grid')
 const detailShipment = ref(null)
@@ -202,11 +206,37 @@ const filtered = computed(() => {
 function openDetail(d) { detailShipment.value = d }
 
 function downloadPod(d) {
-    showToast(`Downloading PoD for ${d.id}...`)
+    openSlipWithData('proofOfDelivery', d, authStore.currentUser)
 }
 
 function exportAll() {
-    showToast('Exporting all delivery proofs...')
+    const rows = [
+        ['Shipment ID', 'Origin', 'Destination', 'Signed By', 'Time', 'Location', 'Photo Proof', 'E-Signed'],
+        ...deliveries.value.map(d => [
+            d.id,
+            d.origin || '',
+            d.destination || '',
+            d.pod?.signedBy || '',
+            d.pod?.time || '',
+            d.pod?.location || '',
+            d.pod?.photo ? 'Yes' : 'No',
+            d.pod?.signedBy ? 'Yes' : 'No',
+        ])
+    ]
+    downloadCsv(`proof_of_delivery_${new Date().toISOString().slice(0, 10)}.csv`, rows)
+}
+
+function downloadCsv(filename, rows) {
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
 }
 
 function showToast(msg) {

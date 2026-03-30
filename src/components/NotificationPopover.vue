@@ -146,14 +146,20 @@ const props = defineProps({
   unreadCount: { type: Number, default: 0 },
 })
 
-const emit = defineEmits(['mark-read', 'mark-all-read', 'clear-all'])
+const emit = defineEmits(['mark-read', 'mark-all-read', 'clear-all', 'open'])
 
 const isOpen = ref(false)
 
 const unreadNotifs = computed(() => props.notifications.filter(n => !n.read))
 const readNotifs = computed(() => props.notifications.filter(n => n.read))
 
-function toggle() { isOpen.value = !isOpen.value }
+function toggle() {
+  isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    emit('open')
+    if (props.unreadCount > 0) emit('mark-all-read')
+  }
+}
 function close() { isOpen.value = false }
 
 function handleMarkRead(notif) {

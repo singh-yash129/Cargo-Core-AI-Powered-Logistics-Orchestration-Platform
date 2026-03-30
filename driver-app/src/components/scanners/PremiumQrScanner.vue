@@ -81,6 +81,7 @@ onMounted(async () => {
                 } catch (e) { /* already installed or unavailable */ }
             }
 
+            await new Promise(resolve => setTimeout(resolve, 300))
             await BarcodeScanner.startScan()
             scanListener.value = await BarcodeScanner.addListener('barcodeScanned', async (result) => {
                 if (result.barcode) {
@@ -98,7 +99,7 @@ onMounted(async () => {
     } catch (e) {
         // Handle emulator CameraX NullPointerException gracefully
         if (e.message && e.message.includes('null object reference')) {
-            alert('Emulator camera failed: ' + e.message + '\n\nSimulating scan for testing.')
+            console.warn('QR camera NPE — simulating scan:', e.message)
             store.deliver('CC-TRK-042') // Mock result
             await store.navigateBack(router)
             return

@@ -6,6 +6,12 @@ const CREDENTIAL_CACHE_KEY = 'logistic_manager_created_credentials'
 
 const asArray = (value) => Array.isArray(value) ? value : []
 const asStringId = (value, fallback = 'all') => value == null ? fallback : String(value)
+const asWarehouseId = (value) => {
+    if (value == null) return null
+    const normalized = String(value)
+    return normalized && normalized.toLowerCase() !== 'all' ? normalized : null
+}
+const financeScopeFor = (warehouseId) => warehouseId && warehouseId !== 'all' ? String(warehouseId) : 'all'
 
 function loadCredentialCache() {
     try {
@@ -101,6 +107,55 @@ export const useLogisticStore = defineStore('logistic', () => {
     const reportAiInsights = ref([])
     const credentialCache = ref(loadCredentialCache())
 
+    function normalizeUserRecord(user) {
+        const cachedCredentials = credentialCache.value[String(user.email || '').toLowerCase()] || null
+        return {
+            id: asStringId(user.id),
+            hubId: asWarehouseId(user.hub_id ?? user.warehouse_id),
+            name: user.name,
+            email: user.email,
+            role: roleLabel(user.role),
+            status: user.status || (user.is_active ? 'Active' : 'Inactive'),
+            lastLogin: user.last_login || '',
+            username: user.username,
+            password: cachedCredentials?.password || '',
+            pending_payout: user.pending_payout ?? 0,
+            mobile: user.mobile ?? user.phone,
+            mobileVerified: user.mobile_verified ?? Boolean(user.phone || user.mobile),
+            emailVerified: user.email_verified ?? true,
+            avatar: user.avatar,
+            approvalStatus: user.approval_status || 'APPROVED',
+            approvalNote: user.approval_note || '',
+            approvalReviewedAt: user.approval_reviewed_at || '',
+            companyName: user.company_name || '',
+            taxId: user.tax_id || '',
+            contactPerson: user.contact_person || '',
+            businessEmail: user.business_email || '',
+            businessPhone: user.business_phone || '',
+            submittedAt: user.submitted_at || user.created_at || '',
+        }
+    }
+
+    function upsertUserRecord(user) {
+        const mappedUser = normalizeUserRecord(user)
+        const existingIndex = users.value.findIndex((item) => item.id === mappedUser.id)
+        const existingUser = existingIndex === -1 ? null : users.value[existingIndex]
+        const mergedUser = existingUser ? {
+            ...existingUser,
+            ...mappedUser,
+            avatar: mappedUser.avatar || existingUser.avatar,
+            lastLogin: mappedUser.lastLogin || existingUser.lastLogin,
+            pending_payout: user.pending_payout ?? existingUser.pending_payout,
+            submittedAt: mappedUser.submittedAt || existingUser.submittedAt,
+        } : mappedUser
+        if (existingIndex === -1) {
+            users.value.unshift(mergedUser)
+        } else {
+            users.value.splice(existingIndex, 1, mergedUser)
+        }
+        return mergedUser
+    }
+
     function hydrate(payload) {
         const stats = payload.dashboard_stats || {}
 
@@ -154,7 +209,7 @@ export const useLogisticStore = defineStore('logistic', () => {
 
         drivers.value = asArray(payload.drivers).map((driver) => ({
             id: asStringId(driver.id),
-            hubId: asStringId(driver.hub_id),
+            hubId: asWarehouseId(driver.hub_id),
             name: driver.name,
             status: driver.status,
             location: driver.location,
@@ -173,12 +228,12 @@ export const useLogisticStore = defineStore('logistic', () => {
         topDrivers.value = asArray(payload.top_drivers).map((driver) => ({
             ...driver,
             id: asStringId(driver.id),
-            hubId: asStringId(driver.hubId),
+            hubId: asWarehouseId(driver.hubId),
         }))
 
         vehicles.value = asArray(payload.vehicles).map((vehicle) => ({
             id: asStringId(vehicle.id),
-            hubId: asStringId(vehicle.hub_id),
+            hubId: asWarehouseId(vehicle.hub_id),
             type: vehicle.type,
             code: vehicle.code,
             model: vehicle.model,
@@ -194,7 +249,7 @@ export const useLogisticStore = defineStore('logistic', () => {
 
         maintenance.value = asArray(payload.maintenance).map((item) => ({
             id: asStringId(item.id),
-            hubId: asStringId(item.hub_id),
+            hubId: asWarehouseId(item.hub_id),
             issue: item.issue,
             status: item.status,
             statusClass: item.status_class,
@@ -202,7 +257,7 @@ export const useLogisticStore = defineStore('logistic', () => {
 
         transactions.value = asArray(payload.transactions).map((tx) => ({
             id: asStringId(tx.id),
-            hubId: asStringId(tx.hub_id),
+            hubId: asWarehouseId(tx.hub_id),
             date: tx.date,
             desc: tx.desc,
             type: tx.type,
@@ -212,36 +267,18 @@ export const useLogisticStore = defineStore('logistic', () => {
 
         reports.value = asArray(payload.reports).map((report) => ({
             id: asStringId(report.id),
-            hubId: asStringId(report.hub_id),
+            hubId: asWarehouseId(report.hub_id),
             title: report.title,
             date: report.date,
             icon: report.icon,
             color: report.color,
         }))
 
-        users.value = asArray(payload.users).map((user) => {
-            const cachedCredentials = credentialCache.value[String(user.email || '').toLowerCase()] || null
-            return {
-                id: asStringId(user.id),
-                hubId: asStringId(user.hub_id),
-                name: user.name,
-                email: user.email,
-                role: roleLabel(user.role),
-                status: user.status,
-                lastLogin: user.last_login,
-                username: user.username,
-                password: cachedCredentials?.password || '',
-                pending_payout: user.pending_payout,
-                mobile: user.mobile,
-                mobileVerified: user.mobile_verified,
-                emailVerified: user.email_verified,
-                avatar: user.avatar,
-            }
-        })
+        users.value = asArray(payload.users).map(normalizeUserRecord)
 
         returns.value = asArray(payload.returns).map((item) => ({
             id: asStringId(item.id),
-            hubId: asStringId(item.hub_id),
+            hubId: asWarehouseId(item.hub_id),
             orderId: item.order_id ? String(item.order_id) : '',
             customer: item.customer,
             reason: item.reason,
@@ -255,7 +292,7 @@ export const useLogisticStore = defineStore('logistic', () => {
 
         equipmentLedger.value = asArray(payload.equipment_ledger).map((eq) => ({
             id: asStringId(eq.id),
-            hubId: asStringId(eq.hub_id),
+            hubId: asWarehouseId(eq.hub_id),
             itemType: eq.item_type,
             issuedCount: eq.issued_count,
             returnedCount: eq.returned_count,
@@ -265,17 +302,19 @@ export const useLogisticStore = defineStore('logistic', () => {
 
         zones.value = asArray(payload.zones).map((zone) => ({
             id: asStringId(zone.id),
-            hubId: asStringId(zone.hub_id),
+            hubId: asWarehouseId(zone.hub_id),
             name: zone.name,
             type: zone.type,
             radius: zone.radius,
             status: zone.status,
             color: zone.color,
+            lat: zone.lat ?? null,
+            lng: zone.lng ?? null,
         }))
 
         chats.value = asArray(payload.chats).map((chat) => ({
             id: asStringId(chat.id),
-            hubId: asStringId(chat.hub_id),
+            hubId: asWarehouseId(chat.hub_id),
             name: chat.name,
             time: chat.time,
             lastMessage: chat.last_message,
@@ -287,7 +326,7 @@ export const useLogisticStore = defineStore('logistic', () => {
 
         escalations.value = asArray(payload.escalations).map((item) => ({
             id: asStringId(item.id),
-            hubId: asStringId(item.hub_id),
+            hubId: asWarehouseId(item.hub_id),
             title: item.title,
             priority: item.priority,
             from: item.from_name,
@@ -301,7 +340,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         inventory.value = asArray(payload.inventory).map((item) => ({
             ...item,
             id: asStringId(item.id),
-            hubId: asStringId(item.hubId),
+            hubId: asWarehouseId(item.hubId),
         }))
 
         notifications.value = asArray(payload.notifications).map((item) => ({
@@ -335,12 +374,12 @@ export const useLogisticStore = defineStore('logistic', () => {
         }))
         // Bootstrap correctly computes total_revenue, total_expenses, total_payroll_due, pending_cod
         financeSummary.value = payload.finance_summary || {}
-        financeCodRecords.value = asArray(payload.finance_cod_records).map((item) => ({ ...item, id: asStringId(item.id), hubId: asStringId(item.hubId) }))
-        financeStaffRecords.value = asArray(payload.finance_staff_records).map((item) => ({ ...item, id: asStringId(item.id), userId: asStringId(item.userId), hubId: asStringId(item.hubId) }))
-        financeDriverRecords.value = asArray(payload.finance_driver_records).map((item) => ({ ...item, id: asStringId(item.id), userId: asStringId(item.userId), hubId: asStringId(item.hubId) }))
+        financeCodRecords.value = asArray(payload.finance_cod_records).map((item) => ({ ...item, id: asStringId(item.id), hubId: asWarehouseId(item.hubId ?? item.hub_id ?? item.warehouse_id) }))
+        financeStaffRecords.value = asArray(payload.finance_staff_records).map((item) => ({ ...item, id: asStringId(item.id), userId: asStringId(item.userId), hubId: asWarehouseId(item.hubId ?? item.hub_id ?? item.warehouse_id) }))
+        financeDriverRecords.value = asArray(payload.finance_driver_records).map((item) => ({ ...item, id: asStringId(item.id), userId: asStringId(item.userId), hubId: asWarehouseId(item.hubId ?? item.hub_id ?? item.warehouse_id) }))
         fleetLogs.value = payload.fleet_logs || {}
-        vehicleDocuments.value = asArray(payload.vehicle_documents).map((item) => ({ ...item, id: asStringId(item.id), hubId: asStringId(item.hubId) }))
-        driverDocuments.value = asArray(payload.driver_documents).map((item) => ({ ...item, id: asStringId(item.id), driverId: asStringId(item.driverId), hubId: asStringId(item.hubId) }))
+        vehicleDocuments.value = asArray(payload.vehicle_documents).map((item) => ({ ...item, id: asStringId(item.id), hubId: asWarehouseId(item.hubId ?? item.hub_id ?? item.warehouse_id) }))
+        driverDocuments.value = asArray(payload.driver_documents).map((item) => ({ ...item, id: asStringId(item.id), driverId: asStringId(item.driverId), hubId: asWarehouseId(item.hubId ?? item.hub_id ?? item.warehouse_id) }))
         reportAiInsights.value = asArray(payload.report_ai_insights)
         reportDamageClaims.value = asArray(payload.report_damage_claims)
         reportSecurityLogs.value = asArray(payload.report_security_logs)
@@ -355,9 +394,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         const payload = await apiRequest('/logistics/bootstrap', { headers: authHeaders() })
         hydrate(payload)
         initialized.value = true
-        // Fire fetchFinanceSummary to merge in procurement_expenses + capital_invested
-        // which are not included in the bootstrap finance_summary.
-        fetchFinanceSummary().catch(() => {})
+        await fetchFinanceSummary(activeWarehouse.value)
     }
 
     async function initialize(force = false) {
@@ -381,7 +418,11 @@ export const useLogisticStore = defineStore('logistic', () => {
     })
 
     const unreadNotificationsCount = computed(() => notifications.value.filter((item) => !item.read).length)
-    const filterByWarehouse = (items) => (activeWarehouse.value === 'all' ? items : items.filter((item) => item.hubId === activeWarehouse.value))
+    const filterByWarehouse = (items) => (
+        activeWarehouse.value === 'all'
+            ? items
+            : items.filter((item) => asWarehouseId(item?.hubId) === activeWarehouse.value)
+    )
 
     const filteredDrivers = computed(() => {
         let result = filterByWarehouse(drivers.value)
@@ -397,7 +438,7 @@ export const useLogisticStore = defineStore('logistic', () => {
     const filteredMaintenance = computed(() => filterByWarehouse(maintenance.value))
     const filteredTransactions = computed(() => filterByWarehouse(transactions.value))
     const filteredReports = computed(() => filterByWarehouse(reports.value))
-    const filteredUsers = computed(() => users.value.filter((item) => activeWarehouse.value === 'all' || item.hubId === activeWarehouse.value || item.hubId === 'all'))
+    const filteredUsers = computed(() => filterByWarehouse(users.value))
     const filteredReturns = computed(() => filterByWarehouse(returns.value))
     const filteredZones = computed(() => filterByWarehouse(zones.value))
     const filteredChats = computed(() => filterByWarehouse(chats.value))
@@ -410,6 +451,40 @@ export const useLogisticStore = defineStore('logistic', () => {
     const filteredDriverDocuments = computed(() => filterByWarehouse(driverDocuments.value))
     const filteredDamageClaims = computed(() => reportDamageClaims.value)
     const filteredSecurityLogs = computed(() => reportSecurityLogs.value)
+    const activeFinanceSummary = computed(() => {
+        const scope = financeScopeFor(activeWarehouse.value)
+        const summaryMatchesScope = (financeSummary.value?._warehouseScope || 'all') === scope
+        const fallbackRevenue = filteredTransactions.value
+            .filter((item) => item.amount > 0 && item.type !== 'CAPITAL_INVESTMENT')
+            .reduce((sum, item) => sum + item.amount, 0)
+        const fallbackExpenses = Math.abs(
+            filteredTransactions.value
+                .filter((item) => item.amount < 0 && item.type !== 'REVENUE_REFUND')
+                .reduce((sum, item) => sum + item.amount, 0)
+        )
+        const fallbackPendingCod = filteredFinanceCodRecords.value
+            .filter((item) => item.status === 'Pending')
+            .reduce((sum, item) => sum + (item.amount || 0), 0)
+        const fallbackPayrollDue = [...filteredFinanceStaffRecords.value, ...filteredFinanceDriverRecords.value]
+            .filter((item) => item.status === 'Pending')
+            .reduce((sum, item) => sum + (item.amount || 0), 0)
+        const fallbackProcurement = filteredTransactions.value
+            .filter((item) => item.type === 'EXPENSE_PROCUREMENT')
+            .reduce((sum, item) => sum + Math.abs(item.amount || 0), 0)
+        const fallbackCapital = filteredTransactions.value
+            .filter((item) => item.type === 'CAPITAL_INVESTMENT')
+            .reduce((sum, item) => sum + (item.amount || 0), 0)
+
+        return {
+            ...(summaryMatchesScope ? financeSummary.value : {}),
+            total_revenue: summaryMatchesScope && financeSummary.value?.total_revenue != null ? financeSummary.value.total_revenue : fallbackRevenue,
+            total_expenses: summaryMatchesScope && financeSummary.value?.total_expenses != null ? financeSummary.value.total_expenses : fallbackExpenses,
+            pending_cod: summaryMatchesScope && financeSummary.value?.pending_cod != null ? financeSummary.value.pending_cod : fallbackPendingCod,
+            total_payroll_due: summaryMatchesScope && financeSummary.value?.total_payroll_due != null ? financeSummary.value.total_payroll_due : fallbackPayrollDue,
+            procurement_expenses: summaryMatchesScope && financeSummary.value?.procurement_expenses != null ? financeSummary.value.procurement_expenses : fallbackProcurement,
+            capital_invested: summaryMatchesScope && financeSummary.value?.capital_invested != null ? financeSummary.value.capital_invested : fallbackCapital,
+        }
+    })
 
     function openModal(name, data = null) {
         activeModal.value = name
@@ -425,6 +500,9 @@ export const useLogisticStore = defineStore('logistic', () => {
     function setWarehouse(id) {
         activeWarehouse.value = String(id)
         if (activeModal.value === 'warehouse-select') closeModal()
+        if (initialized.value) {
+            fetchFinanceSummary(activeWarehouse.value).catch(() => {})
+        }
     }
 
     function togglePin(hub) {
@@ -472,7 +550,7 @@ export const useLogisticStore = defineStore('logistic', () => {
 
         transactions.value = [{
             id: asStringId(created.id),
-            hubId: asStringId(created.hub_id),
+            hubId: asWarehouseId(created.hub_id),
             date: created.date,
             desc: created.desc,
             type: created.type,
@@ -492,14 +570,19 @@ export const useLogisticStore = defineStore('logistic', () => {
      * Fetch live finance summary from /api/v1/finance/summary.
      * Returns real DB aggregations so revenue starts at 0 on empty DB.
      */
-    async function fetchFinanceSummary() {
+    async function fetchFinanceSummary(warehouseId = activeWarehouse.value) {
         try {
-            const data = await apiRequest('/finance/summary', { headers: authHeaders() })
-            // Merge into existing summary so bootstrap values (total_revenue, etc.)
-            // are preserved while adding procurement_expenses and capital_invested.
-            financeSummary.value = { ...data, ...financeSummary.value }
+            const scope = financeScopeFor(warehouseId)
+            const query = scope === 'all' ? '' : `?warehouse_id=${encodeURIComponent(scope)}`
+            const data = await apiRequest(`/finance/summary${query}`, { headers: authHeaders() })
+            financeSummary.value = {
+                ...data,
+                _warehouseScope: scope,
+            }
+            return financeSummary.value
         } catch (e) {
             console.warn('[fetchFinanceSummary] failed (non-fatal):', e)
+            return financeSummary.value
         }
     }
 
@@ -595,6 +678,169 @@ export const useLogisticStore = defineStore('logistic', () => {
             text,
             sender: 'dispatch',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        })
+    }
+
+    async function fetchWmChats() {
+        const data = await apiRequest('/logistics/chats', { headers: authHeaders() })
+        chats.value = (Array.isArray(data) ? data : []).map((item) => ({
+            id: String(item.id),
+            hubId: asWarehouseId(item.hub_id),
+            name: item.name,
+            time: item.time || '',
+            lastMessage: item.last_message || '',
+            status: item.status || 'Offline',
+            phone: item.phone || null,
+            muted: item.muted || false,
+            messages: (item.messages || []).map((m) => ({
+                id: String(m.id),
+                text: m.text,
+                sender: m.sender,
+                time: m.time,
+            })),
+        }))
+        return chats.value
+    }
+
+    async function sendChatMessage(threadId, text) {
+        const updated = await apiRequest(`/logistics/chats/${threadId}/messages`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ text, sender: 'me' }),
+        })
+        const mappedMessages = (updated.messages || []).map((m) => ({
+            id: String(m.id),
+            text: m.text,
+            sender: m.sender,
+            time: m.time,
+        }))
+        // Sync local state
+        const idx = chats.value.findIndex((c) => c.id === String(threadId))
+        if (idx !== -1) {
+            chats.value[idx].messages = mappedMessages
+            chats.value[idx].lastMessage = updated.last_message || text
+            chats.value[idx].time = updated.time || 'Just now'
+        }
+        return { messages: mappedMessages }
+    }
+
+    async function createChatThread(name, phone = null) {
+        const created = await apiRequest('/logistics/chats', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ name, phone }),
+        })
+        chats.value.unshift({
+            id: String(created.id),
+            hubId: asWarehouseId(created.hub_id),
+            name: created.name,
+            time: created.time || 'Just now',
+            lastMessage: created.last_message || '',
+            status: created.status || 'Online',
+            phone: created.phone || null,
+            muted: false,
+            messages: [],
+        })
+        return created
+    }
+
+    async function deleteChatThread(threadId) {
+        await apiRequest(`/logistics/chats/${threadId}`, {
+            method: 'DELETE',
+            headers: authHeaders(),
+        })
+        chats.value = chats.value.filter((c) => c.id !== String(threadId))
+    }
+
+    async function muteChatThread(threadId, muted) {
+        const updated = await apiRequest(`/logistics/chats/${threadId}`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({ muted }),
+        })
+        const chat = chats.value.find((c) => c.id === String(threadId))
+        if (chat) chat.muted = updated.muted
+    }
+
+    function taskFromApi(item) {
+        return {
+            id: String(item.id),
+            text: item.text,
+            status: item.status || 'To Do',
+            targetTime: item.target_time ? new Date(item.target_time).getTime() : null,
+            repeat: item.repeat || 'none',
+            createdAt: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
+            lastAlertTime: item.last_alert_time ? new Date(item.last_alert_time).getTime() : null,
+            silenced: item.silenced || false,
+            remaining: '',
+        }
+    }
+
+    async function fetchTasks() {
+        const data = await apiRequest('/logistics/tasks', { headers: authHeaders() })
+        tasks.value = asArray(data).map(taskFromApi)
+    }
+
+    async function createTask(payload) {
+        const body = {
+            text: payload.text,
+            status: payload.status || 'To Do',
+            target_time: payload.targetTime ? new Date(payload.targetTime).toISOString() : null,
+            repeat: payload.repeat || 'none',
+        }
+        const data = await apiRequest('/logistics/tasks', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify(body),
+        })
+        tasks.value.unshift(taskFromApi(data))
+    }
+
+    async function deleteTask(id) {
+        await apiRequest(`/logistics/tasks/${id}`, { method: 'DELETE', headers: authHeaders() })
+        tasks.value = tasks.value.filter((t) => t.id !== String(id))
+    }
+
+    async function patchTask(id, updates) {
+        const body = {}
+        if (updates.status !== undefined) body.status = updates.status
+        if (updates.silenced !== undefined) body.silenced = updates.silenced
+        if (updates.text !== undefined) body.text = updates.text
+        if (updates.targetTime !== undefined) body.target_time = updates.targetTime ? new Date(updates.targetTime).toISOString() : null
+        if (updates.repeat !== undefined) body.repeat = updates.repeat
+        if (updates.lastAlertTime !== undefined) body.last_alert_time = updates.lastAlertTime ? new Date(updates.lastAlertTime).toISOString() : null
+        const data = await apiRequest(`/logistics/tasks/${id}`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify(body),
+        })
+        const t = tasks.value.find((t) => t.id === String(id))
+        if (t && data) Object.assign(t, taskFromApi(data))
+    }
+
+    async function clearDoneTasks() {
+        const doneIds = tasks.value.filter((t) => t.status === 'Done').map((t) => t.id)
+        tasks.value = tasks.value.filter((t) => t.status !== 'Done')
+        await Promise.all(doneIds.map((id) => apiRequest(`/logistics/tasks/${id}`, { method: 'DELETE', headers: authHeaders() }).catch(() => {})))
+    }
+
+    async function fetchNotifications() {
+        const data = await apiRequest('/logistics/notifications', { headers: authHeaders() })
+        notifications.value = asArray(data).map((item) => ({
+            id: asStringId(item.id),
+            title: item.title,
+            message: item.message,
+            time: item.time,
+            read: item.read,
+            type: item.type,
+        }))
+    }
+
+    async function sendBroadcast(payload) {
+        return await apiRequest('/logistics/notifications/broadcast', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify(payload),
         })
     }
 
@@ -753,7 +999,7 @@ export const useLogisticStore = defineStore('logistic', () => {
     async function updateUser(email, updates) {
         const user = users.value.find((item) => item.email === email)
         if (!user) return
-        await apiRequest(`/users/${user.id}`, {
+        const updated = await apiRequest(`/users/${user.id}`, {
             method: 'PUT',
             headers: authHeaders(),
             body: JSON.stringify({
@@ -762,7 +1008,7 @@ export const useLogisticStore = defineStore('logistic', () => {
                 is_active: updates.status ? updates.status === 'Active' : undefined,
             }),
         })
-        await refresh()
+        upsertUserRecord(updated)
     }
 
     async function deleteUser(email) {
@@ -780,12 +1026,38 @@ export const useLogisticStore = defineStore('logistic', () => {
     async function toggleUserStatus(email) {
         const user = users.value.find((item) => item.email === email)
         if (!user) return
-        await apiRequest(`/users/${user.id}`, {
+        const updated = await apiRequest(`/users/${user.id}`, {
             method: 'PUT',
             headers: authHeaders(),
             body: JSON.stringify({ is_active: user.status !== 'Active' }),
         })
-        await refresh()
+        upsertUserRecord(updated)
+    }
+
+    async function approveVendor(userId, note = '') {
+        const updated = await apiRequest(`/users/${userId}`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                approval_status: 'APPROVED',
+                approval_note: note || null,
+                is_active: true,
+            }),
+        })
+        return upsertUserRecord(updated)
+    }
+
+    async function rejectVendor(userId, note = '') {
+        const updated = await apiRequest(`/users/${userId}`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                approval_status: 'REJECTED',
+                approval_note: note || null,
+                is_active: false,
+            }),
+        })
+        return upsertUserRecord(updated)
     }
 
     async function createZone(zoneData) {
@@ -808,6 +1080,8 @@ export const useLogisticStore = defineStore('logistic', () => {
                 radius_km: parseFloat(zoneData.radius) || 1.0,
                 status: zoneData.status || 'Active',
                 color_token: zoneData.color || 'blue',
+                lat: zoneData.lat ?? null,
+                lng: zoneData.lng ?? null,
             }),
         })
         await refresh()
@@ -824,6 +1098,8 @@ export const useLogisticStore = defineStore('logistic', () => {
                 radius_km: parseFloat(zoneData.radius) || 1.0,
                 status: zoneData.status || 'Active',
                 color_token: zoneData.color || 'blue',
+                lat: zoneData.lat ?? null,
+                lng: zoneData.lng ?? null,
             }),
         })
         await refresh()
@@ -851,6 +1127,22 @@ export const useLogisticStore = defineStore('logistic', () => {
         if (!items) return
         const item = items.find((entry) => entry.id === id)
         if (item) item.status = collection === 'cod' ? 'Completed' : 'Paid'
+    }
+
+    async function runPayroll(userPayouts) {
+        // userPayouts: [{user_id, amount, record_type, name}]
+        const result = await apiRequest('/finance/payroll/run', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ user_payouts: userPayouts }),
+        })
+        // Deduct total paid from revenue (payroll is an outflow)
+        const total = result.total || 0
+        if (total > 0) {
+            financeSummary.value.total_revenue = Math.max(0, (financeSummary.value.total_revenue || 0) - total)
+            financeSummary.value.total_expenses = (financeSummary.value.total_expenses || 0) + total
+        }
+        return result
     }
 
     async function uploadDocument(payload) {
@@ -903,6 +1195,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         aiSuggestionChips,
         aiMessages,
         financeSummary,
+        activeFinanceSummary,
         financeCodRecords,
         financeStaffRecords,
         financeDriverRecords,
@@ -950,11 +1243,24 @@ export const useLogisticStore = defineStore('logistic', () => {
         resolveAlert,
         setWarehouse,
         togglePin,
+        fetchNotifications,
         markNotificationRead,
         markAllNotificationsRead,
         clearNotifications,
         toggleSearch,
+        fetchTasks,
+        createTask,
+        deleteTask,
+        patchTask,
+        clearDoneTasks,
+        fetchWmChats,
         sendMessageToDriver,
+        sendChatMessage,
+        createChatThread,
+        deleteChatThread,
+        muteChatThread,
+        sendBroadcast,
+
         updateDriverStatus,
         addVehicle,
         updateVehicleStatus,
@@ -967,13 +1273,14 @@ export const useLogisticStore = defineStore('logistic', () => {
         updateUser,
         deleteUser,
         toggleUserStatus,
+        approveVendor,
+        rejectVendor,
         createZone,
         updateZone,
         deleteZone,
         markFinanceRecordPaid,
+        runPayroll,
         uploadDocument,
         updateDocumentStatus,
     }
 })
-
-

@@ -22,12 +22,13 @@
               <p class="text-sm font-bold uppercase tracking-widest text-primary mb-2">Shift Score</p>
                 <div class="text-7xl font-black mb-1"
                     style="background: linear-gradient(135deg, #1CE783, #44a8e9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                    98</div>
+                    {{ shiftScore }}</div>
                 <div class="flex items-center justify-center gap-1 mb-2">
-                    <span v-for="i in 5" :key="i" class="material-icons text-accent-gold text-lg">{{ i <= 4 ? 'star'
-                        : 'star_half' }}</span>
+                    <span v-for="i in 5" :key="i" class="material-icons text-accent-gold text-lg">
+                        {{ i <= starRating ? 'star' : (i - 0.5 <= starRating ? 'star_half' : 'star_border') }}
+                    </span>
                 </div>
-                <p class="text-sm font-bold text-primary">Excellent Performance 🏆</p>
+                <p class="text-sm font-bold text-primary">{{ performanceLabel }}</p>
             </div>
 
             <!-- Stats Grid -->
@@ -49,12 +50,12 @@
                 :class="isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold">Today's Earnings</h3>
-                    <span class="text-2xl font-black text-primary">₹1,840</span>
+                    <span class="text-2xl font-black text-primary">₹{{ todayTotal.toLocaleString('en-IN') }}</span>
                 </div>
                 <div class="space-y-2">
                     <div v-for="row in earningRows" :key="row.label" class="flex justify-between text-sm">
                         <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ row.label }}</span>
-                        <span class="font-semibold">₹{{ row.value }}</span>
+                        <span class="font-semibold">₹{{ row.value.toLocaleString('en-IN') }}</span>
                     </div>
                 </div>
             </div>
@@ -90,13 +91,24 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 import * as api from '../services/api.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
 const driverStore = useDriverStore()
+const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const dashboard = computed(() => driverStore.dashboard)
+// jobStore is reset before ShiftSummary opens; use the type saved before reset as fallback
+const jobType = computed(() =>
+    jobStore.jobType
+    || driverStore.lastJobType
+    || driverStore.dashboard?.current_job?.jobType
+    || 'PARCEL_DELIVERY'
+)
+const isHouseShift = computed(() => jobType.value === 'HOUSE_SHIFT')
+const isDelivery = computed(() => jobType.value === 'PARCEL_DELIVERY')
 
 onMounted(() => {
     driverStore.refreshDashboard()
@@ -107,7 +119,6 @@ async function endShift() {
         await api.endShift()
     } catch (err) {
         console.error('Failed to end shift on backend:', err)
-        // Allow logout to proceed anyway
     }
     driverStore.logout()
     uiStore.showToast('Shift ended. See you tomorrow!', 'success')
@@ -120,10 +131,82 @@ const routeLabel = computed(() => {
     return `${manifest.route_id || 'Route'} · ${manifest.date || ''}`
 })
 
+const earnings = computed(() => driverStore.dashboard?.earnings || {})
+
+const shiftScore = computed(() => {
+    if (earnings.value.shift_score) return earnings.value.shift_score
+    const rating = driverStore.driver?.rating || 0
+    return rating ? Math.round(rating * 20) : 0
+})
+
+// Derive star rating (0–5) from shift score (0–100)
+const starRating = computed(() => Math.round((shiftScore.value / 100) * 5 * 2) / 2)
+
+const performanceLabel = computed(() => {
+    const s = shiftScore.value
+    if (s >= 90) return 'Excellent Performance 🏆'
+    if (s >= 75) return 'Great Work 👍'
+    if (s >= 60) return 'Good Job'
+    return 'Keep Improving'
+})
+
 const summaryStats = computed(() => {
     const manifest = dashboard.value?.manifest || {}
     const telemetry = dashboard.value?.telemetry || {}
     const profile = driverStore.driver || {}
+
+    if (isHouseShift.value) {
+        // For house shifts: use manifest distance only if it's not the 8.5 parcel default
+        const houseDistKm = (manifest.total_distance_km && manifest.total_distance_km !== 8.5)
+            ? manifest.total_distance_km
+            : 24
+        return [
+            {
+                label: 'Crew',
+                icon: 'groups',
+                value: String(manifest.crew_count ?? 0),
+                sub: 'Members on shift',
+                color: 'text-purple-400'
+            },
+            {
+                label: 'Items Moved',
+                icon: 'inventory',
+                value: String(manifest.completed_stops ?? 0),
+                sub: 'Inventory handled',
+                color: 'text-primary'
+            },
+            {
+                label: 'On-Time',
+                icon: 'schedule',
+                value: `${profile.onTimePercent ?? 0}%`,
+                sub: 'Driver completion rate',
+                color: 'text-primary'
+            },
+            {
+                label: 'Distance',
+                icon: 'timeline',
+                value: `${houseDistKm} km`,
+                sub: 'Shift total',
+                color: 'text-accent-blue'
+            },
+            {
+                label: 'Fuel Level',
+                icon: 'local_gas_station',
+                value: telemetry.fuel_level_pct != null ? `${telemetry.fuel_level_pct}%` : '—',
+                sub: 'Vehicle telemetry',
+                color: 'text-signal-amber'
+            },
+            {
+                label: 'Safety Score',
+                icon: 'verified_user',
+                value: `${earnings.value.safety_score ?? profile.safetyScore ?? 0}`,
+                sub: 'Driver safety rating',
+                color: 'text-accent-blue'
+            },
+        ]
+    }
+
+    // Parcel delivery / pickup
     return [
         {
             label: 'Stops Done',
@@ -139,13 +222,19 @@ const summaryStats = computed(() => {
             sub: 'Driver completion rate',
             color: 'text-primary'
         },
-        {
+        ...(isDelivery.value ? [{
             label: 'COD Collected',
             icon: 'payments',
-            value: '₹0',
+            value: `₹${(manifest.cod_collected ?? 0).toLocaleString('en-IN')}`,
             sub: 'Captured in route ledger',
             color: 'text-accent-gold'
-        },
+        }] : [{
+            label: 'Pickups Done',
+            icon: 'assignment_return',
+            value: String(manifest.completed_stops ?? 0),
+            sub: 'Items scanned & loaded',
+            color: 'text-accent-blue'
+        }]),
         {
             label: 'Distance',
             icon: 'timeline',
@@ -170,10 +259,21 @@ const summaryStats = computed(() => {
     ]
 })
 
-const earningRows = [
-    { label: 'Base Shift Pay', value: 1200 },
-    { label: 'Delivery Bonus (7 stops)', value: 350 },
-    { label: 'House Move Premium', value: 200 },
-    { label: 'Tips', value: 90 },
-]
+const todayTotal = computed(() => {
+    const e = earnings.value
+    return (e.today_base || 0) + (e.today_deliveries || 0) + (e.today_move || 0) + (e.today_tips || 0)
+})
+
+const earningRows = computed(() => {
+    const e = earnings.value
+    const rows = [
+        { label: 'Base Shift Pay', value: e.today_base || 0 },
+        { label: 'Delivery Bonus', value: e.today_deliveries || 0 },
+    ]
+    if (isHouseShift.value) {
+        rows.push({ label: 'House Move Premium', value: e.today_move || 0 })
+    }
+    rows.push({ label: 'Tips', value: e.today_tips || 0 })
+    return rows
+})
 </script>

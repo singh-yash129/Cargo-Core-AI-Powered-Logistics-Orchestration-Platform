@@ -3,7 +3,7 @@
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Fleet & Drivers Overview</h2>
             <div class="flex gap-3">
-                <button @click="openSlip('vehicleSafetyChecklist')"
+                <button @click="openSafetyChecklist"
                     class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
                     <span class="material-symbols-outlined text-sm">health_and_safety</span> Safety Checklist
                 </button>
@@ -11,11 +11,7 @@
                     class="bg-slate-800 hover:bg-slate-700 text-white font-medium dark:bg-white/10 dark:hover:bg-white/15 dark:text-white border border-slate-700 dark:border-white/10 py-2 px-4 rounded-lg transition-colors shadow-sm flex items-center gap-2">
                     <span class="material-symbols-outlined text-sm">download</span> Maintenance Report
                 </button>
-                <button @click="openDriverModal"
-                    class="bg-slate-800 hover:bg-slate-700 dark:bg-white/10 dark:hover:bg-white/15 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-lg border border-slate-700 dark:border-white/10">
-                    <span class="material-symbols-outlined">person_add</span> Add Driver
-                </button>
-                <button @click="openVehicleModal('add')"
+<button @click="openVehicleModal('add')"
                     class="bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-lg border border-slate-700 dark:border-primary/30">
                     <span class="material-symbols-outlined">local_shipping</span> Add Vehicle
                 </button>
@@ -88,25 +84,25 @@
                 <div class="space-y-4 overflow-y-auto pr-2 flex-grow custom-scrollbar">
                     <div v-for="driver in searchedDrivers" :key="driver.id" @click="openDriverProfile(driver)"
                         class="flex items-center gap-4 p-3 rounded-lg bg-gray-50 border border-transparent hover:border-primary/30 cursor-pointer dark:bg-white/5 dark:hover:bg-primary/20 transition-colors shadow-sm group">
-                        <!-- Real drivers mock data avatar fallback -->
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm"
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm shrink-0"
                             :class="driver.avatarColor">
                             {{ driver.name.charAt(0) }}
                         </div>
-                        <div class="flex-1">
+                        <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-center">
-                                <span class="text-gray-900 dark:text-white font-bold text-sm">{{ driver.name }}</span>
-                                <span class="text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                                <span class="text-gray-900 dark:text-white font-bold text-sm truncate">{{ driver.name }}</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ml-2 shrink-0"
                                     :class="driver.status === 'active' ? 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400' : 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400'">
                                     {{ driver.status }}
                                 </span>
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2">
-                                <span>{{ driver.vehicle }}</span>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                                <span class="font-medium text-green-600 dark:text-green-400">{{ driver.efficiency }}% eff.</span>
+                                <span v-if="driver.rating" class="text-yellow-500">★ {{ Number(driver.rating).toFixed(1) }}</span>
                                 <span class="text-gray-300 dark:text-gray-600">•</span>
-                                <span class="font-medium text-primary">{{ store.hubs.find(h => h.id === driver.hubId)?.name || 'Main Hub' }}</span>
+                                <span class="font-medium text-primary truncate">{{ store.hubs.find(h => h.id === driver.hubId)?.name || 'Main Hub' }}</span>
                                 <span class="text-gray-300 dark:text-gray-600">•</span>
-                                <span>{{ driver.currentJob || 'Standby' }}</span>
+                                <span class="truncate">{{ driver.currentJob || 'Standby' }}</span>
                             </div>
                         </div>
                     </div>
@@ -119,8 +115,12 @@
                 <div class="space-y-4 overflow-y-auto pr-2 flex-grow custom-scrollbar">
                     <div v-for="driver in searchedTopDrivers" :key="driver.id" @click="openDriverProfile(driver)"
                         class="flex items-center gap-4 p-3 rounded-lg bg-gray-50 border border-transparent hover:border-gray-200 dark:bg-white/5 dark:hover:bg-white/10 transition-colors shadow-sm cursor-pointer group">
-                        <img :src="driver.avatar"
+                        <img v-if="driver.avatar" :src="driver.avatar"
                             class="w-10 h-10 rounded-full border border-gray-200 dark:border-white/10">
+                        <div v-else class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm shrink-0"
+                            :class="driver.avatarColor || 'bg-gray-600'">
+                            {{ (driver.name || '?').charAt(0) }}
+                        </div>
                         <div class="flex-1">
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-900 dark:text-white font-bold text-sm">{{ driver.name }}</span>
@@ -768,73 +768,6 @@
             </div>
         </Teleport>
 
-        <!-- Add Driver Modal -->
-        <Teleport to="body">
-            <div v-if="isDriverModalOpen"
-                class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-                @click.self="closeDriverModal">
-                <div class="bg-white dark:bg-card-dark w-full max-w-2xl rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-gray-50 dark:bg-white/5">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Add New Driver</h3>
-                        <button @click="closeDriverModal" class="text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors">
-                            <span class="material-symbols-outlined">close</span>
-                        </button>
-                    </div>
-                    <div class="p-6 grid grid-cols-2 gap-x-6 gap-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name <span class="text-red-500">*</span></label>
-                            <input v-model="driverFormData.name" type="text" placeholder="e.g. Ravi Kumar"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email <span class="text-red-500">*</span></label>
-                            <input v-model="driverFormData.email" type="email" placeholder="driver@example.com"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
-                            <input v-model="driverFormData.phone" type="text" placeholder="+91 98765 43210"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
-                            <select v-model="driverFormData.status"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option class="bg-white dark:bg-gray-800">Active</option>
-                                <option class="bg-white dark:bg-gray-800">Idle</option>
-                                <option class="bg-white dark:bg-gray-800">On Leave</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hub Assignment</label>
-                            <select v-model="driverFormData.warehouse_id"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option value="all" class="bg-white dark:bg-gray-800">Global (All Hubs)</option>
-                                <option v-for="h in store.hubs" :key="h.id" :value="h.id" class="bg-white dark:bg-gray-800">{{ h.name }}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Location</label>
-                            <input v-model="driverFormData.current_location" type="text" placeholder="e.g. Depot - Bangalore Central"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                        </div>
-                        <div class="col-span-2 space-y-1">
-                            <p class="text-xs text-gray-400 dark:text-gray-500">Default login password: <span class="font-mono font-bold">Driver@123</span></p>
-                            <p v-if="driverError" class="text-xs text-red-500 font-medium">{{ driverError }}</p>
-                        </div>
-                    </div>
-                    <div class="px-6 py-4 border-t border-gray-200 dark:border-white/5 flex justify-end gap-3 bg-gray-50 dark:bg-white/5">
-                        <button @click="closeDriverModal"
-                            class="px-4 py-2 rounded-lg font-medium text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 dark:bg-white/10 dark:border-white/10 dark:text-gray-200 dark:hover:bg-white/15 transition-colors">Cancel</button>
-                        <button @click="submitDriver" :disabled="isDriverSubmitting || !driverFormData.name || !driverFormData.email"
-                            class="px-4 py-2 rounded-lg font-medium text-white flex items-center justify-center gap-2 min-w-[120px] bg-primary hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-75 disabled:cursor-not-allowed">
-                            <span v-if="isDriverSubmitting" class="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
-                            <span>{{ isDriverSubmitting ? 'Adding...' : 'Add Driver' }}</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
 
         <!-- Driver Profile Modal with Chat -->
         <Teleport to="body">
@@ -1255,7 +1188,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
 })
 
-const { openSlip } = useSlipPrinter()
+const { openSlip, openSlipWithData } = useSlipPrinter()
 
 const store = useLogisticStore()
 const { filteredTopDrivers, filteredMaintenance, filteredVehicles } = storeToRefs(store)
@@ -1291,10 +1224,6 @@ const isSubmitting = ref(false)
 const vehicleFormData = ref({})
 
 // Driver Management state
-const isDriverModalOpen = ref(false)
-const isDriverSubmitting = ref(false)
-const driverFormData = ref({})
-const driverError = ref('')
 
 // Document Viewing State
 const activeDoc = ref(null)
@@ -1586,9 +1515,41 @@ const vehicleLocationData = computed(() => {
 })
 
 // Report & Doc Actions
+const openSafetyChecklist = () => {
+    const vehicle = store.filteredVehicles[0] || null
+    const driver = store.filteredDrivers.find(d => vehicle && d.vehicle === vehicle.code) || store.filteredDrivers[0] || null
+    if (driver || vehicle) {
+        openSlipWithData('vehicleSafetyChecklist', driver, vehicle)
+    } else {
+        openSlip('vehicleSafetyChecklist')
+    }
+}
+
 const generateMaintenanceReport = () => {
-    // Generate PDF/CSV
-    window.alert('Generating fleet maintenance report... Check downloads shortly.')
+    const vehicles = store.filteredVehicles
+    if (!vehicles.length) {
+        window.alert('No vehicle data available to download.')
+        return
+    }
+    const rows = [
+        ['Vehicle ID', 'License Plate', 'Type', 'Model', 'Year', 'Driver', 'Status', 'Warehouse', 'Fuel Efficiency', 'Current Location'],
+        ...vehicles.map(v => [
+            v.id, v.licensePlate || '—', v.type || '—', v.model || '—', v.year || '—',
+            v.driver || '—', v.status || '—',
+            store.hubs.find(h => h.id === v.hubId)?.name || 'Main Hub',
+            v.fuelEfficiency || '—', v.currentLocation || '—'
+        ])
+    ]
+    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `fleet_maintenance_report_${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
 }
 
 const downloadDoc = (doc) => {
@@ -1674,38 +1635,6 @@ onUnmounted(() => {
     document.removeEventListener('click', closeDropdowns)
 })
 
-// Driver form helpers
-const openDriverModal = () => {
-    driverFormData.value = {
-        name: '',
-        email: '',
-        phone: '',
-        status: 'Active',
-        warehouse_id: store.activeWarehouse === 'all' ? 'all' : store.activeWarehouse,
-        current_location: '',
-    }
-    driverError.value = ''
-    isDriverModalOpen.value = true
-}
-
-const closeDriverModal = () => {
-    isDriverModalOpen.value = false
-    driverFormData.value = {}
-    driverError.value = ''
-}
-
-const submitDriver = async () => {
-    driverError.value = ''
-    isDriverSubmitting.value = true
-    try {
-        await store.addDriver({ ...driverFormData.value })
-        closeDriverModal()
-    } catch (e) {
-        driverError.value = e.message || 'Failed to add driver. Please try again.'
-    } finally {
-        isDriverSubmitting.value = false
-    }
-}
 
 // Vehicle form helpers
 const openVehicleModal = (mode, vehicle = null) => {

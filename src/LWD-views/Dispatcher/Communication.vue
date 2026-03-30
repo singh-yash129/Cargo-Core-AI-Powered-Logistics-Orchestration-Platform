@@ -115,12 +115,12 @@
 
             <div class="p-4 bg-gray-100 dark:bg-black/20 border-t border-gray-200 dark:border-white/5">
                 <div class="relative flex gap-2 items-stretch">
-                    <input v-model="newMessage" type="text" :placeholder="'Message ' + (activeContact?.name || 'Mike') + '...'"
+                    <input v-model="newMessage" type="text" :placeholder="'Message ' + (activeContact?.name || '...') + '...'"
                         class="flex-1 bg-white dark:bg-white/5 border-2 border-gray-300 dark:border-white/10 rounded-full py-3 pl-4 pr-4 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50"
-                        @keyup.enter="sendMessage">
-                    <button @click="sendMessage" :disabled="!newMessage.trim()"
+                        @keyup.enter="sendMessage" :disabled="isSendingMsg">
+                    <button @click="sendMessage" :disabled="!newMessage.trim() || isSendingMsg"
                         class="px-4 bg-primary rounded-full text-black hover:scale-105 transition-transform disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0 flex items-center justify-center">
-                        <span class="material-symbols-outlined text-[20px]">send</span>
+                        <span class="material-symbols-outlined text-[20px]">{{ isSendingMsg ? 'hourglass_empty' : 'send' }}</span>
                     </button>
                 </div>
             </div>
@@ -194,6 +194,7 @@ const activeChat = ref(null)
 const contactType = ref('all')
 const searchQuery = ref('')
 const newMessage = ref('')
+const isSendingMsg = ref(false)
 const showLog = ref(false)
 const routeUpdateSent = ref(false)
 const urgentSent = ref(false)
@@ -226,26 +227,47 @@ const filteredContacts = computed(() => {
 
 const activeContact = computed(() => contacts.value.find(c => c.id === activeChat.value))
 
-// Per-contact message history (local state for session)
+// Per-contact message history — seeded from backend thread messages
 const messageHistory = ref({})
 
-// Seed history from store contacts on load
+function messagesFromThread(thread) {
+    return (thread.messages || []).map(m => ({
+        id: String(m.id || Date.now()),
+        from: m.sender || m.from || 'driver',
+        text: m.text || '',
+        time: m.time || '',
+        type: 'text',
+    }))
+}
+
+// When contacts load, seed message history from backend data
 watch(contacts, (list) => {
     list.forEach(c => {
-        if (!messageHistory.value[c.id] && c.messages?.length) {
-            messageHistory.value[c.id] = c.messages
+        if (c.messages?.length && !messageHistory.value[c.id]) {
+            messageHistory.value[c.id] = messagesFromThread(c)
         }
     })
-}, { immediate: true })
+}, { immediate: true, deep: true })
+
+// When switching contacts, load their messages if available
+watch(activeChat, (newId) => {
+    if (!newId) return
+    const contact = contacts.value.find(c => c.id === newId)
+    if (contact?.messages?.length && !messageHistory.value[newId]) {
+        messageHistory.value[newId] = messagesFromThread(contact)
+    }
+})
 
 const currentMessages = computed(() => messageHistory.value[activeChat.value] || [])
 
 const commLog = ref([])
 
-// PTT and Call buttons removed from UI — dispatcher uses phone number shown in header
+function addSystemMessage(text) {
+    if (!messageHistory.value[activeChat.value]) messageHistory.value[activeChat.value] = []
+    messageHistory.value[activeChat.value].push({ id: Date.now(), from: 'system', text, time: '', type: 'system' })
+}
 
 function pushRouteUpdate() {
-    // kept for internal use
     routeUpdateSent.value = true
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     const notes = routeUpdateMsg.value ? ` – ${routeUpdateMsg.value}` : ''
@@ -274,34 +296,52 @@ function confirmUrgentInstruction() {
     urgentInstructionMsg.value = ''
 }
 
-function addSystemMessage(text) {
-    if (!messageHistory.value[activeChat.value]) messageHistory.value[activeChat.value] = []
-    messageHistory.value[activeChat.value].push({ id: Date.now(), from: 'system', text, time: '', type: 'system' })
-}
+async function sendMessage() {
+    const text = newMessage.value.trim()
+    if (!text || isSendingMsg.value) return
 
-function sendMessage() {
-    if (!newMessage.value.trim()) return
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    if (!messageHistory.value[activeChat.value]) messageHistory.value[activeChat.value] = []
-    messageHistory.value[activeChat.value].push({ id: Date.now(), from: 'dispatch', text: newMessage.value, time: now })
-
-    // Send to driver via store if contact is a driver
     const contact = activeContact.value
-    if (contact?.type === 'driver') store.sendMessageToDriver(contact.id, newMessage.value)
+    const contactId = activeChat.value
 
-    // Log to comm log
-    commLog.value.unshift({ id: Date.now(), action: 'Message Sent', type: 'message', contact: contact?.name, detail: newMessage.value.substring(0, 40), time: now })
-
+    // Optimistic add to UI
+    if (!messageHistory.value[contactId]) messageHistory.value[contactId] = []
+    const tempId = `temp-${Date.now()}`
+    messageHistory.value[contactId].push({ id: tempId, from: 'dispatch', text, time: now, type: 'text' })
     newMessage.value = ''
     nextTick(() => { if (chatAreaRef.value) chatAreaRef.value.scrollTop = chatAreaRef.value.scrollHeight })
 
-    // Simulate reply
-    setTimeout(() => {
-        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        const replies = ['Roger that, understood.', 'Copy. Will do.', 'Acknowledged. On it.', 'Got it, thanks!', 'Confirmed.']
-        if (!messageHistory.value[activeChat.value]) return
-        messageHistory.value[activeChat.value].push({ id: Date.now(), from: 'contact', text: replies[Math.floor(Math.random() * replies.length)], time: replyTime })
+    commLog.value.unshift({ id: Date.now(), action: 'Message Sent', type: 'message', contact: contact?.name, detail: text.substring(0, 40), time: now })
+
+    isSendingMsg.value = true
+    try {
+        let threadId = contact?.threadId
+
+        if (!threadId) {
+            // No thread yet — create one using the contact's name (enables future matching)
+            const newThread = await store.createChatForContact(contact?.name || 'Unknown', contact?.phone || null)
+            if (newThread) {
+                threadId = String(newThread.id)
+                // Keep optimistic messages under new threadId
+                messageHistory.value[threadId] = messageHistory.value[contactId] || []
+                delete messageHistory.value[contactId]
+                // Refresh so dispatcherContacts picks up the new threadId for this user
+                await store.fetchContacts()
+            }
+        }
+
+        if (threadId) {
+            const updated = await store.sendDispatchMessage(threadId, text)
+            if (updated) {
+                // Replace optimistic messages with server truth
+                messageHistory.value[String(updated.id) || threadId] = messagesFromThread(updated)
+            }
+        }
+    } catch (_) {
+        // Message already shown optimistically — leave it
+    } finally {
+        isSendingMsg.value = false
         nextTick(() => { if (chatAreaRef.value) chatAreaRef.value.scrollTop = chatAreaRef.value.scrollHeight })
-    }, 1500)
+    }
 }
 </script>

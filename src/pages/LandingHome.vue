@@ -5,6 +5,7 @@
                 <SplineScene scene="https://prod.spline.design/dly62PB8Wm4vg4E3/scene.splinecode" />
             </div>
 
+
             <div class="relative z-10 text-center px-6 max-w-6xl mx-auto mt-10">
                 <div class="overflow-hidden mb-4">
                     <h1
@@ -61,7 +62,9 @@
                         <div class="relative w-full h-full">
                             <img v-for="(img, index) in logisticImages" :key="index" :src="img"
                                 class="absolute inset-0 w-full h-full object-contain logistic-frame bg-black"
-                                :style="{ zIndex: index + 1 }" alt="Logistic Dashboard Screen" />
+                                :style="{ zIndex: index + 1 }"
+                                :loading="index === 0 ? 'eager' : 'lazy'"
+                                alt="Logistic Dashboard Screen" />
                         </div>
                     </div>
                 </div>
@@ -88,9 +91,11 @@
         </section>
 
         <section id="role-warehouse"
-            class="min-h-screen flex flex-col md:flex-row-reverse items-center justify-between px-6 py-20 relative role-section bg-black/50">
+            class="min-h-screen flex flex-col md:flex-row-reverse items-center justify-between px-6 py-20 relative role-section bg-black/50"
+            data-spline="warehouse">
             <div class="w-full md:w-1/2 h-[500px] relative z-10">
-                <SplineScene scene="https://prod.spline.design/h-pIvYOqSBqshSxe/scene.splinecode" />
+                <SplineScene v-if="splineVisible.warehouse" scene="https://prod.spline.design/h-pIvYOqSBqshSxe/scene.splinecode" />
+                <div v-else class="w-full h-full bg-white/5 rounded-xl animate-pulse"></div>
             </div>
             <div class="w-full md:w-1/2 p-8 md:pr-20 text-left">
                 <div class="role-text-container">
@@ -109,9 +114,11 @@
         </section>
 
         <section id="role-dispatcher"
-            class="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 py-20 relative role-section">
+            class="min-h-screen flex flex-col md:flex-row items-center justify-between px-6 py-20 relative role-section"
+            data-spline="dispatcher">
             <div class="w-full md:w-1/2 h-[500px] relative z-10">
-                <SplineScene scene="https://prod.spline.design/qjGo2c4YrEdZD6EY/scene.splinecode" />
+                <SplineScene v-if="splineVisible.dispatcher" scene="https://prod.spline.design/qjGo2c4YrEdZD6EY/scene.splinecode" />
+                <div v-else class="w-full h-full bg-white/5 rounded-xl animate-pulse"></div>
             </div>
             <div class="w-full md:w-1/2 p-8 md:pl-20 text-left">
                 <div class="role-text-container">
@@ -130,7 +137,8 @@
         </section>
 
         <section id="role-ai"
-            class="min-h-screen px-6 py-20 flex items-center justify-center role-section relative bg-black">
+            class="min-h-screen px-6 py-20 flex items-center justify-center role-section relative bg-black"
+            data-spline="ai">
             <div
                 class="w-full max-w-7xl h-[600px] bg-black/[0.96] relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
                 <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" />
@@ -156,8 +164,9 @@
                     </div>
 
                     <div class="w-full md:w-1/2 relative h-full">
-                        <SplineScene scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+                        <SplineScene v-if="splineVisible.ai" scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
                             class="w-full h-full" />
+                        <div v-else class="w-full h-full bg-white/5 rounded-xl animate-pulse"></div>
                     </div>
                 </div>
             </div>
@@ -193,9 +202,10 @@
         </section>
 
         <section id="role-vendor"
-            class="min-h-screen px-6 py-20 flex items-center justify-center role-section relative bg-black">
+            class="min-h-screen px-6 py-20 flex items-center justify-center role-section relative bg-black"
+            data-spline="vendor">
             <div class="absolute inset-0 z-0">
-                <SplineScene scene="https://prod.spline.design/fDRu5GDs8Enzi-PA/scene.splinecode" />
+                <SplineScene v-if="splineVisible.vendor" scene="https://prod.spline.design/fDRu5GDs8Enzi-PA/scene.splinecode" />
             </div>
 
             <div
@@ -292,7 +302,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, reactive } from 'vue'
 import SplineScene from '../LWDDVI-components/SplineScene.vue'
 import Spotlight from '../LWDDVI-components/Spotlight.vue'
 import gsap from 'gsap'
@@ -303,13 +313,27 @@ gsap.registerPlugin(ScrollTrigger, TextPlugin)
 
 const mainContainer = ref(null)
 
+// Spline scenes lazy-loaded individually — only mount when near viewport
+const splineVisible = reactive({
+    warehouse: false,
+    dispatcher: false,
+    ai: false,
+    vendor: false
+})
+
 const logisticImages = [
-    '/images/logistic-screens/control_tower.png',
-    '/images/logistic-screens/fleet_map.png',
-    '/images/logistic-screens/financials.png',
-    '/images/logistic-screens/risk_engine.png',
-    '/images/logistic-screens/driver_compliance.png',
-    '/images/logistic-screens/user_management.png'
+    '/images/logistic-screens/01-dashboard.png',
+    '/images/logistic-screens/02-warehouse-management.png',
+    '/images/logistic-screens/03-user-roles.png',
+    '/images/logistic-screens/04-fleet-drivers.png',
+    '/images/logistic-screens/05-geofencing.png',
+    '/images/logistic-screens/06-finance-payroll.png',
+    '/images/logistic-screens/07-rate-governance.png',
+    '/images/logistic-screens/08-reverse-logistics.png',
+    '/images/logistic-screens/09-reports.png',
+    '/images/logistic-screens/10-ai-intelligence.png',
+    '/images/logistic-screens/11-communication.png',
+    '/images/logistic-screens/12-comparative-viewers.png'
 ]
 
 const driverAppImages = [
@@ -321,24 +345,26 @@ const driverAppImages = [
     '/images/mobile-screens/login-help.png'
 ]
 
-const splineScenes = [
-    'https://prod.spline.design/dly62PB8Wm4vg4E3/scene.splinecode',
-    'https://prod.spline.design/h-pIvYOqSBqshSxe/scene.splinecode',
-    'https://prod.spline.design/qjGo2c4YrEdZD6EY/scene.splinecode',
-    'https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode',
-    'https://prod.spline.design/fDRu5GDs8Enzi-PA/scene.splinecode'
-]
+let driverInterval = null
+let splineObserver = null
 
 onMounted(() => {
-    splineScenes.forEach(url => {
-        const link = document.createElement('link')
-        link.rel = 'prefetch'
-        link.href = url
-        link.as = 'fetch'
-        link.crossOrigin = 'anonymous'
-        document.head.appendChild(link)
-    })
+    // Lazy-load Spline scenes via IntersectionObserver (300px ahead of viewport)
+    splineObserver = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                const key = e.target.dataset.spline
+                if (key && key in splineVisible) {
+                    splineVisible[key] = true
+                    splineObserver.unobserve(e.target)
+                }
+            }
+        })
+    }, { rootMargin: '300px 0px' })
 
+    document.querySelectorAll('[data-spline]').forEach(el => splineObserver.observe(el))
+
+    // Hero entrance animation (no filter blur — cheaper)
     const tl = gsap.timeline({ defaults: { ease: 'power4.out' } })
 
     tl.from('.hero-line', {
@@ -352,7 +378,6 @@ onMounted(() => {
             y: 40,
             opacity: 0,
             duration: 1.5,
-            filter: 'blur(10px)'
         }, '-=1.2')
         .from('.hero-buttons', {
             y: 40,
@@ -365,16 +390,11 @@ onMounted(() => {
             duration: 2
         }, '-=0.5')
 
+    // Logistic image sequence (GPU-composited via will-change in CSS)
     const frames = gsap.utils.toArray('.logistic-frame')
     if (frames.length > 0) {
         gsap.set(frames, { yPercent: 100 })
         gsap.set(frames[0], { yPercent: 0 })
-    }
-
-    const driverScreens = gsap.utils.toArray('.driver-screen')
-    if (driverScreens.length > 0) {
-        gsap.set(driverScreens, { opacity: 0 })
-        gsap.set(driverScreens[0], { opacity: 1 })
     }
 
     const tlLogistic = gsap.timeline({
@@ -383,7 +403,8 @@ onMounted(() => {
             start: 'top top',
             end: '+=400%',
             pin: true,
-            scrub: 1
+            scrub: 0.5,
+            anticipatePin: 1
         }
     })
 
@@ -395,17 +416,24 @@ onMounted(() => {
         })
     })
 
-    // Driver app screen carousel animation
+    // Driver app carousel (cleaned up on unmount)
+    const driverScreens = gsap.utils.toArray('.driver-screen')
+    if (driverScreens.length > 0) {
+        gsap.set(driverScreens, { opacity: 0 })
+        gsap.set(driverScreens[0], { opacity: 1 })
+    }
+
     if (driverScreens.length > 1) {
         let currentDriverIndex = 0
-        setInterval(() => {
+        driverInterval = setInterval(() => {
             const nextIndex = (currentDriverIndex + 1) % driverScreens.length
-            gsap.to(driverScreens[currentDriverIndex], { opacity: 0, duration: 0.8 })
-            gsap.to(driverScreens[nextIndex], { opacity: 1, duration: 0.8 })
+            gsap.to(driverScreens[currentDriverIndex], { opacity: 0, duration: 0.6 })
+            gsap.to(driverScreens[nextIndex], { opacity: 1, duration: 0.6 })
             currentDriverIndex = nextIndex
         }, 3000)
     }
 
+    // Role section typing + reveal (no filter blur — cheaper)
     const roleTexts = [
         ['The Architect of Movement...', 'The Owner of the System...', 'The Strategic Intelligence Layer...'],
         ['Where Inventory Becomes Intelligence...', 'Where Orders Take Shape...', 'Where Labor Teams Deploy...'],
@@ -422,7 +450,7 @@ onMounted(() => {
         const description = section.querySelector('.role-description')
         const texts = roleTexts[index] || ['Loading...']
 
-        gsap.set(description, { y: 20, opacity: 0, filter: 'blur(10px)' })
+        gsap.set(description, { y: 20, opacity: 0 })
 
         ScrollTrigger.create({
             trigger: section,
@@ -436,8 +464,7 @@ onMounted(() => {
                         text: { value: text, delimiter: '' },
                         duration: 0.8,
                         ease: 'none',
-                    })
-                        .to({}, { duration: 1.5 })
+                    }).to({}, { duration: 1.5 })
 
                     if (i < texts.length - 1) {
                         mainTl.to(textContainer, { text: '', duration: 0.3, ease: 'power2.in' })
@@ -447,13 +474,18 @@ onMounted(() => {
                 mainTl.to(description, {
                     y: 0,
                     opacity: 1,
-                    filter: 'blur(0px)',
-                    duration: 1.5,
+                    duration: 1.2,
                     ease: 'power3.out'
                 }, '-=0.5')
             }
         })
     })
+})
+
+onUnmounted(() => {
+    if (driverInterval) clearInterval(driverInterval)
+    if (splineObserver) splineObserver.disconnect()
+    ScrollTrigger.getAll().forEach(t => t.kill())
 })
 </script>
 
@@ -466,6 +498,12 @@ onMounted(() => {
 
 .perspective-1000 {
     perspective: 1000px;
+}
+
+.logistic-frame,
+.driver-screen {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
 }
 
 .animate-gradient-x {

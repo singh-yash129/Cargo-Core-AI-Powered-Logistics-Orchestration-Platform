@@ -53,6 +53,8 @@ export const useIndividualStore = defineStore('individual', () => {
     const ordersLoading = ref(false)
     const ordersError = ref('')
     const paymentsSummary = ref(null)
+    const warehouses = ref([])
+    const assignmentPreview = ref(null)
 
     const savedAddresses = ref([
         { id: 1, label: 'Home', icon: 'home', address: '42, Green Park', city: 'New Delhi', state: 'Delhi', pincode: '110016', phone: '+91 0000000000' },
@@ -81,9 +83,21 @@ export const useIndividualStore = defineStore('individual', () => {
     const cancelledOrders = computed(() => orders.value.filter(o => o.status === 'cancelled'))
     const totalSpent = computed(() => orders.value.filter(o => o.paymentStatus === 'paid').reduce((s, o) => s + o.cost.total, 0))
 
-    const walletBalance = ref(2500)
+    const walletBalance = ref(0)
     function addFunds(amount) {
         if (amount > 0) walletBalance.value += amount
+    }
+    async function fetchWalletBalance() {
+        try {
+            const token = localStorage.getItem('auth_token')
+            const res = await fetch(apiUrl('api/v1/customer/wallet'), {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            })
+            if (res.ok) {
+                const data = await res.json()
+                walletBalance.value = data.balance ?? 0
+            }
+        } catch (e) { /* silent */ }
     }
 
     // ─── Monthly Spending (for chart) ────────────────────────────
@@ -114,6 +128,52 @@ export const useIndividualStore = defineStore('individual', () => {
 
     const unreadNotificationsCount = computed(() => notifications.value.filter(n => !n.read).length)
 
+    async function fetchWarehouses() {
+        try {
+            const token = localStorage.getItem('auth_token')
+            const res = await fetch(apiUrl('api/v1/warehouses?page=1&page_size=100'), {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            })
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}))
+                throw new Error(errData.detail || 'Failed to load hubs')
+            }
+            const data = await res.json()
+            warehouses.value = (Array.isArray(data) ? data : data.items || []).map((warehouse) => ({
+                id: String(warehouse.id),
+                name: warehouse.name,
+                address: warehouse.address || '',
+            }))
+            return warehouses.value
+        } catch (error) {
+            console.warn('[individualStore] fetchWarehouses failed:', error)
+            return warehouses.value
+        }
+    }
+
+    async function fetchOrderAssignmentPreview(warehouseId = null) {
+        try {
+            const token = localStorage.getItem('auth_token')
+            const query = warehouseId ? `?warehouse_id=${encodeURIComponent(warehouseId)}` : ''
+            const res = await fetch(apiUrl(`api/v1/orders/assignment-preview${query}`), {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            })
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}))
+                throw new Error(errData.detail || 'Failed to resolve assignment preview')
+            }
+            const data = await res.json()
+            assignmentPreview.value = {
+                ...data,
+                warehouse_id: String(data.warehouse_id),
+            }
+            return assignmentPreview.value
+        } catch (error) {
+            console.warn('[individualStore] fetchOrderAssignmentPreview failed:', error)
+            return assignmentPreview.value
+        }
+    }
+
     function normalizeBackendStatus(status) {
         const value = String(status || '').toUpperCase()
         if (value === 'DRAFT' || value === 'CONFIRMED') return 'pending'
@@ -127,6 +187,13 @@ export const useIndividualStore = defineStore('individual', () => {
     function normalizeBackendOrder(order) {
         const status = normalizeBackendStatus(order.status)
         const warehouseSubstatus = order.warehouse_substatus || ''
+        const warehouseId = order.warehouse_id ? String(order.warehouse_id) : null
+        const warehouseName = order.warehouse_name
+            || (warehouseId ? warehouses.value.find((warehouse) => warehouse.id === warehouseId)?.name : null)
+            || null
+        const warehouseAddress = order.warehouse_address
+            || (warehouseId ? warehouses.value.find((warehouse) => warehouse.id === warehouseId)?.address : null)
+            || null
 
         // Build transport log with warehouse operations
         const transportLog = buildTransportLog(order, status, warehouseSubstatus)
@@ -137,6 +204,9 @@ export const useIndividualStore = defineStore('individual', () => {
             trackingCode: order.tracking_code,
             status,
             rawStatus: order.status,
+            warehouseId,
+            warehouseName,
+            warehouseAddress,
             warehouseSubstatus,
             moveType: String(order.order_type || '').toUpperCase() === 'INDIVIDUAL' ? 'house-shift' : 'small-package',
             cargoType: order.cargo_type || (String(order.order_type || '').toUpperCase() === 'INDIVIDUAL' ? 'Household Goods' : (order.order_type || 'Order')),
@@ -324,6 +394,18 @@ export const useIndividualStore = defineStore('individual', () => {
             })
         }
 
+        // Cancelled
+        if (status === 'cancelled') {
+            const cancelReason = order.cancel_reason || 'Order was cancelled'
+            log.push({
+                event: 'Order Cancelled',
+                description: cancelReason,
+                time: order.updated_at ? new Date(order.updated_at).toLocaleString() : new Date().toLocaleString(),
+                icon: 'cancel',
+                color: 'red'
+            })
+        }
+
         return log
     }
 
@@ -384,7 +466,9 @@ export const useIndividualStore = defineStore('individual', () => {
             qc_passed_at: enriched.qc_passed_at,
             dispatched_at: enriched.dispatched_at,
             pod: null,
-            cancellation: null,
+            cancellation: order.cancel_reason
+                ? { reason: order.cancel_reason, fee: order.cancellation_fee || 0, date: order.updated_at || new Date().toISOString() }
+                : null,
         }
     }
 
@@ -825,10 +909,15 @@ export const useIndividualStore = defineStore('individual', () => {
 
     async function createOrder(data) {
         const vehicle = vehicleTypes.value.find(v => v.key === data.vehicleType) || vehicleTypes.value[0]
+        const totalAmount = Number(data.cost?.total || 0)
+        const initialPaymentAmount = data.paymentMode === 'COD'
+            ? 0
+            : Math.min(Number(data.paymentAmount || 0), totalAmount)
 
         // Prepare order data for backend API
         const orderPayload = {
             order_type: 'INDIVIDUAL',
+            warehouse_id: data.warehouseId || null,
             pickup_addr: data.pickup || '',
             delivery_addr: data.destination || '',
             cargo_type: data.cargoType || null,
@@ -841,9 +930,13 @@ export const useIndividualStore = defineStore('individual', () => {
             packing_amount: data.cost?.packing || 0,
             platform_fee: data.cost?.platformFee || 0,
             tax_amount: data.cost?.taxes || 0,
-            total_amount: data.cost?.total || 0,
+            total_amount: totalAmount,
             payment_mode: data.paymentMode || null,
-            payment_status: data.paymentMode === 'Full Payment' ? 'paid' : 'pending',
+            payment_status: 'pending',
+            initial_payment_amount: initialPaymentAmount,
+            initial_payment_ref: data.paymentRef || null,
+            initial_payment_mode: initialPaymentAmount > 0 ? 'ONLINE' : null,
+            initial_payment_method: initialPaymentAmount > 0 ? (data.paymentMethod || 'Online') : null,
             service_time_block: data.moveType === 'small-package' ? '30 min' : '2-3 hours',
             scheduled_at: data.date ? new Date(data.date).toISOString() : null,
         }
@@ -875,6 +968,10 @@ export const useIndividualStore = defineStore('individual', () => {
             }
 
             const backendOrder = await response.json()
+            const resolvedWarehouseId = backendOrder.warehouse_id ? String(backendOrder.warehouse_id) : (data.warehouseId || null)
+            const resolvedWarehouse = resolvedWarehouseId
+                ? warehouses.value.find((warehouse) => warehouse.id === resolvedWarehouseId)
+                : null
 
             // Submit packing materials as OrderItems (so warehouse inventory check works)
             const materialItems = Object.entries(data.materials || {})
@@ -902,10 +999,26 @@ export const useIndividualStore = defineStore('individual', () => {
                 }
             }
 
-            const normalizedOrder = normalizeBackendOrder(backendOrder)
+            const normalizedOrder = normalizeBackendOrder({
+                ...backendOrder,
+                warehouse_name: resolvedWarehouse?.name || assignmentPreview.value?.warehouse_name || null,
+                warehouse_address: resolvedWarehouse?.address || assignmentPreview.value?.warehouse_address || null,
+            })
 
             // Add to local state immediately for instant UI feedback
             orders.value.unshift(normalizedOrder)
+
+            if (initialPaymentAmount > 0) {
+                payments.value.unshift({
+                    id: data.paymentRef || (`PAY-${800 + payments.value.length + 1}`),
+                    orderId: normalizedOrder.id,
+                    amount: initialPaymentAmount,
+                    mode: data.paymentMethod || 'Online',
+                    status: 'completed',
+                    date: new Date().toISOString(),
+                    isDummy: false,
+                })
+            }
 
             // Add notification
             notifications.value.unshift({
@@ -985,7 +1098,15 @@ export const useIndividualStore = defineStore('individual', () => {
             const normalized = normalizeBackendOrder(updated)
             const index = orders.value.findIndex(o => o.backendId === updated.id)
             if (index >= 0) orders.value[index] = normalized
-            return { success: true, order: normalized }
+            // Refresh wallet so balance reflects the refund immediately
+            await fetchWalletBalance()
+            // Re-fetch tracking orders so Tracking.vue shows updated status + cancel log entry
+            fetchTrackingOrders().catch(() => {})
+            return {
+                success: true,
+                order: normalized,
+                walletRefund: updated.wallet_refund_amount ?? 0,
+            }
         } catch (error) {
             return { success: false, message: 'Error connecting to the server.' }
         }
@@ -1139,8 +1260,10 @@ export const useIndividualStore = defineStore('individual', () => {
         settingsLoading, settingsError, fetchSettings, saveSettingsRemote,
         ordersLoading, ordersError, fetchOrders, cancelOrderRemote,
         user, userInitials,
+        warehouses, fetchWarehouses,
+        assignmentPreview, fetchOrderAssignmentPreview,
         orders, activeOrders, pendingOrders, deliveredOrders, cancelledOrders, totalSpent,
-        walletBalance, addFunds,
+        walletBalance, addFunds, fetchWalletBalance,
         monthlySpending, vehicleTypes,
         quotes, payments, damageReports,
         notifications, unreadNotificationsCount,

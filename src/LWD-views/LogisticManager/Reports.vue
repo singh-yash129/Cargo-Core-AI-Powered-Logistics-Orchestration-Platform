@@ -14,11 +14,17 @@
             <div class="flex flex-wrap gap-2 items-center">
                 <!-- AI Query Bar -->
                 <div class="relative group mr-2">
-                    <input v-model="aiQuery" @keyup.enter="handleAiQuery" type="text"
+                    <input v-model="aiQuery" @keyup.enter="handleAiQuery" :disabled="aiThinking" type="text"
                         placeholder="Ask AI: 'Show me top spending vendors...'"
-                        class="pl-10 pr-4 py-2 bg-white dark:bg-white/5 border border-purple-200 dark:border-purple-500/30 rounded-full text-sm w-64 focus:w-80 transition-all outline-none focus:ring-2 focus:ring-purple-500/50 shadow-sm">
-                    <span
+                        class="pl-10 pr-10 py-2 bg-white dark:bg-white/5 border border-purple-200 dark:border-purple-500/30 rounded-full text-sm w-64 focus:w-80 transition-all outline-none focus:ring-2 focus:ring-purple-500/50 shadow-sm disabled:opacity-60">
+                    <span v-if="!aiThinking"
                         class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-purple-500">auto_awesome</span>
+                    <span v-else
+                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 animate-spin">progress_activity</span>
+                    <button @click="handleAiQuery" :disabled="aiThinking || !aiQuery"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-purple-500 text-white disabled:opacity-40 hover:bg-purple-600 transition-colors">
+                        <span class="material-symbols-outlined text-[14px]">send</span>
+                    </button>
                 </div>
 
                 <select v-model="timeRange"
@@ -128,13 +134,23 @@
                         <h3 class="font-bold text-purple-900 dark:text-purple-300 flex items-center gap-2 mb-3">
                             <span class="material-symbols-outlined">smart_toy</span> Daily AI Briefing
                         </h3>
-                        <ul class="space-y-2">
+                        <div v-if="aiThinking" class="flex items-center gap-2 text-sm text-purple-500 animate-pulse mb-2">
+                            <span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                            Analysing...
+                        </div>
+                        <ul v-if="aiInsights.length" class="space-y-2">
                             <li v-for="(insight, i) in aiInsights" :key="i"
                                 class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
                                 <span class="mt-1 h-1.5 w-1.5 rounded-full bg-purple-500 shrink-0"></span>
-                                {{ insight }}
+                                <span v-html="insight"></span>
                             </li>
                         </ul>
+                        <div v-else-if="!aiThinking" class="flex flex-col items-center justify-center py-4 text-center">
+                            <span class="material-symbols-outlined text-3xl text-purple-300 mb-2">auto_awesome</span>
+                            <p class="text-sm text-gray-400 dark:text-gray-500">Ask the AI above to generate insights.<br>
+                                <span class="text-xs text-purple-400">e.g. "Show me top spending vendors"</span>
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -277,11 +293,11 @@
                         </div>
                         <div class="mt-4 grid grid-cols-2 gap-3 text-center text-xs">
                             <div class="p-3 bg-orange-50 dark:bg-orange-500/10 rounded-xl">
-                                <p class="text-orange-700 dark:text-orange-400 font-bold text-lg">₹{{ (store.financeSummary?.procurement_expenses || 0).toLocaleString() }}</p>
+                                <p class="text-orange-700 dark:text-orange-400 font-bold text-lg">₹{{ (financeSummary?.procurement_expenses || 0).toLocaleString() }}</p>
                                 <p class="text-gray-500 mt-1">Procurement Spent</p>
                             </div>
                             <div class="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl">
-                                <p class="text-blue-700 dark:text-blue-400 font-bold text-lg">₹{{ (store.financeSummary?.capital_invested || 0).toLocaleString() }}</p>
+                                <p class="text-blue-700 dark:text-blue-400 font-bold text-lg">₹{{ (financeSummary?.capital_invested || 0).toLocaleString() }}</p>
                                 <p class="text-gray-500 mt-1">Capital Invested</p>
                             </div>
                         </div>
@@ -1010,6 +1026,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 const store = useLogisticStore()
 const authStore = useAuthStore()
+const financeSummary = computed(() => store.activeFinanceSummary)
 
 // State
 const activeTab = ref('control_tower')
@@ -1045,22 +1062,89 @@ const showNotification = (msg, type = 'success') => {
     setTimeout(() => notification.value = null, 3000)
 }
 
+function exportCsv(filename, rows) {
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+}
+
 const downloadReport = (id) => {
-    isDownloading.value = true
-    showNotification(`Preparing Report #${id}...`, 'info')
-    setTimeout(() => {
-        isDownloading.value = false
-        showNotification(`Report #${id} Downloaded Successfully`, 'success')
-    }, 1500)
+    const report = store.filteredReports.find(r => r.id === id)
+    if (!report) return
+    const rows = [
+        ['Report ID', 'Title', 'Date', 'Warehouse'],
+        [report.id, report.title, report.date, store.activeWarehouseName || ''],
+    ]
+    exportCsv(`report_${id}_${new Date().toISOString().slice(0, 10)}.csv`, rows)
+    showNotification(`Report #${id} Downloaded`, 'success')
 }
 
 const downloadCurrentView = () => {
-    isDownloading.value = true
-    showNotification(`Exporting "${tabs.find(t => t.id === activeTab.value)?.label}" View...`, 'info')
-    setTimeout(() => {
-        isDownloading.value = false
-        showNotification('PDF Export Completed', 'success')
-    }, 2000)
+    const tab = activeTab.value
+    const date = new Date().toISOString().slice(0, 10)
+    let rows = []
+    let filename = `${tab}_${date}.csv`
+
+    if (tab === 'control_tower') {
+        rows = [
+            ['Type', 'ID', 'Name', 'Status', 'Efficiency'],
+            ...store.filteredDrivers.map(d => ['Driver', d.id, d.name, d.status, d.efficiency ?? '']),
+            ...store.filteredVehicles.map(v => ['Vehicle', v.id || v.code, v.name || v.model || '', v.status, '']),
+        ]
+    } else if (tab === 'financials') {
+        rows = [
+            ['ID', 'Type', 'Amount', 'Status', 'Date'],
+            ...store.filteredTransactions.map(t => [t.id, t.type, t.amount, t.status, t.date || '']),
+        ]
+    } else if (tab === 'attendance') {
+        rows = [
+            ['Name', 'Email', 'Status Today', 'Last Login'],
+            ...store.filteredUsers.map(u => [
+                u.name, u.email,
+                loginedToday(u) ? 'Present' : 'Absent',
+                u.lastLogin || '',
+            ]),
+        ]
+    } else if (tab === 'workforce') {
+        rows = [
+            ['Name', 'Email', 'Role', 'Hub'],
+            ...store.filteredUsers.map(u => [u.name, u.email, u.role || '', u.hubId || '']),
+        ]
+    } else if (tab === 'assets') {
+        rows = [
+            ['ID', 'Name', 'Category', 'Quantity', 'Status'],
+            ...store.filteredInventory.map(i => [i.id, i.name, i.category, i.quantity, i.status || '']),
+        ]
+    } else if (tab === 'returns') {
+        rows = [
+            ['RMA ID', 'Customer', 'Order Ref', 'Reason', 'Condition', 'Status'],
+            ...store.filteredReturns.map(r => [r.id, r.customer, r.orderId || '', r.reason, r.condition, r.status]),
+        ]
+    } else if (tab === 'security_audit') {
+        rows = [
+            ['Timestamp', 'Admin User', 'Action', 'Target', 'Details', 'IP'],
+            ...(store.filteredSecurityLogs || []).map(l => [l.time, l.actor, l.action, l.target, l.details, l.ip]),
+        ]
+    } else if (tab === 'reports_history') {
+        rows = [
+            ['Report ID', 'Title', 'Date', 'Warehouse'],
+            ...store.filteredReports.map(r => [r.id, r.title, r.date, store.activeWarehouseName || '']),
+        ]
+    }
+
+    if (rows.length <= 1) {
+        showNotification('No data to export for this view', 'info')
+        return
+    }
+    exportCsv(filename, rows)
+    showNotification(`"${tabs.find(t => t.id === tab)?.label}" exported`, 'success')
 }
 
 const handleAiQuery = async () => {
@@ -1238,8 +1322,8 @@ const procurementCapitalData = computed(() => ({
     datasets: [{
         backgroundColor: ['#f97316', '#3b82f6'],
         data: [
-            store.financeSummary?.procurement_expenses || 0,
-            store.financeSummary?.capital_invested || 0,
+            financeSummary.value?.procurement_expenses || 0,
+            financeSummary.value?.capital_invested || 0,
         ]
     }]
 }))

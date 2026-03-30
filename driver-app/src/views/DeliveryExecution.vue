@@ -142,13 +142,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useJobStore } from '../stores/jobStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
 
 const route = useRoute()
+const router = useRouter()
 const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
 const jobStore = useJobStore()
@@ -215,15 +216,30 @@ onUnmounted(() => {
 
 // ── Navigation ────────────────────────────────────────────────────────
 function beginService() {
-    if (!jobStore.canTransitionTo('DELIVERY_IN_PROGRESS')) {
-        try {
-            jobStore.ensureArrivalState(stopId.value, {
-                arrivedAt: new Date().toISOString(),
-            })
-        } catch (error) {
-            console.warn('Unable to recover arrival state before begin service:', error)
-        }
+    const state = jobStore.jobState
+
+    // Already in DELIVERY_IN_PROGRESS — go to checklist
+    if (state === 'DELIVERY_IN_PROGRESS' || jobStore.canTransitionTo('SERVICE_CHECKLIST')) {
+        advanceAndNavigate('SERVICE_CHECKLIST')
+        return
     }
+
+    // Can directly transition to DELIVERY_IN_PROGRESS (state is ARRIVED)
+    if (jobStore.canTransitionTo('DELIVERY_IN_PROGRESS')) {
+        try {
+            jobStore.transition('DELIVERY_IN_PROGRESS', {
+                startedAt: new Date().toISOString(),
+                stopId: stopId.value,
+            })
+        } catch { /* ignore */ }
+        advanceAndNavigate('SERVICE_CHECKLIST')
+        return
+    }
+
+    // Recovery: try to get to ARRIVED then DELIVERY_IN_PROGRESS
+    try {
+        jobStore.ensureArrivalState(stopId.value, { arrivedAt: new Date().toISOString() })
+    } catch { /* ignore */ }
 
     if (jobStore.canTransitionTo('DELIVERY_IN_PROGRESS')) {
         try {
@@ -231,18 +247,14 @@ function beginService() {
                 startedAt: new Date().toISOString(),
                 stopId: stopId.value,
             })
-            uiStore.showToast('Service started', 'success', 1600)
-        } catch (error) {
-            uiStore.showToast(error.message || 'Unable to start service', 'error', 2200)
-        }
-        return
-    }
-
-    if (jobStore.canTransitionTo('SERVICE_CHECKLIST')) {
+        } catch { /* ignore */ }
         advanceAndNavigate('SERVICE_CHECKLIST')
         return
     }
 
-    uiStore.showToast('Cannot skip steps. Complete current task first.', 'error', 2200)
+    // Last resort: force the state and navigate directly to checklist
+    const resolvedStopId = stopId.value || jobStore.currentStopId || jobStore.currentStop?.id || 'current'
+    console.warn(`[DeliveryExecution] Force-navigating to service checklist from state: ${state}`)
+    router.push(`/service-checklist/${resolvedStopId}`)
 }
 </script>

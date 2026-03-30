@@ -1262,12 +1262,46 @@ function resetForm() {
     recalculate()
 }
 
+const CSV_TEMPLATES = {
+    commercial: {
+        filename: 'commercial_b2b_template.csv',
+        rows: [
+            'reference_id,pickup_address,delivery_address,cargo_type,weight_kg,pallets,declared_value,payment_mode',
+            'ORD-001,Mumbai Warehouse MIDC Andheri,Delhi Central Hub Okhla,Electronics,500,5,50000,Invoice',
+            'ORD-002,Pune Factory Pimpri,Bangalore Depot Whitefield,Machinery,1200,12,120000,Prepaid',
+        ]
+    },
+    palletized: {
+        filename: 'palletized_template.csv',
+        rows: [
+            'reference_id,pickup_address,delivery_address,pallets,weight_kg,pallet_type,declared_value,payment_mode',
+            'ORD-001,Pune Factory Pimpri,Bangalore Depot Whitefield,10,2000,Standard EUR,100000,Invoice',
+            'ORD-002,Chennai Port Trust,Hyderabad JNPC Hub,4,800,Heat-Treated,40000,Prepaid',
+        ]
+    },
+    b2c: {
+        filename: 'b2c_shipment_template.csv',
+        rows: [
+            'reference_id,customer_name,customer_phone,pickup_address,delivery_address,item_description,weight_kg,declared_value',
+            'ORD-001,Rahul Sharma,9876543210,Seller Hub Mumbai,123 Main St Bangalore,Smart TV 55 inch,12,25000',
+            'ORD-002,Priya Patel,9123456789,Retail Store Ahmedabad,Plot 45 Surat,Home Appliances Set,35,15000',
+        ]
+    }
+}
+
 function downloadTemplate(category) {
-    const tooltip = document.createElement('div')
-    tooltip.className = 'fixed top-4 right-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
-    tooltip.textContent = `Downloading ${category} template...`
-    document.body.appendChild(tooltip)
-    setTimeout(() => tooltip.remove(), 2500)
+    const t = CSV_TEMPLATES[category]
+    if (!t) return
+    const content = t.rows.join('\r\n') + '\r\n'
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = t.filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
 }
 
 function toggleSample(category) {

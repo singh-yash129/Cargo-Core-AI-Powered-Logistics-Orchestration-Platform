@@ -51,6 +51,9 @@ class Order(Base):
     delivery_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     pod_photos: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     pod_signature: Mapped[str | None] = mapped_column(Text, nullable=True)
+    poc_signature: Mapped[str | None] = mapped_column(Text, nullable=True)  # House-shift customer sign-off
+    job_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)   # Driver self-rating 1-5
+    job_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)    # Driver feedback note
 
     # Picking timestamps
     picking_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

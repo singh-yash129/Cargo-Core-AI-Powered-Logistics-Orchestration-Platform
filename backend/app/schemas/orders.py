@@ -22,6 +22,10 @@ class OrderCreate(BaseModel):
     total_amount: float = Field(default=0, ge=0)
     payment_mode: str | None = None
     payment_status: str = "pending"
+    initial_payment_amount: float = Field(default=0, ge=0)
+    initial_payment_ref: str | None = None
+    initial_payment_mode: str | None = None
+    initial_payment_method: str | None = None
     declared_value: float = Field(default=0, ge=0)
     service_otp: str | None = None
     service_time_block: str | None = None
@@ -121,12 +125,23 @@ class OrderResponse(BaseModel):
     delivery_notes: str | None = None
     pod_photos: list[str] = []
     pod_signature: str | None = None
+    poc_signature: str | None = None
+    job_rating: int | None = None
+    job_feedback: str | None = None
     customer_name: str | None = None
     customer_phone: str | None = None
     created_at: datetime
     items: list[OrderItemResponse] = []
 
     model_config = {"from_attributes": True}
+
+
+class OrderAssignmentPreview(BaseModel):
+    warehouse_id: UUID
+    warehouse_name: str
+    warehouse_address: str
+    assignment_type: str  # selected | auto
+    message: str
 
 
 class OrderListResponse(BaseModel):

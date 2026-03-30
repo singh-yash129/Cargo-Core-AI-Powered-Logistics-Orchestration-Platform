@@ -111,6 +111,15 @@ class LogisticsUserItem(BaseModel):
     mobile_verified: bool = False
     email_verified: bool = True
     avatar: str | None = None
+    approval_status: str = "APPROVED"
+    approval_note: str | None = None
+    approval_reviewed_at: datetime | None = None
+    company_name: str | None = None
+    tax_id: str | None = None
+    contact_person: str | None = None
+    business_email: str | None = None
+    business_phone: str | None = None
+    submitted_at: datetime | None = None
 
 
 class LogisticsReturnCaseItem(BaseModel):
@@ -135,6 +144,8 @@ class LogisticsZoneItem(BaseModel):
     radius: float | None
     status: str
     color: str | None = None
+    lat: float | None = None
+    lng: float | None = None
 
 
 class LogisticsChatMessageItem(BaseModel):
@@ -142,6 +153,18 @@ class LogisticsChatMessageItem(BaseModel):
     text: str
     sender: str
     time: str
+
+
+class DispatchContactItem(BaseModel):
+    user_id: UUID
+    name: str
+    role: str
+    phone: str | None = None
+    email: str | None = None
+    thread_id: UUID | None = None
+    last_message: str | None = None
+    thread_status: str = "Offline"
+    messages: list["LogisticsChatMessageItem"] = Field(default_factory=list)
 
 
 class LogisticsChatThreadItem(BaseModel):
@@ -331,6 +354,8 @@ class LogisticsZoneCreate(BaseModel):
     radius_km: float | None = None
     status: str = "Active"
     color_token: str | None = None
+    lat: float | None = None
+    lng: float | None = None
 
 
 class LogisticsZoneUpdate(BaseModel):
@@ -339,6 +364,8 @@ class LogisticsZoneUpdate(BaseModel):
     radius_km: float | None = None
     status: str | None = None
     color_token: str | None = None
+    lat: float | None = None
+    lng: float | None = None
 
 
 class LogisticsChatMessageCreate(BaseModel):
@@ -346,9 +373,30 @@ class LogisticsChatMessageCreate(BaseModel):
     sender: str = Field(default="me", min_length=2, max_length=30)
 
 
+class LogisticsChatThreadCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    phone: str | None = None
+    warehouse_id: UUID | None = None
+
+
+class LogisticsChatThreadUpdate(BaseModel):
+    muted: bool
+
+
 class LogisticsTaskUpdate(BaseModel):
+    text: str | None = None
     status: str | None = None
     silenced: bool | None = None
+    target_time: datetime | None = None
+    repeat: str | None = None
+    last_alert_time: datetime | None = None
+
+
+class LogisticsTaskCreate(BaseModel):
+    text: str = Field(..., min_length=1, max_length=500)
+    status: str = Field(default="To Do")
+    target_time: datetime | None = None
+    repeat: str | None = None
 
 
 class LogisticsNotificationUpdate(BaseModel):
@@ -466,7 +514,54 @@ class DriverManifestSummary(BaseModel):
     zone: str | None = None
     parcel_count: int = 0
     crew_count: int = 0
+    cod_collected: float = 0
     current_location_label: str | None = None
+
+
+class DriverEarnings(BaseModel):
+    today_base: float = 0
+    today_deliveries: float = 0
+    today_move: float = 0
+    today_tips: float = 0
+    week_base: float = 0
+    week_deliveries: float = 0
+    week_move: float = 0
+    week_tips: float = 0
+    month_base: float = 0
+    month_deliveries: float = 0
+    month_move: float = 0
+    month_tips: float = 0
+    shift_score: int = 0
+    safety_score: int = 0
+
+
+class DriverAuditEventItem(BaseModel):
+    id: str
+    icon: str
+    color: str
+    action: str
+    detail: str
+    time: str
+
+
+class DriverFuelReceiptCreate(BaseModel):
+    amount: float
+    liters: float
+    station: str
+    photo_base64: str | None = None
+
+
+class DriverDispatchMessageCreate(BaseModel):
+    text: str
+
+
+class DriverDispatchThreadItem(BaseModel):
+    thread_id: str
+    messages: list[dict] = Field(default_factory=list)
+
+
+class DriverCashoutRequest(BaseModel):
+    amount: float
 
 
 class DriverDashboardContext(BaseModel):
@@ -478,6 +573,7 @@ class DriverDashboardContext(BaseModel):
     crew: list[DriverCrewMemberItem] = Field(default_factory=list)
     current_vehicle: LogisticsVehicleItem | None = None
     current_job: dict | None = None
+    earnings: DriverEarnings = Field(default_factory=DriverEarnings)
 
 
 class DriverVehicleBindRequest(BaseModel):

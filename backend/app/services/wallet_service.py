@@ -177,7 +177,13 @@ async def credit_cancellation_refund(
     fee_amount: float,
 ) -> float:
     total_paid = float(order.paid_amount or 0.0)
-    refund_amount = round(min(refund_amount, total_paid), 2)
+    # Clamp refund to what was actually paid (if recorded). If paid_amount is 0 (legacy/inferred
+    # payment), allow the full requested refund_amount through so the wallet is credited.
+    if total_paid > 0:
+        refund_amount = round(min(refund_amount, total_paid), 2)
+    else:
+        refund_amount = round(refund_amount, 2)
+
     if refund_amount <= 0:
         return 0.0
 
@@ -197,9 +203,7 @@ async def credit_cancellation_refund(
         if row.payment_mode not in {WALLET_PAYMENT_MODE, REFUND_PAYMENT_MODE} and row.amount > 0
     )
 
-    wallet_restore = min(wallet_paid, refund_amount)
-    external_refund = max(refund_amount - wallet_restore, 0.0)
-
+    # Always credit the wallet with the full refund amount
     await _record_wallet_transaction(
         db,
         user_id=order.customer_id,
@@ -210,43 +214,69 @@ async def credit_cancellation_refund(
         description=f"Cancellation refund for {order.tracking_code}",
     )
 
-    if external_refund > 0:
-        refund_entry_amount = round(min(external_refund, external_paid), 2)
-        db.add(
-            OrderPayment(
-                order_id=order.id,
-                payment_ref=_wallet_ref("RFD"),
-                payment_mode=REFUND_PAYMENT_MODE,
-                payment_method="Wallet Credit",
-                amount=-refund_entry_amount,
-                status="completed",
-                notes=f"Cancellation refund credited to wallet after fee ₹{round(fee_amount, 2)}",
+    # Only create OrderPayment reversal rows when there are matching payment records
+    if external_paid > 0:
+        wallet_restore = min(wallet_paid, refund_amount)
+        external_refund = max(refund_amount - wallet_restore, 0.0)
+        if external_refund > 0:
+            refund_entry_amount = round(min(external_refund, external_paid), 2)
+            db.add(
+                OrderPayment(
+                    order_id=order.id,
+                    payment_ref=_wallet_ref("RFD"),
+                    payment_mode=REFUND_PAYMENT_MODE,
+                    payment_method="Wallet Credit",
+                    amount=-refund_entry_amount,
+                    status="completed",
+                    notes=f"Cancellation refund credited to wallet after fee INR {round(fee_amount, 2)}",
+                )
             )
-        )
 
-        # Create a LogisticsTransaction reversal so the Logistics Manager
-        # transaction history reflects the revenue being returned to the customer.
+            # Create a LogisticsTransaction reversal so the Logistics Manager
+            # transaction history reflects the revenue being returned to the customer.
+            from app.models.logistics import LogisticsTransaction
+            from app.services.finance_service import _upsert_daily_stats, _gen_ref
+
+            db.add(
+                LogisticsTransaction(
+                    transaction_code=_gen_ref("RFD"),
+                    description=f"Cancellation refund for {order.tracking_code} - INR {refund_entry_amount} returned to customer wallet",
+                    transaction_type="REVENUE_REFUND",
+                    amount=-refund_entry_amount,   # negative = revenue reversal
+                    status="Completed",
+                    metadata_json={
+                        "order_id": str(order.id),
+                        "tracking_code": order.tracking_code,
+                        "cancellation_fee": round(fee_amount, 2),
+                        "refund_amount": refund_entry_amount,
+                    },
+                )
+            )
+
+            # Decrement daily stats revenue by the refunded amount
+            await _upsert_daily_stats(db, delta_revenue=-refund_entry_amount)
+    else:
+        # No recorded payment rows — the refund was inferred from payment_status='paid'.
+        # Still record a logistics transaction reversal for accounting accuracy.
         from app.models.logistics import LogisticsTransaction
         from app.services.finance_service import _upsert_daily_stats, _gen_ref
 
         db.add(
             LogisticsTransaction(
                 transaction_code=_gen_ref("RFD"),
-                description=f"Cancellation refund for {order.tracking_code} — ₹{refund_entry_amount} returned to customer wallet",
+                description=f"Cancellation refund for {order.tracking_code} - INR {round(refund_amount, 2)} returned to customer wallet",
                 transaction_type="REVENUE_REFUND",
-                amount=-refund_entry_amount,   # negative = revenue reversal
+                amount=-round(refund_amount, 2),
                 status="Completed",
                 metadata_json={
                     "order_id": str(order.id),
                     "tracking_code": order.tracking_code,
                     "cancellation_fee": round(fee_amount, 2),
-                    "refund_amount": refund_entry_amount,
+                    "refund_amount": round(refund_amount, 2),
                 },
             )
         )
-
-        # Decrement daily stats revenue by the refunded amount
-        await _upsert_daily_stats(db, delta_revenue=-refund_entry_amount)
+        await _upsert_daily_stats(db, delta_revenue=-round(refund_amount, 2))
 
     order.paid_amount = max(total_paid - refund_amount, 0.0)
     if order.paid_amount <= 0:

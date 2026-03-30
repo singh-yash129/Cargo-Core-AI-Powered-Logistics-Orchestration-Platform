@@ -3,13 +3,14 @@ Finance Service
 Live-computes revenue and expense aggregations from the database.
 All numbers come from real DB rows — zero when tables are empty.
 """
+from collections import defaultdict
 import uuid
 import random
 import string
 from datetime import datetime, timezone, date, timedelta
 from uuid import UUID
 
-from sqlalchemy import func, select, and_
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.logistics import LogisticsTransaction, LogisticsDailyStats
@@ -29,16 +30,70 @@ def _gen_ref(prefix: str = "PAY") -> str:
     return f"{prefix}-{suffix}"
 
 
-async def _upsert_daily_stats(db: AsyncSession, delta_revenue: float = 0.0) -> None:
+def _coerce_uuid(value) -> UUID | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, UUID):
+        return value
+    try:
+        return UUID(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def resolve_transaction_warehouse_id(
+    tx: LogisticsTransaction,
+    order_warehouse_by_id: dict[UUID, UUID | None],
+    order_warehouse_by_tracking: dict[str, UUID | None],
+    user_warehouse_by_id: dict[UUID, UUID | None],
+) -> UUID | None:
+    if tx.warehouse_id:
+        return tx.warehouse_id
+
+    metadata = tx.metadata_json or {}
+
+    order_id = _coerce_uuid(metadata.get("order_id"))
+    if order_id in order_warehouse_by_id:
+        return order_warehouse_by_id[order_id]
+
+    tracking_code = metadata.get("tracking_code")
+    if tracking_code and tracking_code in order_warehouse_by_tracking:
+        return order_warehouse_by_tracking[tracking_code]
+
+    user_id = _coerce_uuid(metadata.get("user_id") or metadata.get("collected_by"))
+    if user_id in user_warehouse_by_id:
+        return user_warehouse_by_id[user_id]
+
+    return None
+
+
+def _legacy_order_revenue_amount(order: Order, recorded_payment_total: float) -> float:
+    if recorded_payment_total > 0:
+        return 0.0
+    if order.payment_status != "paid":
+        return 0.0
+    if order.status in {"CANCELLED", "DRAFT"}:
+        return 0.0
+    return float(order.paid_amount or order.total_amount or 0.0)
+
+
+async def _upsert_daily_stats(
+    db: AsyncSession,
+    delta_revenue: float = 0.0,
+    warehouse_id: UUID | None = None,
+) -> None:
     """Add delta_revenue to today's LogisticsDailyStats row (upsert)."""
     today = _today()
-    row = (
-        await db.execute(
-            select(LogisticsDailyStats).where(LogisticsDailyStats.stat_date == today)
-        )
-    ).scalar_one_or_none()
+    query = select(LogisticsDailyStats).where(LogisticsDailyStats.stat_date == today)
+    if warehouse_id is None:
+        query = query.where(LogisticsDailyStats.warehouse_id.is_(None))
+    else:
+        query = query.where(LogisticsDailyStats.warehouse_id == warehouse_id)
+
+    row = (await db.execute(query)).scalar_one_or_none()
     if row is None:
         row = LogisticsDailyStats(
+            warehouse_id=warehouse_id,
             stat_date=today,
             orders_count=0,
             revenue=0.0,
@@ -103,8 +158,9 @@ async def record_order_payment(
     # 3. LogisticsTransaction
     tx_type = "REVENUE_COD" if payment_mode.upper() == "COD" else "REVENUE_ONLINE"
     tx = LogisticsTransaction(
+        warehouse_id=order.warehouse_id,
         transaction_code=ref,
-        description=f"Order {order.tracking_code} — {payment_method or payment_mode}",
+        description=f"Order {order.tracking_code} - {payment_method or payment_mode}",
         transaction_type=tx_type,
         amount=amount,
         status="Completed",
@@ -120,6 +176,8 @@ async def record_order_payment(
 
     # 4. Daily stats
     await _upsert_daily_stats(db, delta_revenue=amount)
+    if order.warehouse_id:
+        await _upsert_daily_stats(db, delta_revenue=amount, warehouse_id=order.warehouse_id)
 
     await db.flush()
     return pmt
@@ -140,6 +198,7 @@ async def record_expense(
     expense_type: str,   # EXPENSE_LABOUR | EXPENSE_DRIVER | EXPENSE_FUEL | EXPENSE_WAREHOUSE | EXPENSE_PROCUREMENT
     amount: float,
     description: str,
+    warehouse_id: UUID | None = None,
     order_id: UUID | None = None,
     tracking_code: str | None = None,
     extra_metadata: dict | None = None,
@@ -155,6 +214,7 @@ async def record_expense(
     if extra_metadata:
         meta.update(extra_metadata)
     tx = LogisticsTransaction(
+        warehouse_id=warehouse_id,
         transaction_code=ref,
         description=description,
         transaction_type=expense_type,
@@ -202,105 +262,141 @@ async def create_capital_investment(
 
 # ── aggregation (for the /finance/summary endpoint) ─────────────────────────
 
-async def get_finance_summary(db: AsyncSession) -> dict:
-    # Total revenue from completed order payments
-    rev_result = await db.execute(
-        select(func.coalesce(func.sum(OrderPayment.amount), 0.0))
-        .where(OrderPayment.status == "completed", OrderPayment.payment_mode != "WALLET")
-    )
-    total_revenue: float = rev_result.scalar_one()
+async def get_finance_summary(db: AsyncSession, warehouse_id: UUID | None = None) -> dict:
+    order_query = select(Order)
+    if warehouse_id:
+        order_query = order_query.where(Order.warehouse_id == warehouse_id)
+    orders = (await db.execute(order_query)).scalars().all()
 
-    # Total expenses (negative transactions, excluding revenue refunds which are already
-    # deducted from total_revenue via the negative OrderPayment rows)
-    exp_result = await db.execute(
-        select(func.coalesce(func.sum(LogisticsTransaction.amount), 0.0))
+    payment_query = (
+        select(OrderPayment)
+        .join(Order, Order.id == OrderPayment.order_id)
         .where(
-            LogisticsTransaction.amount < 0,
-            LogisticsTransaction.transaction_type != "REVENUE_REFUND",
+            OrderPayment.status == "completed",
+            OrderPayment.payment_mode.notin_(["WALLET", "REFUND"]),
         )
     )
-    total_expenses: float = abs(exp_result.scalar_one())
+    if warehouse_id:
+        payment_query = payment_query.where(Order.warehouse_id == warehouse_id)
+    payments = (await db.execute(payment_query)).scalars().all()
 
-    # Total refunds issued (cancellation refunds credited back to customer wallet)
-    refunds_result = await db.execute(
-        select(func.coalesce(func.sum(func.abs(LogisticsTransaction.amount)), 0.0))
-        .where(LogisticsTransaction.transaction_type == "REVENUE_REFUND")
-    )
-    total_refunds_issued: float = float(refunds_result.scalar_one())
+    user_query = select(User)
+    if warehouse_id:
+        user_query = user_query.where(User.warehouse_id == warehouse_id)
+    users = (await db.execute(user_query)).scalars().all()
 
-    # Expense breakdown by type (exclude REVENUE_REFUND — it's a revenue reversal)
-    breakdown_result = await db.execute(
-        select(
-            LogisticsTransaction.transaction_type,
-            func.coalesce(func.sum(func.abs(LogisticsTransaction.amount)), 0.0),
+    transaction_query = select(LogisticsTransaction)
+    if warehouse_id:
+        transaction_query = transaction_query.where(
+            or_(
+                LogisticsTransaction.warehouse_id == warehouse_id,
+                LogisticsTransaction.warehouse_id.is_(None),
+            )
         )
-        .where(
-            LogisticsTransaction.amount < 0,
-            LogisticsTransaction.transaction_type != "REVENUE_REFUND",
-        )
-        .group_by(LogisticsTransaction.transaction_type)
-    )
-    expense_breakdown = {row[0]: round(row[1], 2) for row in breakdown_result.all()}
+    transactions = (await db.execute(transaction_query)).scalars().all()
 
-    # Pending COD (orders paid=pending + mode=COD)
-    cod_pending_result = await db.execute(
-        select(func.coalesce(func.sum(Order.total_amount), 0.0))
-        .where(Order.payment_mode.ilike("COD"), Order.payment_status == "pending")
-    )
-    pending_cod: float = cod_pending_result.scalar_one()
+    order_warehouse_by_id = {order.id: order.warehouse_id for order in orders}
+    order_warehouse_by_tracking = {
+        order.tracking_code: order.warehouse_id
+        for order in orders
+        if order.tracking_code
+    }
+    user_warehouse_by_id = {user.id: user.warehouse_id for user in users}
 
-    # Revenue by day — last 30 days from LogisticsDailyStats
-    thirty_ago = _today() - timedelta(days=29)
-    daily_result = await db.execute(
-        select(LogisticsDailyStats.stat_date, LogisticsDailyStats.revenue)
-        .where(LogisticsDailyStats.stat_date >= thirty_ago)
-        .order_by(LogisticsDailyStats.stat_date)
-    )
-    revenue_by_day = [
-        {"date": str(row[0]), "revenue": round(row[1], 2)}
-        for row in daily_result.all()
+    scoped_transactions = [
+        tx for tx in transactions
+        if warehouse_id is None
+        or resolve_transaction_warehouse_id(
+            tx,
+            order_warehouse_by_id=order_warehouse_by_id,
+            order_warehouse_by_tracking=order_warehouse_by_tracking,
+            user_warehouse_by_id=user_warehouse_by_id,
+        ) == warehouse_id
     ]
 
-    # Order counts
-    order_count_result = await db.execute(select(func.count(Order.id)))
-    total_orders: int = order_count_result.scalar_one()
+    payment_totals_by_order: dict[UUID, float] = defaultdict(float)
+    revenue_by_mode_acc: dict[str, float] = defaultdict(float)
+    revenue_by_day_acc: dict[date, float] = defaultdict(float)
+    refunds_by_day_acc: dict[date, float] = defaultdict(float)
+    normalized_revenue = 0.0
 
-    delivered_result = await db.execute(
-        select(func.count(Order.id)).where(Order.status == "DELIVERED")
-    )
-    delivered_orders: int = delivered_result.scalar_one()
+    for payment in payments:
+        payment_totals_by_order[payment.order_id] += float(payment.amount or 0.0)
+        normalized_revenue += float(payment.amount or 0.0)
+        revenue_by_mode_acc[payment.payment_mode or "UNKNOWN"] += float(payment.amount or 0.0)
+        if payment.created_at:
+            revenue_by_day_acc[payment.created_at.date()] += float(payment.amount or 0.0)
 
-    # Revenue by type (online vs COD)
-    rev_by_type_result = await db.execute(
-        select(
-            OrderPayment.payment_mode,
-            func.coalesce(func.sum(OrderPayment.amount), 0.0),
+    legacy_revenue = 0.0
+    for order in orders:
+        legacy_amount = _legacy_order_revenue_amount(order, payment_totals_by_order[order.id])
+        if legacy_amount <= 0:
+            continue
+        legacy_revenue += legacy_amount
+        revenue_by_mode_acc[order.payment_mode or "UNKNOWN"] += legacy_amount
+        if order.created_at:
+            revenue_by_day_acc[order.created_at.date()] += legacy_amount
+
+    total_refunds_issued = 0.0
+    for tx in scoped_transactions:
+        if tx.transaction_type != "REVENUE_REFUND":
+            continue
+        refund_amount = abs(float(tx.amount or 0.0))
+        total_refunds_issued += refund_amount
+        if tx.transaction_date:
+            refunds_by_day_acc[tx.transaction_date.date()] += refund_amount
+
+    total_revenue = max(0.0, normalized_revenue + legacy_revenue - total_refunds_issued)
+
+    expense_breakdown_acc: dict[str, float] = defaultdict(float)
+    total_expenses = 0.0
+    total_payroll_due = 0.0
+    procurement_expenses = 0.0
+    capital_invested = 0.0
+
+    for tx in scoped_transactions:
+        amount = float(tx.amount or 0.0)
+        tx_type = tx.transaction_type or "UNKNOWN"
+        if amount < 0 and tx_type != "REVENUE_REFUND":
+            abs_amount = abs(amount)
+            total_expenses += abs_amount
+            expense_breakdown_acc[tx_type] += abs_amount
+            if tx_type in {"EXPENSE_DRIVER", "EXPENSE_LABOUR"}:
+                total_payroll_due += abs_amount
+            if tx_type == "EXPENSE_PROCUREMENT":
+                procurement_expenses += abs_amount
+        elif tx_type == "CAPITAL_INVESTMENT" and amount > 0:
+            capital_invested += amount
+
+    pending_cod = float(sum(
+        order.total_amount or 0.0
+        for order in orders
+        if (order.payment_mode or "").strip().upper() == "COD"
+        and order.payment_status == "pending"
+    ))
+
+    thirty_ago = _today() - timedelta(days=29)
+    revenue_by_day = [
+        {
+            "date": str(day),
+            "revenue": round(revenue_by_day_acc.get(day, 0.0) - refunds_by_day_acc.get(day, 0.0), 2),
+        }
+        for day in (
+            thirty_ago + timedelta(days=offset)
+            for offset in range(30)
         )
-        .where(OrderPayment.status == "completed", OrderPayment.payment_mode != "WALLET")
-        .group_by(OrderPayment.payment_mode)
-    )
-    revenue_by_mode = {row[0]: round(row[1], 2) for row in rev_by_type_result.all()}
+    ]
 
-    # Total payroll due: sum of EXPENSE_DRIVER + EXPENSE_LABOUR transactions (these are negative)
-    payroll_result = await db.execute(
-        select(func.coalesce(func.sum(func.abs(LogisticsTransaction.amount)), 0.0))
-        .where(LogisticsTransaction.transaction_type.in_(["EXPENSE_DRIVER", "EXPENSE_LABOUR"]))
-    )
-    total_payroll_due: float = float(payroll_result.scalar_one())
-
-    # Procurement expenses (auto-created on restock approval)
-    procurement_result = await db.execute(
-        select(func.coalesce(func.sum(func.abs(LogisticsTransaction.amount)), 0.0))
-        .where(LogisticsTransaction.transaction_type == "EXPENSE_PROCUREMENT")
-    )
-    procurement_expenses: float = float(procurement_result.scalar_one())
-
-    # Capital investments (offline money injected)
-    capital_result = await db.execute(
-        select(func.coalesce(func.sum(LogisticsTransaction.amount), 0.0))
-        .where(LogisticsTransaction.transaction_type == "CAPITAL_INVESTMENT")
-    )
-    capital_invested: float = float(capital_result.scalar_one())
+    total_orders = len(orders)
+    delivered_orders = sum(1 for order in orders if order.status == "DELIVERED")
+    expense_breakdown = {
+        key: round(value, 2)
+        for key, value in expense_breakdown_acc.items()
+    }
+    revenue_by_mode = {
+        key: round(value, 2)
+        for key, value in revenue_by_mode_acc.items()
+    }
 
     return {
         "total_revenue": round(total_revenue, 2),
@@ -317,3 +413,52 @@ async def get_finance_summary(db: AsyncSession) -> dict:
         "expense_breakdown": expense_breakdown,
         "revenue_by_mode": revenue_by_mode,
     }
+
+
+async def run_payroll(db: AsyncSession, user_payouts: list[dict]) -> dict:
+    """
+    Persist payroll payments as PAYROLL_RUN transactions — one per user.
+    Each transaction stores user_id + payroll_period in metadata_json so the
+    bootstrap can query them to mark records as 'Paid' after the run.
+
+    user_payouts: list of {user_id, amount, record_type, name}
+    """
+    period = datetime.now(timezone.utc).strftime("%Y-%m")
+    created = 0
+    total_paid = 0.0
+    user_ids = [uuid.UUID(str(payout["user_id"])) for payout in user_payouts if payout.get("user_id")]
+    users_by_id = {}
+    if user_ids:
+        users_by_id = {
+            user.id: user
+            for user in (
+                await db.execute(select(User).where(User.id.in_(user_ids)))
+            ).scalars().all()
+        }
+
+    for payout in user_payouts:
+        amount = float(payout.get("amount", 0))
+        if amount <= 0:
+            continue
+        user_id = uuid.UUID(str(payout["user_id"]))
+        user = users_by_id.get(user_id)
+        tx = LogisticsTransaction(
+            warehouse_id=user.warehouse_id if user else None,
+            transaction_code=_gen_ref("PAY"),
+            description=f"Payroll - {payout.get('name', 'Staff')} ({period})",
+            transaction_type="PAYROLL_RUN",
+            amount=-abs(amount),
+            status="Completed",
+            metadata_json={
+                "user_id": str(user_id),
+                "payroll_period": period,
+                "record_type": payout.get("record_type", "staff"),
+                "name": payout.get("name", ""),
+            },
+        )
+        db.add(tx)
+        created += 1
+        total_paid += amount
+
+    await db.flush()
+    return {"count": created, "total": round(total_paid, 2)}

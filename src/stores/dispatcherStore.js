@@ -38,6 +38,13 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
     const _drivers = ref([])
     const driversLoading = ref(false)
 
+    // Chats fetched directly — bypasses bootstrap for DISPATCHER role
+    const _chats = ref([])
+    const chatsLoading = ref(false)
+
+    // All contactable users (DRIVER + WAREHOUSE_MANAGER) from backend
+    const _contacts = ref([])
+
     let _pollInterval = null
 
     function normalizeDriver(d) {
@@ -76,13 +83,66 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
         }
     }
 
+    async function fetchChats() {
+        chatsLoading.value = true
+        try {
+            const res = await fetch(`${API_BASE}/api/v1/logistics/chats`, {
+                headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            })
+            if (res.ok) {
+                _chats.value = await res.json()
+            }
+        } catch (_) {
+        } finally {
+            chatsLoading.value = false
+        }
+    }
+
+    async function fetchContacts() {
+        try {
+            const res = await fetch(`${API_BASE}/api/v1/logistics/dispatch-contacts`, {
+                headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            })
+            if (res.ok) {
+                _contacts.value = await res.json()
+            }
+        } catch (_) {}
+    }
+
+    async function sendDispatchMessage(threadId, text) {
+        const res = await fetch(`${API_BASE}/api/v1/logistics/chats/${threadId}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ text, sender: 'dispatch' }),
+        })
+        if (!res.ok) return null
+        const updated = await res.json()
+        // Sync into _chats
+        const idx = _chats.value.findIndex((c) => String(c.id) === String(threadId))
+        if (idx !== -1) _chats.value[idx] = updated
+        else _chats.value.unshift(updated)
+        return updated
+    }
+
+    async function createChatForContact(name, phone = null) {
+        const res = await fetch(`${API_BASE}/api/v1/logistics/chats`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ name, phone }),
+        })
+        if (!res.ok) return null
+        const thread = await res.json()
+        _chats.value.unshift(thread)
+        return thread
+    }
+
     async function initialize() {
         try {
             await ls.initialize()
         } catch (_) {
             // /logistics/bootstrap requires LOGISTIC_MANAGER role — skip gracefully for DISPATCHER
         }
-        await Promise.all([fetchOrders(), fetchDrivers(), fetchActiveOrders()])
+        await Promise.all([fetchOrders(), fetchDrivers(), fetchActiveOrders(), fetchChats(), fetchContacts()])
         // React to warehouse marking orders ready (same-tab event)
         if (typeof window !== 'undefined') {
             window.removeEventListener('warehouse-orders-updated', fetchOrders)
@@ -237,45 +297,72 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
         return { pct, delta: pct - 92 }
     })
 
-    // ── Communication contacts from chats + drivers ───────────────────────
+    // ── Communication contacts — users (DRIVER + WH_MGR) merged with thread data ──
     const dispatcherContacts = computed(() => {
-        const chatContacts = ls.filteredChats.map(c => ({
-            id: c.id,
-            name: c.name,
-            type: 'driver',
-            online: c.status === 'online',
-            lastMessage: c.lastMessage || '',
-            avatar: generateAvatar(c.name, c.id),
-            status: c.status || 'offline',
-            phone: c.phone || '',
-            unread: c.muted ? 0 : 1,
-            messages: (c.messages || []).map(m => ({
-                id: m.id || Date.now(),
-                from: m.sender || m.from || 'driver',
-                text: m.text || m.content || '',
-                time: m.time || '',
-                type: 'text',
-            })),
-        }))
-        if (chatContacts.length > 0) return chatContacts
-        // fallback to driver list if no chats loaded
-        return ls.filteredDrivers.slice(0, 5).map(d => ({
+        // Primary: user-based contacts from /dispatch-contacts (always includes all contactable users)
+        if (_contacts.value.length > 0) {
+            return _contacts.value.map(c => ({
+                id: String(c.user_id),
+                threadId: c.thread_id ? String(c.thread_id) : null,
+                name: c.name,
+                role: c.role,
+                type: c.role === 'WAREHOUSE_MANAGER' ? 'warehouse' : 'driver',
+                online: (c.thread_status || '').toLowerCase() === 'online',
+                lastMessage: c.last_message || 'No messages yet',
+                avatar: generateAvatar(c.name, String(c.user_id)),
+                status: c.thread_status || 'Offline',
+                phone: c.phone || '',
+                email: c.email || '',
+                unread: 0,
+                messages: (c.messages || []).map(m => ({
+                    id: String(m.id),
+                    from: m.sender || 'driver',
+                    text: m.text || '',
+                    time: m.time || '',
+                    type: 'text',
+                })),
+            }))
+        }
+
+        // Fallback: chat threads if contacts not loaded yet
+        const source = _chats.value.length > 0 ? _chats.value : ls.chats
+        if (source.length > 0) {
+            return source.map(c => ({
+                id: String(c.id),
+                threadId: String(c.id),
+                name: c.name,
+                role: 'DRIVER',
+                type: 'driver',
+                online: (c.status || '').toLowerCase() === 'online',
+                lastMessage: c.last_message || c.lastMessage || '',
+                avatar: generateAvatar(c.name, String(c.id)),
+                status: c.status || 'Offline',
+                phone: c.phone || '',
+                unread: 0,
+                messages: (c.messages || []).map(m => ({
+                    id: String(m.id || Date.now()),
+                    from: m.sender || 'driver',
+                    text: m.text || '',
+                    time: m.time || '',
+                    type: 'text',
+                })),
+            }))
+        }
+
+        // Last fallback: driver profiles
+        return (_drivers.value.length > 0 ? _drivers.value : ls.filteredDrivers).slice(0, 8).map(d => ({
             id: d.id,
+            threadId: null,
             name: d.name,
+            role: 'DRIVER',
             type: 'driver',
             online: d.status === 'Active' || d.status === 'On Route',
-            lastMessage: d.currentJob || 'No recent messages',
+            lastMessage: 'No messages yet',
             avatar: generateAvatar(d.name, d.id),
-            status: d.status || 'offline',
+            status: d.status || 'Offline',
             phone: d.phone || '',
             unread: 0,
-            messages: (d.chatHistory || []).map((m, mi) => ({
-                id: m.id || mi,
-                from: m.sender || 'driver',
-                text: m.text || '',
-                time: m.time || '',
-                type: 'text',
-            })),
+            messages: [],
         }))
     })
 
@@ -406,11 +493,15 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
         fetchOrders,
         fetchDrivers,
         fetchActiveOrders,
+        fetchChats,
+        fetchContacts,
         fetchClusters,
         assignOrder,
         batchAssignOrders,
         askAi,
         sendMessageToDriver,
+        sendDispatchMessage,
+        createChatForContact,
         resolveAlert,
         markNotificationRead,
         markAllNotificationsRead,

@@ -56,16 +56,11 @@
                 </div>
 
                 <!-- Quick Actions -->
-                <div class="grid grid-cols-2 gap-3">
-                    <button @click="isShowingPhone = !isShowingPhone"
-                        class="flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-xl text-sm font-bold text-gray-700 dark:text-white transition-colors border border-gray-200 dark:border-white/5">
-                        <span class="material-symbols-outlined text-[18px]">call</span>
-                        {{ isShowingPhone ? driver.phone : 'Call Driver' }}
-                    </button>
-                    <button @click="activeView = 'chat'"
+                <div class="grid grid-cols-1 gap-3">
+                    <button @click="openChat"
                         class="flex items-center justify-center gap-2 py-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-sm font-bold transition-colors border border-primary/20">
                         <span class="material-symbols-outlined text-[18px]">chat</span>
-                        Message
+                        Message Driver
                     </button>
                 </div>
             </template>
@@ -88,7 +83,10 @@
                 </div>
 
                 <div class="h-64 overflow-y-auto pr-2 space-y-4 no-scrollbar flex flex-col pt-2">
-                    <div v-for="msg in driver.chatHistory" :key="msg.id" class="flex gap-2 max-w-[85%]"
+                    <div v-if="chatLoading" class="flex items-center justify-center h-full text-gray-400 text-sm">
+                        <span class="material-symbols-outlined animate-spin mr-2">progress_activity</span> Connecting...
+                    </div>
+                    <div v-for="msg in chatMessages" :key="msg.id" class="flex gap-2 max-w-[85%]"
                         :class="msg.sender === 'dispatch' ? 'self-end flex-row-reverse' : 'items-end'">
 
                         <!-- Avatar (only for driver) -->
@@ -131,7 +129,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import BaseModal from '../components/BaseModal.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 
@@ -144,20 +142,55 @@ const emit = defineEmits(['close'])
 const store = useLogisticStore()
 
 const activeView = ref('profile')
-const isShowingPhone = ref(false)
 const newMessage = ref('')
+const chatThreadId = ref(null)
+const chatLoading = ref(false)
 
-const sendMessage = () => {
+const chatMessages = computed(() => {
+    if (chatThreadId.value) {
+        const thread = store.chats.find(c => c.id === chatThreadId.value)
+        return thread?.messages || []
+    }
+    return props.driver?.chatHistory || []
+})
+
+const openChat = async () => {
+    activeView.value = 'chat'
+    if (!props.driver || chatThreadId.value) return
+    const existing = store.chats.find(c =>
+        c.name === props.driver.name ||
+        (props.driver.phone && c.phone === props.driver.phone)
+    )
+    if (existing) {
+        chatThreadId.value = existing.id
+    } else {
+        chatLoading.value = true
+        try {
+            const created = await store.createChatThread(props.driver.name, props.driver.phone || null)
+            chatThreadId.value = String(created.id)
+        } catch {
+            // fallback to local chatHistory already handled by computed
+        } finally {
+            chatLoading.value = false
+        }
+    }
+}
+
+const sendMessage = async () => {
     if (!newMessage.value.trim()) return
-    store.sendMessageToDriver(props.driver.id, newMessage.value)
+    const text = newMessage.value
     newMessage.value = ''
+    if (chatThreadId.value) {
+        await store.sendChatMessage(chatThreadId.value, text)
+    } else {
+        store.sendMessageToDriver(props.driver.id, text)
+    }
 }
 
 const handleClose = () => {
-    // Reset state on close
     setTimeout(() => {
         activeView.value = 'profile'
-        isShowingPhone.value = false
+        chatThreadId.value = null
     }, 300)
     emit('close')
 }

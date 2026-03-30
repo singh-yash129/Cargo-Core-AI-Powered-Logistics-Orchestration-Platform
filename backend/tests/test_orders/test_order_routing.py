@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.order import Order
-from app.models.user import User
+from app.models.user import Role, User
 from app.models.warehouse import Warehouse
 from tests.conftest import REGISTER_PAYLOAD
 
@@ -16,6 +16,17 @@ async def _get_registered_user(db_session: AsyncSession) -> User:
         select(User).where(User.email == REGISTER_PAYLOAD["email"])
     )
     return result.scalar_one()
+
+
+async def _get_role_id(db_session: AsyncSession, role_name: str) -> int:
+    result = await db_session.execute(
+        select(Role.id).where(Role.name == role_name)
+    )
+    return result.scalar_one()
+
+
+def _auth_headers(tokens: dict) -> dict:
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
 
 
 async def test_create_order_auto_assigns_single_active_warehouse(
@@ -82,3 +93,207 @@ async def test_create_order_prefers_less_loaded_warehouse_when_multiple_exist(
     assert response.status_code == 201
     body = response.json()
     assert body["warehouse_id"] == str(available_warehouse.id)
+
+
+async def test_create_order_skips_fresh_non_operational_hub_for_auto_assignment(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    registered_user_tokens: dict,
+):
+    user = await _get_registered_user(db_session)
+    dispatcher_role_id = await _get_role_id(db_session, "DISPATCHER")
+
+    ready_warehouse = Warehouse(name="Ready Hub", address="7 Ready Road, Delhi", is_active=True)
+    fresh_warehouse = Warehouse(name="Fresh Hub", address="8 Fresh Road, Noida", is_active=True)
+    db_session.add_all([ready_warehouse, fresh_warehouse])
+    await db_session.flush()
+
+    db_session.add(
+        User(
+            name="Ready Dispatcher",
+            username="ready_dispatcher",
+            email="ready.dispatcher@example.com",
+            phone="9000000001",
+            password_hash="test",
+            role_id=dispatcher_role_id,
+            warehouse_id=ready_warehouse.id,
+            is_active=True,
+        )
+    )
+    db_session.add(
+        Order(
+            tracking_code="QC-READYLOAD",
+            order_type="INDIVIDUAL",
+            status="DRAFT",
+            customer_id=user.id,
+            warehouse_id=ready_warehouse.id,
+            pickup_addr="Existing Pickup Address",
+            delivery_addr="Existing Delivery Address",
+        )
+    )
+    await db_session.flush()
+
+    response = await client.post(
+        "/api/v1/orders",
+        headers={"Authorization": f"Bearer {registered_user_tokens['access_token']}"},
+        json={
+            "order_type": "INDIVIDUAL",
+            "pickup_addr": "11 Auto Pickup Street, Delhi",
+            "delivery_addr": "22 Auto Delivery Street, Gurgaon",
+            "total_amount": 4100,
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["warehouse_id"] == str(ready_warehouse.id)
+
+
+async def test_cancel_order_refunds_legacy_paid_order_without_payment_rows(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    registered_user_tokens: dict,
+):
+    warehouse = Warehouse(name="Refund Hub", address="12 Refund Road, Delhi", is_active=True)
+    db_session.add(warehouse)
+    await db_session.flush()
+
+    create_response = await client.post(
+        "/api/v1/orders",
+        headers=_auth_headers(registered_user_tokens),
+        json={
+            "order_type": "INDIVIDUAL",
+            "pickup_addr": "12 Pickup Street, Delhi",
+            "delivery_addr": "45 Delivery Street, Noida",
+            "total_amount": 2500,
+            "payment_mode": "Full Payment",
+            "payment_status": "paid",
+        },
+    )
+
+    assert create_response.status_code == 201
+    created = create_response.json()
+    assert created["paid_amount"] == 0
+    assert created["payment_status"] == "paid"
+
+    cancel_response = await client.post(
+        f"/api/v1/orders/{created['id']}/cancel",
+        headers=_auth_headers(registered_user_tokens),
+        json={"reason": "Changed plans"},
+    )
+
+    assert cancel_response.status_code == 200
+    cancelled = cancel_response.json()
+    assert cancelled["status"] == "CANCELLED"
+    assert cancelled["wallet_refund_amount"] == 2500
+    assert cancelled["payment_status"] == "refunded"
+
+    wallet_response = await client.get(
+        "/api/v1/customer/wallet",
+        headers=_auth_headers(registered_user_tokens),
+    )
+
+    assert wallet_response.status_code == 200
+    wallet = wallet_response.json()
+    assert wallet["balance"] == 2500
+    assert any(tx["reason"] == "CANCELLATION_REFUND" for tx in wallet["transactions"])
+
+
+async def test_create_order_with_initial_partial_payment_refunds_only_paid_amount_on_cancel(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    registered_user_tokens: dict,
+):
+    warehouse = Warehouse(name="Partial Hub", address="98 Ledger Lane, Delhi", is_active=True)
+    db_session.add(warehouse)
+    await db_session.flush()
+
+    create_response = await client.post(
+        "/api/v1/orders",
+        headers=_auth_headers(registered_user_tokens),
+        json={
+            "order_type": "INDIVIDUAL",
+            "pickup_addr": "10 Start Avenue, Delhi",
+            "delivery_addr": "20 Finish Avenue, Gurugram",
+            "total_amount": 4000,
+            "payment_mode": "Partial",
+            "payment_status": "pending",
+            "initial_payment_amount": 1200,
+            "initial_payment_ref": "pay_partial_123",
+            "initial_payment_mode": "ONLINE",
+            "initial_payment_method": "Razorpay",
+        },
+    )
+
+    assert create_response.status_code == 201
+    created = create_response.json()
+    assert created["paid_amount"] == 1200
+    assert created["payment_status"] == "partial"
+
+    cancel_response = await client.post(
+        f"/api/v1/orders/{created['id']}/cancel",
+        headers=_auth_headers(registered_user_tokens),
+        json={"reason": "Reschedule later"},
+    )
+
+    assert cancel_response.status_code == 200
+    cancelled = cancel_response.json()
+    assert cancelled["wallet_refund_amount"] == 1200
+    assert cancelled["payment_status"] == "refunded"
+
+    wallet_response = await client.get(
+        "/api/v1/customer/wallet",
+        headers=_auth_headers(registered_user_tokens),
+    )
+
+    assert wallet_response.status_code == 200
+    wallet = wallet_response.json()
+    assert wallet["balance"] == 1200
+    assert any(tx["amount"] == 1200 for tx in wallet["transactions"])
+
+
+async def test_cancel_order_refunds_half_for_legacy_partial_booking_without_recorded_paid_amount(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    registered_user_tokens: dict,
+):
+    warehouse = Warehouse(name="Legacy Partial Hub", address="77 Legacy Road, Delhi", is_active=True)
+    db_session.add(warehouse)
+    await db_session.flush()
+
+    create_response = await client.post(
+        "/api/v1/orders",
+        headers=_auth_headers(registered_user_tokens),
+        json={
+            "order_type": "INDIVIDUAL",
+            "pickup_addr": "1 Legacy Pickup, Delhi",
+            "delivery_addr": "2 Legacy Drop, Noida",
+            "total_amount": 3000,
+            "payment_mode": "Partial",
+            "payment_status": "pending",
+        },
+    )
+
+    assert create_response.status_code == 201
+    created = create_response.json()
+    assert created["paid_amount"] == 0
+    assert created["payment_status"] == "pending"
+
+    cancel_response = await client.post(
+        f"/api/v1/orders/{created['id']}/cancel",
+        headers=_auth_headers(registered_user_tokens),
+        json={"reason": "Not moving now"},
+    )
+
+    assert cancel_response.status_code == 200
+    cancelled = cancel_response.json()
+    assert cancelled["wallet_refund_amount"] == 1500
+
+    wallet_response = await client.get(
+        "/api/v1/customer/wallet",
+        headers=_auth_headers(registered_user_tokens),
+    )
+
+    assert wallet_response.status_code == 200
+    wallet = wallet_response.json()
+    assert wallet["balance"] == 1500

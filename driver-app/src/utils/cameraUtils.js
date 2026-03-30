@@ -8,7 +8,7 @@
  * Some versions return {value: base64}, others return base64 directly
  */
 export function normalizeCameraResult(result) {
-  return result?.value || result
+  return result?.value || result?.base64 || (typeof result === 'string' ? result : null)
 }
 
 /**

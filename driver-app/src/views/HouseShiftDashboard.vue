@@ -128,7 +128,7 @@ import { useFlowRouter, FLOW_STEPS } from '../composables/useFlowRouter.js'
 
 const jobStore = useJobStore()
 const uiStore = useUiStore()
-const { navigateToCurrentState, getNextActionLabel } = useFlowRouter()
+const { advanceAndNavigate, navigateToCurrentState, getNextActionLabel } = useFlowRouter()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 // ── State Phases ──────────────────────────────────────────────────
@@ -158,6 +158,12 @@ const currentPhaseIcon = computed(() => {
 })
 
 function continueFlow() {
-    navigateToCurrentState()
+    // Advance to the next state; fall back to re-navigating current state
+    const nextState = jobStore.allowedTransitions[0]
+    if (nextState) {
+        advanceAndNavigate(nextState)
+    } else {
+        navigateToCurrentState()
+    }
 }
 </script>

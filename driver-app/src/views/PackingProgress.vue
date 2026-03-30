@@ -95,7 +95,9 @@
                         <img v-if="photo" :src="photo" class="w-full h-full object-cover" />
                         <div v-else class="flex flex-col items-center gap-1">
                             <span class="material-icons text-2xl"
-                                :class="isDark ? 'text-gray-600' : 'text-gray-300'">add_a_photo</span>
+                                :class="isCapturing ? 'animate-spin text-purple-400' : isDark ? 'text-gray-600' : 'text-gray-300'">
+                                {{ isCapturing ? 'hourglass_empty' : 'add_a_photo' }}
+                            </span>
                             <span class="text-[9px]"
                                 :class="isDark ? 'text-gray-600' : 'text-gray-400'">Photo {{ i + 1 }}</span>
                         </div>
@@ -139,10 +141,12 @@ import { ref, computed } from 'vue'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
+import { useCamera } from '../composables/useCamera.js'
 
 const jobStore = useJobStore()
 const uiStore = useUiStore()
 const { advanceAndNavigate } = useFlowRouter()
+const { scanDocument, isCapturing } = useCamera()
 const isDark = computed(() => uiStore.theme !== 'light')
 const beforePhotos = ref([])
 
@@ -191,14 +195,15 @@ function toggleTask(task) {
     }
 }
 
-function captureBeforePhoto(index) {
-    // Simulated photo capture
-    const dummyImages = [
-        'https://images.unsplash.com/photo-1558983104-6f48adf34d3a?w=300&q=80',
-        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&q=80',
-        'https://images.unsplash.com/photo-1556909175-c6f88b491614?w=300&q=80',
-    ]
-    beforePhotos.value[index] = dummyImages[index % 3]
+async function captureBeforePhoto(index) {
+    const result = await scanDocument('Before Photo')
+    if (!result) return
+    const dataUrl = result.base64.startsWith('data:')
+        ? result.base64
+        : `data:image/jpeg;base64,${result.base64}`
+    beforePhotos.value[index] = dataUrl
+    // Force reactivity on array mutation
+    beforePhotos.value = [...beforePhotos.value]
     uiStore.showToast('Before photo captured ✓', 'success', 1500)
 }
 

@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/v1/warehouses", tags=["Warehouses"])
 @router.get("", response_model=WarehouseListResponse)
 async def list_warehouses(
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "VENDOR"))],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "VENDOR", "INDIVIDUAL"))],
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
 ):

@@ -405,12 +405,17 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
 
 const store = useLogisticStore()
-const { filteredChats, filteredEscalations } = storeToRefs(store)
+const { filteredChats, filteredEscalations, escalations } = storeToRefs(store)
+
+onMounted(() => {
+    store.refresh().catch(() => {})
+})
+
 
 const activeTab = ref('chats')
 const activeChatId = ref(1)
@@ -467,35 +472,27 @@ const selectChat = (id) => {
     scrollToBottom()
 }
 
-const sendMessage = () => {
+const sendMessage = async () => {
     const text = messageInput.value.trim()
     if (!text || !activeChat.value) return
 
-    // Add message to store (assuming nested object mutation is reactive)
+    // Optimistic update for instant UI feedback
     activeChat.value.messages.push({
         id: Date.now(),
         text: text,
         sender: 'me',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     })
-
     activeChat.value.lastMessage = text
     activeChat.value.time = 'Just now'
-
     messageInput.value = ''
     scrollToBottom()
 
-    if (activeChat.value.id !== 4 && !activeChat.value.muted) { // Don't reply on broadcast
-        setTimeout(() => {
-            if (!activeChat.value) return
-            activeChat.value.messages.push({
-                id: Date.now() + 1,
-                text: 'Got it via system.',
-                sender: 'other',
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            })
-            scrollToBottom()
-        }, 3000)
+    // Persist to backend
+    try {
+        await store.sendChatMessage(activeChat.value.id, text)
+    } catch (e) {
+        console.warn('[Communication] sendChatMessage failed:', e)
     }
 }
 
@@ -509,11 +506,16 @@ const handleViewProfile = () => {
     isProfileModalOpen.value = true
 }
 
-const handleMuteChat = () => {
+const handleMuteChat = async () => {
     isMenuOpen.value = false
     if (activeChat.value) {
-        activeChat.value.muted = !activeChat.value.muted
-        // In a real app, this would persist to the store/backend
+        const newMuted = !activeChat.value.muted
+        activeChat.value.muted = newMuted // optimistic
+        try {
+            await store.muteChatThread(activeChat.value.id, newMuted)
+        } catch (e) {
+            console.warn('[Communication] muteChatThread failed:', e)
+        }
     }
 }
 
@@ -522,32 +524,54 @@ const handleDeleteChat = () => {
     isDeleteModalOpen.value = true
 }
 
-const confirmDeleteChat = () => {
+const confirmDeleteChat = async () => {
     if (activeChat.value) {
-        // Find in store's chats array and remove (assuming store.chats is accessible)
-        const index = store.chats.findIndex(c => c.id === activeChat.value.id)
-        if (index !== -1) {
-            store.chats.splice(index, 1)
-            // Select the first available chat or null
-            activeChatId.value = store.chats.length > 0 ? store.chats[0].id : null
+        const deletedId = activeChat.value.id
+        try {
+            await store.deleteChatThread(deletedId)
+        } catch (e) {
+            console.warn('[Communication] deleteChatThread failed:', e)
+            const idx = store.chats.findIndex(c => c.id === deletedId)
+            if (idx !== -1) store.chats.splice(idx, 1)
         }
+        activeChatId.value = store.chats.length > 0 ? store.chats[0].id : null
     }
     isDeleteModalOpen.value = false
 }
 
-const resolveTicket = (status) => {
-    escalations.value = escalations.value.filter(t => t.id !== activeTicketId.value)
-    if (escalations.value.length > 0) {
-        activeTicketId.value = escalations.value[0].id
-    } else {
-        activeTicketId.value = null
-    }
+const resolveTicket = (ticketStatus) => {
+    // Remove the resolved ticket from the live escalations list
+    const remaining = (escalations.value || []).filter(t => t.id !== activeTicketId.value)
+    escalations.value = remaining
+    activeTicketId.value = remaining.length > 0 ? remaining[0].id : null
 }
 
-const sendBroadcast = () => {
-    // In a real app this would trigger an API call to broadcast to connections
+const broadcastSuccess = ref(false)
+const broadcastError = ref(false)
+const sendBroadcast = async () => {
+    const { audience, type, message } = broadcastForm.value
+    if (!message.trim()) return
     isBroadcastModalOpen.value = false
+    try {
+        await store.sendBroadcast({ audience, type, message })
+        broadcastSuccess.value = true
+        setTimeout(() => { broadcastSuccess.value = false }, 4000)
+
+        const titleMap = { info: 'System Broadcast', warning: '⚠️ System Warning', emergency: '🚨 Emergency Alert' }
+        const typeMap = { info: 'info', warning: 'warning', emergency: 'alert' }
+        store.notifications.unshift({
+            id: Date.now().toString(),
+            title: `[Broadcast Sent] ${titleMap[type] ?? 'System Broadcast'}`,
+            message: `Broadcast sent: ${message}`,
+            time: new Date().toISOString(),
+            read: false,
+            type: typeMap[type] ?? 'info',
+        })
+    } catch (e) {
+        broadcastError.value = true
+        setTimeout(() => { broadcastError.value = false }, 4000)
+        console.warn('[Communication] sendBroadcast failed:', e)
+    }
     broadcastForm.value.message = ''
-    // Optionally create a chat entry or system log for the broadcast
 }
 </script>

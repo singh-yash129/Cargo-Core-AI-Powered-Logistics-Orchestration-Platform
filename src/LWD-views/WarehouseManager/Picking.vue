@@ -78,6 +78,25 @@
             </div>
         </Transition>
 
+        <!-- Prerequisite Warnings -->
+        <div v-if="prerequisiteWarnings.length > 0"
+            class="glass-panel p-4 rounded-xl border border-amber-500/40 bg-amber-500/5">
+            <div class="flex items-center gap-2 mb-3">
+                <span class="material-symbols-outlined text-amber-500 text-[22px]">warning</span>
+                <span class="font-bold text-amber-600 dark:text-amber-400 text-sm">Picking Prerequisites Not Met</span>
+            </div>
+            <ul class="space-y-2 mb-3">
+                <li v-for="(warning, idx) in prerequisiteWarnings" :key="idx"
+                    class="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-300">
+                    <span class="material-symbols-outlined text-[14px] mt-0.5 shrink-0">error_outline</span>
+                    {{ warning }}
+                </li>
+            </ul>
+            <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                Orders cannot be moved to picking until all prerequisites above are resolved.
+            </p>
+        </div>
+
         <!-- Order Fulfillment Pipeline -->
         <div class="glass-panel p-4 rounded-xl">
             <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold mb-3">Order Fulfillment
@@ -280,7 +299,12 @@
                         </div>
                         <div v-else-if="hasAction(wave)" class="flex gap-2">
                             <button @click.stop="handleWaveAction(wave)"
-                                class="flex-1 py-2 bg-primary hover:bg-primary-dark text-background-dark rounded-lg text-xs font-bold transition-colors">
+                                :disabled="isStartPickingBlocked(wave)"
+                                :title="isStartPickingBlocked(wave) ? 'Prerequisites not met — see warnings above' : ''"
+                                class="flex-1 py-2 rounded-lg text-xs font-bold transition-colors"
+                                :class="isStartPickingBlocked(wave)
+                                    ? 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                    : 'bg-primary hover:bg-primary-dark text-background-dark'">
                                 {{ getActionLabel(wave) }}
                             </button>
                             <button v-if="wave.canUndo" @click.stop="undoWaveStatus(wave)"
@@ -778,6 +802,9 @@ const dispatchToast = ref('')
 const actionToast = ref('')
 const loading = ref(false)
 const pipelineLoading = ref(false)
+// Prerequisite checks — null = not yet checked, 0 = empty/missing, >0 = ok
+const inventoryCount = ref(null)
+const floorPlanConfigured = ref(null) // null=checking, false=not set up, true=ok
 const labourers = ref([])
 const scannerTargetSku = ref('')
 const scannerTargetItemKey = ref('')
@@ -898,7 +925,7 @@ const wavesByStatus = computed(() => {
 
     for (const wave of waves.value) {
         // Put orders on hold if they don't have enough labourers assigned
-        const laborRequired = wave.laborRequired || 1
+        const laborRequired = wave.laborRequired ?? 0
         const laborAssigned = wave.laborAssigned?.length || 0
 
         if (laborAssigned < laborRequired && ['AWAITING_PICK', 'CONFIRMED'].includes(wave.status)) {
@@ -943,6 +970,38 @@ const activePickers = computed(() => {
         labourer.is_active && ['PICKING', 'PACKING'].includes(labourer.assigned_order_substatus)
     ).length
 })
+
+// INDIVIDUAL (house-shift) orders require customers to select packing materials,
+// so they need warehouse inventory stocked and a floor plan configured before picking.
+// Small package / parcel orders (VENDOR etc.) are pre-packaged — no packing materials,
+// no inventory tracking, no floor plan needed. Only a labourer is required for all types.
+function isHouseShift(wave) {
+    return wave.laborRequired > 0
+}
+
+const prerequisiteWarnings = computed(() => {
+    const warnings = []
+    const hasHouseShiftOrders = waves.value.some(w => isHouseShift(w))
+    if (hasHouseShiftOrders && inventoryCount.value === 0) {
+        warnings.push('No inventory items configured — go to Inventory to add stock before picking.')
+    }
+    if (hasHouseShiftOrders && floorPlanConfigured.value === false) {
+        warnings.push('Floor plan not configured — set up warehouse layout in Floor Plan before picking.')
+    }
+    if (labourers.value.length === 0) {
+        warnings.push('No labourers registered — add labourers in Labour Management before assigning to orders.')
+    }
+    return warnings
+})
+
+function isStartPickingBlocked(wave) {
+    if (wave.status !== 'AWAITING_PICK' && wave.status !== 'CONFIRMED') return false
+    if (isHouseShift(wave)) {
+        return inventoryCount.value === 0 || floorPlanConfigured.value === false || labourers.value.length === 0
+    }
+    // Small package / parcel — no inventory, floor plan, or labour required
+    return false
+}
 
 const PICK_CONFIRMED_STATUSES = ['PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED']
 
@@ -1398,6 +1457,46 @@ async function fetchLabourers(warehouseId) {
         console.error('Failed to fetch labourers:', error)
         labourers.value = []
         orderAssignments.value = {}
+    }
+}
+
+async function checkPrerequisites(warehouseId) {
+    if (!warehouseId) return
+
+    // Check inventory exists in this warehouse
+    try {
+        const invRes = await fetch(apiUrl(`api/v1/inventory?warehouse_id=${warehouseId}&page_size=1`), {
+            headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
+        })
+        if (invRes.ok) {
+            const invData = await invRes.json()
+            inventoryCount.value = invData.total ?? invData.count ?? (invData.items?.length ?? 0)
+        } else {
+            inventoryCount.value = 0
+        }
+    } catch {
+        inventoryCount.value = 0
+    }
+
+    // Check floor plan is configured
+    try {
+        const fpRes = await fetch(apiUrl(`api/v1/warehouses/${warehouseId}/floor-plan`), {
+            headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
+        })
+        if (fpRes.ok) {
+            const fpData = await fpRes.json()
+            floorPlanConfigured.value = (
+                (fpData.sections?.length ?? 0) > 0 ||
+                (fpData.racks?.length ?? 0) > 0 ||
+                (fpData.groups?.length ?? 0) > 0
+            )
+        } else if (fpRes.status === 404) {
+            floorPlanConfigured.value = false
+        } else {
+            floorPlanConfigured.value = true // don't block on unexpected API errors
+        }
+    } catch {
+        floorPlanConfigured.value = true // don't block on network errors
     }
 }
 
@@ -1897,6 +1996,7 @@ async function fetchPickingData() {
         }
 
         await fetchLabourers(warehouseId)
+        await checkPrerequisites(warehouseId)
         const qcItems = await fetchQualityChecks(warehouseId)
 
         // Build a map of labourers assigned to each order
@@ -1932,7 +2032,7 @@ async function fetchPickingData() {
                 rawId: order.id,
                 assignedPicker: assignment?.labourerName || null,
                 canUndo: hasUndoHistory,
-                laborRequired: order.labor_count || order.laborCount || 1,
+                laborRequired: order.labor_count ?? order.laborCount ?? 0,
                 laborAssigned: laborAssigned
             }
         })
@@ -2066,6 +2166,21 @@ async function handleWaveAction(wave) {
     const previousStatus = wave.status
 
     if (wave.status === 'AWAITING_PICK' || wave.status === 'CONFIRMED') {
+        if (isHouseShift(wave) && inventoryCount.value === 0) {
+            actionToast.value = 'Cannot start picking — no inventory configured. Add inventory items first.'
+            setTimeout(() => { actionToast.value = '' }, 5000)
+            return false
+        }
+        if (isHouseShift(wave) && floorPlanConfigured.value === false) {
+            actionToast.value = 'Cannot start picking — floor plan not configured. Set up the warehouse layout first.'
+            setTimeout(() => { actionToast.value = '' }, 5000)
+            return false
+        }
+        if (labourers.value.length === 0) {
+            actionToast.value = 'Cannot start picking — no labourers registered. Add labourers in Labour Management first.'
+            setTimeout(() => { actionToast.value = '' }, 5000)
+            return false
+        }
         const assignment = orderAssignments.value[wave.rawId]
         return updateWaveStatus(wave, 'PICKING', {
             url: apiUrl(`api/v1/warehouses/${warehouseId}/operations/orders/${wave.rawId}/start-picking`),

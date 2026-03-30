@@ -407,6 +407,7 @@ const menuItems = computed(() => [
     { label: 'Performance', icon: 'bar_chart', route: '/warehouse/performance' },
     { label: 'Smart WMS', icon: 'psychology', route: '/warehouse/ai' },
     { label: 'Comparative Viewers', icon: 'compare_arrows', route: '/warehouse/comparative-viewers' },
+    { label: 'Messages', icon: 'forum', route: '/warehouse/messages' },
 ])
 
 onMounted(() => {

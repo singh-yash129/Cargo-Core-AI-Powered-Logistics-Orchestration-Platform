@@ -12,6 +12,7 @@ from redis.asyncio import Redis
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.logistics import LogisticsNotification
 from app.models.user import Role, User
 from app.schemas.auth import (
     GoogleLoginRequest,
@@ -20,6 +21,7 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     LoginResponse,
     OTPVerifiedResponse,
+    RegistrationResponse,
     RefreshTokenRequest,
     ResetPasswordRequest,
     SignupOtpSendResponse,
@@ -52,6 +54,9 @@ settings = get_settings()
 
 # Roles allowed through the public /register endpoint (kept in sync with schema).
 _SELF_SERVICE_ROLE_NAMES: frozenset[str] = frozenset(SELF_SERVICE_ROLES.__args__)  # type: ignore[union-attr]
+_APPROVAL_PENDING = "PENDING"
+_APPROVAL_APPROVED = "APPROVED"
+_APPROVAL_REJECTED = "REJECTED"
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -79,6 +84,22 @@ def _build_login_response(user: User) -> LoginResponse:
     )
 
 
+def _build_registration_response(user: User) -> RegistrationResponse:
+    if (user.approval_status or _APPROVAL_APPROVED).upper() == _APPROVAL_PENDING:
+        return RegistrationResponse(
+            user=_to_profile(user),
+            pending_approval=True,
+            message="Vendor registration submitted successfully. A Logistics Manager must approve it before login.",
+        )
+
+    payload = _token_payload(user)
+    return RegistrationResponse(
+        access_token=create_access_token(payload),
+        refresh_token=create_refresh_token(payload),
+        user=_to_profile(user),
+    )
+
+
 def _to_profile(user: User) -> UserProfile:
     return UserProfile(
         id=user.id,
@@ -90,7 +111,54 @@ def _to_profile(user: User) -> UserProfile:
         role=user.role.name,
         warehouse_id=user.warehouse_id,
         is_active=user.is_active,
+        approval_status=user.approval_status or _APPROVAL_APPROVED,
+        company_name=user.company_name,
+        tax_id=user.tax_id,
+        contact_person=user.contact_person,
+        business_email=user.business_email,
+        business_phone=user.business_phone,
         created_at=user.created_at,
+    )
+
+
+def _approval_message(user: User) -> str | None:
+    status_value = (user.approval_status or _APPROVAL_APPROVED).upper()
+    if status_value == _APPROVAL_PENDING:
+        return "Your vendor account is waiting for Logistics Manager approval."
+    if status_value == _APPROVAL_REJECTED:
+        return "Your vendor registration was rejected. Please contact the Logistics Manager or register again with updated details."
+    return None
+
+
+def _ensure_user_can_authenticate(user: User) -> None:
+    approval_message = _approval_message(user)
+    if approval_message:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=approval_message,
+        )
+
+
+def _ensure_user_session_valid(user: User) -> None:
+    approval_message = _approval_message(user)
+    if approval_message:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=approval_message,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+def _queue_vendor_registration_notification(db: AsyncSession, user: User) -> None:
+    company_name = user.company_name or user.name
+    contact_name = user.contact_person or user.name
+    db.add(
+        LogisticsNotification(
+            title="New vendor registration",
+            message=f"{company_name} registered with contact {contact_name}. Review the request in User & Roles.",
+            type="system",
+            audience_roles="LOGISTIC_MANAGER",
+        )
     )
 
 
@@ -176,7 +244,7 @@ async def ensure_logistic_manager_account(db: AsyncSession) -> User:
 # ── public service functions ──────────────────────────────────────────────────
 
 
-async def register_user(db: AsyncSession, data: UserRegister) -> TokenResponse:
+async def register_user(db: AsyncSession, data: UserRegister) -> RegistrationResponse:
     """Create a new user account and return JWT token pair.
 
     Only INDIVIDUAL and VENDOR roles may self-register.
@@ -220,6 +288,12 @@ async def register_user(db: AsyncSession, data: UserRegister) -> TokenResponse:
         address=data.address,
         password_hash=hash_password(data.password),
         role_id=role.id,
+        approval_status=_APPROVAL_PENDING if role_upper == "VENDOR" else _APPROVAL_APPROVED,
+        company_name=data.company_name if role_upper == "VENDOR" else None,
+        tax_id=data.tax_id if role_upper == "VENDOR" else None,
+        contact_person=data.contact_person if role_upper == "VENDOR" else None,
+        business_email=data.business_email.lower() if role_upper == "VENDOR" and data.business_email else None,
+        business_phone=data.business_phone if role_upper == "VENDOR" else None,
     )
     db.add(user)
     await db.flush()  # get id without committing (get_db commits on success)
@@ -227,8 +301,11 @@ async def register_user(db: AsyncSession, data: UserRegister) -> TokenResponse:
     # Eagerly load role for token building
     await db.refresh(user, attribute_names=["role"])
 
+    if role_upper == "VENDOR":
+        _queue_vendor_registration_notification(db, user)
+
     logger.info(f"New user registered: {user.email} (role={role.name})")
-    return _build_token_response(user)
+    return _build_registration_response(user)
 
 
 async def login_user(db: AsyncSession, data: UserLogin) -> LoginResponse:
@@ -242,6 +319,8 @@ async def login_user(db: AsyncSession, data: UserLogin) -> LoginResponse:
             detail="Incorrect username/email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    _ensure_user_can_authenticate(user)
 
     if not user.is_active:
         raise HTTPException(
@@ -282,6 +361,8 @@ async def refresh_tokens(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive",
         )
+
+    _ensure_user_session_valid(user)
 
     await db.refresh(user, attribute_names=["role"])
     return _build_token_response(user)
@@ -332,6 +413,8 @@ async def get_current_user_from_token(
             detail="User not found or inactive",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    _ensure_user_session_valid(user)
 
     await db.refresh(user, attribute_names=["role"])
     return user
@@ -530,7 +613,6 @@ async def verify_signup_otp(redis: Redis | None, data: VerifyOTPRequest) -> OTPV
     logger.info(f"Email verified via OTP: {data.email}")
     return OTPVerifiedResponse(verified=True, message="Email verified successfully!")
 
-import secrets
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
@@ -562,6 +644,12 @@ async def google_login_or_register(db: AsyncSession, redis: Redis, data: GoogleL
 
         if user:
             # Allow existing users to log in with Google
+            _ensure_user_can_authenticate(user)
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Account is deactivated",
+                )
             await db.refresh(user, attribute_names=["role"])
             return _build_login_response(user)
         else:
@@ -581,11 +669,23 @@ async def google_login_or_register(db: AsyncSession, redis: Redis, data: GoogleL
                 address="",
                 password_hash=hashed_pwd,
                 role_id=role.id,
-                is_active=True
+                is_active=True,
+                approval_status=_APPROVAL_PENDING if role.name == "VENDOR" else _APPROVAL_APPROVED,
+                company_name=name if role.name == "VENDOR" else None,
+                contact_person=name if role.name == "VENDOR" else None,
+                business_email=email if role.name == "VENDOR" else None,
             )
             db.add(user)
+            if role.name == "VENDOR":
+                _queue_vendor_registration_notification(db, user)
             await db.commit()
             await db.refresh(user, attribute_names=["role"])
+
+            if role.name == "VENDOR":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Vendor registration submitted successfully. A Logistics Manager must approve it before login.",
+                )
 
         user.last_login = datetime.now(timezone.utc)
         db.add(user)

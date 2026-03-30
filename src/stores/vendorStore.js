@@ -108,6 +108,18 @@ export const useVendorStore = defineStore('vendor', () => {
 
     const walletBalance = ref(0)
 
+    async function fetchWalletBalance() {
+        try {
+            const res = await fetch(`${API_BASE}/vendor/wallet`, {
+                headers: getAuthHeaders(),
+            })
+            if (res.ok) {
+                const data = await res.json()
+                walletBalance.value = data.balance ?? 0
+            }
+        } catch (e) { /* silent */ }
+    }
+
     const analyticsData = computed(() => ({
         monthly: dashboard.value?.analytics?.monthly || [],
         onTime: Number(dashboard.value?.analytics?.on_time || 0),
@@ -159,7 +171,9 @@ export const useVendorStore = defineStore('vendor', () => {
             vehicle: assignedVehicleCode || raw.vehicle_type || null,
             progress: Number(raw.progress ?? statusProgress(statusKey)),
             pod: delivered ? {
-                photo: null,
+                photo: Array.isArray(raw.pod_photos) && raw.pod_photos.length > 0 ? raw.pod_photos[0] : null,
+                photos: Array.isArray(raw.pod_photos) ? raw.pod_photos : [],
+                signature: raw.poc_signature || raw.pod_signature || null,
                 timestamp: safeDateTimeLabel(raw.scheduled_at || raw.created_at),
                 location: delivery,
                 signedBy: 'Receiver',
@@ -450,6 +464,7 @@ export const useVendorStore = defineStore('vendor', () => {
                 fetchBulkUploads(),
                 fetchTickets(),
                 fetchWarehouses(),
+                fetchWalletBalance(),
             ])
             initialized.value = true
         } catch (err) {
@@ -465,6 +480,9 @@ export const useVendorStore = defineStore('vendor', () => {
     }
 
     async function createShipment(data) {
+        const selectedWarehouse = data.pickupType === 'hub'
+            ? warehouses.value.find((warehouse) => warehouse.name === data.pickupHub) || null
+            : null
         const pickupAddr = data.pickupType === 'doorstep'
             ? [data.pickupAddress, data.pickupCity, data.pickupPincode].filter(Boolean).join(', ')
             : data.pickupHub || 'Origin Hub'
@@ -489,6 +507,7 @@ export const useVendorStore = defineStore('vendor', () => {
             headers: getAuthHeaders(true),
             body: JSON.stringify({
                 order_type: 'VENDOR',
+                warehouse_id: selectedWarehouse?.id || null,
                 pickup_addr: pickupAddr,
                 delivery_addr: deliveryAddr,
                 cargo_type: data.description || data.category || 'Commercial Shipment',
@@ -588,23 +607,29 @@ export const useVendorStore = defineStore('vendor', () => {
         return true
     }
 
-    async function cancelShipment(id) {
+    async function cancelShipment(id, reason = 'Cancelled by vendor') {
         const shipment = shipments.value.find((item) => item.id === id || item.backendId === id)
-        if (!shipment?.backendId) return false
+        if (!shipment?.backendId) return { success: false, message: 'Shipment not found.' }
 
         const response = await fetch(`${API_BASE}/orders/${shipment.backendId}/cancel`, {
             method: 'POST',
             headers: getAuthHeaders(true),
-            body: JSON.stringify({ reason: 'Cancelled by vendor' }),
+            body: JSON.stringify({ reason }),
         })
 
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}))
-            throw new Error(errData.detail || 'Failed to cancel shipment.')
+            return { success: false, message: errData.detail || 'Failed to cancel shipment.' }
         }
 
+        const updated = await response.json()
         await refreshVendorData()
-        return true
+        // Refresh wallet so balance reflects the refund immediately
+        await fetchWalletBalance()
+        return {
+            success: true,
+            walletRefund: updated.wallet_refund_amount ?? 0,
+        }
     }
 
     async function payInvoice(id, amount, paymentMethod = 'Bank Transfer') {
@@ -993,6 +1018,7 @@ export const useVendorStore = defineStore('vendor', () => {
         fetchRecurringRules,
         fetchBulkUploads,
         fetchTickets,
+        fetchWalletBalance,
         createShipment,
         updateShipmentAddress,
         rescheduleShipment,

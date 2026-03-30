@@ -113,6 +113,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
+import * as api from '../services/api.js'
 
 const jobStore = useJobStore()
 const uiStore = useUiStore()
@@ -202,8 +203,37 @@ function clearSignature() {
     hasSignature.value = false
 }
 
-function completeJob() {
+async function completeJob() {
     if (!canComplete.value) return
+
+    const sigDataUrl = signatureCanvas.value?.toDataURL('image/png')
+    if (!sigDataUrl || sigDataUrl.length < 100) {
+        uiStore.showToast('Failed to capture signature. Please re-sign.', 'error', 2500)
+        return
+    }
+    const sigBase64 = sigDataUrl.includes(',') ? sigDataUrl.split(',')[1] : sigDataUrl
+
+    // Get the house-shift order ID (top-level job id, not a stop id)
+    const orderId = jobStore.jobData?.id || jobStore.jobData?.jobId || null
+
+    if (orderId) {
+        try {
+            uiStore.showToast('Saving sign-off...', 'info', 1500)
+            await api.submitHouseShiftSignoff(
+                orderId,
+                sigBase64,
+                printedName.value,
+                collectedBalance.value ? 'Balance collected' : null
+            )
+        } catch (err) {
+            console.error('House-shift sign-off error:', err)
+            // Non-blocking: show warning but still complete locally
+            uiStore.showToast(`Sign-off upload failed: ${err.message}`, 'warning', 3000)
+        }
+    } else {
+        console.warn('[CustomerSignOff] No orderId found — sign-off not saved to backend')
+    }
+
     uiStore.showToast('Job completed! 🎉', 'success', 3000)
     setTimeout(() => {
         advanceAndNavigate('COMPLETED', {

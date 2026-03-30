@@ -162,18 +162,26 @@
                                 class="font-bold text-gray-900 dark:text-white">{{ cancelModal.order?.id }}</span>?</p>
                     </div>
                     <div v-if="cancelModal.order" class="p-4 rounded-lg text-sm space-y-2"
-                        :class="cancelModal.order.status === 'pending' ? 'bg-green-50 dark:bg-green-500/5 border border-green-200 dark:border-green-500/20' : 'bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20'">
+                        :class="cancelModal.order.status === 'pending' ? 'bg-green-50 dark:bg-green-500/5 border border-green-200 dark:border-green-500/20' : 'bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20'">
                         <div v-if="cancelModal.order.status === 'pending'"
                             class="text-green-700 dark:text-green-400 font-bold">
                             ✅ No cancellation fee — order hasn't been dispatched yet.</div>
                         <div v-else>
-                            <div class="text-red-600 dark:text-red-400 font-bold">⚠️ Cancellation fee applies</div>
+                            <div class="text-amber-600 dark:text-amber-400 font-bold">⚠️ Cancellation fee applies</div>
                             <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
                                 Status: <span class="font-bold">{{ cancelModal.order.status }}</span> · Progress: {{
                                     cancelModal.order.progress }}%
                             </div>
-                            <div class="text-lg font-bold text-red-600 dark:text-red-400 mt-2">Fee: ₹{{
+                            <div class="text-base font-bold text-red-600 dark:text-red-400 mt-2">Fee: ₹{{
                                 estimatedCancelFee.toLocaleString() }}</div>
+                        </div>
+                        <!-- Wallet refund info (only if order was paid) -->
+                        <div v-if="cancelModal.order.paymentStatus === 'paid' || cancelModal.order.paymentStatus === 'partial'"
+                            class="mt-2 pt-2 border-t border-gray-200 dark:border-white/10">
+                            <div class="text-green-700 dark:text-green-400 font-semibold text-xs flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm">account_balance_wallet</span>
+                                ₹{{ estimatedWalletRefund.toLocaleString() }} will be refunded to your wallet
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -281,6 +289,11 @@ const estimatedCancelFee = computed(() => {
     if (cancelModal.order.progress < 30) return Math.round(cancelModal.order.cost.total * 0.10)
     return Math.round(cancelModal.order.cost.total * 0.25)
 })
+const estimatedWalletRefund = computed(() => {
+    if (!cancelModal.order) return 0
+    const paid = cancelModal.order.cost?.paid ?? cancelModal.order.cost?.total ?? 0
+    return Math.max(paid - estimatedCancelFee.value, 0)
+})
 function showCancelModal(order) { cancelModal.order = order; cancelModal.show = true }
 async function doCancel() {
     const result = await store.cancelOrderRemote(cancelModal.order.id)
@@ -290,7 +303,12 @@ async function doCancel() {
         return
     }
     const fee = result.order?.cancellation?.fee || 0
-    showToast(fee > 0 ? `Cancelled. Fee: ₹${fee.toLocaleString()}` : 'Cancelled — no fee.', fee > 0 ? 'error' : 'success')
+    const refund = result.walletRefund ?? 0
+    if (refund > 0) {
+        showToast(`Cancelled. ₹${refund.toLocaleString()} refunded to your wallet.`, 'success')
+    } else {
+        showToast(fee > 0 ? `Cancelled. Fee: ₹${fee.toLocaleString()}` : 'Cancelled — no fee.', fee > 0 ? 'error' : 'success')
+    }
 }
 
 // Reschedule

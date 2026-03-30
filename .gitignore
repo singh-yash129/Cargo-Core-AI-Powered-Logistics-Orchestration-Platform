@@ -4,3 +4,23 @@ dist/
 .env
 backend/.env
 *.local
+
+# Runtime logs
+*.log
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Root-level scratch and one-off debug scripts
+/check_users.py
+/delete_all_users.py
+/delete_test_users.py
+/patch_add_vehicle.py
+/patch_fleet.py
+/patch_layout.py
+/temp.py
+/test_driver_workflow.py
+/test_redis.py
+/test_redis2.py
+/test_redis3.py

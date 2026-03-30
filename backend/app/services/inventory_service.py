@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.inventory import InventoryItem, InventoryMovement, RestockRequest
+from app.models.logistics import LogisticsEscalation
 from app.models.order import Order, OrderItem
 from app.models.user import User
 from app.models.warehouse import Warehouse
@@ -490,6 +491,7 @@ async def update_restock_request_status(
                 expense_type="EXPENSE_PROCUREMENT",
                 amount=total_cost,
                 description=f"Procurement: {req.quantity}\u00d7 {item.name}",
+                warehouse_id=req.warehouse_id,
                 order_id=None,
                 tracking_code=item.sku,
                 extra_metadata={
@@ -514,7 +516,7 @@ async def update_restock_request_status(
 async def escalate_restock_request(
     db: AsyncSession, request_id: UUID, user: User
 ) -> RestockRequestResponse:
-    """Mark a PENDING restock as escalated — adds [ESCALATED] tag without changing status."""
+    """Mark a PENDING restock as escalated and create a LogisticsEscalation ticket for the LM."""
     req = await _get_restock_request(db, request_id)
     if req.status != "PENDING":
         raise HTTPException(
@@ -527,12 +529,39 @@ async def escalate_restock_request(
         req.manager_notes = f"[ESCALATED] Urgent review needed by Logistics Manager. {existing_note}".strip()
 
     db.add(req)
+
+    item = await _get_item(db, req.item_id)
+    requester_name = getattr(user, "name", None) or getattr(user, "full_name", None) or getattr(user, "email", "Warehouse Manager")
+    warehouse_id = getattr(user, "warehouse_id", None)
+
+    # Create escalation ticket visible in LM Communication → Escalations
+    already_escalated = (await db.execute(
+        select(LogisticsEscalation).where(
+            LogisticsEscalation.action_details.contains(str(request_id))
+        )
+    )).scalar_one_or_none()
+
+    if not already_escalated:
+        escalation = LogisticsEscalation(
+            warehouse_id=warehouse_id,
+            title=f"Urgent Restock: {item.name}",
+            priority="High",
+            requester_name=requester_name,
+            requester_role="Warehouse Manager",
+            description=(
+                f"{requester_name} has escalated an urgent restock request for '{item.name}' "
+                f"(SKU: {item.sku or 'N/A'}). Current stock is critically low and requires "
+                f"immediate approval from Logistics Manager."
+            ),
+            action_details=f"Approve restock of {req.quantity} units for {item.name} [ref:{request_id}]",
+            status="OPEN",
+        )
+        db.add(escalation)
+
     await db.flush()
     await db.refresh(req)
 
-    item = await _get_item(db, req.item_id)
     user_result = await db.execute(select(User).where(User.id == req.requested_by))
     requester = user_result.scalar_one_or_none()
 
     return _to_restock_response(req, item, requester)
-

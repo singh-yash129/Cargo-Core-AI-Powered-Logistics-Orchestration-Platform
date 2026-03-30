@@ -119,12 +119,21 @@ const totalCod = computed(() => {
     return routeStore.codPayments.reduce((sum, p) => sum + (p.amount || 0), 0)
 })
 
-const liveStats = computed(() => [
-    { label: 'Speed', icon: 'speed', value: `${telemetry.value.speed_kmh || 0} km/h`, color: 'text-accent-blue' },
-    { label: 'Distance Covered', icon: 'timeline', value: `${telemetry.value.distance_covered_km || 0} km`, color: 'text-primary' },
-    { label: 'Time Elapsed', icon: 'schedule', value: hos.value.used_label || '0h 00m', color: 'text-accent-gold' },
-    { label: 'COD Collected', icon: 'payments', value: `₹${totalCod.value}`, color: 'text-primary' },
-])
+const liveStats = computed(() => {
+    const stats = [
+        { label: 'Speed', icon: 'speed', value: `${telemetry.value.speed_kmh || 0} km/h`, color: 'text-accent-blue' },
+        { label: 'Distance Covered', icon: 'timeline', value: `${telemetry.value.distance_covered_km || 0} km`, color: 'text-primary' },
+        { label: 'Time Elapsed', icon: 'schedule', value: hos.value.used_label || '0h 00m', color: 'text-accent-gold' },
+    ]
+    if (jobStore.jobType === 'PARCEL_DELIVERY') {
+        stats.push({ label: 'COD Collected', icon: 'payments', value: `₹${totalCod.value.toLocaleString('en-IN')}`, color: 'text-accent-gold' })
+    } else if (jobStore.jobType === 'HOUSE_SHIFT') {
+        stats.push({ label: 'Crew On Board', icon: 'groups', value: String(jobStore.jobData?.crewAssigned?.length ?? 0), color: 'text-purple-400' })
+    } else {
+        stats.push({ label: 'Items Picked', icon: 'inventory', value: String(completedStops.value), color: 'text-accent-blue' })
+    }
+    return stats
+})
 
 function openNavigation() {
     if (!currentStop.value) {

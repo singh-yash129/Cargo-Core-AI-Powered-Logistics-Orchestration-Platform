@@ -207,11 +207,37 @@ async function payAllDue() {
 }
 
 function downloadInvoice(inv) {
-    showToast(`Downloading ${inv.id}...`)
+    openSlipWithData('finalTaxInvoice', store.shipments.find(s => s.id === inv.orderId), authStore.currentUser)
 }
 
 function exportReport() {
-    showToast('Exporting billing report...')
+    const rows = [
+        ['Invoice #', 'Order ID', 'Date', 'Due Date', 'Amount', 'Paid', 'Balance', 'Status'],
+        ...filteredInvoices.value.map(inv => [
+            inv.id,
+            inv.orderId,
+            inv.date,
+            inv.dueDate,
+            inv.amount,
+            inv.paid,
+            inv.amount - inv.paid,
+            inv.status,
+        ])
+    ]
+    downloadCsv(`invoices_${new Date().toISOString().slice(0, 10)}.csv`, rows)
+}
+
+function downloadCsv(filename, rows) {
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
 }
 
 function showToast(msg) {

@@ -101,6 +101,7 @@
 <script setup>
 import { ref, nextTick, computed, onMounted } from 'vue'
 import { useUiStore } from '../stores/uiStore.js'
+import * as api from '../services/api.js'
 
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
@@ -109,40 +110,55 @@ const chatBody = ref(null)
 const chatInputRef = ref(null)
 const inputText = ref('')
 const isTyping = ref(false)
+const isSending = ref(false)
 const focusChatInput = () => { chatInputRef.value?.focus() }
 
 const suggestions = ['Current ETA?', 'Request re-route', 'Need backup crew', 'COD discrepancy']
 
-const messages = ref([
-    { id: 1, text: 'Shift loaded. CC-TRK-042 is your vehicle today.', fromDriver: false, time: '07:55' },
-    { id: 2, text: 'Got it, heading to Gate 7.', fromDriver: true, time: '07:57' },
-    { id: 3, text: 'Gate 7 is ready. Stop #1 is a priority house shift.', fromDriver: false, time: '07:59' },
-])
+const messages = ref([])
 
-let msgId = 4
 function t() { return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }) }
 
-function sendMessage(text) {
-    messages.value.push({ id: msgId++, text, fromDriver: true, time: t() })
-    scrollToBottom()
-    simulateReply(text)
-}
-function handleSend() {
-    if (!inputText.value.trim()) return
-    sendMessage(inputText.value.trim())
-    inputText.value = ''
-}
-function simulateReply(userMsg) {
-    isTyping.value = true
-    setTimeout(() => {
-        isTyping.value = false
-        const reply = userMsg.includes('ETA') ? 'Estimated 1:20 PM at hub. You\'re on schedule.' : 'Understood. Logged in system.'
-        messages.value.push({ id: msgId++, text: reply, fromDriver: false, time: t() })
-        scrollToBottom()
-    }, 1800)
-}
 function scrollToBottom() {
     nextTick(() => { if (chatBody.value) chatBody.value.scrollTop = chatBody.value.scrollHeight })
 }
-onMounted(() => scrollToBottom())
+
+async function loadThread() {
+    try {
+        const thread = await api.getDispatchThread()
+        messages.value = thread.messages || []
+        scrollToBottom()
+    } catch (err) {
+        uiStore.showToast('Could not load chat', 'error', 2000)
+    }
+}
+
+async function sendMessage(text) {
+    if (isSending.value) return
+    isSending.value = true
+    // Optimistic update
+    const tempId = `temp-${Date.now()}`
+    messages.value.push({ id: tempId, text, fromDriver: true, time: t() })
+    scrollToBottom()
+    try {
+        const thread = await api.sendDispatchMessage(text)
+        messages.value = thread.messages || []
+        scrollToBottom()
+    } catch (err) {
+        // Remove failed optimistic message
+        messages.value = messages.value.filter(m => m.id !== tempId)
+        uiStore.showToast('Failed to send message', 'error', 2000)
+    } finally {
+        isSending.value = false
+    }
+}
+
+function handleSend() {
+    if (!inputText.value.trim()) return
+    const text = inputText.value.trim()
+    inputText.value = ''
+    sendMessage(text)
+}
+
+onMounted(() => loadThread())
 </script>

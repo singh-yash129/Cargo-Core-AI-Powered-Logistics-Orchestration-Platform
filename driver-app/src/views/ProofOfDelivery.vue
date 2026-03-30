@@ -403,16 +403,21 @@ async function handleNext() {
 
             console.log('[POD] Final submit - hasSig:', hasSig.value, 'sigBase64 length:', sigBase64?.length || 0)
 
-            if (orderId) {
-                await api.uploadProofOfDelivery(
-                    orderId,
-                    photoBase64List,
-                    sigBase64, // This is now guaranteed to be valid
-                    otp.value.join(''),
-                    stop.value.customerName || null,
-                    '',
-                )
+            // Fallback: if stop-based lookup failed, use the top-level job id
+            const resolvedOrderId = orderId || jobStore.jobData?.id || jobStore.jobData?.jobId || null
+
+            if (!resolvedOrderId) {
+                throw new Error('Order ID not found. Cannot upload proof of delivery.')
             }
+
+            await api.uploadProofOfDelivery(
+                resolvedOrderId,
+                photoBase64List,
+                sigBase64, // This is now guaranteed to be valid
+                otp.value.join(''),
+                stop.value.customerName || null,
+                '',
+            )
 
             jobStore.addPOD({
                 photo: photoBase64List[0] || null,

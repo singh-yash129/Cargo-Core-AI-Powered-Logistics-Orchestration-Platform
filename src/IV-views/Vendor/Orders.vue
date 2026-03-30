@@ -376,14 +376,20 @@ async function submitDamageReport() {
 }
 
 async function cancelOrder(s) {
-    if (!confirm(`Cancel order ${s.id}?`)) return
-    await store.cancelShipment(s.id)
-    showToast(`Order ${s.id} cancelled`)
+    if (!confirm(`Cancel order ${s.id}?\n\nIf you already paid online, the amount will be refunded to your wallet.`)) return
+    const result = await store.cancelShipment(s.id)
+    if (!result.success) {
+        showToast(result.message || `Failed to cancel ${s.id}`, 'error')
+        return
+    }
+    const refund = result.walletRefund ?? 0
+    showToast(refund > 0 ? `Order ${s.id} cancelled. ₹${refund.toLocaleString()} refunded to wallet.` : `Order ${s.id} cancelled.`)
 }
 
-function showToast(msg) {
+function showToast(msg, type = 'success') {
     const t = document.createElement('div')
-    t.className = 'fixed right-4 bottom-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
+    const bg = type === 'error' ? 'bg-red-500' : 'bg-green-500'
+    t.className = `fixed right-4 bottom-4 z-[9999] ${bg} text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl`
     t.textContent = msg
     document.body.appendChild(t)
     setTimeout(() => t.remove(), 3000)

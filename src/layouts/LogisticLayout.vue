@@ -42,7 +42,8 @@
 
                     <!-- Notifications -->
                     <NotificationPopover :notifications="store.notifications"
-                        :unread-count="store.unreadNotificationsCount" @mark-read="store.markNotificationRead"
+                        :unread-count="store.unreadNotificationsCount" @open="store.fetchNotifications()"
+                        @mark-read="store.markNotificationRead"
                         @mark-all-read="store.markAllNotificationsRead" @clear-all="store.clearNotifications" />
 
                     <!-- Meeting Scheduler -->
@@ -95,15 +96,21 @@ import { computed, onBeforeUnmount, onMounted } from 'vue'
 
 const store = useLogisticStore()
 const route = useRoute()
+let notificationPoll = null
 
 onMounted(() => {
     store.initialize().catch((err) => {
         console.error('Failed to initialize logistic data', err)
     })
+    store.fetchNotifications().catch(() => {})
+    notificationPoll = window.setInterval(() => {
+        store.fetchNotifications().catch(() => {})
+    }, 30000)
     document.body.classList.add('logistic-theme-portal')
 })
 
 onBeforeUnmount(() => {
+    if (notificationPoll) window.clearInterval(notificationPoll)
     document.body.classList.remove('logistic-theme-portal')
 })
 

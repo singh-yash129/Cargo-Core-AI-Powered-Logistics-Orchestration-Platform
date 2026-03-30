@@ -110,6 +110,29 @@
                                 class="w-6 h-6 rounded-full bg-green-500 text-white text-xs flex items-center justify-center font-bold">3</span>
                             Route Details
                         </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">Hub Assignment</label>
+                                <select v-model="form.hubId"
+                                    class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all">
+                                    <option value="">Auto-select best available hub</option>
+                                    <option v-for="warehouse in store.warehouses" :key="warehouse.id" :value="warehouse.id">
+                                        {{ warehouse.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="rounded-lg border border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 px-4 py-3">
+                                <div class="text-[11px] uppercase tracking-wider font-bold text-green-700 dark:text-green-300">
+                                    {{ routingPreview?.assignment_type === 'selected' ? 'Selected Hub' : 'Routing Preview' }}
+                                </div>
+                                <div class="text-sm font-bold text-gray-900 dark:text-white mt-1">
+                                    {{ routingPreview?.warehouse_name || 'Resolving best available hub...' }}
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                                    {{ routingPreview?.message || 'We will choose the best available operational hub if you do not select one.' }}
+                                </div>
+                            </div>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">Pickup
@@ -335,6 +358,29 @@
                         <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <span class="material-symbols-outlined text-blue-500">route</span> Pickup & Delivery
                         </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">Hub Assignment</label>
+                                <select v-model="form.hubId"
+                                    class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all">
+                                    <option value="">Auto-select best available hub</option>
+                                    <option v-for="warehouse in store.warehouses" :key="warehouse.id" :value="warehouse.id">
+                                        {{ warehouse.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="rounded-lg border border-blue-200 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-500/5 px-4 py-3">
+                                <div class="text-[11px] uppercase tracking-wider font-bold text-blue-700 dark:text-blue-300">
+                                    {{ routingPreview?.assignment_type === 'selected' ? 'Selected Hub' : 'Routing Preview' }}
+                                </div>
+                                <div class="text-sm font-bold text-gray-900 dark:text-white mt-1">
+                                    {{ routingPreview?.warehouse_name || 'Resolving best available hub...' }}
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                                    {{ routingPreview?.message || 'We will choose the best available operational hub if you do not select one.' }}
+                                </div>
+                            </div>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">Pickup
@@ -420,6 +466,23 @@
                             :class="moveType === 'house-shift' ? 'text-green-500' : 'text-blue-500'">receipt_long</span>
                         {{ moveType === 'house-shift' ? 'Estimated Cost' : 'Package Cost' }}
                     </h3>
+                    <div
+                        class="mb-4 rounded-lg border px-4 py-3"
+                        :class="moveType === 'house-shift'
+                            ? 'border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5'
+                            : 'border-blue-200 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-500/5'">
+                        <div
+                            class="text-[11px] uppercase tracking-wider font-bold"
+                            :class="moveType === 'house-shift' ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'">
+                            {{ routingPreview?.assignment_type === 'selected' ? 'Selected Hub' : 'This Order Will Go To' }}
+                        </div>
+                        <div class="text-sm font-bold text-gray-900 dark:text-white mt-1">
+                            {{ routingPreview?.warehouse_name || 'Resolving best available hub...' }}
+                        </div>
+                        <div class="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                            {{ routingPreview?.message || 'We will choose the best available operational hub if you do not select one.' }}
+                        </div>
+                    </div>
 
                     <!-- House Shift Pricing -->
                     <template v-if="moveType === 'house-shift'">
@@ -589,6 +652,12 @@
                                 form.laborCount : pkg.weight + ' kg' }}</div>
                         </div>
                     </div>
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg text-sm">
+                        <div class="text-xs text-gray-500 mb-1">Assigned Hub</div>
+                        <div class="font-medium text-gray-900 dark:text-white">
+                            {{ confirmedOrder?.warehouseName || routingPreview?.warehouse_name || 'Pending assignment' }}
+                        </div>
+                    </div>
                     <!-- Dummy text removed -->
                 </div>
                 <template #footer>
@@ -650,7 +719,7 @@ const form = reactive({
     cargoType: 'Household Goods', pickup: '', destination: '', date: '',
     timeWindow: '09:00 AM - 12:00 PM', laborCount: 2, packingRequired: true, vehicleType: 'tempo',
     materials: { boxes: 10, bubbleWrap: 2, plasticCrates: 0, blankets: 4, wardrobeBoxes: 0, tape: 3 },
-    instructions: '', paymentMode: 'Full Payment', isDummyPayment: false,
+    instructions: '', paymentMode: 'Full Payment', isDummyPayment: false, hubId: '',
 })
 
 // Coordinates from MapPicker for distance calculation
@@ -716,6 +785,8 @@ const timeSlots = [
     { value: '12:00 PM - 03:00 PM', label: '12 – 3 PM', demand: 'Low Demand', demandColor: 'text-green-500', priceTag: '-8%', priceColor: 'text-green-600 dark:text-green-400', recommended: true },
     { value: '03:00 PM - 06:00 PM', label: '3 – 6 PM', demand: 'High Demand', demandColor: 'text-red-500', priceTag: '+10%', priceColor: 'text-red-500', recommended: false },
 ]
+
+const routingPreview = computed(() => store.assignmentPreview)
 
 const selectedVehicle = computed(() => store.vehicleTypes.find(v => v.key === form.vehicleType))
 const serviceTimeBlock = computed(() => { const v = selectedVehicle.value; return v?.key === 'hcv' ? '4-5 hours' : v?.key === 'lcv' ? '3-4 hours' : v?.key === 'tempo' ? '2-3 hours' : '1-2 hours' })
@@ -792,20 +863,11 @@ async function confirmBooking(payment_id = null, method = null) {
             preferredPickupDate: moveType.value === 'small-package' ? pkg.preferredDate : null,
             estimatedDelivery: moveType.value === 'small-package' ? estimatedDelivery.value : null,
             paymentStatus: form.paymentMode === 'COD' ? 'pending' : (form.paymentMode === 'Partial' ? 'partial' : 'paid'),
+            paymentAmount: form.paymentMode === 'COD' ? 0 : paymentAmount.value,
+            paymentRef: payment_id,
+            paymentMethod: method || razorpayMethod.value || 'Online',
+            warehouseId: form.hubId || null,
         })
-
-        // Add payment record if paid
-        if (form.paymentMode !== 'COD') {
-            store.payments.push({
-                id: payment_id || ('PAY-' + Math.floor(1000 + Math.random() * 9000)),
-                orderId: order.id,
-                amount: paymentAmount.value,
-                date: new Date().toLocaleDateString('en-IN'),
-                status: 'completed',
-                mode: method || razorpayMethod.value || 'Online',
-                isDummy: false
-            })
-        }
 
         confirmedOrderId.value = order.id
         confirmedOrder.value = order
@@ -835,9 +897,18 @@ function resetForm() {
     form.pickup = ''; form.destination = ''; form.date = ''; form.laborCount = 2
     form.packingRequired = true; form.cargoType = 'Household Goods'; form.vehicleType = 'tempo'
     form.materials = { boxes: 10, bubbleWrap: 2, plasticCrates: 0, blankets: 4, wardrobeBoxes: 0, tape: 3 }
-    form.instructions = ''; form.paymentMode = 'Full Payment'; form.isDummyPayment = false
+    form.instructions = ''; form.paymentMode = 'Full Payment'; form.isDummyPayment = false; form.hubId = ''
     pkg.description = ''; pkg.weight = 2.5; pkg.preferredDate = ''; pkg.packageType = 'Document'
     pickupCoords.value = null; destCoords.value = null
     showToast('Form reset.', 'success')
 }
+
+watch(() => form.hubId, (hubId) => {
+    store.fetchOrderAssignmentPreview(hubId || null).catch(() => {})
+})
+
+onMounted(async () => {
+    await store.fetchWarehouses()
+    await store.fetchOrderAssignmentPreview(form.hubId || null)
+})
 </script>

@@ -208,6 +208,21 @@ function finalTaxInvoiceReplacements(order, user) {
 }
 
 function proofOfDeliveryReplacements(order, user) {
+  const photos = order?.pod?.photos || []
+  const signature = order?.pod?.signature || null
+  const driverName = order?.driver || '—'
+
+  function photoSlot(id, base64) {
+    if (base64) {
+      return `id="${id}" class="w-full h-[100px] rounded mb-2" style="overflow:hidden"><img src="data:image/jpeg;base64,${base64}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;" />`
+    }
+    return `id="${id}" class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2"><span class="text-[35px]">📷</span>`
+  }
+
+  const sigContent = signature
+    ? `id="pod-sig" class="rounded h-[60px] bg-white mb-2" style="overflow:hidden"><img src="data:image/png;base64,${signature}" style="width:100%;height:100%;object-fit:contain;" />`
+    : `id="pod-sig" class="border-2 border-gray-400 rounded h-[60px] bg-white mb-2">`
+
   return {
     'CC-12345':                      order?.id || '—',
     'December 20, 2024':             order?.eta || fmtShort(new Date()),
@@ -219,6 +234,12 @@ function proofOfDeliveryReplacements(order, user) {
     'Bangalore, Karnataka - 560066': '',
     '456 Maple Avenue, Indiranagar': order?.destination || '—',
     'Bangalore, Karnataka - 560038': '',
+    'Prakash Reddy (DRV-8765)':      driverName,
+    'Name: Sarah Khan':              `Name: ${user?.name || '—'}`,
+    'id="pod-p1" class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2"><span class="text-[35px]">📷</span>': photoSlot('pod-p1', photos[0]),
+    'id="pod-p2" class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2"><span class="text-[35px]">📷</span>': photoSlot('pod-p2', photos[1]),
+    'id="pod-p3" class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2"><span class="text-[35px]">📷</span>': photoSlot('pod-p3', photos[2]),
+    'id="pod-sig" class="border-2 border-gray-400 rounded h-[60px] bg-white mb-2">': sigContent,
   }
 }
 

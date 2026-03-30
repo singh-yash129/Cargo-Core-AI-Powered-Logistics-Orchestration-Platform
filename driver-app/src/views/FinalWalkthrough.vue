@@ -32,7 +32,10 @@
                         @click="captureAfterPhoto(i)">
                         <img v-if="photo" :src="photo" class="w-full h-full object-cover" />
                         <div v-else class="flex flex-col items-center gap-1">
-                            <span class="material-icons text-2xl" :class="isDark ? 'text-gray-600' : 'text-gray-300'">add_a_photo</span>
+                            <span class="material-icons text-2xl"
+                                :class="isCapturing ? 'animate-spin text-purple-400' : isDark ? 'text-gray-600' : 'text-gray-300'">
+                                {{ isCapturing ? 'hourglass_empty' : 'add_a_photo' }}
+                            </span>
                             <span class="text-[9px]" :class="isDark ? 'text-gray-600' : 'text-gray-400'">After {{ i + 1 }}</span>
                         </div>
                     </div>
@@ -103,10 +106,12 @@ import { ref, computed } from 'vue'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
+import { useCamera } from '../composables/useCamera.js'
 
 const jobStore = useJobStore()
 const uiStore = useUiStore()
 const { advanceAndNavigate } = useFlowRouter()
+const { scanDocument, isCapturing } = useCamera()
 const isDark = computed(() => uiStore.theme !== 'light')
 const afterPhotos = ref([])
 const damageNotes = ref('')
@@ -133,13 +138,14 @@ const blockReason = computed(() => {
     return ''
 })
 
-function captureAfterPhoto(index) {
-    const dummyImages = [
-        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300&q=80',
-        'https://images.unsplash.com/photo-1556909175-c6f88b491614?w=300&q=80',
-        'https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=300&q=80',
-    ]
-    afterPhotos.value[index] = dummyImages[index % 3]
+async function captureAfterPhoto(index) {
+    const result = await scanDocument('After Photo')
+    if (!result) return
+    const dataUrl = result.base64.startsWith('data:')
+        ? result.base64
+        : `data:image/jpeg;base64,${result.base64}`
+    afterPhotos.value[index] = dataUrl
+    afterPhotos.value = [...afterPhotos.value]
     uiStore.showToast('After photo captured ✓', 'success', 1500)
 }
 
