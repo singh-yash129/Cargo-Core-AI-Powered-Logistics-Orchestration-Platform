@@ -12,6 +12,12 @@ backend/.env
 __pycache__/
 *.pyc
 
+# Local tool settings and generated reports
+/.claude/settings.local.json
+/driver_workflow_test_report.json
+/backend/curl_out.txt
+/backend/debug_*.txt
+
 # Root-level scratch and one-off debug scripts
 /check_users.py
 /delete_all_users.py
