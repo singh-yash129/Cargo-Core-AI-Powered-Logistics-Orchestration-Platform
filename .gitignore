@@ -30,3 +30,12 @@ __pycache__/
 /test_redis.py
 /test_redis2.py
 /test_redis3.py
+
+# Old local design/schema artifacts
+/CLASS_DIAGRAM.dbml
+/CLASS_DIAGRAM_UML.puml
+/DATABASE_DESIGN.txt
+/DATABASE_SCHEMA.dbml
+/DESIGN_OF_COMPONENTS.txt
+/ER_DIAGRAM.dbml
+/out/CLASS_DIAGRAM_UML/
