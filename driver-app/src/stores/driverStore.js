@@ -126,6 +126,25 @@ export const useDriverStore = defineStore('driver', () => {
         if (context?.shift?.started_at) {
             shiftStartTime.value = context.shift.started_at
         }
+
+        // If there's an active in-progress job, the driver already went through
+        // the shift flow in a prior session — skip all flow gates so they land
+        // directly on their current job screen instead of pre-shift.
+        const activeJob = context?.current_job
+        const activeState = activeJob?.currentState || activeJob?.jobState || ''
+        const midFlowStates = [
+            'START_ROUTE', 'IN_TRANSIT', 'IN_TRANSIT_TO_PICKUP', 'ARRIVE_PICKUP',
+            'SCAN_ITEMS', 'PICKUP_SIGNATURE', 'LOAD_CONFIRM', 'RETURN_TRANSIT',
+            'WAREHOUSE_ARRIVAL', 'UNLOAD_VERIFY', 'ARRIVED', 'DELIVERY_IN_PROGRESS',
+            'SERVICE_CHECKLIST', 'POD_CAPTURE', 'COD_COLLECTION',
+        ]
+        if (midFlowStates.includes(activeState)) {
+            preShiftDone.value = true
+            inspectionDone.value = true
+            jobTypeSelected.value = true
+            loadVerified.value = true
+            gateExited.value = true
+        }
     }
 
     async function refreshDashboard() {

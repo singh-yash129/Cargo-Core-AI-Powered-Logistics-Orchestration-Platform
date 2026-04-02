@@ -469,6 +469,7 @@ async function fetchDockData() {
         if (packedRes.status === 'fulfilled' && packedRes.value.ok) {
             const data = await packedRes.value.json()
             const items = (data.items || []).filter(order =>
+                order.status !== 'CANCELLED' &&
                 ['QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK'].includes(getEffectiveWarehouseSubstatus(order, warehouseId))
             )
             outboundOrders.value = items.map(order => ({

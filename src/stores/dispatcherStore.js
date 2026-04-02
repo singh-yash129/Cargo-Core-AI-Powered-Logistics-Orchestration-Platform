@@ -30,6 +30,10 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
     const pendingOrders = ref([])
     const ordersLoading = ref(false)
 
+    // Vehicles fetched directly (DISPATCHER can't access /logistics/bootstrap)
+    const _vehicles = ref([])
+    const vehiclesLoading = ref(false)
+
     // Active orders (ASSIGNED / IN_TRANSIT) for Order Status Control
     const activeOrders = ref([])
     const activeOrdersLoading = ref(false)
@@ -98,6 +102,22 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
         }
     }
 
+    async function fetchVehicles() {
+        vehiclesLoading.value = true
+        try {
+            const res = await fetch(`${API_BASE}/api/v1/logistics/vehicles`, {
+                headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            })
+            if (res.ok) {
+                const data = await res.json()
+                _vehicles.value = Array.isArray(data) ? data : []
+            }
+        } catch (_) {
+        } finally {
+            vehiclesLoading.value = false
+        }
+    }
+
     async function fetchContacts() {
         try {
             const res = await fetch(`${API_BASE}/api/v1/logistics/dispatch-contacts`, {
@@ -142,7 +162,7 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
         } catch (_) {
             // /logistics/bootstrap requires LOGISTIC_MANAGER role — skip gracefully for DISPATCHER
         }
-        await Promise.all([fetchOrders(), fetchDrivers(), fetchActiveOrders(), fetchChats(), fetchContacts()])
+        await Promise.all([fetchOrders(), fetchDrivers(), fetchVehicles(), fetchActiveOrders(), fetchChats(), fetchContacts()])
         // React to warehouse marking orders ready (same-tab event)
         if (typeof window !== 'undefined') {
             window.removeEventListener('warehouse-orders-updated', fetchOrders)
@@ -401,7 +421,19 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
     const isLoading = computed(() => ls.isLoading || ordersLoading.value)
     const dashboardStats = computed(() => ls.dashboardStats)
     const hubs = computed(() => ls.hubs)
-    const filteredVehicles = computed(() => ls.filteredVehicles)
+    // Prefer directly fetched vehicles (works for DISPATCHER role); fall back to logistic store bootstrap data
+    const filteredVehicles = computed(() =>
+        _vehicles.value.length > 0
+            ? _vehicles.value.map(v => ({
+                id: String(v.id),
+                code: v.code || '',
+                licensePlate: v.license_plate || v.licensePlate || '',
+                model: v.model || '',
+                status: v.status || '',
+                type: v.type || v.vehicle_type || '',
+            }))
+            : ls.filteredVehicles
+    )
     const filteredChats = computed(() => ls.filteredChats)
     const filteredEscalations = computed(() => ls.filteredEscalations)
     const filteredZones = computed(() => ls.filteredZones)
@@ -492,6 +524,7 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
         initialize,
         fetchOrders,
         fetchDrivers,
+        fetchVehicles,
         fetchActiveOrders,
         fetchChats,
         fetchContacts,

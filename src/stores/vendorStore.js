@@ -502,6 +502,7 @@ export const useVendorStore = defineStore('vendor', () => {
         )
         const baseAmount = Math.max(total - packingAmount - laborAmount, 0)
 
+        const priorityMap = { 'Urgent': 'URGENT', 'Express': 'HIGH', 'Standard': 'NORMAL' }
         const response = await fetch(`${API_BASE}/orders`, {
             method: 'POST',
             headers: getAuthHeaders(true),
@@ -512,6 +513,7 @@ export const useVendorStore = defineStore('vendor', () => {
                 delivery_addr: deliveryAddr,
                 cargo_type: data.description || data.category || 'Commercial Shipment',
                 vehicle_type: data.category || 'commercial',
+                priority: priorityMap[data.priority] || 'NORMAL',
                 labor_count: Number(data.laborCount || 0),
                 base_amount: baseAmount,
                 vehicle_amount: 0,
@@ -526,6 +528,8 @@ export const useVendorStore = defineStore('vendor', () => {
                 payment_status: 'pending',
                 service_time_block: data.timeWindow || null,
                 scheduled_at: scheduledAt,
+                delivery_lat: data.destLat || null,
+                delivery_lng: data.destLng || null,
             }),
         })
 

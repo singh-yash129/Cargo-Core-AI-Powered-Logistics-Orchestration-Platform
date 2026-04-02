@@ -104,13 +104,20 @@
         <!-- ── STICKY FOOTER ────────────────────────── -->
         <div class="screen-footer px-5 py-4 border-t"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
-            <button @click="proceedToScanning" :disabled="!isWithinGeofence"
+            <button @click="proceedToScanning" :disabled="!isWithinGeofence && !geofenceOverride"
                 class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-lg active:scale-[0.98] transition-all"
-                :class="isWithinGeofence
+                :class="(isWithinGeofence || geofenceOverride)
                     ? 'bg-primary text-background-dark shadow-glow'
                     : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
-                <span class="material-icons">{{ isWithinGeofence ? 'qr_code_scanner' : 'lock' }}</span>
-                {{ isWithinGeofence ? 'Begin Item Scanning' : `Get within ${Math.round(distanceFromGeofence)}m to continue` }}
+                <span class="material-icons">{{ (isWithinGeofence || geofenceOverride) ? 'qr_code_scanner' : 'lock' }}</span>
+                {{ (isWithinGeofence || geofenceOverride) ? 'Begin Item Scanning' : `Get within ${Math.round(distanceFromGeofence)}m to continue` }}
+            </button>
+            <!-- DEV BYPASS — remove before production -->
+            <button @click="geofenceOverride = !geofenceOverride"
+                class="w-full mt-2 rounded-xl h-9 flex items-center justify-center gap-1 text-xs font-bold transition-all"
+                :class="geofenceOverride ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40' : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'">
+                <span class="material-icons text-[14px]">{{ geofenceOverride ? 'lock_open' : 'bug_report' }}</span>
+                {{ geofenceOverride ? 'DEV: Geofence bypassed' : 'DEV: Bypass geofence' }}
             </button>
         </div>
     </div>
@@ -135,6 +142,8 @@ const gps = useGpsTracking()
 const { currentLocation, startTracking, stopTracking, checkGeofence } = gps
 
 const stop = computed(() => jobStore.currentStop || {})
+
+const geofenceOverride = ref(false)
 
 const geofenceCheck = computed(() => {
     if (!stop.value.location || !currentLocation.value) {
@@ -182,7 +191,16 @@ onUnmounted(() => {
 })
 
 async function proceedToScanning() {
-    if (!isWithinGeofence.value) return
+    if (!isWithinGeofence.value && !geofenceOverride.value) return
+
+    // Re-ensure arrival state in case onMounted transition failed
+    try {
+        jobStore.ensureArrivalState(route.params.id || null, {
+            arrivedAt: new Date().toISOString(),
+        })
+    } catch (e) {
+        console.warn('ensureArrivalState in proceedToScanning failed:', e)
+    }
 
     // Transition FSM state and navigate
     advanceAndNavigate('SCAN_ITEMS', {

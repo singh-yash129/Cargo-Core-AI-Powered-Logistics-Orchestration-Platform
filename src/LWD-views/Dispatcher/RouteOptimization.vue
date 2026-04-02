@@ -96,10 +96,18 @@
                     <div v-if="optimizedRoutes.length > 0" class="pt-4 border-t border-gray-200 dark:border-white/5">
                         <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-2">Driver Routes</div>
                         <div class="space-y-1.5">
-                            <div v-for="route in optimizedRoutes" :key="route.driver_id" class="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                                <span class="w-3 h-3 rounded-full flex-shrink-0" :style="{ backgroundColor: route.color }"></span>
-                                <span class="font-medium truncate">{{ route.driver_name }}</span>
-                                <span class="ml-auto text-gray-500 flex-shrink-0">{{ route.stops.length }} stops</span>
+                            <div v-for="route in optimizedRoutes" :key="route.driver_id" class="space-y-0.5">
+                                <div class="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                    <span class="w-3 h-3 rounded-full flex-shrink-0" :style="{ backgroundColor: route.color }"></span>
+                                    <span class="font-medium truncate">{{ route.driver_name }}</span>
+                                    <span class="ml-auto text-gray-500 flex-shrink-0">{{ route.stops.length }} stops</span>
+                                </div>
+                                <div v-for="(stop, si) in route.stops" :key="stop.order_id" class="flex items-center gap-1.5 pl-5 text-[10px] text-gray-500">
+                                    <span class="font-mono">{{ si + 1 }}.</span>
+                                    <span class="truncate flex-1">{{ stop.tracking_code }}</span>
+                                    <span v-if="stop.priority === 'URGENT'" class="text-red-400 font-bold">URGENT</span>
+                                    <span v-else-if="stop.priority === 'HIGH'" class="text-yellow-500 font-bold">EXPRESS</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -526,11 +534,12 @@ async function runOptimizer() {
             adjustForm.efficiency = routeStats.efficiency
             showToast(`✓ ${data.length} optimal route(s) generated`)
         } else {
-            showToast('✗ Optimization failed. Please try again.')
+            const err = await res.json().catch(() => ({}))
+            showToast('✗ ' + (err.detail || 'Optimization failed. Please try again.'))
         }
     } catch (err) {
         console.error('Optimization error:', err)
-        showToast('✗ Network error. Check your connection.')
+        showToast('✗ Cannot reach server. Is the backend running?')
     }
     optimizing.value = false
 }

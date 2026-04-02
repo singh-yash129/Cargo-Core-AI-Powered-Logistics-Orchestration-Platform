@@ -40,6 +40,10 @@
                                     }}</span>
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
                                     :class="statusBadge(order.status)">{{ order.status.replace('-', ' ') }}</span>
+                                <span v-if="order.hasDamageReport" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                                    :class="damageStatusBadge(order.damageReportStatus)">
+                                    {{ damageStatusLabel(order.damageReportStatus) }}
+                                </span>
                                 <span v-if="order.moveType === 'small-package'"
                                     class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400">Package</span>
                             </div>
@@ -102,6 +106,31 @@
                                 <div v-if="order.cancellation"
                                     class="p-3 bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 rounded-lg text-sm">
                                     <div class="text-red-600 dark:text-red-400 font-bold">{{ order.cancellation.reason }}</div>
+                                </div>
+
+                                <div v-if="order.hasDamageReport"
+                                    class="p-3 bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 rounded-lg text-sm space-y-2">
+                                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                                        <div class="font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[18px]">report</span>
+                                            Damage Report {{ order.damageReportId }}
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                                            :class="damageStatusBadge(order.damageReportStatus)">
+                                            {{ damageStatusLabel(order.damageReportStatus) }}
+                                        </span>
+                                    </div>
+                                    <div v-if="order.damageCondition" class="text-xs text-gray-600 dark:text-gray-300">
+                                        Condition: <span class="font-bold">{{ order.damageCondition }}</span>
+                                    </div>
+                                    <div v-if="order.damageRefundAmount && order.damageRefundAmount > 0" class="text-xs text-green-700 dark:text-green-400 font-bold">
+                                        Refund: ₹{{ order.damageRefundAmount.toLocaleString() }}
+                                    </div>
+                                    <router-link to="/individual/damage-report"
+                                        class="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:underline">
+                                        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                                        View Damage Report
+                                    </router-link>
                                 </div>
 
                             <!-- Actions -->
@@ -270,7 +299,10 @@ const filteredOrders = computed(() => {
 })
 
 onMounted(() => {
-    store.fetchOrders()
+    Promise.all([
+        store.fetchOrders(),
+        store.fetchDamageReports(),
+    ])
 })
 
 watch(statusFilter, () => {
@@ -280,6 +312,8 @@ watch(statusFilter, () => {
 function statusIcon(st) { return { 'delivered': 'check_circle', 'in-transit': 'local_shipping', 'dispatched': 'person_pin_circle', 'pending': 'schedule', 'cancelled': 'cancel' }[st] || 'package_2' }
 function statusBg(st) { return { 'delivered': 'bg-green-500/20 text-green-500', 'in-transit': 'bg-blue-500/20 text-blue-500', 'dispatched': 'bg-purple-500/20 text-purple-500', 'pending': 'bg-amber-500/20 text-amber-500', 'cancelled': 'bg-red-500/20 text-red-500' }[st] || '' }
 function statusBadge(st) { return { 'delivered': 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400', 'in-transit': 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', 'dispatched': 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400', 'pending': 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400', 'cancelled': 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' }[st] || '' }
+function damageStatusLabel(st) { return { reported: 'Damage Reported', inspected: 'Under Review', resolved: 'Resolved', rejected: 'Rejected' }[String(st || '').toLowerCase()] || 'Damage Reported' }
+function damageStatusBadge(st) { return { reported: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400', inspected: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', resolved: 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400', rejected: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' }[String(st || '').toLowerCase()] || 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' }
 
 // Cancel
 const cancelModal = reactive({ show: false, order: null })

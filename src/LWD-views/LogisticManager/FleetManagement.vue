@@ -23,8 +23,9 @@
             <!-- Live badge overlay -->
             <div class="absolute top-3 left-3 z-[401] pointer-events-none">
                 <div class="bg-white/90 dark:bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-gray-900 dark:text-white text-xs font-bold flex items-center gap-2 border border-gray-200 dark:border-white/10 shadow-md">
-                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    Live Fleet Map &mdash; {{ fleetActiveDrivers.length }} driver{{ fleetActiveDrivers.length !== 1 ? 's' : '' }} tracked
+                    <span class="w-2 h-2 rounded-full animate-pulse" :class="wsConnected ? 'bg-green-500' : 'bg-yellow-400'"></span>
+                    Live Fleet Map &mdash; {{ liveDrivers.length }} driver{{ liveDrivers.length !== 1 ? 's' : '' }} tracked
+                    <span class="text-[10px] px-1.5 py-0.5 rounded font-mono" :class="wsConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'">{{ wsConnected ? 'WS' : 'POLL' }}</span>
                 </div>
             </div>
             <l-map :zoom="11" :center="fleetMapCenter" :use-global-leaflet="false" style="height:300px;width:100%;border-radius:0.75rem;">
@@ -33,7 +34,7 @@
                     layer-type="base"
                     name="CartoDB Voyager"
                 />
-                <l-marker v-for="d in fleetActiveDrivers" :key="d.driver_id" :lat-lng="[d.latitude, d.longitude]">
+                <l-marker v-for="d in liveDrivers" :key="d.driver_id" :lat-lng="[d.latitude, d.longitude]">
                     <l-popup>
                         <div class="text-xs p-1">
                             <div class="font-bold flex items-center gap-1 mb-1">
@@ -575,13 +576,13 @@
                 <!-- Status badge -->
                 <div class="absolute top-3 left-3 z-[401] pointer-events-none">
                     <div class="bg-white/90 dark:bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-gray-900 dark:text-white text-xs font-bold flex items-center gap-2 border border-gray-200 dark:border-white/10 shadow-md">
-                        <span v-if="fleetTrackingLoading" class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
-                        <span v-else class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        {{ fleetTrackingLoading ? 'Fetching locations...' : `${fleetActiveDrivers.length} active driver${fleetActiveDrivers.length !== 1 ? 's' : ''} tracked` }}
+                        <span class="w-2 h-2 rounded-full animate-pulse" :class="fleetLoading ? 'bg-yellow-400' : wsConnected ? 'bg-green-500' : 'bg-yellow-400'"></span>
+                        {{ fleetLoading ? 'Fetching locations...' : `${liveDrivers.length} active driver${liveDrivers.length !== 1 ? 's' : ''} tracked` }}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded font-mono" :class="wsConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'">{{ wsConnected ? 'WS' : 'POLL' }}</span>
                     </div>
                 </div>
                 <!-- No data hint -->
-                <div v-if="!fleetTrackingLoading && fleetActiveDrivers.length === 0"
+                <div v-if="!fleetLoading && liveDrivers.length === 0"
                     class="absolute inset-0 flex items-center justify-center z-[402] pointer-events-none">
                     <div class="bg-white/90 dark:bg-black/70 backdrop-blur-md px-6 py-4 rounded-xl border border-gray-200 dark:border-white/10 text-center shadow-lg">
                         <span class="material-symbols-outlined text-gray-400 text-3xl block mb-2">location_off</span>
@@ -589,13 +590,13 @@
                         <p class="text-xs text-gray-500 mt-1">GPS data will appear once drivers start their shift and send location.</p>
                     </div>
                 </div>
-                <l-map :zoom="selectedFleetDriver ? 14 : 11" :center="fleetMapCenter" :use-global-leaflet="false" style="height:100%;width:100%;">
+                <l-map ref="liveLocationsMap" :zoom="selectedFleetDriver ? 14 : 11" :center="fleetMapCenter" :use-global-leaflet="false" style="height:100%;width:100%;">
                     <l-tile-layer
                         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                         layer-type="base"
                         name="CartoDB Voyager"
                     />
-                    <l-marker v-for="d in fleetActiveDrivers" :key="d.driver_id" :lat-lng="[d.latitude, d.longitude]">
+                    <l-marker v-for="d in liveDrivers" :key="d.driver_id" :lat-lng="[d.latitude, d.longitude]">
                         <l-popup>
                             <div class="text-xs p-1">
                                 <div class="font-bold flex items-center gap-1 mb-1">
@@ -619,14 +620,14 @@
             <div class="glass-panel rounded-xl p-5 border border-gray-200 dark:border-white/5">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-bold text-gray-900 dark:text-white text-sm">Active Driver Locations</h3>
-                    <span class="text-xs text-gray-500">Auto-refreshes every 10s</span>
+                    <span class="text-xs text-gray-500">{{ wsConnected ? 'Live via WebSocket' : 'Polling every 30s' }}</span>
                 </div>
-                <div v-if="fleetActiveDrivers.length === 0" class="text-center py-8 text-gray-400 text-sm">
+                <div v-if="liveDrivers.length === 0" class="text-center py-8 text-gray-400 text-sm">
                     <span class="material-symbols-outlined block text-3xl mb-2">signal_disconnected</span>
                     No live GPS data. Drivers need to start a shift on the driver app.
                 </div>
                 <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <div v-for="d in fleetActiveDrivers" :key="d.driver_id"
+                    <div v-for="d in liveDrivers" :key="d.driver_id"
                         class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-transparent hover:border-primary/30 transition-colors cursor-pointer"
                         @click="selectedFleetDriver = d">
                         <div class="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
@@ -1175,7 +1176,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
 import { useSlipPrinter } from '@/composables/useSlipPrinter'
-import { useRealTimeTracking } from '@/composables/useRealTimeTracking'
+import { apiUrl, API_BASE_URL } from '@/config/api'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
@@ -1193,16 +1194,120 @@ const { openSlip, openSlipWithData } = useSlipPrinter()
 const store = useLogisticStore()
 const { filteredTopDrivers, filteredMaintenance, filteredVehicles } = storeToRefs(store)
 
-// Real-time tracking (same composable as Dispatcher)
-const { activeDrivers: fleetActiveDrivers, loading: fleetTrackingLoading } = useRealTimeTracking()
+// ── Live Tracking (WebSocket + REST fallback) ──────────────────────────────────
+const liveDrivers = ref([])
+const fleetLoading = ref(false)
+const wsConnected = ref(false)
+const liveLocationsMap = ref(null)
 
-// Center map on drivers if any, else default to Mumbai
+let fleetWs = null
+let wsReconnectTimer = null
+let wsReconnectDelay = 2000
+let pollFallbackTimer = null
+
+function buildWsUrl() {
+    const token = localStorage.getItem('auth_token') || ''
+    const wsBase = API_BASE_URL.replace(/^http/, 'ws')
+    return `${wsBase}/ws/fleet?token=${encodeURIComponent(token)}`
+}
+
+function applyLocationUpdate(msg) {
+    if (msg.latitude == null || msg.longitude == null) return
+    const existing = liveDrivers.value.findIndex(d => d.driver_id === msg.driver_id)
+    const entry = {
+        driver_id: msg.driver_id,
+        driver_name: msg.driver_name,
+        latitude: msg.latitude,
+        longitude: msg.longitude,
+        status: msg.status,
+        vehicle_code: msg.vehicle_code,
+        vehicle_id: msg.vehicle_id,
+        last_updated: msg.last_updated,
+    }
+    if (existing >= 0) {
+        liveDrivers.value[existing] = entry
+    } else {
+        liveDrivers.value.push(entry)
+    }
+}
+
+function connectFleetWs() {
+    if (fleetWs && fleetWs.readyState <= WebSocket.OPEN) return
+    try {
+        fleetWs = new WebSocket(buildWsUrl())
+    } catch (e) {
+        scheduleWsReconnect()
+        return
+    }
+    fleetWs.onopen = () => {
+        wsConnected.value = true
+        wsReconnectDelay = 2000
+        clearInterval(pollFallbackTimer)
+        pollFallbackTimer = null
+    }
+    fleetWs.onmessage = (event) => {
+        try {
+            const msg = JSON.parse(event.data)
+            if (msg.type === 'location_update') applyLocationUpdate(msg)
+            if (msg.type === 'ping') fleetWs.send(JSON.stringify({ type: 'pong' }))
+        } catch (e) { /* ignore malformed frames */ }
+    }
+    fleetWs.onerror = () => { /* handled in onclose */ }
+    fleetWs.onclose = () => {
+        wsConnected.value = false
+        fleetWs = null
+        if (!pollFallbackTimer) {
+            pollFallbackTimer = setInterval(fetchLiveDrivers, 30000)
+        }
+        scheduleWsReconnect()
+    }
+}
+
+function scheduleWsReconnect() {
+    clearTimeout(wsReconnectTimer)
+    wsReconnectTimer = setTimeout(() => {
+        connectFleetWs()
+        wsReconnectDelay = Math.min(wsReconnectDelay * 2, 30000)
+    }, wsReconnectDelay)
+}
+
+function disconnectFleetWs() {
+    clearTimeout(wsReconnectTimer)
+    clearInterval(pollFallbackTimer)
+    if (fleetWs) {
+        fleetWs.onclose = null
+        fleetWs.close()
+        fleetWs = null
+    }
+    wsConnected.value = false
+}
+
+async function fetchLiveDrivers() {
+    fleetLoading.value = true
+    try {
+        const token = localStorage.getItem('auth_token')
+        const res = await fetch(apiUrl('api/v1/tracking/drivers'), {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        liveDrivers.value = data.filter(d => d.latitude != null && d.longitude != null)
+        if (liveDrivers.value.length > 0 && liveLocationsMap.value?.leafletObject) {
+            const bounds = L.latLngBounds(liveDrivers.value.map(d => [d.latitude, d.longitude]))
+            liveLocationsMap.value.leafletObject.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 })
+        }
+    } catch (e) { /* silent */ } finally {
+        fleetLoading.value = false
+    }
+}
+
+// Center map on first active driver, fallback to India center
 const fleetMapCenter = computed(() => {
-    if (fleetActiveDrivers.value.length > 0) {
-        const first = fleetActiveDrivers.value[0]
+    if (liveDrivers.value.length > 0) {
+        const first = liveDrivers.value[0]
         return [first.latitude, first.longitude]
     }
-    return [19.0760, 72.8777]
+    return [20.5937, 78.9629]
 })
 
 // Selected driver for zoom-to focus on live map
@@ -1627,12 +1732,14 @@ const closeDropdowns = () => {
 
 onMounted(() => {
     document.addEventListener('click', closeDropdowns)
-    // Force-refresh vehicles/drivers so driver assignments from active orders are always current
     store.refresh().catch(() => {})
+    connectFleetWs()
+    fetchLiveDrivers()
 })
 
 onUnmounted(() => {
     document.removeEventListener('click', closeDropdowns)
+    disconnectFleetWs()
 })
 
 

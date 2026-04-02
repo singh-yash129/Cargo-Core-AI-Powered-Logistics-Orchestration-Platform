@@ -34,7 +34,8 @@
                         :style="`width: ${progressPercent}%`"></div>
                 </div>
                 <p class="text-xs mt-2" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
-                    {{ verifiedItems.length }} of {{ totalItems }} items verified
+                    <span v-if="isReturnPickup && totalItems === 0">Return item received from customer — no packages to scan</span>
+                    <span v-else>{{ verifiedItems.length }} of {{ totalItems }} items verified</span>
                 </p>
             </div>
 
@@ -99,7 +100,11 @@
                     ? 'bg-green-500 text-white shadow-xl'
                     : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
                 <span class="material-icons">{{ allItemsVerified ? 'check_circle' : 'lock' }}</span>
-                {{ allItemsVerified ? 'Complete Pickup Job' : `Verify ${totalItems - verifiedItems.length} more items` }}
+                {{ allItemsVerified
+                    ? 'Complete Pickup Job'
+                    : (isReturnPickup && totalItems === 0)
+                        ? 'Confirm Item Received'
+                        : `Verify ${totalItems - verifiedItems.length} more items` }}
             </button>
         </div>
     </div>
@@ -107,15 +112,18 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useCamera } from '../composables/useCamera.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
+import { storeToRefs } from 'pinia'
 
-const router = useRouter()
 const jobStore = useJobStore()
+const { navigateToCurrentState } = useFlowRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+const { jobType } = storeToRefs(jobStore)
+const isReturnPickup = computed(() => jobType.value === 'PARCEL_PICKUP')
 
 const { scanQrCode, isCapturing: isScanning } = useCamera()
 
@@ -134,7 +142,8 @@ const progressPercent = computed(() => {
 })
 
 const allItemsVerified = computed(() => {
-    return verifiedItems.value.length >= totalItems.value && totalItems.value > 0
+    if (totalItems.value === 0) return isReturnPickup.value  // return pickup: no items = ready
+    return verifiedItems.value.length >= totalItems.value
 })
 
 function isItemVerified(barcode) {
@@ -208,9 +217,9 @@ async function completeUnload() {
 
         uiStore.showToast('Pickup job completed successfully! 🎉', 'success', 3000)
 
-        // Navigate to dashboard or summary
+        // Navigate to job completion screen via the FSM route map
         setTimeout(() => {
-            router.push('/dashboard')
+            navigateToCurrentState()
         }, 1500)
     } catch (e) {
         uiStore.showToast(e.message, 'error', 2000)

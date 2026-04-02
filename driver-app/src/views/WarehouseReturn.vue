@@ -116,13 +116,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useGpsTracking } from '../composables/useGpsTracking.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
 
-const router = useRouter()
 const jobStore = useJobStore()
+const { navigateToCurrentState } = useFlowRouter()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
@@ -182,12 +182,12 @@ async function arrivedAtWarehouse() {
     if (!canMarkArrived.value) return
 
     try {
-        await jobStore.transition('WAREHOUSE_ARRIVAL', {
+        jobStore.transition('WAREHOUSE_ARRIVAL', {
             arrivedAt: new Date().toISOString(),
             location: gps.currentLocation.value
         })
         gps.stopTracking()
-        router.push('/unload-verification')
+        navigateToCurrentState()
     } catch (e) {
         uiStore.showToast(e.message, 'error', 2000)
     }

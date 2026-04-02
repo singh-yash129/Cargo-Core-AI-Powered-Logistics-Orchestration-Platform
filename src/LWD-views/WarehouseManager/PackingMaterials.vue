@@ -2,7 +2,13 @@
     <div class="space-y-6">
         <!-- Header -->
         <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Packing Materials & Returnable Assets</h2>
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Packing Materials & Returnable Assets</h2>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span class="text-xs text-green-600 dark:text-green-400 font-medium">Live · auto-refreshes every 30s</span>
+                </div>
+            </div>
             <div class="flex gap-2">
                 <button @click="showIssueModal = true"
                     class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
@@ -335,7 +341,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { apiUrl } from '@/config/api'
 
@@ -418,6 +424,8 @@ function formatIssuanceTime(createdAt) {
 function normalizeIssuanceLog(log = {}) {
     const movementType = (log.movement_type || log.type || '').toUpperCase()
     const type = movementType === 'RESERVED' || log.type === 'reserved' ? 'reserved' : 'issued'
+    // PACK movements are auto-deductions triggered by complete_packing; label them clearly
+    const isPack = movementType === 'PACK'
     const createdAt = log.created_at || log.createdAt || new Date().toISOString()
     const orderId = log.reference_order_tracking || log.orderId || (
         typeof log.reference_order_id === 'string' ? log.reference_order_id.slice(0, 8) : null
@@ -426,19 +434,22 @@ function normalizeIssuanceLog(log = {}) {
     const qty = Number(log.quantity ?? log.qty ?? 0)
     const issuedTo = log.issuedTo || log.performed_by_name || log.performedByName || 'System'
 
+    const displayStatus = isPack ? 'Auto-Packed' : (type === 'issued' ? 'Issued' : 'Reserved')
+    const displayStatusClass = isPack
+        ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+        : (type === 'issued' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20')
+
     return {
         id: String(log.id || `${type}-${orderId}-${material}-${qty}-${createdAt}`),
         orderId,
         material,
         qty,
-        issuedTo,
+        issuedTo: isPack ? 'System (Packing)' : issuedTo,
         time: formatIssuanceTime(createdAt),
         createdAt,
-        status: type === 'issued' ? 'Issued' : 'Reserved',
-        statusClass: type === 'issued'
-            ? 'bg-green-500/10 text-green-500 border-green-500/20'
-            : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-        type,
+        status: displayStatus,
+        statusClass: displayStatusClass,
+        type: isPack ? 'issued' : type,  // PACK shows in "Issued" tab
     }
 }
 
@@ -674,7 +685,7 @@ async function fetchData() {
             labourers.value = data.items || []
         }
 
-        // Load issuance logs from inventory movements (ISSUE type)
+        // Load issuance logs from inventory movements (ISSUE, PACK, RESERVED types)
         if (movementsRes.status === 'fulfilled') {
             if (movementsRes.value.ok) {
                 const data = await movementsRes.value.json()
@@ -682,7 +693,7 @@ async function fetchData() {
                 const movementLogs = movements
                     .filter(m => {
                         const t = (m.movement_type || '').toUpperCase()
-                        return t === 'ISSUE' || t === 'RESERVED'
+                        return t === 'ISSUE' || t === 'RESERVED' || t === 'PACK'
                     })
                     .map(m => normalizeIssuanceLog(m))
 
@@ -942,7 +953,30 @@ function escalateRestock() {
     setTimeout(() => { escalateMsg.value = '' }, 3000)
 }
 
+const AUTO_REFRESH_INTERVAL_MS = 30_000
+let autoRefreshTimer = null
+
+async function silentRefreshInventory() {
+    const warehouseId = getWarehouseId()
+    const headers = {
+        'Authorization': `Bearer ${authStore.authToken}`,
+        'Content-Type': 'application/json'
+    }
+    try {
+        const res = await fetch(apiUrl(`api/v1/inventory?page=1&page_size=100${warehouseId ? `&warehouse_id=${warehouseId}` : ''}`), { headers })
+        if (res.ok) {
+            const data = await res.json()
+            allInventory.value = data.items || data || []
+        }
+    } catch { /* silent — don't interrupt user */ }
+}
+
 onMounted(() => {
     fetchData()
+    autoRefreshTimer = setInterval(silentRefreshInventory, AUTO_REFRESH_INTERVAL_MS)
+})
+
+onUnmounted(() => {
+    clearInterval(autoRefreshTimer)
 })
 </script>

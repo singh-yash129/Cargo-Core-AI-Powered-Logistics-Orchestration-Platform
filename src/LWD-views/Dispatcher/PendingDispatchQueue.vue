@@ -130,7 +130,7 @@
                             <th class="p-4">Labor</th>
                             <th class="p-4">Priority</th>
                             <th class="p-4">Delivery Deadline</th>
-                            <th class="p-4">Special Instructions</th>
+                            <th class="p-4">Vehicle</th>
                             <th class="p-4">Feasibility</th>
                             <th class="p-4">Actions</th>
                         </tr>
@@ -138,7 +138,7 @@
                     <tbody class="divide-y divide-gray-200 dark:divide-white/5">
                         <tr v-for="order in filteredOrders" :key="order.id"
                             class="hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
-                            :class="order.loadingInProgress ? 'bg-amber-50/50 dark:bg-amber-500/5 opacity-80' : order.readyForDispatch ? 'bg-emerald-50/50 dark:bg-emerald-500/5' : ''">
+                            :class="order.type === 'PARCEL_PICKUP' ? 'bg-orange-50/40 dark:bg-orange-500/5 border-l-2 border-orange-400' : order.loadingInProgress ? 'bg-amber-50/50 dark:bg-amber-500/5 opacity-80' : order.readyForDispatch ? 'bg-emerald-50/50 dark:bg-emerald-500/5' : ''">
                             <td class="p-4">
                                 <input type="checkbox" v-model="order.selected" :disabled="order.loadingInProgress"
                                     class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed">
@@ -154,6 +154,11 @@
                                     class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                                     Ready for Dispatch
+                                </span>
+                                <span v-if="order.type === 'PARCEL_PICKUP'"
+                                    class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30">
+                                    <span class="material-symbols-outlined text-[11px]">undo</span>
+                                    RETURN PICKUP
                                 </span>
                             </td>
                             <td class="p-4">
@@ -187,12 +192,14 @@
                                 </div>
                             </td>
                             <td class="p-4">
-                                <div v-if="order.specialInstructions" class="max-w-[150px]">
-                                    <span class="text-xs text-yellow-600 dark:text-yellow-300 truncate block" :title="order.specialInstructions">
-                                        {{ order.specialInstructions }}
-                                    </span>
+                                <div v-if="order.vehicleId" class="flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-emerald-400 text-[14px]">local_shipping</span>
+                                    <span class="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold">{{ order.vehicle }}</span>
                                 </div>
-                                <span v-else class="text-gray-600">—</span>
+                                <div v-else class="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                                    <span class="material-symbols-outlined text-[14px]">warning</span>
+                                    No vehicle
+                                </div>
                             </td>
                             <td class="p-4">
                                 <div v-if="order.feasibility === 'feasible'"
@@ -215,8 +222,8 @@
                                     </button>
                                     <button @click="assignDriver(order)" :disabled="order.loadingInProgress"
                                         class="p-1.5 rounded transition-colors"
-                                        :class="order.loadingInProgress ? 'bg-gray-100 dark:bg-white/5 text-gray-400 cursor-not-allowed opacity-50' : 'bg-green-100 dark:bg-primary/10 hover:bg-green-200 dark:hover:bg-primary/20 text-green-700 dark:text-primary'"
-                                        :title="order.loadingInProgress ? 'Awaiting warehouse release' : 'Assign Driver'">
+                                        :class="order.loadingInProgress ? 'bg-gray-100 dark:bg-white/5 text-gray-400 cursor-not-allowed opacity-50' : order.vehicleId ? 'bg-green-100 dark:bg-primary/10 hover:bg-green-200 dark:hover:bg-primary/20 text-green-700 dark:text-primary' : 'bg-amber-100 dark:bg-amber-500/10 hover:bg-amber-200 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400'"
+                                        :title="order.loadingInProgress ? 'Awaiting warehouse release' : order.vehicleId ? 'Assign Driver' : 'Assign Driver (no vehicle yet — warehouse must assign first)'">
                                         <span class="material-symbols-outlined text-[16px]">person_add</span>
                                     </button>
                                     <button @click="escalateOrder(order)" class="p-1.5 rounded transition-colors" :class="order.priority === 'URGENT' ? 'bg-yellow-100 dark:bg-yellow-500/10 hover:bg-yellow-200 dark:hover:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' : 'bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400'" :title="order.priority === 'URGENT' ? 'Set Normal' : 'Escalate to Urgent'">
@@ -367,7 +374,7 @@
     <div v-if="showAssignConfirm" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showAssignConfirm = false">
         <div class="bg-white dark:bg-card-darker rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10 shadow-2xl">
             <h3 class="font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">assignment_turned_in</span> Assign Driver & Vehicle
+                <span class="material-symbols-outlined text-primary">assignment_turned_in</span> Assign Driver
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
                 Order <strong class="text-gray-900 dark:text-white">{{ assignConfirmOrder?.trackingCode || assignConfirmOrder?.id }}</strong>
@@ -387,21 +394,34 @@
                     <p v-if="!assignDriversLoading && assignDrivers.length === 0" class="text-xs text-red-400 mt-1">No drivers available. Ask Logistic Manager to add drivers.</p>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Vehicle <span class="text-red-500">*</span></label>
-                    <select v-model="assignVehicleId"
-                        class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                        <option value="" class="bg-white dark:bg-gray-800">— Select Vehicle —</option>
-                        <option v-for="v in assignVehicles" :key="v.id" :value="v.id" class="bg-white dark:bg-gray-800">
-                            {{ v.code }} · {{ v.type }}{{ v.license_plate ? ' (' + v.license_plate + ')' : '' }}
-                        </option>
-                    </select>
-                    <p v-if="assignVehiclesLoading" class="text-xs text-gray-400 mt-1">Loading vehicles...</p>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                        Vehicle
+                        <span v-if="assignConfirmOrder?.type === 'PARCEL_PICKUP'" class="text-orange-400 font-normal normal-case">(select for return pickup)</span>
+                        <span v-else class="text-gray-400 font-normal normal-case">(assigned by warehouse)</span>
+                    </label>
+                    <p v-if="assignVehiclesLoading" class="text-xs text-gray-400 mt-1">Loading...</p>
+                    <div v-else-if="assignVehicles.length > 0">
+                        <select v-model="assignVehicleId" :disabled="assignConfirmOrder?.type !== 'PARCEL_PICKUP'"
+                            class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none"
+                            :class="assignConfirmOrder?.type !== 'PARCEL_PICKUP' ? 'opacity-70 cursor-not-allowed' : ''">
+                            <option value="" class="bg-white dark:bg-gray-800">— Select Vehicle —</option>
+                            <option v-for="v in assignVehicles" :key="v.id" :value="v.id" class="bg-white dark:bg-gray-800">
+                                {{ v.code }} · {{ v.type }}{{ v.license_plate ? ' (' + v.license_plate + ')' : '' }}
+                            </option>
+                        </select>
+                    </div>
+                    <div v-else class="flex items-center gap-2 px-3 py-2 rounded-lg text-xs border"
+                        :class="assignConfirmOrder?.type === 'PARCEL_PICKUP' ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400'">
+                        <span class="material-symbols-outlined text-[14px]">warning</span>
+                        <span v-if="assignConfirmOrder?.type === 'PARCEL_PICKUP'">No available vehicles — all vehicles are currently busy</span>
+                        <span v-else>Not yet assigned — Warehouse Manager must assign a vehicle via Loading Dock first</span>
+                    </div>
                 </div>
             </div>
             <div v-if="assignError" class="mt-3 text-xs text-red-400 font-bold">{{ assignError }}</div>
             <div v-if="assignSuccess" class="mt-3 text-xs text-green-400 font-bold">{{ assignSuccess }}</div>
             <div class="flex gap-2 mt-5">
-                <button @click="confirmAssign" :disabled="!assignDriverId || !assignVehicleId || isAssigning"
+                <button @click="confirmAssign" :disabled="!assignDriverId || isAssigning"
                     class="flex-1 bg-primary hover:bg-primary-dark text-black font-bold py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                     <span v-if="isAssigning" class="w-3.5 h-3.5 rounded-full border-2 border-black/30 border-t-black animate-spin"></span>
                     {{ isAssigning ? 'Assigning...' : 'Confirm Assignment' }}
@@ -652,20 +672,17 @@ async function assignDriver(order) {
         const vehicleArr = Array.isArray(allVehicles) ? allVehicles : (allVehicles.items || [])
         let dispatchable
         if (preAssignedVehicleId) {
-            // Warehouse pre-selected — restrict to just that vehicle
+            // Warehouse pre-selected via loading dock — restrict to just that vehicle
             const v = vehicleArr.find(v => String(v.id) === preAssignedVehicleId)
             dispatchable = v ? [v] : []
             assignVehicleId.value = preAssignedVehicleId
+        } else if (assignConfirmOrder.value?.type === 'PARCEL_PICKUP') {
+            // Return pickup — no loading dock process, dispatcher picks any free vehicle
+            dispatchable = vehicleArr.filter(v => !busyVehicleIds.has(String(v.id)) && !dockedVehicleIds.has(String(v.id)))
         } else {
-            // No pre-selection — show vehicles on occupied docks or "In Use" (not on another active order)
-            dispatchable = vehicleArr.filter(v => {
-                const id = String(v.id)
-                if (busyVehicleIds.has(id)) return false
-                if (v.status === 'Active' && dockedVehicleIds.has(id)) return true
-                if (v.status === 'In Use') return true
-                return false
-            })
-            if (dispatchable.length === 1) assignVehicleId.value = String(dispatchable[0].id)
+            // No vehicle assigned by warehouse (small parcel / no loading dock) —
+            // dispatcher cannot select a vehicle; WM must assign one via loading dock
+            dispatchable = []
         }
 
         assignVehicles.value = dispatchable
@@ -679,15 +696,17 @@ async function assignDriver(order) {
 }
 
 async function confirmAssign() {
-    if (!assignConfirmOrder.value || !assignDriverId.value || !assignVehicleId.value) return
+    if (!assignConfirmOrder.value || !assignDriverId.value) return
     isAssigning.value = true
     assignError.value = ''
     assignSuccess.value = ''
     try {
+        const body = { driver_id: assignDriverId.value }
+        if (assignVehicleId.value) body.vehicle_id = assignVehicleId.value
         const res = await fetch(`${API_BASE}/api/v1/orders/${assignConfirmOrder.value.id}/assign`, {
             method: 'POST',
             headers: authHeaders(),
-            body: JSON.stringify({ driver_id: assignDriverId.value, vehicle_id: assignVehicleId.value }),
+            body: JSON.stringify(body),
         })
         if (res.ok) {
             assignSuccess.value = `✓ Order assigned successfully`

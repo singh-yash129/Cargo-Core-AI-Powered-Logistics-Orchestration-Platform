@@ -29,10 +29,10 @@ from app.models.logistics import (
     LogisticsEquipmentLedger,
 )
 from app.models.document import LogisticsDocument
-from app.models.order import Order
+from app.models.order import DamageReport, Order
 from app.models.payment import OrderPayment
 from app.models.user import Role, User
-from app.models.warehouse import Warehouse
+from app.models.warehouse import ReturnGrading, Warehouse
 from app.schemas.auth import MessageResponse
 from app.schemas.logistics import (
     DispatchContactItem,
@@ -1339,10 +1339,141 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
     chat_messages = (await db.execute(select(LogisticsChatMessage).order_by(LogisticsChatMessage.created_at.asc()))).scalars().all()
     escalations = (await db.execute(select(LogisticsEscalation).order_by(LogisticsEscalation.created_at.desc()))).scalars().all()
     return_cases = (await db.execute(select(LogisticsReturnCase).order_by(LogisticsReturnCase.created_at.desc()))).scalars().all()
+    return_gradings = (
+        await db.execute(
+            select(ReturnGrading)
+            .options(selectinload(ReturnGrading.grader))
+            .order_by(ReturnGrading.created_at.desc())
+        )
+    ).scalars().all()
+    _all_users = (await db.execute(select(User).order_by(User.created_at.desc()))).scalars().all()
+    _all_orders = (await db.execute(select(Order))).scalars().all()
+
+    # Backfill: auto-create LogisticsReturnCase for any DamageReport not yet linked
+    existing_ref_codes = {rc.reference_code for rc in return_cases}
+    damage_reports = (await db.execute(select(DamageReport).order_by(DamageReport.created_at.desc()))).scalars().all()
+    order_map = {o.id: o for o in _all_orders}
+    user_map = {u.id: u for u in _all_users}
+    new_cases = []
+    for dr in damage_reports:
+        if dr.reference_code not in existing_ref_codes:
+            order_row = order_map.get(dr.order_id) if dr.order_id else None
+            order_total = (order_row.total_amount or 0.0) if order_row else 0.0
+            warehouse_id = order_row.warehouse_id if order_row else None
+            user_row = user_map.get(dr.customer_id)
+            customer_name = (user_row.name or user_row.email or str(dr.customer_id)) if user_row else str(dr.customer_id)
+            new_case = LogisticsReturnCase(
+                warehouse_id=warehouse_id,
+                order_id=dr.order_id,
+                reference_code=dr.reference_code,
+                customer_name=customer_name,
+                reason=(dr.description or "Damage reported")[:255],
+                condition="Reported",
+                status="Pending",
+                original_price=order_total,
+                refund_amount=0.0,
+                images=dr.photos or [],
+            )
+            db.add(new_case)
+            new_cases.append(new_case)
+
+    # Backfill: warehouse/driver-side returns may create ReturnGrading records without
+    # a LogisticsReturnCase entry. Surface them in Reverse Logistics so LM can still
+    # see "Arrived at Warehouse" / "Inspected" states.
+    for grading in return_gradings:
+        if not grading.rma_code or grading.rma_code in existing_ref_codes:
+            continue
+
+        order_row = order_map.get(grading.order_id) if grading.order_id else None
+        user_row = user_map.get(order_row.customer_id) if order_row and order_row.customer_id else None
+        customer_name = (
+            user_row.name or user_row.email
+            if user_row
+            else (f"Order {order_row.tracking_code}" if order_row else "Warehouse Return")
+        )
+
+        if grading.status == "completed":
+            derived_status = "Inspected"
+        elif grading.item_condition == "Awaiting Pickup":
+            derived_status = "Pickup Scheduled"
+        else:
+            derived_status = "Arrived at Warehouse"
+
+        new_case = LogisticsReturnCase(
+            warehouse_id=grading.warehouse_id or (order_row.warehouse_id if order_row else None),
+            order_id=grading.order_id,
+            reference_code=grading.rma_code,
+            customer_name=customer_name,
+            reason=grading.condition_notes or "Warehouse return",
+            condition=grading.item_condition or "Pending Inspection",
+            status=derived_status,
+            original_price=(order_row.total_amount or 0.0) if order_row else 0.0,
+            refund_amount=0.0,
+            images=[],
+        )
+        db.add(new_case)
+        new_cases.append(new_case)
+        existing_ref_codes.add(grading.rma_code)
+
+    if new_cases:
+        await db.flush()
+        return_cases = list(new_cases) + list(return_cases)
+
+    # Build set of reference codes that already have a DAMAGE_REFUND wallet transaction.
+    from app.models.wallet import WalletTransaction
+    _credited_ref_codes: set[str] = set()
+    _reference_codes = {item.reference_code for item in return_cases if item.reference_code}
+    if _reference_codes:
+        _dmg_txns = (await db.execute(
+            select(WalletTransaction.description).where(WalletTransaction.reason == "DAMAGE_REFUND")
+        )).scalars().all()
+        for _desc in _dmg_txns:
+            description = _desc or ""
+            for reference_code in _reference_codes:
+                if reference_code in description:
+                    _credited_ref_codes.add(reference_code)
+
+    latest_completed_grading_by_rma: dict[str, ReturnGrading] = {}
+    latest_completed_grading_by_order_id: dict[UUID, ReturnGrading] = {}
+    for grading in return_gradings:
+        if grading.status != "completed":
+            continue
+        if grading.rma_code and grading.rma_code not in latest_completed_grading_by_rma:
+            latest_completed_grading_by_rma[grading.rma_code] = grading
+        if grading.order_id and grading.order_id not in latest_completed_grading_by_order_id:
+            latest_completed_grading_by_order_id[grading.order_id] = grading
+
+    def _wm_completed_grading_for_case(item: LogisticsReturnCase) -> ReturnGrading | None:
+        if item.reference_code and item.reference_code in latest_completed_grading_by_rma:
+            return latest_completed_grading_by_rma[item.reference_code]
+        if item.order_id and item.order_id in latest_completed_grading_by_order_id:
+            return latest_completed_grading_by_order_id[item.order_id]
+        return None
+
+    def _to_return_case_item(item: LogisticsReturnCase) -> LogisticsReturnCaseItem:
+        completed_grading = _wm_completed_grading_for_case(item)
+        return LogisticsReturnCaseItem(
+            id=item.id,
+            hub_id=item.warehouse_id,
+            order_id=item.order_id,
+            customer=item.customer_name,
+            reason=item.reason,
+            condition=completed_grading.item_condition if completed_grading else item.condition,
+            status="Inspected" if completed_grading else item.status,
+            original_price=item.original_price,
+            refund_amount=item.refund_amount,
+            images=item.images or [],
+            reference_code=item.reference_code,
+            wallet_credited=item.reference_code in _credited_ref_codes,
+            wm_disposition=completed_grading.disposition if completed_grading else None,
+            wm_graded_at=completed_grading.graded_at if completed_grading else None,
+            wm_grader_name=completed_grading.grader.name if completed_grading and completed_grading.grader else None,
+        )
+
     inventory_items = (await db.execute(select(InventoryItem).order_by(InventoryItem.created_at.desc()))).scalars().all()
-    users = (await db.execute(select(User).order_by(User.created_at.desc()))).scalars().all()
+    users = _all_users
     roles = (await db.execute(select(Role))).scalars().all()
-    orders = (await db.execute(select(Order))).scalars().all()
+    orders = _all_orders
     metrics = (await db.execute(select(LogisticsMetric).order_by(LogisticsMetric.created_at.asc()))).scalars().all()
     equipments = (await db.execute(select(LogisticsEquipmentLedger).order_by(LogisticsEquipmentLedger.created_at.desc()))).scalars().all()
     documents = (await db.execute(select(LogisticsDocument).order_by(LogisticsDocument.created_at.desc()))).scalars().all()
@@ -2036,7 +2167,7 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
                     next((item["amount"] for item in finance_staff_records if item["userId"] == str(user.id)), 0.0)
                     or next((item["amount"] for item in finance_driver_records if item["userId"] == str(user.id)), 0.0)
                 ), mobile=user.phone, mobile_verified=bool(user.phone), email_verified=True, avatar=f"https://i.pravatar.cc/150?u={user.id}", approval_status=user.approval_status, approval_note=user.approval_note, approval_reviewed_at=user.approval_reviewed_at, company_name=user.company_name, tax_id=user.tax_id, contact_person=user.contact_person, business_email=user.business_email, business_phone=user.business_phone, submitted_at=user.created_at) for user in users if role_by_id.get(user.role_id) != "INDIVIDUAL"],
-        returns=[LogisticsReturnCaseItem(id=item.id, hub_id=item.warehouse_id, order_id=item.order_id, customer=item.customer_name, reason=item.reason, condition=item.condition, status=item.status, original_price=item.original_price, refund_amount=item.refund_amount, images=item.images or [], reference_code=item.reference_code) for item in return_cases],
+        returns=[_to_return_case_item(item) for item in return_cases],
         zones=[LogisticsZoneItem(id=zone.id, hub_id=zone.warehouse_id, name=zone.name, type=zone.zone_type, radius=zone.radius_km, status=zone.status, color=zone.color_token, lat=zone.lat, lng=zone.lng) for zone in zones],
         chats=[LogisticsChatThreadItem(id=thread.id, hub_id=thread.warehouse_id, name=thread.name, time=_fmt_relative(thread.last_message_at), last_message=thread.last_message, status=thread.status, phone=thread.phone, muted=thread.muted, messages=[LogisticsChatMessageItem(id=message.id, text=message.text, sender=message.sender, time=message.created_at.strftime("%I:%M %p")) for message in messages_by_thread.get(thread.id, [])]) for thread in chat_threads],
         escalations=[LogisticsEscalationItem(id=esc.id, hub_id=esc.warehouse_id, title=esc.title, priority=esc.priority, from_name=esc.requester_name, role=esc.requester_role, time=esc.created_at.strftime("%I:%M %p"), description=esc.description, action_details=esc.action_details, status=esc.status) for esc in escalations],
@@ -2507,8 +2638,163 @@ async def update_return_case(db: AsyncSession, case_id: UUID, data: LogisticsRet
     if data.condition is not None:
         case.condition = data.condition
     db.add(case)
+
+    # Sync DamageReport status so customer sees the outcome
+    if case.reference_code:
+        damage_report = (await db.execute(
+            select(DamageReport).where(DamageReport.reference_code == case.reference_code)
+        )).scalar_one_or_none()
+        if damage_report:
+            if data.status == "Approved":
+                damage_report.status = "resolved"
+                # Credit customer wallet and debit finance revenue
+                if case.refund_amount and case.refund_amount > 0:
+                    from app.services.wallet_service import credit_return_refund
+                    await credit_return_refund(
+                        db,
+                        customer_id=damage_report.customer_id,
+                        order_id=case.order_id,
+                        refund_amount=case.refund_amount,
+                        reference_code=case.reference_code,
+                        warehouse_id=case.warehouse_id,
+                    )
+            elif data.status == "Rejected":
+                damage_report.status = "rejected"
+            elif data.status == "Pending":
+                damage_report.status = "inspected"
+            db.add(damage_report)
+
     await db.flush()
-    return LogisticsReturnCaseItem(id=case.id, hub_id=case.warehouse_id, order_id=case.order_id, customer=case.customer_name, reason=case.reason, condition=case.condition, status=case.status, original_price=case.original_price, refund_amount=case.refund_amount, images=case.images or [], reference_code=case.reference_code)
+    from app.models.wallet import WalletTransaction
+    _credited = False
+    if case.reference_code:
+        _credited = bool((await db.execute(
+            select(WalletTransaction.id).where(
+                WalletTransaction.reason == "DAMAGE_REFUND",
+                WalletTransaction.description.contains(case.reference_code),
+            )
+        )).scalar_one_or_none())
+    return LogisticsReturnCaseItem(id=case.id, hub_id=case.warehouse_id, order_id=case.order_id, customer=case.customer_name, reason=case.reason, condition=case.condition, status=case.status, original_price=case.original_price, refund_amount=case.refund_amount, images=case.images or [], reference_code=case.reference_code, wallet_credited=_credited)
+
+
+async def issue_return_refund(db: AsyncSession, case_id: UUID) -> dict:
+    case = await _get_return_case(db, case_id)
+    if case.status != "Approved":
+        raise HTTPException(status_code=400, detail="Return case is not approved")
+    if not case.refund_amount or case.refund_amount <= 0:
+        raise HTTPException(status_code=400, detail="No refund amount set on this return case")
+
+    damage_report = None
+    if case.reference_code:
+        damage_report = (await db.execute(
+            select(DamageReport).where(DamageReport.reference_code == case.reference_code)
+        )).scalar_one_or_none()
+
+    if not damage_report:
+        raise HTTPException(status_code=400, detail="No linked customer damage report found — cannot determine wallet recipient")
+
+    from app.services.wallet_service import credit_return_refund
+    credited = await credit_return_refund(
+        db,
+        customer_id=damage_report.customer_id,
+        order_id=case.order_id,
+        refund_amount=case.refund_amount,
+        reference_code=case.reference_code,
+        warehouse_id=case.warehouse_id,
+    )
+    return {
+        "credited": credited,
+        "amount": case.refund_amount,
+        "reference_code": case.reference_code,
+        "message": "Refund credited to customer wallet" if credited else "Refund was already issued",
+    }
+
+
+async def schedule_return_pickup(db: AsyncSession, case_id: UUID) -> LogisticsReturnCaseItem:
+    """Schedule a driver pickup for an approved return case.
+
+    Creates a PARCEL_PICKUP order so the dispatcher can assign a driver to
+    collect the item from the customer and bring it back to the warehouse.
+    The order's delivery_notes stores the case reference_code so the chain
+    can be followed all the way through to the WM grading step.
+    """
+    case = await _get_return_case(db, case_id)
+    if case.status not in ("Approved", "Pickup Scheduled"):
+        raise HTTPException(status_code=400, detail=f"Cannot schedule pickup: return case status is '{case.status}'")
+
+    # Fetch original order and warehouse
+    original_order = (await db.execute(select(Order).where(Order.id == case.order_id))).scalar_one_or_none() if case.order_id else None
+    warehouse = (await db.execute(select(Warehouse).where(Warehouse.id == case.warehouse_id))).scalar_one_or_none() if case.warehouse_id else None
+
+    # Create PARCEL_PICKUP order only when we have all required data.
+    # If missing, skip the order (dispatcher can create it manually) but still
+    # pre-create the ReturnGrading so WM sees the incoming item.
+    if original_order and warehouse:
+        short_ref = case.reference_code.replace("RMA-", "").replace("DMG-", "")[:8] if case.reference_code else case_id.hex[:8].upper()
+        pickup_tracking = f"RTN-{short_ref}"
+
+        existing_pickup = (await db.execute(select(Order).where(Order.tracking_code == pickup_tracking))).scalar_one_or_none()
+        if existing_pickup:
+            pickup_tracking = f"RTN-{short_ref}-{_now().strftime('%H%M')}"
+
+        # Check again after timestamp suffix
+        if not (await db.execute(select(Order).where(Order.tracking_code == pickup_tracking))).scalar_one_or_none():
+            pickup_order = Order(
+                tracking_code=pickup_tracking,
+                order_type="PARCEL_PICKUP",
+                status="CONFIRMED",
+                customer_id=original_order.customer_id,
+                warehouse_id=case.warehouse_id,
+                pickup_addr=original_order.delivery_addr,
+                delivery_addr=warehouse.address,
+                delivery_lat=warehouse.lat,
+                delivery_lng=warehouse.lng,
+                cargo_type="Return Parcel",
+                total_amount=0.0,
+                payment_mode="INTERNAL",
+                payment_status="paid",
+                delivery_notes=case.reference_code,
+            )
+            db.add(pickup_order)
+
+    # Pre-create a pending ReturnGrading so the Warehouse Manager sees the
+    # incoming item in their queue immediately — before the driver even arrives.
+    # The WM will see it as "Awaiting Pickup" until the driver drops it off.
+    rma_code = case.reference_code or f"RMA-{pickup_tracking}"
+    existing_grading = (await db.execute(
+        select(ReturnGrading).where(ReturnGrading.rma_code == rma_code)
+    )).scalar_one_or_none()
+    if not existing_grading:
+        grading = ReturnGrading(
+            warehouse_id=case.warehouse_id,
+            order_id=case.order_id,
+            rma_code=rma_code,
+            item_condition="Awaiting Pickup",
+            condition_notes=f"Approved by Logistic Manager. Driver pickup scheduled.",
+            disposition="pending",
+            status="pending",
+        )
+        db.add(grading)
+
+    case.status = "Pickup Scheduled"
+    db.add(case)
+
+    await db.flush()
+
+    return LogisticsReturnCaseItem(
+        id=case.id,
+        hub_id=case.warehouse_id,
+        order_id=case.order_id,
+        customer=case.customer_name,
+        reason=case.reason,
+        condition=case.condition,
+        status=case.status,
+        original_price=case.original_price,
+        refund_amount=case.refund_amount,
+        images=case.images or [],
+        reference_code=case.reference_code,
+        wallet_credited=False,
+    )
 
 
 async def create_zone(db: AsyncSession, data: LogisticsZoneCreate) -> LogisticsZoneItem:

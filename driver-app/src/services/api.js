@@ -255,6 +255,15 @@ export async function getAssignedOrders() {
     })
 }
 
+export async function completeReturn(orderId) {
+    const res = await fetchWithNetworkHelp(`/api/v1/orders/${orderId}/complete-return`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    })
+    if (!res.ok) throw new Error('Failed to complete return order')
+    return await res.json()
+}
+
 export async function updateOrderStatus(orderId, status, notes = null) {
     const body = { next_status: status }
     if (notes) body.notes = notes

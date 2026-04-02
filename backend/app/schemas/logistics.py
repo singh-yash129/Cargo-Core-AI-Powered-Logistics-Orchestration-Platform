@@ -134,6 +134,10 @@ class LogisticsReturnCaseItem(BaseModel):
     refund_amount: float
     images: list[str] = Field(default_factory=list)
     reference_code: str
+    wallet_credited: bool = False
+    wm_disposition: str | None = None
+    wm_graded_at: datetime | None = None
+    wm_grader_name: str | None = None
 
 
 class LogisticsZoneItem(BaseModel):

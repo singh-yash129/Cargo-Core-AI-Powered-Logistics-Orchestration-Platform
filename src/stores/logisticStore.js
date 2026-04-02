@@ -288,6 +288,10 @@ export const useLogisticStore = defineStore('logistic', () => {
             refundAmount: item.refund_amount,
             images: item.images || [],
             referenceCode: item.reference_code,
+            walletCredited: item.wallet_credited ?? false,
+            wmDisposition: item.wm_disposition || null,
+            wmGradedAt: item.wm_graded_at || null,
+            wmGraderName: item.wm_grader_name || null,
         }))
 
         equipmentLedger.value = asArray(payload.equipment_ledger).map((eq) => ({
@@ -640,16 +644,71 @@ export const useLogisticStore = defineStore('logistic', () => {
     }
 
     async function updateReturnStatus(rmaId, newStatus, details = {}) {
-        await apiRequest(`/logistics/returns/${rmaId}`, {
+        const updatedReturn = await apiRequest(`/logistics/returns/${rmaId}`, {
             method: 'PUT',
             headers: authHeaders(),
             body: JSON.stringify({
                 status: newStatus,
                 refund_amount: details.refundAmount ?? null,
                 condition: details.condition ?? null,
+                notes: details.notes ?? null,
             }),
         })
-        await refresh()
+        const existingIndex = returns.value.findIndex((item) => item.id === String(rmaId))
+        if (existingIndex !== -1) {
+            returns.value.splice(existingIndex, 1, {
+                ...returns.value[existingIndex],
+                id: asStringId(updatedReturn.id),
+                hubId: asWarehouseId(updatedReturn.hub_id),
+                orderId: updatedReturn.order_id ? String(updatedReturn.order_id) : '',
+                customer: updatedReturn.customer,
+                reason: updatedReturn.reason,
+                condition: updatedReturn.condition,
+                status: updatedReturn.status,
+                originalPrice: updatedReturn.original_price,
+                refundAmount: updatedReturn.refund_amount,
+                images: updatedReturn.images || [],
+                referenceCode: updatedReturn.reference_code,
+                walletCredited: updatedReturn.wallet_credited ?? false,
+                wmDisposition: updatedReturn.wm_disposition ?? returns.value[existingIndex].wmDisposition ?? null,
+                wmGradedAt: updatedReturn.wm_graded_at ?? returns.value[existingIndex].wmGradedAt ?? null,
+                wmGraderName: updatedReturn.wm_grader_name ?? returns.value[existingIndex].wmGraderName ?? null,
+                notes: details.notes ?? returns.value[existingIndex].notes ?? '',
+            })
+        } else {
+            await refresh()
+        }
+        return updatedReturn
+    }
+
+    async function issueReturnRefund(rmaId) {
+        const result = await apiRequest(`/logistics/returns/${rmaId}/issue-refund`, {
+            method: 'POST',
+            headers: authHeaders(),
+        })
+        const existingIndex = returns.value.findIndex((item) => item.id === String(rmaId))
+        if (existingIndex !== -1) {
+            returns.value.splice(existingIndex, 1, {
+                ...returns.value[existingIndex],
+                walletCredited: true,
+            })
+        }
+        return result
+    }
+
+    async function scheduleReturnPickup(rmaId) {
+        const updatedCase = await apiRequest(`/logistics/returns/${rmaId}/schedule-pickup`, {
+            method: 'POST',
+            headers: authHeaders(),
+        })
+        const existingIndex = returns.value.findIndex((item) => item.id === String(rmaId))
+        if (existingIndex !== -1) {
+            returns.value.splice(existingIndex, 1, {
+                ...returns.value[existingIndex],
+                status: updatedCase.status || 'Pickup Scheduled',
+            })
+        }
+        return updatedCase
     }
 
     async function addAlert(alert) {
@@ -1239,6 +1298,8 @@ export const useLogisticStore = defineStore('logistic', () => {
         fetchFinanceSummary,
         askAi,
         updateReturnStatus,
+        issueReturnRefund,
+        scheduleReturnPickup,
         addAlert,
         resolveAlert,
         setWarehouse,

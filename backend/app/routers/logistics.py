@@ -172,6 +172,25 @@ async def update_return_case(
     return await logistics_service.update_return_case(db, case_id, data)
 
 
+@router.post("/returns/{case_id}/issue-refund")
+async def issue_return_refund(
+    case_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+):
+    return await logistics_service.issue_return_refund(db, case_id)
+
+
+@router.post("/returns/{case_id}/schedule-pickup", response_model=LogisticsReturnCaseItem)
+async def schedule_return_pickup(
+    case_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+):
+    """Schedule a driver pickup for an approved return case."""
+    return await logistics_service.schedule_return_pickup(db, case_id)
+
+
 @router.post("/zones", response_model=LogisticsZoneItem, status_code=status.HTTP_201_CREATED)
 async def create_zone(
     data: LogisticsZoneCreate,

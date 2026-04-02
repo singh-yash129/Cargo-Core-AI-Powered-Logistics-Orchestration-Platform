@@ -163,6 +163,8 @@ class CustomerDamageReport(BaseModel):
     status: str
     qr_code: str
     created_at: str
+    refund_amount: float | None = None
+    condition: str | None = None
 
 
 class CustomerDamageReportsResponse(BaseModel):

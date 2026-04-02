@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.labour import Labourer
+from app.models.logistics import LogisticsReturnCase
 from app.models.order import Order
 from app.models.user import User
 from app.models.warehouse import (
@@ -378,9 +379,24 @@ async def complete_picking(
     )).scalars().all()
     picked_by_sku = {picked_item.sku: picked_item for picked_item in picked_items}
 
+    # Exclude packing materials (PKG-* or name-matched) — they are consumed during packing, not picking
+    _PICK_PACKING_KWS = ["carton", "box", "bubble", "wrap", "tape", "crate", "blanket", "pad", "wardrobe", "packing", "pack"]
+    cargo_items = []
+    for _oi in order_items:
+        if _oi.sku.startswith("PKG-"):
+            continue
+        _inv = (await db.execute(
+            select(InventoryItem).where(InventoryItem.warehouse_id == warehouse_id, InventoryItem.sku == _oi.sku)
+        )).scalar_one_or_none()
+        if _inv:
+            _text = ((_inv.name or "") + " " + (_inv.category or "")).lower()
+            if any(kw in _text for kw in _PICK_PACKING_KWS):
+                continue
+        cargo_items.append(_oi)
+
     if picked_items:
         incomplete_items: list[str] = []
-        for order_item in order_items:
+        for order_item in cargo_items:
             picked_item = picked_by_sku.get(order_item.sku)
             picked_qty = picked_item.quantity_picked if picked_item else 0
             if picked_qty < order_item.quantity:
@@ -406,7 +422,7 @@ async def complete_picking(
         ).scalar_one_or_none()
 
         if not existing_movement:
-            for order_item in order_items:
+            for order_item in cargo_items:  # Only deduct cargo items here; PKG-* deducted in complete_packing
                 inventory_result = await db.execute(
                     select(InventoryItem).where(
                         InventoryItem.warehouse_id == warehouse_id,
@@ -810,18 +826,35 @@ async def start_packing(
 
     _validate_substatus_transition(order.warehouse_substatus, "PACKING")
 
-    # Verify all items were fully picked
+    # Verify all cargo items were fully picked (exclude packing materials — consumed during packing, not picking)
+    from app.models.inventory import InventoryItem as _InvItem
     from app.models.order import OrderItem, PickedItem
+    _PACKING_NAME_KWS = ["carton", "box", "bubble", "wrap", "tape", "crate", "blanket", "pad", "wardrobe", "packing", "pack"]
+
     order_items = (await db.execute(
         select(OrderItem).where(OrderItem.order_id == order_id)
     )).scalars().all()
+
+    # Build cargo_items list: exclude PKG-* and any inventory item whose name/category is packing-related
+    cargo_items = []
+    for _oi in order_items:
+        if _oi.sku.startswith("PKG-"):
+            continue
+        _inv = (await db.execute(
+            select(_InvItem).where(_InvItem.warehouse_id == warehouse_id, _InvItem.sku == _oi.sku)
+        )).scalar_one_or_none()
+        if _inv:
+            _text = ((_inv.name or "") + " " + (_inv.category or "")).lower()
+            if any(kw in _text for kw in _PACKING_NAME_KWS):
+                continue  # packing material — skip
+        cargo_items.append(_oi)
     picked_items = (await db.execute(
         select(PickedItem).where(PickedItem.order_id == order_id)
     )).scalars().all()
     picked_by_sku = {pi.sku: pi for pi in picked_items}
     incomplete = [
         f"{oi.sku} ({oi.quantity - (picked_by_sku[oi.sku].quantity_picked if oi.sku in picked_by_sku else 0)} remaining)"
-        for oi in order_items
+        for oi in cargo_items
         if (picked_by_sku.get(oi.sku).quantity_picked if oi.sku in picked_by_sku else 0) < oi.quantity
     ]
     if incomplete:
@@ -907,6 +940,94 @@ async def complete_packing(
     ).scalars().all()
     for labourer in assigned_labourers:
         labourer.assigned_order_id = None
+
+    # Deduct packing materials from inventory — these are consumed during packing, not picking.
+    # Items can have PKG-* SKUs (seeded) OR real inventory SKUs (resolved at booking time).
+    # We identify them by cross-referencing with packing_amount > 0 on the order — all non-cargo
+    # items are packing materials. We detect them by checking which order items exist in inventory
+    # under the packing materials category, or have PKG-* prefix.
+    from app.models.inventory import InventoryItem, InventoryMovement
+    from app.models.order import OrderItem
+
+    # Get ALL order items; we'll split into cargo vs packing materials below
+    all_order_items = (await db.execute(
+        select(OrderItem).where(OrderItem.order_id == order_id)
+    )).scalars().all()
+
+    # Packing material keywords for name-based detection
+    PACKING_NAME_KEYWORDS = ["carton", "box", "bubble", "wrap", "tape", "crate", "blanket", "pad", "wardrobe", "packing", "pack"]
+
+    packing_material_items = []
+    for oi in all_order_items:
+        # PKG-* prefix is always a packing material
+        if oi.sku.startswith("PKG-"):
+            packing_material_items.append(oi)
+            continue
+        # Check if this SKU's inventory item is packing-related by name/category
+        inv_check = (await db.execute(
+            select(InventoryItem).where(
+                InventoryItem.warehouse_id == warehouse_id,
+                InventoryItem.sku == oi.sku,
+            )
+        )).scalar_one_or_none()
+        if inv_check:
+            item_text = ((inv_check.name or "") + " " + (inv_check.category or "")).lower()
+            if any(kw in item_text for kw in PACKING_NAME_KEYWORDS):
+                packing_material_items.append(oi)
+
+    if packing_material_items:
+        # Idempotency: skip if PACK movements already recorded for this order
+        already_packed = (await db.execute(
+            select(InventoryMovement).where(
+                InventoryMovement.reference_order_id == order_id,
+                InventoryMovement.movement_type == "PACK",
+            ).limit(1)
+        )).scalar_one_or_none()
+
+        if not already_packed:
+            # Keyword fallback map: covers both seeded PKG-* SKUs and manually-named inventory items
+            PKG_KEYWORD_MAP = {
+                "PKG-CARTON":        ["carton", "box"],
+                "PKG-BUBBLE-WRAP":   ["bubble", "wrap"],
+                "PKG-PLASTIC-CRATE": ["crate", "plastic"],
+                "PKG-BLANKET":       ["blanket", "pad"],
+                "PKG-WARDROBE-BOX":  ["wardrobe"],
+                "PKG-TAPE":          ["tape"],
+            }
+
+            for pm_item in packing_material_items:
+                # 1. Exact SKU match
+                inv = (await db.execute(
+                    select(InventoryItem).where(
+                        InventoryItem.warehouse_id == warehouse_id,
+                        InventoryItem.sku == pm_item.sku,
+                    )
+                )).scalar_one_or_none()
+
+                # 2. Keyword name match fallback (handles manually-named inventory items)
+                if not inv:
+                    keywords = PKG_KEYWORD_MAP.get(pm_item.sku, [pm_item.sku.replace("PKG-", "").lower()])
+                    for kw in keywords:
+                        inv = (await db.execute(
+                            select(InventoryItem).where(
+                                InventoryItem.warehouse_id == warehouse_id,
+                                InventoryItem.name.ilike(f"%{kw}%"),
+                            )
+                        )).scalar_one_or_none()
+                        if inv:
+                            break
+
+                if inv:
+                    deduct_qty = min(pm_item.quantity, inv.quantity_on_hand)
+                    if deduct_qty > 0:
+                        inv.quantity_on_hand -= deduct_qty
+                        db.add(InventoryMovement(
+                            item_id=inv.id,
+                            movement_type="PACK",
+                            quantity=deduct_qty,
+                            reference_order_id=order_id,
+                            performed_by=None,
+                        ))
 
     order.warehouse_substatus = "PACKED"
     order.packing_completed_at = datetime.now(timezone.utc)
@@ -1653,6 +1774,17 @@ async def complete_return_grading(
     grading.graded_at = datetime.now(timezone.utc)
     if graded_by:
         grading.graded_by = graded_by
+
+    # Sync condition and status back to the LM's LogisticsReturnCase so the
+    # Logistic Manager can see the WM's physical assessment.
+    if grading.rma_code:
+        return_case = (await db.execute(
+            select(LogisticsReturnCase).where(LogisticsReturnCase.reference_code == grading.rma_code)
+        )).scalar_one_or_none()
+        if return_case:
+            return_case.condition = grading.item_condition
+            return_case.status = "Inspected"
+            db.add(return_case)
 
     await db.commit()
     await db.refresh(grading)

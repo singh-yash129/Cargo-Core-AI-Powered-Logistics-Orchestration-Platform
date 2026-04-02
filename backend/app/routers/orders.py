@@ -115,8 +115,10 @@ async def cluster_orders(
 async def optimize_routes(
     db: Annotated[AsyncSession, Depends(get_db)],
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+    optimize_for: str = "distance",
+    prioritize_urgent: bool = False,
 ):
-    return await orders_service.optimize_routes(db)
+    return await orders_service.optimize_routes(db, optimize_for=optimize_for, prioritize_urgent=prioritize_urgent)
 
 
 @router.post("/batch-assign")
@@ -182,6 +184,19 @@ async def transition_order(
     user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER", "DRIVER"))],
 ):
     return await orders_service.transition_order(db, order_id, data.get("next_status", ""), caller=user)
+
+
+@router.post("/{order_id}/complete-return", response_model=OrderResponse)
+async def complete_return_order(
+    order_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("DRIVER"))],
+):
+    """Driver calls this to complete a reverse-logistics (PARCEL_PICKUP) job.
+    Transitions order to DELIVERED, sets warehouse_substatus=RETURN_ARRIVED,
+    and auto-creates a pending ReturnGrading for the Warehouse Manager queue.
+    """
+    return await orders_service.complete_return_order(db, order_id, caller=user)
 
 
 @router.post("/{order_id}/cancel", response_model=OrderResponse)

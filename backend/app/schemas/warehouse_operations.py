@@ -239,9 +239,9 @@ class ReturnGradingResponse(BaseModel):
 class ReturnGradingCreate(BaseModel):
     order_id: UUID | None = None
     rma_code: str = Field(..., min_length=1, max_length=50)
-    item_condition: str = Field(..., min_length=1, max_length=50)
+    item_condition: str = Field(default="Pending Inspection", min_length=1, max_length=50)
     condition_notes: str | None = None
-    disposition: str = Field(..., min_length=1, max_length=30)
+    disposition: str = Field(default="pending", min_length=1, max_length=30)
 
 
 class ReturnGradingUpdate(BaseModel):

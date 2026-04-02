@@ -286,3 +286,66 @@ async def credit_cancellation_refund(
     db.add(order)
     await db.flush()
     return refund_amount
+
+
+async def credit_return_refund(
+    db: AsyncSession,
+    *,
+    customer_id: UUID,
+    order_id: UUID | None,
+    refund_amount: float,
+    reference_code: str,
+    warehouse_id: UUID | None = None,
+) -> bool:
+    """Credit customer wallet for an approved damage/return case and debit finance revenue.
+    Returns True if credited, False if already issued (idempotent)."""
+    if refund_amount <= 0:
+        return False
+
+    # Idempotency check — don't double-credit the same return case
+    existing = (await db.execute(
+        select(WalletTransaction).where(
+            WalletTransaction.user_id == customer_id,
+            WalletTransaction.reason == "DAMAGE_REFUND",
+            WalletTransaction.description.contains(reference_code),
+        )
+    )).scalar_one_or_none()
+    if existing:
+        return False
+
+    # 1. Credit customer wallet
+    await _record_wallet_transaction(
+        db,
+        user_id=customer_id,
+        order_id=order_id,
+        transaction_kind="CREDIT",
+        reason="DAMAGE_REFUND",
+        amount=refund_amount,
+        description=f"Damage/return refund approved for {reference_code}",
+    )
+
+    # 2. LogisticsTransaction — negative amount = revenue reversal visible in Finance & Payroll
+    from app.models.logistics import LogisticsTransaction
+    from app.services.finance_service import _upsert_daily_stats, _gen_ref
+
+    db.add(
+        LogisticsTransaction(
+            warehouse_id=warehouse_id,
+            transaction_code=_gen_ref("DMG"),
+            description=f"Damage return refund {reference_code} — ₹{refund_amount} credited to customer wallet",
+            transaction_type="REVENUE_REFUND",
+            amount=-refund_amount,
+            status="Completed",
+            metadata_json={
+                "reference_code": reference_code,
+                "order_id": str(order_id) if order_id else None,
+                "refund_amount": refund_amount,
+            },
+        )
+    )
+
+    # 3. Debit daily stats (global + warehouse-scoped if available)
+    await _upsert_daily_stats(db, delta_revenue=-refund_amount)
+    if warehouse_id:
+        await _upsert_daily_stats(db, delta_revenue=-refund_amount, warehouse_id=warehouse_id)
+    return True

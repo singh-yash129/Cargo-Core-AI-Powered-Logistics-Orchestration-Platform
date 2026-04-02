@@ -21,9 +21,10 @@
         <!-- Clustering Stats -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center cursor-pointer hover:border-gray-200 dark:border-white/10 border border-transparent transition-all" @click="showUnbatchedPanel = !showUnbatchedPanel">
-                <div class="text-2xl font-bold" :class="unbatchedOrders.length > 0 ? 'text-yellow-400' : 'text-gray-900 dark:text-white'">{{ unbatchedOrders.length }}</div>
+                <div class="text-2xl font-bold" :class="pendingBeforeClustering > 0 ? 'text-yellow-400' : 'text-gray-900 dark:text-white'">{{ pendingBeforeClustering }}</div>
                 <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Unbatched Orders</div>
                 <div v-if="unbatchedOrders.length" class="text-[9px] text-primary mt-1 font-bold">Click to view</div>
+                <div v-else-if="clusters.length === 0 && store.pendingOrders.length > 0" class="text-[9px] text-yellow-400 mt-1 font-bold">Run Auto-Cluster</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div class="text-2xl font-bold text-primary">{{ clusters.length }}</div>
@@ -75,55 +76,94 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left: Map Visualization -->
-            <div class="lg:col-span-2 glass-panel rounded-xl relative overflow-hidden h-[500px]">
-                <div class="absolute inset-0 bg-gradient-to-br from-gray-200 dark:from-gray-800 to-gray-100 dark:to-gray-900 opacity-60"></div>
+            <!-- Left: Real Leaflet Map -->
+            <div class="lg:col-span-2 glass-panel rounded-xl relative h-[500px] overflow-hidden">
 
-                <!-- Zone labels -->
-                <div class="absolute top-4 left-4 z-10 glass-panel px-3 py-2 rounded-lg">
+                <!-- Delivery Zones Legend (overlay) -->
+                <div class="absolute top-3 left-3 z-[1000] glass-panel px-3 py-2 rounded-lg pointer-events-none">
                     <div class="text-xs font-bold text-gray-900 dark:text-white mb-2">DELIVERY ZONES</div>
+                    <div v-if="clusters.length === 0" class="text-xs text-gray-500 italic">No clusters yet — click Auto-Cluster</div>
                     <div class="space-y-1">
                         <div v-for="cluster in clusters" :key="cluster.id" class="flex items-center gap-2 text-xs">
-                            <span class="w-3 h-3 rounded-full" :class="cluster.colorClass"></span>
+                            <span class="w-3 h-3 rounded-full flex-shrink-0" :style="{ background: cluster.leafletColor }"></span>
                             <span class="text-gray-600 dark:text-gray-300">{{ cluster.zone }} ({{ cluster.orders.length }} orders)</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Simulated cluster dots -->
-                <div v-for="cluster in clusters" :key="cluster.id" class="absolute" :style="cluster.mapPosition">
-                    <!-- Cluster boundary circle -->
-                    <div class="rounded-full border-2 border-dashed flex items-center justify-center"
-                        :class="cluster.borderClass"
-                        :style="{ width: cluster.radius + 'px', height: cluster.radius + 'px', opacity: 0.3 }">
-                    </div>
-                    <!-- Order dots inside cluster -->
-                    <div v-for="(dot, di) in cluster.dots" :key="di"
-                        class="absolute w-3 h-3 rounded-full border border-gray-200 dark:border-white/50 cursor-pointer hover:scale-150 transition-transform"
-                        :class="cluster.dotClass" :style="dot.style" :title="`Order ${dot.orderId}`">
-                    </div>
-                    <!-- Cluster label -->
-                    <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-0.5 rounded text-[9px] font-bold"
-                        :class="cluster.labelClass">
-                        {{ cluster.zone }}
-                    </div>
-                </div>
+                <!-- Leaflet Map -->
+                <l-map ref="mapRef" style="height: 100%; width: 100%;" :zoom="mapZoom" :center="mapCenter" :use-global-leaflet="false">
+                    <l-tile-layer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    />
 
-                <!-- Route corridors (SVG lines) -->
-                <svg v-show="showCorridors" class="absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-300">
-                    <line x1="150" y1="120" x2="350" y2="180" stroke="#1CE783" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.4" />
-                    <line x1="350" y1="180" x2="500" y2="300" stroke="#1CE783" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.4" />
-                    <line x1="150" y1="350" x2="350" y2="180" stroke="#3B82F6" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.4" />
-                </svg>
+                    <template v-for="cluster in clusters" :key="cluster.id">
+                        <!-- Cluster boundary circle -->
+                        <l-circle
+                            :lat-lng="[cluster.centroidLat, cluster.centroidLng]"
+                            :radius="cluster.radiusMeters"
+                            :color="cluster.leafletColor"
+                            :fill-color="cluster.leafletColor"
+                            :fill-opacity="0.12"
+                            :weight="2"
+                            :dash-array="'8,6'"
+                        />
 
-                <!-- Bottom info bar -->
-                <div class="absolute bottom-4 left-4 right-4 bg-white/90 dark:bg-black/80 backdrop-blur rounded-lg p-3 flex justify-between items-center border border-gray-200 dark:border-white/10">
+                        <!-- Individual order markers -->
+                        <l-circle-marker
+                            v-for="order in cluster.orders.filter(o => o.lat && o.lng)"
+                            :key="order.id"
+                            :lat-lng="[order.lat, order.lng]"
+                            :radius="7"
+                            :color="cluster.leafletColor"
+                            :fill-color="cluster.leafletColor"
+                            :fill-opacity="0.9"
+                            :weight="2"
+                        >
+                            <l-popup>
+                                <div class="text-xs font-bold mb-1">{{ order.id }}</div>
+                                <div class="text-xs text-gray-600">₹{{ order.weight.toLocaleString() }}</div>
+                                <div class="text-xs text-gray-500 mt-1">{{ order.deliveryAddr }}</div>
+                            </l-popup>
+                        </l-circle-marker>
+
+                        <!-- Centroid marker with permanent label -->
+                        <l-circle-marker
+                            :lat-lng="[cluster.centroidLat, cluster.centroidLng]"
+                            :radius="10"
+                            :color="cluster.leafletColor"
+                            :fill-color="cluster.leafletColor"
+                            :fill-opacity="1"
+                            :weight="3"
+                        >
+                            <l-tooltip :permanent="true" :direction="'bottom'" :offset="[0, 12]">
+                                <span style="font-size:11px; font-weight:700;">{{ cluster.zone }}</span>
+                            </l-tooltip>
+                        </l-circle-marker>
+                    </template>
+
+                    <!-- Route corridors connecting cluster centroids -->
+                    <l-polyline
+                        v-if="showCorridors && clusters.length >= 2"
+                        :lat-lngs="clusterCentroidPath"
+                        color="#1CE783"
+                        :weight="2"
+                        :dash-array="'6,5'"
+                        :opacity="0.7"
+                    />
+                </l-map>
+
+                <!-- Bottom info bar (overlay) -->
+                <div class="absolute bottom-0 left-0 right-0 z-[1000] bg-white/90 dark:bg-black/80 backdrop-blur p-3 flex justify-between items-center border-t border-gray-200 dark:border-white/10">
                     <div class="text-xs text-gray-500 dark:text-gray-400">
                         <span class="text-gray-900 dark:text-white font-bold">{{ totalOrdersInClusters }}</span> orders grouped into
                         <span class="text-primary font-bold">{{ clusters.length }}</span> clusters across
                         <span class="text-blue-600 dark:text-blue-400 font-bold">{{ uniqueCorridors }}</span> route corridors
                     </div>
-                    <button @click="showCorridors = !showCorridors" class="text-xs text-primary hover:text-primary-dark transition-colors font-bold">{{ showCorridors ? 'Hide' : 'View' }} Route Corridors</button>
+                    <button @click="showCorridors = !showCorridors" class="text-xs text-primary hover:text-primary-dark transition-colors font-bold">
+                        {{ showCorridors ? 'Hide' : 'Show' }} Corridors
+                    </button>
                 </div>
             </div>
 
@@ -207,7 +247,7 @@
 
                         <div class="flex gap-2 pt-2">
                             <button @click="assignVehicle(cluster)" class="flex-1 text-xs bg-green-100 dark:bg-primary/10 hover:bg-green-200 dark:hover:bg-primary/20 text-green-700 dark:text-primary py-1.5 rounded font-bold transition-colors">
-                                {{ cluster.vehicleAssigned ? '✓ ' + cluster.vehicleAssigned : 'Assign Vehicle' }}
+                                {{ cluster.vehicleAssigned ? '✓ ' + cluster.vehicleAssigned : 'Assign Vehicle & Driver' }}
                             </button>
                             <button @click="toggleConfirmCluster(cluster)" class="text-xs py-1.5 px-3 rounded font-bold transition-colors"
                                 :class="cluster.confirmed ? 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-red-100 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400' : 'bg-yellow-100 dark:bg-yellow-500/10 hover:bg-yellow-200 dark:hover:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'">
@@ -243,23 +283,46 @@
     <div v-if="showVehiclePicker" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showVehiclePicker = false">
         <div class="bg-white dark:bg-card-dark rounded-2xl p-6 w-full max-w-sm m-4 border border-gray-200 dark:border-white/10 shadow-2xl">
             <h3 class="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <span class="material-symbols-outlined text-blue-500 dark:text-blue-400">local_shipping</span> Assign Vehicle
+                <span class="material-symbols-outlined text-blue-500 dark:text-blue-400">local_shipping</span> Assign Vehicle &amp; Driver
             </h3>
             <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                Select a vehicle for <strong>{{ vehiclePickerCluster?.zone }}</strong> cluster ({{ vehiclePickerCluster?.orders?.length }} orders, {{ vehiclePickerCluster?.totalWeight }}kg)
+                For <strong>{{ vehiclePickerCluster?.zone }}</strong> cluster — {{ vehiclePickerCluster?.orders?.length }} orders
             </p>
-            <div class="space-y-2 mb-4 max-h-48 overflow-y-auto">
-                <button v-for="v in vehicles" :key="v.id" @click="selectedVehicle = v.label"
-                    class="w-full p-3 rounded-lg border text-sm font-medium text-left flex items-center gap-3 transition-colors"
-                    :class="selectedVehicle === v.label ? 'border-primary bg-green-50 dark:bg-primary/10 text-primary' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'">
+
+            <!-- Vehicle selection -->
+            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-bold">Vehicle</div>
+            <div class="space-y-1.5 mb-4 max-h-36 overflow-y-auto">
+                <button v-for="v in vehicles" :key="v.id"
+                    @click="selectedVehicle = v.label; selectedVehicleId = v.id"
+                    class="w-full p-2.5 rounded-lg border text-sm font-medium text-left flex items-center gap-3 transition-colors"
+                    :class="selectedVehicleId === v.id ? 'border-primary bg-green-50 dark:bg-primary/10 text-primary' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'">
                     <span class="material-symbols-outlined text-[18px]">local_shipping</span>
                     {{ v.label }}
-                    <span v-if="selectedVehicle === v.label" class="ml-auto material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                    <span v-if="selectedVehicleId === v.id" class="ml-auto material-symbols-outlined text-primary text-[18px]">check_circle</span>
                 </button>
                 <div v-if="!vehicles.length" class="text-center py-3 text-gray-400 text-xs">No vehicles available</div>
             </div>
+
+            <!-- Driver selection -->
+            <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-bold">Driver <span class="text-gray-400 font-normal normal-case">(optional — required for backend assignment)</span></div>
+            <div class="space-y-1.5 mb-4 max-h-36 overflow-y-auto">
+                <button v-for="d in drivers" :key="d.id"
+                    @click="selectedDriverId = selectedDriverId === d.id ? '' : d.id"
+                    class="w-full p-2.5 rounded-lg border text-sm font-medium text-left flex items-center gap-3 transition-colors"
+                    :class="selectedDriverId === d.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'">
+                    <span class="w-2 h-2 rounded-full" :class="d.statusColor"></span>
+                    {{ d.label }}
+                    <span v-if="selectedDriverId === d.id" class="ml-auto material-symbols-outlined text-blue-500 text-[18px]">check_circle</span>
+                </button>
+                <div v-if="!drivers.length" class="text-center py-3 text-gray-400 text-xs">No drivers available</div>
+            </div>
+
             <div class="flex gap-2">
-                <button @click="confirmVehicleAssign" :disabled="!selectedVehicle" class="flex-1 bg-primary hover:bg-primary-dark text-black font-bold py-2 rounded-lg text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Assign</button>
+                <button @click="confirmVehicleAssign" :disabled="!selectedVehicle || assigning"
+                    class="flex-1 bg-primary hover:bg-primary-dark text-black font-bold py-2 rounded-lg text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                    <span v-if="assigning" class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                    {{ assigning ? 'Assigning…' : selectedDriverId ? 'Assign to Backend' : 'Save Selection' }}
+                </button>
                 <button @click="showVehiclePicker = false" class="flex-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white py-2 rounded-lg text-sm transition-colors">Cancel</button>
             </div>
         </div>
@@ -269,8 +332,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useDispatcherStore } from '@/stores/dispatcherStore'
+import { LMap, LTileLayer, LCircle, LCircleMarker, LTooltip, LPopup, LPolyline } from '@vue-leaflet/vue-leaflet'
+import 'leaflet/dist/leaflet.css'
 
 const store = useDispatcherStore()
 onMounted(() => store.initialize().catch(() => {}))
@@ -278,6 +343,9 @@ onMounted(() => store.initialize().catch(() => {}))
 const showVehiclePicker = ref(false)
 const vehiclePickerCluster = ref(null)
 const selectedVehicle = ref('')
+const selectedVehicleId = ref('')
+const selectedDriverId = ref('')
+const assigning = ref(false)
 const estimatedMilesSaved = ref(0)
 const avgEfficiency = ref(0)
 const uniqueCorridors = computed(() => clusters.value.length)
@@ -288,18 +356,43 @@ const showUnbatchedPanel = ref(false)
 const clustering = ref(false)
 const clusterRadius = ref(5.0)
 
+// Leaflet map
+const mapRef = ref(null)
+const mapZoom = ref(11)
+// Default center: Bangalore. Recenters once clusters load.
+const mapCenter = computed(() => {
+    if (clusters.value.length === 0) return [12.9716, 77.5946]
+    const lats = clusters.value.map(c => c.centroidLat)
+    const lngs = clusters.value.map(c => c.centroidLng)
+    return [lats.reduce((a, b) => a + b, 0) / lats.length, lngs.reduce((a, b) => a + b, 0) / lngs.length]
+})
+const clusterCentroidPath = computed(() => clusters.value.map(c => [c.centroidLat, c.centroidLng]))
+
 const unbatchedOrders = ref([])
+// Before clustering, show pending orders from store as the "needs clustering" count
+const pendingBeforeClustering = computed(() =>
+    clusters.value.length === 0 ? store.pendingOrders.length : unbatchedOrders.value.length
+)
 const confirmedCount = computed(() => clusters.value.filter(c => c.confirmed).length)
 
 const clusterColors = [
-    { colorClass: 'bg-green-500', borderClass: 'border-green-500', dotClass: 'bg-green-500', labelClass: 'bg-green-500/20 text-green-400', headerBg: 'bg-green-500/5' },
-    { colorClass: 'bg-blue-500', borderClass: 'border-blue-500', dotClass: 'bg-blue-500', labelClass: 'bg-blue-500/20 text-blue-400', headerBg: 'bg-blue-500/5' },
-    { colorClass: 'bg-purple-500', borderClass: 'border-purple-500', dotClass: 'bg-purple-500', labelClass: 'bg-purple-500/20 text-purple-400', headerBg: 'bg-purple-500/5' },
-    { colorClass: 'bg-orange-500', borderClass: 'border-orange-500', dotClass: 'bg-orange-500', labelClass: 'bg-orange-500/20 text-orange-400', headerBg: 'bg-orange-500/5' },
+    { colorClass: 'bg-green-500', borderClass: 'border-green-500', dotClass: 'bg-green-500', labelClass: 'bg-green-500/20 text-green-400', headerBg: 'bg-green-500/5', leafletColor: '#22c55e' },
+    { colorClass: 'bg-blue-500', borderClass: 'border-blue-500', dotClass: 'bg-blue-500', labelClass: 'bg-blue-500/20 text-blue-400', headerBg: 'bg-blue-500/5', leafletColor: '#3b82f6' },
+    { colorClass: 'bg-purple-500', borderClass: 'border-purple-500', dotClass: 'bg-purple-500', labelClass: 'bg-purple-500/20 text-purple-400', headerBg: 'bg-purple-500/5', leafletColor: '#a855f7' },
+    { colorClass: 'bg-orange-500', borderClass: 'border-orange-500', dotClass: 'bg-orange-500', labelClass: 'bg-orange-500/20 text-orange-400', headerBg: 'bg-orange-500/5', leafletColor: '#f97316' },
 ]
 
 const clusters = ref([])
 const totalOrdersInClusters = computed(() => clusters.value.reduce((sum, c) => sum + c.orders.length, 0))
+
+// After clusters load, fit the map to show all cluster centroids
+watch(clusters, (newClusters) => {
+    if (newClusters.length === 0) return
+    const map = mapRef.value?.leafletObject
+    if (!map) return
+    const bounds = newClusters.map(c => [c.centroidLat, c.centroidLng])
+    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13 })
+})
 
 function getPriorityClass(priority) {
     const map = {
@@ -311,19 +404,6 @@ function getPriorityClass(priority) {
     return map[priority] || map.NORMAL
 }
 
-function centroidToPixels(lat, lng, allClusters, containerW = 600, containerH = 500) {
-    if (allClusters.length <= 1) return { top: '200px', left: '250px' }
-    const lats = allClusters.map(c => c.centroid_lat)
-    const lngs = allClusters.map(c => c.centroid_lng)
-    const minLat = Math.min(...lats), maxLat = Math.max(...lats)
-    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs)
-    const pad = 80
-    const rangeL = maxLat - minLat || 1
-    const rangeN = maxLng - minLng || 1
-    const x = pad + ((lng - minLng) / rangeN) * (containerW - pad * 2)
-    const y = pad + ((maxLat - lat) / rangeL) * (containerH - pad * 2)
-    return { top: `${Math.round(y)}px`, left: `${Math.round(x)}px` }
-}
 
 async function autoCluster() {
     clustering.value = true
@@ -340,16 +420,19 @@ async function autoCluster() {
                 corridor: c.time_window,
                 confirmed: false,
                 ...col,
-                mapPosition: centroidToPixels(c.centroid_lat, c.centroid_lng, result.clusters),
-                radius: 60 + c.order_count * 12,
-                totalWeight: Math.round(c.total_weight),
-                totalDistance: c.total_distance_km,
-                timeWindow: c.time_window,
-                efficiency: Math.round(c.efficiency_pct),
+                // Leaflet map data
+                centroidLat: c.centroid_lat,
+                centroidLng: c.centroid_lng,
+                radiusMeters: 1500 + c.order_count * 400,
+                // legacy fake-map fields (kept for cluster panel dots)
                 dots: c.orders.map((o, di) => ({
                     orderId: o.tracking_code || o.id,
                     style: { top: `${10 + di * 15}px`, left: `${10 + di * 12}px` }
                 })),
+                totalWeight: Math.round(c.total_weight),
+                totalDistance: c.total_distance_km,
+                timeWindow: c.time_window,
+                efficiency: Math.round(c.efficiency_pct),
                 orders: c.orders.map(o => ({
                     id: o.tracking_code || o.id,
                     rawId: o.id,
@@ -357,9 +440,13 @@ async function autoCluster() {
                     priority: 'NORMAL',
                     zone: o.delivery_addr?.split(',').slice(-3, -1).join(',').trim() || '',
                     deliveryAddr: o.delivery_addr,
+                    lat: o.delivery_lat ?? null,
+                    lng: o.delivery_lng ?? null,
                 })),
                 editing: false,
                 vehicleAssigned: '',
+                vehicleAssignedId: '',
+                driverAssignedId: '',
             }
         })
         unbatchedOrders.value = result.unbatched.map(o => ({
@@ -376,28 +463,77 @@ async function autoCluster() {
     }
 }
 
-function confirmBatches() {
+async function confirmBatches() {
     clusters.value.forEach(c => { c.confirmed = true })
     batchConfirmed.value = true
+
+    // Build batch-assign payload for clusters with vehicle + driver selected
+    const assignments = []
+    for (const cluster of clusters.value) {
+        if (cluster.vehicleAssignedId && cluster.driverAssignedId) {
+            for (const order of cluster.orders) {
+                assignments.push({
+                    order_id: order.rawId,
+                    driver_id: cluster.driverAssignedId,
+                    vehicle_id: cluster.vehicleAssignedId,
+                })
+            }
+        }
+    }
+    if (assignments.length > 0) {
+        try {
+            await store.batchAssignOrders(assignments)
+        } catch (_) {
+            // best-effort — local state is already confirmed
+        }
+    }
 }
 
-const vehicles = computed(() => {
-    return store.filteredVehicles.map(v => ({
+const vehicles = computed(() =>
+    store.filteredVehicles.map(v => ({
         id: v.id,
-        label: v.code || v.licensePlate || v.model || v.id,
+        label: v.code || v.licensePlate || v.model || `VEH-${v.id.slice(-4)}`,
     }))
-})
+)
+
+const drivers = computed(() =>
+    store.dispatcherDrivers.map(d => ({
+        id: d.id,
+        label: d.name || `DRV-${d.id.slice(-4)}`,
+        status: d.status,
+        statusColor: d.statusColor,
+    }))
+)
 
 function assignVehicle(cluster) {
     vehiclePickerCluster.value = cluster
     selectedVehicle.value = cluster.vehicleAssigned || ''
+    selectedVehicleId.value = cluster.vehicleAssignedId || ''
+    selectedDriverId.value = cluster.driverAssignedId || ''
     showVehiclePicker.value = true
 }
 
-function confirmVehicleAssign() {
-    if (vehiclePickerCluster.value && selectedVehicle.value) {
-        vehiclePickerCluster.value.vehicleAssigned = selectedVehicle.value
-        showVehiclePicker.value = false
+async function confirmVehicleAssign() {
+    const cluster = vehiclePickerCluster.value
+    if (!cluster || !selectedVehicle.value) return
+
+    cluster.vehicleAssigned = selectedVehicle.value
+    cluster.vehicleAssignedId = selectedVehicleId.value
+    cluster.driverAssignedId = selectedDriverId.value
+    showVehiclePicker.value = false
+
+    // If both vehicle and driver are selected, assign all orders in this cluster to the backend
+    if (selectedVehicleId.value && selectedDriverId.value) {
+        assigning.value = true
+        try {
+            await Promise.all(
+                cluster.orders.map(order =>
+                    store.assignOrder(order.rawId, selectedDriverId.value, selectedVehicleId.value)
+                )
+            )
+        } finally {
+            assigning.value = false
+        }
     }
 }
 

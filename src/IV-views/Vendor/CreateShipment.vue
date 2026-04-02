@@ -761,6 +761,17 @@
                 </div>
             </BaseModal>
 
+            <!-- Razorpay Checkout for Full Payment -->
+            <RazorpayCheckout
+                v-model="showPayModal"
+                :amount="pendingPayOrder ? pendingPayOrder.amount : 0"
+                :order-id="pendingPayOrder?.id || ''"
+                description="Full Payment for Shipment"
+                :name="authStore.currentUser?.name || ''"
+                :email="authStore.currentUser?.email || ''"
+                @success="onRazorpaySuccess"
+            />
+
             <!-- Custom Edit Modal with adjustable width -->
             <div v-if="showEditModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showEditModal = false"></div>
@@ -997,6 +1008,7 @@ import { ref, computed, reactive, watch, onMounted, onBeforeUnmount, defineAsync
 import { useVendorStore } from '@/stores/vendorStore'
 import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
+import RazorpayCheckout from '@/components/RazorpayCheckout.vue'
 import { useSlipPrinter } from '@/composables/useSlipPrinter'
 import { fetchRoadDistanceKm } from '@/composables/useOsrmDistance'
 import { useRates } from '@/composables/useRates'
@@ -1042,6 +1054,8 @@ const { rates } = useRates()
 const confirmedOrder = ref(null)
 const activeTab = ref('new')
 const showConfirmModal = ref(false)
+const showPayModal = ref(false)
+const pendingPayOrder = ref(null)
 const showEditModal = ref(false)
 const showUploadModal = ref(false)
 const confirmedOrderId = ref('')
@@ -1242,6 +1256,23 @@ async function submitShipment() {
     const s = await store.createShipment({ ...form, quotedPrice: quote.value.total, quoteBreakdown: { ...quote.value } })
     confirmedOrderId.value = s.id
     confirmedOrder.value = s
+    if (form.paymentMode === 'Full Payment') {
+        pendingPayOrder.value = s
+        showPayModal.value = true
+    } else {
+        showConfirmModal.value = true
+    }
+}
+
+async function onRazorpaySuccess({ payment_id, method, amount }) {
+    showPayModal.value = false
+    if (pendingPayOrder.value) {
+        const invoice = store.invoices.find(inv => inv.orderId === pendingPayOrder.value.id)
+        if (invoice) {
+            await store.payInvoice(invoice.id, amount, method)
+        }
+        pendingPayOrder.value = null
+    }
     showConfirmModal.value = true
 }
 

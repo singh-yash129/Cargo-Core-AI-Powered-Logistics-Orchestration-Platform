@@ -82,6 +82,7 @@ const menuItems = [
   { label: 'Tracking', icon: 'gps_fixed', route: '/individual/tracking' },
   { label: 'Wallet', icon: 'account_balance_wallet', route: '/individual/wallet' },
   { label: 'Payments', icon: 'credit_card', route: '/individual/payments' },
+  { label: 'Damage Report', icon: 'report', route: '/individual/damage-report' },
   { label: 'Profile', icon: 'person', route: '/individual/profile' },
 ]
 

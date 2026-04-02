@@ -12,10 +12,10 @@ from sqlalchemy.orm import selectinload
 from app.config import get_settings
 from app.models.inventory import InventoryItem, InventoryMovement
 from app.models.labour import Labourer
-from app.models.logistics import LogisticsDriverProfile, LogisticsVehicle
+from app.models.logistics import LogisticsDriverProfile, LogisticsReturnCase, LogisticsVehicle
 from app.models.order import Order, OrderItem
 from app.models.user import Role, User
-from app.models.warehouse import Warehouse
+from app.models.warehouse import ReturnGrading, Warehouse
 from app.services import geocoding_service
 from app.utils.email import delivery_otp_email_html, send_email
 from app.schemas.orders import (
@@ -370,6 +370,9 @@ async def create_order(db: AsyncSession, data: OrderCreate, user: User) -> Order
         service_otp=data.service_otp,
         service_time_block=data.service_time_block,
         scheduled_at=data.scheduled_at,
+        priority=data.priority.upper() if data.priority else "NORMAL",
+        delivery_lat=data.delivery_lat,
+        delivery_lng=data.delivery_lng,
     )
     db.add(order)
     await db.flush()
@@ -744,6 +747,69 @@ async def transition_order(
     )
 
 
+async def complete_return_order(db: AsyncSession, order_id: UUID, caller: "User") -> "OrderResponse":
+    """Driver-side completion for a PARCEL_PICKUP (reverse-logistics) job.
+
+    Transitions the order to DELIVERED, sets warehouse_substatus=RETURN_ARRIVED,
+    and auto-creates a pending ReturnGrading so the Warehouse Manager sees the
+    inbound item in their inspection queue without any manual data entry.
+    """
+    order = await _get_order(db, order_id)
+
+    if order.assigned_driver_id != caller.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not the assigned driver for this order",
+        )
+
+    _validate_transition(order.status, "DELIVERED")
+
+    order.status = "DELIVERED"
+    order.warehouse_substatus = "RETURN_ARRIVED"
+    db.add(order)
+
+    # Auto-create a pending return grading so the Warehouse Manager queue is populated.
+    # If this is a scheduled return pickup order, delivery_notes holds the original RMA
+    # reference code (e.g. "RMA-9921") — use that so WM grading links back to the LM case.
+    if order.warehouse_id:
+        rma_code = (order.delivery_notes or "").strip() if (order.delivery_notes or "").startswith("RMA-") else f"RMA-{order.tracking_code}"
+        existing = (
+            await db.execute(select(ReturnGrading).where(ReturnGrading.rma_code == rma_code))
+        ).scalar_one_or_none()
+        if not existing:
+            grading = ReturnGrading(
+                warehouse_id=order.warehouse_id,
+                order_id=order.id,
+                rma_code=rma_code,
+                item_condition="Pending Inspection",
+                condition_notes=None,
+                disposition="pending",
+                status="pending",
+            )
+            db.add(grading)
+
+        # Sync the LM return case to "Arrived at Warehouse" so the Logistic Manager
+        # knows the physical item is back and WM is about to inspect it.
+        return_case = (await db.execute(
+            select(LogisticsReturnCase).where(LogisticsReturnCase.reference_code == rma_code)
+        )).scalar_one_or_none()
+        if return_case and return_case.status == "Pickup Scheduled":
+            return_case.status = "Arrived at Warehouse"
+            db.add(return_case)
+
+    await _release_order_resources(db, order)
+    await db.flush()
+    await db.refresh(order, attribute_names=["items"])
+    dn, vc, cn, cp = await _resolve_names(db, [order])
+    return _to_order_response(
+        order,
+        driver_name=dn.get(order.assigned_driver_id),
+        vehicle_code=vc.get(order.assigned_vehicle_id),
+        customer_name=cn.get(order.customer_id),
+        customer_phone=cp.get(order.customer_id),
+    )
+
+
 async def _get_customer_for_order(db: AsyncSession, order: Order) -> User:
     customer = (await db.execute(select(User).where(User.id == order.customer_id))).scalar_one_or_none()
     if not customer:
@@ -970,8 +1036,15 @@ def _euclidean_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     return math.sqrt(dlat ** 2 + dlng ** 2)
 
 
-async def optimize_routes(db: AsyncSession) -> list[dict]:
-    """Assign CONFIRMED orders to active drivers using a nearest-neighbour heuristic."""
+_PRIORITY_RANK = {"URGENT": 0, "HIGH": 1, "NORMAL": 2, "LOW": 3}
+
+
+async def optimize_routes(
+    db: AsyncSession,
+    optimize_for: str = "distance",
+    prioritize_urgent: bool = False,
+) -> list[dict]:
+    """Assign CONFIRMED orders to available drivers using a nearest-neighbour heuristic."""
 
     # 1. Fetch CONFIRMED orders
     orders: list[Order] = (
@@ -986,36 +1059,57 @@ async def optimize_routes(db: AsyncSession) -> list[dict]:
             .where(User.is_active.is_(True))
         )
     ).all()
-    drivers = [(profile, user) for profile, user in rows]
+
+    # Exclude drivers already on an active order (ASSIGNED or IN_TRANSIT)
+    busy_result = await db.execute(
+        select(Order.assigned_driver_id)
+        .where(Order.status.in_(["ASSIGNED", "IN_TRANSIT"]))
+        .where(Order.assigned_driver_id.isnot(None))
+    )
+    busy_driver_ids = {str(row[0]) for row in busy_result.all()}
+    drivers = [(profile, user) for profile, user in rows if str(user.id) not in busy_driver_ids]
 
     if not drivers:
         return []
 
-    # 3. Geocode orders that lack coordinates
-    for order in orders:
-        if order.delivery_lat is None or order.delivery_lng is None:
-            if order.delivery_addr:
-                try:
-                    results = await geocoding_service.search_address(order.delivery_addr, limit=1)
-                    if results:
-                        order.delivery_lat = results[0]["lat"]
-                        order.delivery_lng = results[0]["lon"]
-                        db.add(order)
-                except Exception:
-                    pass
+    # 3. Geocode orders that lack coordinates (save coords for future use, don't crash if it fails)
+    needs_geocode = [o for o in orders if o.delivery_lat is None or o.delivery_lng is None]
+    for order in needs_geocode:
+        if order.delivery_addr:
+            try:
+                results = await geocoding_service.search_address(order.delivery_addr, limit=1)
+                if results and results[0]["lat"] and results[0]["lon"]:
+                    order.delivery_lat = float(results[0]["lat"])
+                    order.delivery_lng = float(results[0]["lon"])
+                    db.add(order)
+            except Exception:
+                pass
 
-    await db.flush()
+    if needs_geocode:
+        try:
+            await db.flush()
+        except Exception:
+            await db.rollback()
 
     # 4. Keep only orders that now have valid coordinates
     geo_orders = [o for o in orders if o.delivery_lat is not None and o.delivery_lng is not None]
 
     if not geo_orders:
-        return []
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No orders have delivery coordinates. Ensure destinations are selected on the map."
+        )
 
-    # 5. Sort orders by distance from hub (nearest first)
-    geo_orders.sort(
-        key=lambda o: _euclidean_km(_HUB_LAT, _HUB_LNG, o.delivery_lat, o.delivery_lng)
-    )
+    # 5. Sort orders: priority first (if requested or optimize_for=time), then by distance/deadline
+    def _sort_key(o):
+        pri = _PRIORITY_RANK.get(getattr(o, "priority", None) or "NORMAL", 2)
+        dist = _euclidean_km(_HUB_LAT, _HUB_LNG, o.delivery_lat, o.delivery_lng)
+        deadline_ts = o.scheduled_at.timestamp() if o.scheduled_at else float("inf")
+        if prioritize_urgent or optimize_for == "time":
+            return (pri, deadline_ts, dist)
+        return (pri, dist)
+
+    geo_orders.sort(key=_sort_key)
 
     # 6. Round-robin assignment across drivers
     driver_stops: dict[int, list[Order]] = {i: [] for i in range(len(drivers))}
@@ -1048,6 +1142,7 @@ async def optimize_routes(db: AsyncSession) -> list[dict]:
                         "lat": s.delivery_lat,
                         "lng": s.delivery_lng,
                         "tracking_code": s.tracking_code,
+                        "priority": getattr(s, "priority", None) or "NORMAL",
                     }
                     for s in stops
                 ],

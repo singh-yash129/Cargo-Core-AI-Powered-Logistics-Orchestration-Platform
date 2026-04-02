@@ -118,15 +118,54 @@
                     <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span> Active Move Status
                 </h3>
                 <div class="flex flex-col md:flex-row gap-6 flex-1">
-                    <div
-                        class="flex-none w-full md:w-64 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900 rounded-xl h-48 md:h-auto flex items-center justify-center relative shadow-inner">
-                        <span class="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-600">map</span>
-                        <div
-                            class="absolute bottom-2 left-2 px-3 py-1 bg-white/90 dark:bg-black/80 backdrop-blur-sm text-xs font-bold rounded-lg text-green-600 dark:text-green-400">
+                    <div class="flex-none w-full md:w-64 rounded-xl h-48 md:h-auto relative shadow-inner overflow-hidden" style="min-height:192px">
+                        <!-- Live Leaflet map when driver GPS is available -->
+                        <template v-if="(move.uiStatus === 'in-transit' || move.uiStatus === 'dispatched') && trackingDriver?.latitude">
+                            <l-map :zoom="14" :center="[trackingDriver.latitude, trackingDriver.longitude]" :use-global-leaflet="false" class="w-full h-full" style="z-index:0">
+                                <l-tile-layer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" layer-type="base" name="CartoDB Voyager"></l-tile-layer>
+                                <l-marker :lat-lng="[trackingDriver.latitude, trackingDriver.longitude]">
+                                    <l-popup>
+                                        <div class="text-xs p-1">
+                                            <div class="font-bold flex items-center gap-1 mb-1">
+                                                <span class="material-symbols-outlined text-[14px] text-green-500">local_shipping</span>
+                                                {{ trackingDriver.driver_name || move.driverName }}
+                                            </div>
+                                            <div class="text-gray-500 uppercase text-[9px] font-bold bg-gray-100 rounded px-1.5 py-0.5 inline-block">{{ trackingDriver.status || 'In Transit' }}</div>
+                                        </div>
+                                    </l-popup>
+                                </l-marker>
+                            </l-map>
+                        </template>
+                        <!-- Map centered on pickup while awaiting driver GPS -->
+                        <template v-else-if="(move.uiStatus === 'in-transit' || move.uiStatus === 'dispatched') && geocodedOrigin">
+                            <l-map :zoom="13" :center="[geocodedOrigin.lat, geocodedOrigin.lng]" :use-global-leaflet="false" class="w-full h-full" style="z-index:0">
+                                <l-tile-layer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" layer-type="base" name="CartoDB Voyager"></l-tile-layer>
+                                <l-marker :lat-lng="[geocodedOrigin.lat, geocodedOrigin.lng]">
+                                    <l-popup><div class="text-xs p-1 font-bold">Pickup<br/><span class="font-normal text-gray-500">{{ move.pickup }}</span></div></l-popup>
+                                </l-marker>
+                                <l-marker v-if="geocodedDestination" :lat-lng="[geocodedDestination.lat, geocodedDestination.lng]">
+                                    <l-popup><div class="text-xs p-1 font-bold">Destination<br/><span class="font-normal text-gray-500">{{ move.destination }}</span></div></l-popup>
+                                </l-marker>
+                            </l-map>
+                            <!-- Locating driver badge overlay -->
+                            <div class="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 bg-white/90 dark:bg-black/80 backdrop-blur-sm rounded-lg z-10">
+                                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                                <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Locating driver...</span>
+                            </div>
+                        </template>
+                        <!-- Fallback: no GPS and geocoding still loading -->
+                        <div v-else-if="move.uiStatus === 'in-transit' || move.uiStatus === 'dispatched'" class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-4xl text-green-500 animate-pulse">my_location</span>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">Locating driver...</div>
+                        </div>
+                        <!-- Static placeholder for pending/other statuses -->
+                        <div v-else class="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-600">map</span>
+                        </div>
+                        <!-- ETA and Track Live overlays (always visible) -->
+                        <div class="absolute bottom-2 left-2 px-3 py-1 bg-white/90 dark:bg-black/80 backdrop-blur-sm text-xs font-bold rounded-lg text-green-600 dark:text-green-400 z-10">
                             ETA: {{ move.eta }}</div>
-                        <router-link :to="'/individual/tracking?orderId=' + move.id"
-                            class="absolute bottom-2 right-2 px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors">Track
-                            Live</router-link>
+                        <router-link :to="'/individual/tracking?orderId=' + move.id" class="absolute bottom-2 right-2 px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors z-10">Track Live</router-link>
                     </div>
                     <div class="flex-1 space-y-4">
                         <div>
@@ -356,11 +395,13 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useIndividualStore } from '@/stores/individualStore'
 import { Bar, Doughnut } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js'
 import apiClient from '@/config/api'
+import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import 'leaflet/dist/leaflet.css'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
@@ -416,6 +457,60 @@ const activeMoves = computed(() => {
 
 const activeMove = computed(() => activeMoves.value[selectedMoveIdx.value] || activeMoves.value[0] || null)
 const recentOrders = computed(() => apiDashboard.value?.recent_orders || [])
+
+// Live vehicle tracking for in-transit/dispatched orders
+const trackingDriver = ref(null)
+let trackingInterval = null
+
+async function fetchDriverLocation(orderId) {
+    if (!orderId) return
+    try {
+        const response = await apiClient.get(`/tracking/orders/${orderId}/driver`)
+        trackingDriver.value = response.data || null
+    } catch {
+        trackingDriver.value = null
+    }
+}
+
+// Geocoded pickup/destination for map fallback when driver GPS is unavailable
+const geocodedOrigin = ref(null)
+const geocodedDestination = ref(null)
+
+async function geocodeAddress(address) {
+    if (!address) return null
+    try {
+        const encoded = encodeURIComponent(address)
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`, {
+            headers: { 'Accept-Language': 'en', 'User-Agent': 'CargoCore/1.0' }
+        })
+        const data = await res.json()
+        if (data?.[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+    } catch { /* ignore */ }
+    return null
+}
+
+watch(activeMoves, async (moves) => {
+    const liveMove = moves.find(m => m.uiStatus === 'in-transit' || m.uiStatus === 'dispatched')
+    if (liveMove) {
+        fetchDriverLocation(liveMove.id)
+        if (!trackingInterval) {
+            trackingInterval = setInterval(() => fetchDriverLocation(liveMove.id), 10000)
+        }
+        // Geocode pickup and destination for the map fallback
+        if (!geocodedOrigin.value && liveMove.pickup) {
+            geocodedOrigin.value = await geocodeAddress(liveMove.pickup)
+        }
+        if (!geocodedDestination.value && liveMove.destination) {
+            geocodedDestination.value = await geocodeAddress(liveMove.destination)
+        }
+    } else {
+        clearInterval(trackingInterval)
+        trackingInterval = null
+        trackingDriver.value = null
+        geocodedOrigin.value = null
+        geocodedDestination.value = null
+    }
+}, { immediate: true })
 const stats = computed(() => apiDashboard.value?.stats || {
     total_orders: 0,
     active_orders: 0,
@@ -461,9 +556,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval)
-    }
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval)
+    if (trackingInterval) clearInterval(trackingInterval)
 })
 
 function statusBadge(st) {

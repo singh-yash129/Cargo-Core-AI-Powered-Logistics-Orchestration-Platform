@@ -242,6 +242,19 @@ export const useJobStore = defineStore('job', () => {
             return
         }
 
+        // PARCEL_PICKUP completion uses the dedicated return endpoint which
+        // transitions the order to DELIVERED, sets warehouse_substatus=RETURN_ARRIVED,
+        // and auto-creates a pending ReturnGrading for the Warehouse Manager queue.
+        if (state === 'COMPLETED' && jobType.value === 'PARCEL_PICKUP') {
+            try {
+                await api.completeReturn(orderId)
+                console.log(`✅ Return order ${orderId} completed — sent to warehouse inspection queue`)
+            } catch (err) {
+                console.error(`❌ Failed to complete return order ${orderId}:`, err)
+            }
+            return
+        }
+
         const backendStatus = mapStateToOrderStatus(state)
         if (!backendStatus) {
             console.log(`State ${state} does not require backend sync`)
@@ -732,6 +745,7 @@ export const useJobStore = defineStore('job', () => {
             volume: order.volume || order.total_volume || 0,
             deadline: order.delivery_deadline || order.scheduled_at,
             stops: parseOrderStops(order, jobType),
+            warehouseId: order.warehouse_id || null,
             warehouseLocation: {
                 name: dashboard?.shift?.warehouse_name || 'Warehouse',
                 address: dashboard?.shift?.warehouse_name || 'Warehouse',

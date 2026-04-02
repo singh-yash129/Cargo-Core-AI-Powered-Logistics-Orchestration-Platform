@@ -244,7 +244,50 @@ export const useIndividualStore = defineStore('individual', () => {
             transportLog,
             pod: null,
             cancellation: order.cancel_reason ? { reason: order.cancel_reason, fee: 0, date: new Date().toISOString() } : null,
+            hasDamageReport: false,
+            damageReportId: '',
+            damageReportStatus: '',
+            damageRefundAmount: null,
+            damageCondition: null,
         }
+    }
+
+    function applyDamageReportsToOrders() {
+        if (!orders.value.length) return
+
+        const latestReportByOrderId = new Map()
+        for (const report of damageReports.value) {
+            const orderId = String(report.orderId || '')
+            if (!orderId) continue
+
+            const existing = latestReportByOrderId.get(orderId)
+            if (!existing || new Date(report.createdAt || 0) > new Date(existing.createdAt || 0)) {
+                latestReportByOrderId.set(orderId, report)
+            }
+        }
+
+        orders.value = orders.value.map((order) => {
+            const linkedReport = latestReportByOrderId.get(String(order.backendId || ''))
+            if (!linkedReport) {
+                return {
+                    ...order,
+                    hasDamageReport: false,
+                    damageReportId: '',
+                    damageReportStatus: '',
+                    damageRefundAmount: null,
+                    damageCondition: null,
+                }
+            }
+
+            return {
+                ...order,
+                hasDamageReport: true,
+                damageReportId: linkedReport.id,
+                damageReportStatus: linkedReport.status || 'reported',
+                damageRefundAmount: linkedReport.refundAmount ?? null,
+                damageCondition: linkedReport.condition ?? null,
+            }
+        })
     }
 
     // Build transport log with warehouse operations
@@ -552,6 +595,7 @@ export const useIndividualStore = defineStore('individual', () => {
 
             const data = await response.json()
             orders.value = (data.items || []).map(normalizeBackendOrder)
+            applyDamageReportsToOrders()
             return { success: true, data: orders.value }
         } catch (error) {
             ordersError.value = 'Error connecting to the server.'
@@ -793,7 +837,10 @@ export const useIndividualStore = defineStore('individual', () => {
                 status: report.status,
                 qrCode: report.qr_code,
                 createdAt: report.created_at,
+                refundAmount: report.refund_amount ?? null,
+                condition: report.condition ?? null,
             }))
+            applyDamageReportsToOrders()
             return { success: true, data: damageReports.value }
         } catch (error) {
             damageReportsError.value = 'Error connecting to the server.'
@@ -973,29 +1020,52 @@ export const useIndividualStore = defineStore('individual', () => {
                 ? warehouses.value.find((warehouse) => warehouse.id === resolvedWarehouseId)
                 : null
 
-            // Submit packing materials as OrderItems (so warehouse inventory check works)
-            const materialItems = Object.entries(data.materials || {})
-                .filter(([, qty]) => qty > 0)
-                .map(([key, qty]) => ({
-                    sku: MATERIAL_SKU_MAP[key] || `PKG-${key.toUpperCase()}`,
-                    quantity: qty,
-                    box_count: null,
-                    estimated_volume: null,
-                }))
+            // Submit packing materials as OrderItems (so warehouse inventory deduction works during packing)
+            const MATERIAL_KEYWORDS = {
+                boxes:        ['carton', 'box'],
+                bubbleWrap:   ['bubble', 'wrap'],
+                plasticCrates:['crate', 'plastic'],
+                blankets:     ['blanket', 'pad'],
+                wardrobeBoxes:['wardrobe'],
+                tape:         ['tape'],
+            }
 
-            if (materialItems.length > 0) {
+            const rawMaterialItems = Object.entries(data.materials || {})
+                .filter(([, qty]) => qty > 0)
+                .map(([key, qty]) => ({ key, qty, fallbackSku: MATERIAL_SKU_MAP[key] || `PKG-${key.toUpperCase()}` }))
+
+            if (rawMaterialItems.length > 0) {
                 try {
+                    const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+
+                    // Resolve to actual warehouse inventory SKUs so deduction matches regardless of how items were named
+                    let resolvedItems = rawMaterialItems.map(({ fallbackSku, qty }) => ({ sku: fallbackSku, quantity: qty, box_count: null, estimated_volume: null }))
+
+                    if (resolvedWarehouseId) {
+                        try {
+                            const invRes = await fetch(apiUrl(`api/v1/inventory?page=1&page_size=200&warehouse_id=${resolvedWarehouseId}`), { headers })
+                            if (invRes.ok) {
+                                const invData = await invRes.json()
+                                const inventory = invData.items || invData || []
+                                resolvedItems = rawMaterialItems.map(({ key, qty, fallbackSku }) => {
+                                    const keywords = MATERIAL_KEYWORDS[key] || []
+                                    const match = inventory.find(inv => {
+                                        const text = ((inv.name || '') + ' ' + (inv.category || '') + ' ' + (inv.sku || '')).toLowerCase()
+                                        return keywords.some(kw => text.includes(kw))
+                                    })
+                                    return { sku: match ? match.sku : fallbackSku, quantity: qty, box_count: null, estimated_volume: null }
+                                })
+                            }
+                        } catch { /* use fallback PKG-* SKUs */ }
+                    }
+
                     await fetch(apiUrl(`api/v1/orders/${backendOrder.id}/items`), {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                        },
-                        body: JSON.stringify(materialItems),
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(resolvedItems),
                     })
                 } catch (itemErr) {
-                    // Non-fatal: order is created, materials just won't show in picking list
-                    console.warn('Could not attach packing material items to order:', itemErr)
+                    console.error('Could not attach packing material items to order:', itemErr)
                 }
             }
 

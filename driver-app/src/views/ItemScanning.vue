@@ -103,7 +103,7 @@
                     ? 'bg-blue-500 text-white shadow-xl'
                     : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
                 <span class="material-icons">{{ allItemsScanned ? 'draw' : 'lock' }}</span>
-                {{ allItemsScanned ? 'Get Customer Signature' : `Scan ${expectedItems - scannedItems.length} more items` }}
+                {{ allItemsScanned ? 'Get Customer Signature' : `Scan ${Math.max(0, expectedItems - scannedItems.length)} more items` }}
             </button>
         </div>
     </div>
@@ -116,9 +116,12 @@ import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useCamera } from '../composables/useCamera.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
+import { storeToRefs } from 'pinia'
 
 const router = useRouter()
 const jobStore = useJobStore()
+const { jobType } = storeToRefs(jobStore)
+const isReturnPickup = computed(() => jobType.value === 'PARCEL_PICKUP')
 const uiStore = useUiStore()
 const { advanceAndNavigate } = useFlowRouter()
 const isDark = computed(() => uiStore.theme !== 'light')
@@ -135,6 +138,7 @@ const progressPercent = computed(() => {
 })
 
 const allItemsScanned = computed(() => {
+    if (expectedItems.value === 0 && isReturnPickup.value) return true  // return pickup: no pre-registered items, proceed
     return scannedItems.value.length >= expectedItems.value && expectedItems.value > 0
 })
 

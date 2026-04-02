@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.logistics import LogisticsReturnCase
 from app.models.order import CustomerQuote as CustomerQuoteModel
 from app.models.order import DamageReport as DamageReportModel
 from app.models.order import Order
@@ -560,6 +561,23 @@ async def get_customer_damage_reports(db: AsyncSession, user: User) -> CustomerD
         )
     ).scalars().all()
 
+    ref_codes = [r.reference_code for r in reports if r.reference_code]
+    return_cases: dict = {}
+    if ref_codes:
+        cases = (await db.execute(
+            select(LogisticsReturnCase).where(LogisticsReturnCase.reference_code.in_(ref_codes))
+        )).scalars().all()
+        return_cases = {c.reference_code: c for c in cases}
+
+    def _resolve_status(report_status: str, rc_status: str | None) -> str:
+        if rc_status == "Approved":
+            return "resolved"
+        if rc_status == "Rejected":
+            return "rejected"
+        if rc_status == "Pending":
+            return "inspected"
+        return report_status
+
     return CustomerDamageReportsResponse(
         reports=[
             CustomerDamageReport(
@@ -567,9 +585,14 @@ async def get_customer_damage_reports(db: AsyncSession, user: User) -> CustomerD
                 order_id=str(report.order_id) if report.order_id else "",
                 description=report.description,
                 photos=report.photos or [],
-                status=report.status,
+                status=_resolve_status(
+                    report.status,
+                    return_cases[report.reference_code].status if report.reference_code in return_cases else None,
+                ),
                 qr_code=report.qr_code,
                 created_at=report.created_at.isoformat(),
+                refund_amount=return_cases[report.reference_code].refund_amount if report.reference_code in return_cases else None,
+                condition=return_cases[report.reference_code].condition if report.reference_code in return_cases else None,
             )
             for report in reports
         ]
@@ -580,16 +603,51 @@ async def create_customer_damage_report(db: AsyncSession, user: User, data: Cust
     if user.role.name != "INDIVIDUAL":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Customer damage reports are only available for individual users")
 
+    order_uuid: uuid.UUID | None = None
+    if data.order_id:
+        try:
+            order_uuid = uuid.UUID(data.order_id)
+        except (ValueError, AttributeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid order ID format: '{data.order_id}'. Please select a valid order.",
+            )
+
     report = DamageReportModel(
         reference_code=f"DMG-{uuid.uuid4().hex[:6].upper()}",
         customer_id=user.id,
-        order_id=uuid.UUID(data.order_id) if data.order_id else None,
+        order_id=order_uuid,
         description=data.description,
         photos=data.photos,
         status="reported",
         qr_code=f"QR-{uuid.uuid4().hex[:8].upper()}",
     )
     db.add(report)
+    await db.flush()
+
+    # Auto-create a LogisticsReturnCase so it appears in the
+    # Logistics Manager's Reverse Logistics view immediately.
+    order_total = 0.0
+    warehouse_id = None
+    if order_uuid:
+        order_row = (await db.execute(select(Order).where(Order.id == order_uuid))).scalar_one_or_none()
+        if order_row:
+            order_total = order_row.total_amount or 0.0
+            warehouse_id = order_row.warehouse_id
+
+    return_case = LogisticsReturnCase(
+        warehouse_id=warehouse_id,
+        order_id=order_uuid,
+        reference_code=report.reference_code,
+        customer_name=user.name or user.email,
+        reason=data.description[:255],
+        condition="Reported",
+        status="Pending",
+        original_price=order_total,
+        refund_amount=0.0,
+        images=data.photos or [],
+    )
+    db.add(return_case)
     await db.flush()
 
     return CustomerDamageReport(

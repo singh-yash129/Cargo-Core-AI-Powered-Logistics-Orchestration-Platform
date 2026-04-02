@@ -47,6 +47,7 @@ class UserAdminResponse(BaseModel):
     contact_person: str | None = None
     business_email: str | None = None
     business_phone: str | None = None
+    last_login: datetime | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

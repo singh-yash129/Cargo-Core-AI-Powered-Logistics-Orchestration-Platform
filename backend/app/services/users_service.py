@@ -59,6 +59,7 @@ def _to_response(user: User) -> UserAdminResponse:
         contact_person=user.contact_person,
         business_email=user.business_email,
         business_phone=user.business_phone,
+        last_login=user.last_login,
         created_at=user.created_at,
     )
 

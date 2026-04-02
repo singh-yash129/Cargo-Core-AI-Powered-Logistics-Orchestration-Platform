@@ -140,7 +140,11 @@
                             Requires Logistics Manager approval
                         </div>
 
-                        <button @click="submitReturn"
+                        <div v-if="itemCondition === 'Awaiting Pickup'" class="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-400 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px]">local_shipping</span>
+                            Item is still in transit — cannot grade until driver drops it off.
+                        </div>
+                        <button v-else @click="submitReturn"
                             class="w-full py-3 bg-primary hover:bg-primary-dark text-background-dark font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             :disabled="!rmaId || !itemCondition || !disposition || submitting">
                             <span v-if="submitting" class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-background-dark"></span>
@@ -155,14 +159,21 @@
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4">Items Awaiting Grading</h3>
                 <div class="space-y-3 max-h-[500px] overflow-y-auto">
                     <div v-for="item in processingItems" :key="item.id"
-                        class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 hover:border-yellow-500/30 transition-colors cursor-pointer"
-                        @click="rmaId = item.rma; selectedOrderForReturn = item.rawOrder">
+                        class="p-3 rounded-lg border transition-colors cursor-pointer"
+                        :class="item.prefill?.condition === 'Awaiting Pickup'
+                            ? 'bg-blue-50/40 dark:bg-blue-500/5 border-blue-200 dark:border-blue-500/20 hover:border-blue-400/50 opacity-70'
+                            : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-yellow-500/30'"
+                        @click="selectItem(item)">
                         <div class="flex justify-between items-start">
                             <div>
                                 <div class="text-gray-900 dark:text-white text-sm font-bold">{{ item.name }}</div>
                                 <div class="text-xs text-gray-500 font-mono">{{ item.rma }}</div>
                             </div>
-                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20">PENDING</span>
+                            <span v-if="item.prefill?.condition === 'Awaiting Pickup'"
+                                class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[10px]">local_shipping</span> IN TRANSIT
+                            </span>
+                            <span v-else class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20">PENDING</span>
                         </div>
                         <div class="text-[10px] text-gray-500 mt-1">{{ item.reason }} • Received {{ item.time }}</div>
                     </div>
@@ -279,7 +290,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, watch, onMounted } from 'vue'
+import { ref, computed, inject, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 
 const authStore = useAuthStore()
@@ -299,11 +310,14 @@ const photoItem = ref(null)
 const loading = ref(false)
 const submitting = ref(false)
 const selectedOrderForReturn = ref(null)
+const selectedGradingId = ref(null)   // set when editing an existing pending grading
 const warehouseId = ref(null)
+let refreshTimer = null
 
 // Real data from API
 const inboundReturns = ref([])       // ON_HOLD orders = items awaiting inspection
-const completedItems = ref([])       // From API - completed return gradings
+const pendingGradings = ref([])      // Pending (created but not completed) return gradings
+const completedItems = ref([])       // Completed return gradings from API
 
 // Listen for global scans
 watch(lastGlobalScan, (newVal) => {
@@ -315,78 +329,144 @@ watch(lastGlobalScan, (newVal) => {
             rmaId.value = newVal
             const found = processingItems.value.find(p => p.rma === newVal)
             if (found) {
-                selectedOrderForReturn.value = found.rawOrder
+                selectItem(found)
                 toastMsg.value = `Loaded RMA ${newVal} details.`
                 setTimeout(() => { toastMsg.value = '' }, 2500)
+            } else {
+                selectedOrderForReturn.value = null
+                selectedGradingId.value = null
             }
         }
         lastGlobalScan.value = null
     }
 })
 
+function resolveWarehouseId() {
+    return authStore.currentWarehouse?.id || authStore.currentUser?.warehouse_id || null
+}
+
 async function fetchWarehouseId() {
     try {
+        await authStore.ensureWarehouseContext()
+
+        const resolvedWarehouseId = resolveWarehouseId()
+        if (resolvedWarehouseId) {
+            warehouseId.value = resolvedWarehouseId
+            return
+        }
+
         const headers = {
             'Authorization': `Bearer ${authStore.authToken}`,
             'Content-Type': 'application/json'
         }
-        // Get warehouses and find one for current user
-        const response = await fetch('http://localhost:8000/api/v1/warehouses?page=1&page_size=10', { headers })
-        if (response.ok) {
-            const data = await response.json()
-            const warehouses = data.items || data || []
-            if (warehouses.length > 0) {
-                warehouseId.value = warehouses[0].id
-            }
-        }
+        const response = await fetch('http://localhost:8000/api/v1/warehouses?page=1&page_size=100', { headers })
+        if (!response.ok) return
+
+        const data = await response.json()
+        const warehouses = data.items || data || []
+        const profile = authStore.currentUser || {}
+        const linkedWarehouse = warehouses.find(warehouse =>
+            warehouse.id === profile.warehouse_id || warehouse.manager_id === profile.id
+        ) || null
+
+        warehouseId.value = linkedWarehouse?.id || null
     } catch (error) {
         console.error('Error fetching warehouse ID:', error)
     }
 }
 
-async function fetchReturns() {
-    loading.value = true
+function mapGradingToCompleted(g) {
+    return {
+        id: g.id,
+        name: g.order_tracking || g.rma_code || 'Unknown',
+        rma: g.rma_code,
+        condition: g.item_condition,
+        disposition: g.disposition,
+        dispositionLabel: getDispositionLabel(g.disposition),
+        hasPhoto: !!g.damage_photo_url,
+        photoUrl: g.damage_photo_url,
+        time: g.graded_at
+            ? new Date(g.graded_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+            : '--',
+    }
+}
+
+async function fetchReturns({ silent = false } = {}) {
+    if (!authStore.authToken) return
+
+    if (!silent) {
+        loading.value = true
+    }
     try {
         const headers = {
             'Authorization': `Bearer ${authStore.authToken}`,
             'Content-Type': 'application/json'
         }
 
-        // Fetch ON_HOLD orders as items awaiting return inspection
-        const response = await fetch('http://localhost:8000/api/v1/orders?page=1&page_size=50&status_filter=ON_HOLD', { headers })
-        if (response.ok) {
-            const data = await response.json()
-            inboundReturns.value = data.items || []
-        }
+        // ON_HOLD orders are NOT reliable as return indicators — returns are tracked via
+        // the return gradings API exclusively. Keep inboundReturns empty.
+        inboundReturns.value = []
 
-        // Fetch completed return gradings from API
         if (warehouseId.value) {
+            // Fetch pending return gradings (created but not yet completed)
+            const pendingRes = await fetch(
+                `http://localhost:8000/api/v1/warehouses/${warehouseId.value}/operations/returns?status_filter=pending&page_size=50`,
+                { headers }
+            )
+            if (pendingRes.ok) {
+                const data = await pendingRes.json()
+                pendingGradings.value = data.items || []
+            }
+
+            // Fetch completed return gradings (status_filter is the correct param name)
             const completedRes = await fetch(
-                `http://localhost:8000/api/v1/warehouses/${warehouseId.value}/operations/returns?status=completed&page_size=50`,
+                `http://localhost:8000/api/v1/warehouses/${warehouseId.value}/operations/returns?status_filter=completed&page_size=50`,
                 { headers }
             )
             if (completedRes.ok) {
                 const completedData = await completedRes.json()
-                const gradings = completedData.items || completedData || []
-                completedItems.value = gradings.map(g => ({
-                    id: g.id,
-                    name: g.rma_code || 'Unknown',
-                    rma: g.rma_code,
-                    condition: g.item_condition,
-                    disposition: g.disposition,
-                    dispositionLabel: getDispositionLabel(g.disposition),
-                    hasPhoto: !!g.damage_photo_url,
-                    photoUrl: g.damage_photo_url,
-                    time: g.graded_at
-                        ? new Date(g.graded_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-                        : '--',
-                }))
+                completedItems.value = (completedData.items || []).map(mapGradingToCompleted)
             }
         }
     } catch (error) {
         console.error('Error fetching returns:', error)
     } finally {
-        loading.value = false
+        if (!silent) {
+            loading.value = false
+        }
+    }
+}
+
+async function refreshReturnsContext() {
+    await fetchWarehouseId()
+    if (!warehouseId.value) {
+        pendingGradings.value = []
+        completedItems.value = []
+        inboundReturns.value = []
+        return
+    }
+    await fetchReturns()
+}
+
+function handleVisibilityRefresh() {
+    if (document.visibilityState === 'visible') {
+        refreshReturnsContext()
+    }
+}
+
+function startAutoRefresh() {
+    if (refreshTimer) clearInterval(refreshTimer)
+    refreshTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            fetchReturns({ silent: true })
+        }
+    }, 15000)
+}
+
+function stopAutoRefresh() {
+    if (refreshTimer) {
+        clearInterval(refreshTimer)
+        refreshTimer = null
     }
 }
 
@@ -395,19 +475,43 @@ function getDispositionLabel(d) {
     return labels[d] || d
 }
 
-// Build processing queue from ON_HOLD orders
-const processingItems = computed(() =>
-    inboundReturns.value.map(order => ({
-        id: order.id,
-        name: order.tracking_code || `Order #${order.id?.slice(0, 8)}`,
-        rma: `RMA-${order.tracking_code || order.id?.slice(0, 6).toUpperCase()}`,
-        reason: order.notes || order.hold_reason || 'Returned by customer',
-        time: order.updated_at
-            ? new Date(order.updated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+// Build processing queue: pending gradings first, then ON_HOLD orders not yet assigned a grading
+const processingItems = computed(() => {
+    const fromGradings = pendingGradings.value.map(g => ({
+        id: `grading-${g.id}`,
+        gradingId: g.id,
+        orderId: g.order_id,
+        name: g.order_tracking || g.rma_code,
+        rma: g.rma_code,
+        reason: g.condition_notes || 'Returned by customer',
+        time: g.created_at
+            ? new Date(g.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
             : '--',
-        rawOrder: order
+        rawOrder: { id: g.order_id, tracking_code: g.order_tracking },
+        // Pre-fill fields if grading already has partial data
+        prefill: { condition: g.item_condition, notes: g.condition_notes, disposition: g.disposition },
     }))
-)
+
+    // Only show ON_HOLD orders that don't already have a pending grading
+    const gradedOrderIds = new Set(pendingGradings.value.map(g => g.order_id).filter(Boolean))
+    const fromOrders = inboundReturns.value
+        .filter(order => !gradedOrderIds.has(order.id))
+        .map(order => ({
+            id: `order-${order.id}`,
+            gradingId: null,
+            orderId: order.id,
+            name: order.tracking_code || `Order #${order.id?.slice(0, 8)}`,
+            rma: `RMA-${order.tracking_code || order.id?.slice(0, 6).toUpperCase()}`,
+            reason: order.notes || order.hold_reason || 'Returned by customer',
+            time: order.updated_at
+                ? new Date(order.updated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+                : '--',
+            rawOrder: order,
+            prefill: null,
+        }))
+
+    return [...fromGradings, ...fromOrders]
+})
 
 const filteredCompleted = computed(() => {
     if (!completedFilter.value) return completedItems.value
@@ -442,6 +546,17 @@ function getDispositionIcon(d) {
     return 'recycling'
 }
 
+function selectItem(item) {
+    rmaId.value = item.rma
+    selectedOrderForReturn.value = item.rawOrder
+    selectedGradingId.value = item.gradingId || null
+    if (item.prefill) {
+        itemCondition.value = item.prefill.condition || ''
+        conditionNotes.value = item.prefill.notes || ''
+        disposition.value = item.prefill.disposition || ''
+    }
+}
+
 async function submitReturn() {
     if (!warehouseId.value) {
         toastMsg.value = 'No warehouse selected'
@@ -458,52 +573,66 @@ async function submitReturn() {
             'Content-Type': 'application/json'
         }
 
-        // Create return grading via API
-        const payload = {
-            rma_code: rmaId.value,
-            order_id: selectedOrderForReturn.value?.id || null,
-            item_condition: itemCondition.value,
-            condition_notes: conditionNotes.value || null,
-            disposition: disposition.value,
+        let gradingId = selectedGradingId.value
+
+        if (gradingId) {
+            // Existing pending grading — update it first, then complete
+            await fetch(
+                `http://localhost:8000/api/v1/warehouses/${warehouseId.value}/operations/returns/${gradingId}`,
+                {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify({
+                        item_condition: itemCondition.value,
+                        condition_notes: conditionNotes.value || null,
+                        disposition: disposition.value,
+                    })
+                }
+            )
+        } else {
+            // New grading — create it
+            const response = await fetch(
+                `http://localhost:8000/api/v1/warehouses/${warehouseId.value}/operations/returns`,
+                {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        rma_code: rmaId.value,
+                        order_id: selectedOrderForReturn.value?.id || null,
+                        item_condition: itemCondition.value,
+                        condition_notes: conditionNotes.value || null,
+                        disposition: disposition.value,
+                    })
+                }
+            )
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+            const grading = await response.json()
+            gradingId = grading.id
         }
-
-        const response = await fetch(
-            `http://localhost:8000/api/v1/warehouses/${warehouseId.value}/operations/returns`,
-            {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(payload)
-            }
-        )
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`)
-        }
-
-        const grading = await response.json()
 
         // Upload photo if captured
-        if (capturedPhoto.value && grading.id) {
-            await uploadDamagePhoto(grading.id, capturedPhoto.value)
+        if (capturedPhoto.value && gradingId) {
+            await uploadDamagePhoto(gradingId, capturedPhoto.value)
         }
 
-        // Add to local completed items for immediate UI feedback
-        completedItems.value.unshift({
-            id: grading.id,
-            name: selectedOrderForReturn.value?.tracking_code || rmaId.value || 'Unknown',
-            rma: rmaId.value,
-            condition: itemCondition.value,
-            disposition: disposition.value,
-            dispositionLabel: labels[disposition.value] || disposition.value,
-            hasPhoto: !!capturedPhoto.value,
-            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-        })
+        // Mark as completed — this is what moves it to the "Completed" tab
+        const completeRes = await fetch(
+            `http://localhost:8000/api/v1/warehouses/${warehouseId.value}/operations/returns/${gradingId}/complete`,
+            { method: 'POST', headers }
+        )
+        if (!completeRes.ok) throw new Error(`Complete failed: HTTP ${completeRes.status}`)
+        const completed = await completeRes.json()
+
+        // Add to completed list immediately
+        completedItems.value.unshift(mapGradingToCompleted(completed))
 
         // Remove from processing queue
-        const idx = inboundReturns.value.findIndex(o =>
+        const gradingIdx = pendingGradings.value.findIndex(g => g.id === selectedGradingId.value)
+        if (gradingIdx !== -1) pendingGradings.value.splice(gradingIdx, 1)
+        const orderIdx = inboundReturns.value.findIndex(o =>
             rmaId.value.includes(o.tracking_code) || rmaId.value.includes(o.id?.slice(0, 6))
         )
-        if (idx !== -1) inboundReturns.value.splice(idx, 1)
+        if (orderIdx !== -1) inboundReturns.value.splice(orderIdx, 1)
 
         toastMsg.value = `Return ${rmaId.value} — ${labels[disposition.value]}`
 
@@ -514,6 +643,7 @@ async function submitReturn() {
         conditionNotes.value = ''
         disposition.value = ''
         selectedOrderForReturn.value = null
+        selectedGradingId.value = null
 
     } catch (error) {
         console.error('Error submitting return:', error)
@@ -560,8 +690,29 @@ async function uploadDamagePhoto(gradingId, photoData) {
     }
 }
 
+watch(
+    () => [authStore.currentWarehouse?.id, authStore.currentUser?.warehouse_id],
+    async ([currentWarehouseId, currentUserWarehouseId], [prevCurrentWarehouseId, prevCurrentUserWarehouseId]) => {
+        if (
+            currentWarehouseId === prevCurrentWarehouseId
+            && currentUserWarehouseId === prevCurrentUserWarehouseId
+        ) {
+            return
+        }
+        await refreshReturnsContext()
+    }
+)
+
 onMounted(async () => {
-    await fetchWarehouseId()
-    await fetchReturns()
+    await refreshReturnsContext()
+    startAutoRefresh()
+    window.addEventListener('focus', refreshReturnsContext)
+    document.addEventListener('visibilitychange', handleVisibilityRefresh)
+})
+
+onUnmounted(() => {
+    stopAutoRefresh()
+    window.removeEventListener('focus', refreshReturnsContext)
+    document.removeEventListener('visibilitychange', handleVisibilityRefresh)
 })
 </script>

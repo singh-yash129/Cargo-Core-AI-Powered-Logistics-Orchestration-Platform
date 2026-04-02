@@ -15,6 +15,7 @@ class Order(Base):
     tracking_code: Mapped[str] = mapped_column(String(32), nullable=False, unique=True, index=True)
     order_type: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="DRAFT", index=True)
+    priority: Mapped[str] = mapped_column(String(10), nullable=False, default="NORMAL", index=True)
     warehouse_substatus: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
 
     customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)

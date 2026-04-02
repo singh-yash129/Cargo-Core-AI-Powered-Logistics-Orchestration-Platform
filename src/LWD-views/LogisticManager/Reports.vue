@@ -1468,14 +1468,66 @@ const rmaVsOrdersData = computed(() => ({
     ]
 }))
 
-const rmaReasonsData = computed(() => ({
-    labels: reportMetrics.value.rma_reasons?.labels || ['Damaged', 'Wrong Item', 'Late Delivery', 'Changed Mind'],
-    datasets: [{
-        label: 'Issues Count',
-        backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#9ca3af'],
-        data: reportMetrics.value.rma_reasons?.values || []
-    }]
-}))
+const fallbackRmaReasonSummary = computed(() => {
+    const buckets = {
+        Damaged: 0,
+        'Wrong Item': 0,
+        'Late Delivery': 0,
+        'Changed Mind': 0,
+        Other: 0,
+    }
+
+    for (const item of store.filteredReturns || []) {
+        const reason = String(item.reason || '').toLowerCase()
+        if (/(damage|damaged|broken|defect|defective|scrap|crack|cracked)/.test(reason)) {
+            buckets.Damaged += 1
+        } else if (/(wrong|incorrect|mismatch|different item|not what i ordered)/.test(reason)) {
+            buckets['Wrong Item'] += 1
+        } else if (/(late|delay|delayed|slow delivery|delivery issue)/.test(reason)) {
+            buckets['Late Delivery'] += 1
+        } else if (/(changed mind|no longer need|cancel|cancelled|cancelled order)/.test(reason)) {
+            buckets['Changed Mind'] += 1
+        } else if (reason) {
+            buckets.Other += 1
+        }
+    }
+
+    return buckets
+})
+
+const rmaReasonsData = computed(() => {
+    const metricLabels = reportMetrics.value.rma_reasons?.labels || []
+    const metricValues = reportMetrics.value.rma_reasons?.values || []
+    const metricTotal = metricValues.reduce((sum, value) => sum + (Number(value) || 0), 0)
+
+    if (metricLabels.length && metricValues.length && metricTotal > 0) {
+        return {
+            labels: metricLabels,
+            datasets: [{
+                label: 'Issues Count',
+                backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#9ca3af', '#8b5cf6'],
+                data: metricValues
+            }]
+        }
+    }
+
+    const fallbackEntries = Object.entries(fallbackRmaReasonSummary.value).filter(([, count]) => count > 0)
+    const labels = fallbackEntries.length
+        ? fallbackEntries.map(([label]) => label)
+        : ['Damaged', 'Wrong Item', 'Late Delivery', 'Changed Mind']
+    const values = fallbackEntries.length
+        ? fallbackEntries.map(([, count]) => count)
+        : [0, 0, 0, 0]
+
+    return {
+        labels,
+        datasets: [{
+            label: 'Issues Count',
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#9ca3af', '#8b5cf6'],
+            data: values
+        }]
+    }
+})
 
 // 6. Detailed Analytics (New)
 const analyticsSLAData = computed(() => ({

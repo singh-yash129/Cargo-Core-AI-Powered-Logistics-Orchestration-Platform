@@ -30,6 +30,9 @@ class OrderCreate(BaseModel):
     service_otp: str | None = None
     service_time_block: str | None = None
     scheduled_at: datetime | None = None
+    priority: str = "NORMAL"
+    delivery_lat: float | None = None
+    delivery_lng: float | None = None
 
 
 class OrderUpdate(BaseModel):

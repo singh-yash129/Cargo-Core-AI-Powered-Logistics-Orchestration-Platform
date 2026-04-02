@@ -6,7 +6,7 @@
         </h2>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-orange-500/30 transition-colors">
                 <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                     <span class="material-symbols-outlined text-6xl text-orange-500">pending_actions</span>
@@ -34,6 +34,19 @@
                 </div>
                 <div class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Scrap / Dispose</div>
                 <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">{{ scrapRate }}%</div>
+            </div>
+
+            <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-purple-500/30 transition-colors">
+                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <span class="material-symbols-outlined text-6xl text-purple-500">local_shipping</span>
+                </div>
+                <div class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">In Pipeline</div>
+                <div class="flex items-end gap-2 z-10 mt-1">
+                    <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ inProgressReturns }}</div>
+                    <span v-if="inProgressReturns > 0" class="text-xs font-bold text-purple-500 bg-purple-50 dark:bg-purple-500/10 px-1.5 py-0.5 rounded flex items-center mb-1">
+                        Active
+                    </span>
+                </div>
             </div>
 
             <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-blue-500/30 transition-colors">
@@ -84,19 +97,29 @@
                         <tr v-for="rma in filteredList" :key="rma.id"
                             class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer"
                             @click="openDetails(rma)">
-                            <td class="py-3 px-4 font-mono text-primary font-bold text-xs">{{ rma.id }}</td>
+                            <td class="py-3 px-4 font-mono text-primary font-bold text-xs">{{ rma.referenceCode || rma.id }}</td>
                             <td class="py-3 px-4">
                                 <div>
                                     <div class="font-medium text-gray-900 dark:text-white text-sm">{{ rma.customer }}</div>
-                                    <div class="text-xs text-gray-500 font-mono">{{ rma.orderId }}</div>
+                                    <div class="text-xs text-gray-500 font-mono">{{ rma.orderId ? rma.orderId.slice(0, 8) + '...' : '—' }}</div>
+                                    <div v-if="rma.walletCredited" class="mt-1 inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400">
+                                        <span class="material-symbols-outlined text-[12px]">wallet</span>
+                                        Refunded
+                                    </div>
                                 </div>
                             </td>
                             <td class="py-3 px-4 text-gray-600 dark:text-gray-300">{{ rma.reason }}</td>
                             <td class="py-3 px-4">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider border"
-                                    :class="getConditionClass(rma.condition)">
-                                    {{ rma.condition }}
-                                </span>
+                                <div class="flex flex-col items-start gap-1.5">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider border"
+                                        :class="getConditionClass(rma.condition)">
+                                        {{ rma.condition }}
+                                    </span>
+                                    <span v-if="rma.wmDisposition" class="text-[11px] font-medium"
+                                        :class="getWarehouseOutcomeTextClass(rma.wmDisposition)">
+                                        {{ getWarehouseOutcomeLabel(rma.wmDisposition) }}
+                                    </span>
+                                </div>
                             </td>
                             <td class="py-3 px-4">
                                 <button v-if="rma.images && rma.images.length > 0" 
@@ -111,10 +134,16 @@
                                 </span>
                             </td>
                             <td class="py-3 px-4">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider border"
-                                    :class="getStatusClass(rma.status)">
-                                    {{ rma.status || 'Pending' }}
-                                </span>
+                                <div class="flex flex-col items-start gap-1">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider border"
+                                        :class="getStatusClass(rma.status)">
+                                        {{ rma.status || 'Pending' }}
+                                    </span>
+                                    <span class="text-[11px] font-medium"
+                                        :class="getStatusHintClass(rma.status)">
+                                        {{ getStatusHint(rma.status) }}
+                                    </span>
+                                </div>
                             </td>
                             <td class="py-3 px-4 text-right">
                                 <button v-if="rma.status === 'Pending' || !rma.status" 
@@ -123,13 +152,14 @@
                                     <span class="material-symbols-outlined text-[14px]">gavel</span> Process
                                 </button>
                                 <button v-else
+                                    @click.stop="openDetails(rma)"
                                     class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs font-medium flex items-center gap-1 ml-auto transition-colors">
                                     <span class="material-symbols-outlined text-[16px]">visibility</span> Details
                                 </button>
                             </td>
                         </tr>
                         <tr v-if="filteredList.length === 0">
-                            <td colspan="6" class="py-12 text-center text-gray-500">
+                            <td colspan="7" class="py-12 text-center text-gray-500">
                                 <div class="flex flex-col items-center gap-2 opacity-50">
                                     <span class="material-symbols-outlined text-4xl">inbox</span>
                                     <p class="text-sm">No return requests found.</p>
@@ -148,7 +178,7 @@
                     <div class="p-6 border-b border-white/10 flex justify-between items-center bg-slate-900/90 shrink-0 rounded-t-3xl">
                         <div>
                             <h3 class="text-lg font-bold text-gray-900 dark:text-white">Process Return Request</h3>
-                            <p class="text-xs text-gray-500 font-mono">{{ selectedRMA?.id }} • {{ selectedRMA?.orderId }}</p>
+                            <p class="text-xs text-gray-500 font-mono">{{ selectedRMA?.referenceCode || selectedRMA?.id }} • {{ selectedRMA?.customer }}</p>
                         </div>
                         <button @click="showProcessModal = false" class="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                             <span class="material-symbols-outlined">close</span>
@@ -257,7 +287,7 @@
                     <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-10 pointer-events-none">
                         <div class="pointer-events-auto">
                             <span class="bg-white/10 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-mono border border-white/20">
-                                {{ selectedRMA?.id }}
+                                {{ selectedRMA?.referenceCode || selectedRMA?.id }}
                             </span>
                         </div>
                         <button @click="showImageModal = false" class="pointer-events-auto text-white/50 hover:text-white bg-black/50 hover:bg-black/80 rounded-full p-2 transition-all">
@@ -318,10 +348,14 @@
                             <span class="text-gray-500">Status</span>
                             <span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase border" :class="getStatusClass(selectedRMA?.status)">{{ selectedRMA?.status }}</span>
                         </div>
+                        <div v-if="selectedRMA?.walletCredited" class="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/10 px-3 py-2 text-sm text-green-300">
+                            <span class="material-symbols-outlined text-[18px]">wallet</span>
+                            Refund already issued to customer wallet.
+                        </div>
                         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
                             <div>
                                 <p class="text-xs text-gray-500 mb-0.5">RMA ID</p>
-                                <p class="font-mono font-bold dark:text-white">{{ selectedRMA?.id }}</p>
+                                <p class="font-mono font-bold dark:text-white">{{ selectedRMA?.referenceCode || selectedRMA?.id }}</p>
                             </div>
                              <div>
                                 <p class="text-xs text-gray-500 mb-0.5">Order ID</p>
@@ -336,8 +370,74 @@
                                 <p class="font-bold text-green-600 dark:text-green-400 font-mono">₹{{ selectedRMA?.refundAmount || 0 }}</p>
                             </div>
                         </div>
+                        <div v-if="selectedRMA?.wmDisposition || selectedRMA?.wmGraderName || selectedRMA?.wmGradedAt"
+                            class="grid grid-cols-1 gap-3 text-sm">
+                            <div v-if="selectedRMA?.wmDisposition" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                                <p class="text-xs text-gray-500 mb-1">Warehouse Outcome</p>
+                                <p class="font-bold" :class="getWarehouseOutcomeTextClass(selectedRMA.wmDisposition)">
+                                    {{ getWarehouseOutcomeLabel(selectedRMA.wmDisposition) }}
+                                </p>
+                            </div>
+                            <div v-if="selectedRMA?.wmGraderName || selectedRMA?.wmGradedAt" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                                <p class="text-xs text-gray-500 mb-1">Warehouse Review</p>
+                                <p class="font-bold text-white">
+                                    {{ selectedRMA?.wmGraderName || 'Warehouse Manager' }}
+                                </p>
+                                <p v-if="selectedRMA?.wmGradedAt" class="text-xs text-gray-400 mt-1">
+                                    {{ formatDateTime(selectedRMA.wmGradedAt) }}
+                                </p>
+                            </div>
+                        </div>
                         <div v-if="selectedRMA?.notes" class="bg-gray-50 dark:bg-white/5 p-3 rounded-xl text-sm text-gray-600 dark:text-gray-300 italic border border-gray-100 dark:border-white/10">
                             "{{ selectedRMA.notes }}"
+                        </div>
+
+                        <!-- WM inspection result (shown once item is physically graded) -->
+                        <div v-if="selectedRMA?.status === 'Inspected'" class="flex items-center gap-2 rounded-xl border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-sm text-teal-300">
+                            <span class="material-symbols-outlined text-[18px]">verified</span>
+                            Warehouse Manager processed this return.
+                            <strong class="ml-1">{{ selectedRMA.condition }}</strong>
+                            <span v-if="selectedRMA?.wmDisposition" class="ml-1 opacity-90">
+                                • {{ getWarehouseOutcomeLabel(selectedRMA.wmDisposition) }}
+                            </span>
+                        </div>
+
+                        <!-- Pickup status info -->
+                        <div v-if="selectedRMA?.status === 'Pickup Scheduled'" class="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-300">
+                            <span class="material-symbols-outlined text-[18px]">local_shipping</span>
+                            Driver pickup scheduled — awaiting item collection from customer.
+                        </div>
+                        <div v-if="selectedRMA?.status === 'Arrived at Warehouse'" class="flex items-center gap-2 rounded-xl border border-purple-500/20 bg-purple-500/10 px-3 py-2 text-sm text-purple-300">
+                            <span class="material-symbols-outlined text-[18px]">warehouse</span>
+                            Item arrived at warehouse — still waiting for Warehouse Manager to process it.
+                        </div>
+
+                        <!-- Retry pickup scheduling if still Approved (auto-schedule failed) -->
+                        <div v-if="selectedRMA?.status === 'Approved'" class="pt-2 border-t border-white/10">
+                            <button @click="handleSchedulePickup"
+                                :disabled="pickupScheduling"
+                                class="w-full py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white">
+                                <span v-if="pickupScheduling" class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                                <span v-else class="material-symbols-outlined text-[18px]">local_shipping</span>
+                                {{ pickupScheduling ? 'Scheduling...' : 'Schedule Driver Pickup' }}
+                            </button>
+                            <p v-if="pickupError" class="text-xs text-red-400 mt-1.5 text-center">{{ pickupError }}</p>
+                        </div>
+
+                        <!-- Wallet Refund Action (for approved/inspected cases with a refund amount) -->
+                        <div v-if="['Approved', 'Pickup Scheduled', 'Arrived at Warehouse', 'Inspected'].includes(selectedRMA?.status) && selectedRMA?.refundAmount > 0"
+                            class="pt-2 border-t border-white/10">
+                            <button @click="handleIssueRefund"
+                                :disabled="refundIssuing || refundIssued"
+                                class="w-full py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+                                :class="refundIssued
+                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
+                                    : 'bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white'">
+                                <span v-if="refundIssuing" class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                                <span v-else class="material-symbols-outlined text-[18px]">{{ refundIssued ? 'check_circle' : 'account_balance_wallet' }}</span>
+                                {{ refundIssued ? 'Refund Issued to Wallet' : refundIssuing ? 'Issuing...' : `Issue ₹${selectedRMA.refundAmount} to Customer Wallet` }}
+                            </button>
+                            <p v-if="refundError" class="text-xs text-red-400 mt-1.5 text-center">{{ refundError }}</p>
                         </div>
                     </div>
                 </div>
@@ -347,13 +447,53 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
 
 // Store Access
 const store = useLogisticStore()
 const { filteredReturns } = storeToRefs(store)
+let refreshTimer = null
+
+async function refreshReturnsView() {
+    await store.refresh()
+}
+
+function handleVisibilityRefresh() {
+    if (document.visibilityState === 'visible') {
+        refreshReturnsView()
+    }
+}
+
+function startAutoRefresh() {
+    if (refreshTimer) clearInterval(refreshTimer)
+    refreshTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            refreshReturnsView()
+        }
+    }, 15000)
+}
+
+function stopAutoRefresh() {
+    if (refreshTimer) {
+        clearInterval(refreshTimer)
+        refreshTimer = null
+    }
+}
+
+onMounted(() => {
+    refreshReturnsView()
+    startAutoRefresh()
+    window.addEventListener('focus', refreshReturnsView)
+    document.addEventListener('visibilitychange', handleVisibilityRefresh)
+})
+
+onUnmounted(() => {
+    stopAutoRefresh()
+    window.removeEventListener('focus', refreshReturnsView)
+    document.removeEventListener('visibilitychange', handleVisibilityRefresh)
+})
 
 // View State
 const searchQuery = ref('')
@@ -365,6 +505,16 @@ const conditionVerified = ref(false)
 const selectedRMA = ref(null)
 const selectedImages = ref([])
 const activeImageIndex = ref(0)
+
+// Wallet refund state (for Details modal)
+const refundIssuing = ref(false)
+const refundIssued = ref(false)
+const refundError = ref('')
+const issuedRefundIds = new Set() // persists across modal opens
+
+// Pickup scheduling state (for Details modal)
+const pickupScheduling = ref(false)
+const pickupError = ref('')
 
 // Process Form State
 const processForm = ref({
@@ -379,12 +529,19 @@ const tabs = [
     { id: 'All', label: 'All Returns' },
     { id: 'Pending', label: 'Pending Review' },
     { id: 'Approved', label: 'Approved' },
+    { id: 'Pickup Scheduled', label: 'Pickup Scheduled' },
+    { id: 'Arrived at Warehouse', label: 'At Warehouse' },
+    { id: 'Inspected', label: 'Inspected' },
     { id: 'Rejected', label: 'Rejected' }
 ]
 
 // Logic
 const pendingReturns = computed(() => {
     return filteredReturns.value.filter(r => !r.status || r.status === 'Pending').length
+})
+
+const inProgressReturns = computed(() => {
+    return filteredReturns.value.filter(r => ['Approved', 'Pickup Scheduled', 'Arrived at Warehouse'].includes(r.status)).length
 })
 
 const refundValue = computed(() => {
@@ -421,6 +578,14 @@ const filteredList = computed(() => {
         }
     }
 
+    // Sort: pending first, then by most recent stage last
+    const statusOrder = ['Pending', 'Approved', 'Pickup Scheduled', 'Arrived at Warehouse', 'Inspected', 'Rejected']
+    list = [...list].sort((a, b) => {
+        const ai = statusOrder.indexOf(a.status || 'Pending')
+        const bi = statusOrder.indexOf(b.status || 'Pending')
+        return ai - bi
+    })
+
     // Search Filter
     if (searchQuery.value) {
         const q = searchQuery.value.toLowerCase()
@@ -438,9 +603,67 @@ const filteredList = computed(() => {
 const getStatusClass = (status) => {
     switch(status) {
         case 'Approved': return 'bg-green-50 border-green-200 text-green-600 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20'
+        case 'Pickup Scheduled': return 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20'
+        case 'Arrived at Warehouse': return 'bg-purple-50 border-purple-200 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20'
+        case 'Inspected': return 'bg-teal-50 border-teal-200 text-teal-600 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20'
         case 'Rejected': return 'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
         default: return 'bg-yellow-50 border-yellow-200 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20'
     }
+}
+
+const getStatusHint = (status) => {
+    switch (status) {
+        case 'Approved': return 'Approved by Logistics'
+        case 'Pickup Scheduled': return 'Driver pickup in progress'
+        case 'Arrived at Warehouse': return 'Waiting for WM'
+        case 'Inspected': return 'Processed by WM'
+        case 'Rejected': return 'Closed'
+        default: return 'Needs review'
+    }
+}
+
+const getStatusHintClass = (status) => {
+    switch (status) {
+        case 'Approved': return 'text-green-600 dark:text-green-400'
+        case 'Pickup Scheduled': return 'text-blue-600 dark:text-blue-400'
+        case 'Arrived at Warehouse': return 'text-purple-600 dark:text-purple-400'
+        case 'Inspected': return 'text-teal-600 dark:text-teal-400'
+        case 'Rejected': return 'text-red-600 dark:text-red-400'
+        default: return 'text-yellow-600 dark:text-yellow-400'
+    }
+}
+
+const getWarehouseOutcomeLabel = (disposition) => {
+    switch (disposition) {
+        case 'restock': return 'Restocked'
+        case 'claims': return 'Sent to Claims'
+        case 'discard': return 'Discarded'
+        case 'recycle': return 'Recycled'
+        default: return disposition || 'Warehouse Reviewed'
+    }
+}
+
+const getWarehouseOutcomeTextClass = (disposition) => {
+    switch (disposition) {
+        case 'restock': return 'text-green-600 dark:text-green-400'
+        case 'claims': return 'text-blue-600 dark:text-blue-400'
+        case 'discard': return 'text-red-600 dark:text-red-400'
+        case 'recycle': return 'text-purple-600 dark:text-purple-400'
+        default: return 'text-gray-600 dark:text-gray-300'
+    }
+}
+
+const formatDateTime = (value) => {
+    if (!value) return '—'
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return value
+    return parsed.toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    })
 }
 
 const getConditionClass = (condition) => {
@@ -453,7 +676,7 @@ const getConditionClass = (condition) => {
 // Actions
 const openImageGallery = (rma) => {
     selectedRMA.value = rma
-    selectedImages.value = rma.images || []
+    selectedImages.value = (rma.images || []).filter(img => img && (img.startsWith('http') || img.startsWith('/')))
     activeImageIndex.value = 0
     showImageModal.value = true
 }
@@ -461,9 +684,50 @@ const openImageGallery = (rma) => {
 const openDetails = (rma) => {
     selectedRMA.value = rma
     if (rma.status && rma.status !== 'Pending') {
+        refundIssued.value = Boolean(rma.walletCredited || issuedRefundIds.has(rma.id))
+        refundIssuing.value = false
+        refundError.value = ''
+        pickupScheduling.value = false
+        pickupError.value = ''
         showDetailsModal.value = true
     } else {
         openProcessModal(rma)
+    }
+}
+
+const handleSchedulePickup = async () => {
+    if (!selectedRMA.value || pickupScheduling.value) return
+    pickupScheduling.value = true
+    pickupError.value = ''
+    try {
+        await store.scheduleReturnPickup(selectedRMA.value.id)
+        selectedRMA.value = { ...selectedRMA.value, status: 'Pickup Scheduled' }
+    } catch (e) {
+        pickupError.value = e?.message || 'Failed to schedule pickup'
+    } finally {
+        pickupScheduling.value = false
+    }
+}
+
+const handleIssueRefund = async () => {
+    if (!selectedRMA.value || refundIssuing.value || refundIssued.value) return
+    refundIssuing.value = true
+    refundError.value = ''
+    try {
+        const result = await store.issueReturnRefund(selectedRMA.value.id)
+        issuedRefundIds.add(selectedRMA.value.id)
+        refundIssued.value = true
+        selectedRMA.value = {
+            ...selectedRMA.value,
+            walletCredited: true,
+        }
+        if (result && !result.credited) {
+            refundError.value = 'Note: refund was already issued previously.'
+        }
+    } catch (e) {
+        refundError.value = e?.message || 'Failed to issue refund. Please try again.'
+    } finally {
+        refundIssuing.value = false
     }
 }
 
@@ -508,7 +772,7 @@ const updateRefundAmount = () => {
 }
 
 const confirmProcess = async (decision) => {
-    if (!selectedRMA.value) return 
+    if (!selectedRMA.value) return
 
     // Update Store
     await store.updateReturnStatus(selectedRMA.value.id, decision, {
@@ -516,11 +780,11 @@ const confirmProcess = async (decision) => {
         notes: processForm.value.notes,
         condition: processForm.value.condition
     })
-    
+
     // Add Transaction if Refunded
     if (decision === 'Approved' && processForm.value.amount > 0) {
         await store.addTransaction({
-            id: Date.now(), // Generate ID
+            id: Date.now(),
             date: new Date().toISOString().split('T')[0],
             desc: `Refund for ${selectedRMA.value.id}`,
             amount: -processForm.value.amount,
@@ -528,6 +792,17 @@ const confirmProcess = async (decision) => {
             status: 'Completed',
             hubId: store.activeWarehouse
         })
+    }
+
+    // On approval, automatically schedule a driver pickup so the item gets
+    // physically collected from the customer and brought back to the warehouse.
+    if (decision === 'Approved') {
+        try {
+            await store.scheduleReturnPickup(selectedRMA.value.id)
+        } catch (e) {
+            // Non-fatal: pickup scheduling failed (e.g. no linked order). LM can retry from details view.
+            console.warn('Could not auto-schedule pickup:', e?.message)
+        }
     }
 
     showProcessModal.value = false

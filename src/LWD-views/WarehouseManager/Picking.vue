@@ -1980,13 +1980,14 @@ async function fetchPickingData() {
                 ...order,
                 warehouse_substatus: 'AWAITING_PICK'
             }))
-            pickingOrders = warehouseOrders.filter(order => getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKING')
+            pickingOrders = warehouseOrders.filter(order => order.status !== 'CANCELLED' && getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKING')
                 .map(order => ({ ...order, warehouse_substatus: 'PICKING' }))
-            pickedOrders = warehouseOrders.filter(order => getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKED')
+            pickedOrders = warehouseOrders.filter(order => order.status !== 'CANCELLED' && getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKED')
                 .map(order => ({ ...order, warehouse_substatus: 'PICKED' }))
-            packingOrders = warehouseOrders.filter(order => getEffectiveWarehouseSubstatus(order, warehouseId) === 'PACKING')
+            packingOrders = warehouseOrders.filter(order => order.status !== 'CANCELLED' && getEffectiveWarehouseSubstatus(order, warehouseId) === 'PACKING')
                 .map(order => ({ ...order, warehouse_substatus: 'PACKING' }))
             packedOrders = warehouseOrders.filter(order => {
+                if (order.status === 'CANCELLED') return false
                 const substatus = getEffectiveWarehouseSubstatus(order, warehouseId)
                 return ['PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH'].includes(substatus)
             }).map(order => ({
