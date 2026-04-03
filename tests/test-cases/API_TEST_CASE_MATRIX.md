@@ -1,6 +1,5 @@
 # API Test Case Matrix
 
-Date: 2026-04-03
 Suite root: tests/
 Scope: Repository-level tests only. backend/* is read-only.
 

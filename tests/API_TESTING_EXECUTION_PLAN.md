@@ -1,6 +1,5 @@
 # API Testing Execution Plan
 
-Date: 2026-04-03
 Scope owner: Testing team
 
 ## Objective
