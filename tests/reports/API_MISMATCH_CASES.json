@@ -1,0 +1,26 @@
+[
+  {
+    "case_id": "MM-ORD-001",
+    "test_name": "test_orders_track_unknown_mismatch_showcase",
+    "endpoint": "GET /api/v1/orders/track/{tracking_code}",
+    "input": {
+      "path": {
+        "tracking_code": "UNKNOWN-TRACKING"
+      }
+    },
+    "expected_output": {
+      "status_code": 404,
+      "reason": "Business expectation for unknown tracking code"
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "found": false,
+        "tracking_code": "UNKNOWN-TRACKING",
+        "message": "Tracking code not found"
+      }
+    },
+    "difference_summary": "Endpoint currently returns HTTP 200 with a not-found payload for unknown tracking codes instead of HTTP 404.",
+    "recorded_at": "2026-04-03T12:04:47.130785+00:00"
+  }
+]

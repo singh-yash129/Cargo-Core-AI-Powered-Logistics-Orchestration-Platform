@@ -1,0 +1,1320 @@
+[
+  {
+    "case_id": "AUTH-CON-002",
+    "test_name": "test_register_response_contract",
+    "endpoint": "POST /api/v1/auth/register",
+    "input": {
+      "name": "Bob",
+      "email": "bob@example.com",
+      "phone": "9999999999",
+      "password": "StrongPass123",
+      "role": "INDIVIDUAL"
+    },
+    "expected_output": {
+      "status_code": 201,
+      "required_keys": [
+        "access_token",
+        "refresh_token",
+        "token_type"
+      ]
+    },
+    "actual_output": {
+      "status_code": 201,
+      "body": {
+        "access_token": "access-token-123",
+        "refresh_token": "refresh-token-123",
+        "token_type": "bearer",
+        "user": {
+          "id": "bb7f2b06-b65f-498b-9623-af7153c6bbd9",
+          "name": "Test User",
+          "username": "test.user",
+          "email": "test.user@example.com",
+          "phone": "9999999999",
+          "address": "123 Test Street",
+          "role": "INDIVIDUAL",
+          "warehouse_id": null,
+          "is_active": true,
+          "approval_status": "APPROVED",
+          "company_name": null,
+          "tax_id": null,
+          "contact_person": null,
+          "business_email": null,
+          "business_phone": null,
+          "created_at": "2026-04-03T12:04:43.869181Z"
+        },
+        "pending_approval": false,
+        "message": "Registration successful"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:43.871683+00:00"
+  },
+  {
+    "case_id": "AUTH-CON-003",
+    "test_name": "test_login_response_contract",
+    "endpoint": "POST /api/v1/auth/login",
+    "input": {
+      "email": "bob@example.com",
+      "password": "StrongPass123"
+    },
+    "expected_output": {
+      "status_code": 200,
+      "required_keys": [
+        "access_token",
+        "refresh_token",
+        "user"
+      ]
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "access_token": "access-token-123",
+        "refresh_token": "refresh-token-123",
+        "token_type": "bearer",
+        "user": {
+          "id": "d1f4ceae-d186-46b9-a7b5-465a9dd715a5",
+          "name": "Test User",
+          "username": "test.user",
+          "email": "test.user@example.com",
+          "phone": "9999999999",
+          "address": "123 Test Street",
+          "role": "INDIVIDUAL",
+          "warehouse_id": null,
+          "is_active": true,
+          "approval_status": "APPROVED",
+          "company_name": null,
+          "tax_id": null,
+          "contact_person": null,
+          "business_email": null,
+          "business_phone": null,
+          "created_at": "2026-04-03T12:04:43.875772Z"
+        }
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:43.876384+00:00"
+  },
+  {
+    "case_id": "AUTH-CON-004",
+    "test_name": "test_register_validation_error_contract",
+    "endpoint": "POST /api/v1/auth/register",
+    "input": {
+      "name": "Bob",
+      "email": "bob@example.com",
+      "password": "StrongPass123",
+      "role": "UNKNOWN_ROLE"
+    },
+    "expected_output": {
+      "status_code": 422,
+      "detail_type": "list"
+    },
+    "actual_output": {
+      "status_code": 422,
+      "body": {
+        "detail": [
+          {
+            "type": "literal_error",
+            "loc": [
+              "body",
+              "role"
+            ],
+            "msg": "Input should be 'INDIVIDUAL' or 'VENDOR'",
+            "input": "UNKNOWN_ROLE",
+            "ctx": {
+              "expected": "'INDIVIDUAL' or 'VENDOR'"
+            }
+          }
+        ]
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:43.880608+00:00"
+  },
+  {
+    "case_id": "AUTH-INT-001",
+    "test_name": "test_auth_register_success",
+    "endpoint": "POST /api/v1/auth/register",
+    "input": {
+      "name": "Alice",
+      "email": "alice@example.com",
+      "phone": "9999999999",
+      "password": "StrongPass123",
+      "role": "INDIVIDUAL"
+    },
+    "expected_output": {
+      "status_code": 201,
+      "pending_approval": false
+    },
+    "actual_output": {
+      "status_code": 201,
+      "body": {
+        "access_token": "access-token-123",
+        "refresh_token": "refresh-token-123",
+        "token_type": "bearer",
+        "user": {
+          "id": "3def8898-59cf-43bc-abb7-1ad1bae6e78f",
+          "name": "Test User",
+          "username": "test.user",
+          "email": "test.user@example.com",
+          "phone": "9999999999",
+          "address": "123 Test Street",
+          "role": "INDIVIDUAL",
+          "warehouse_id": null,
+          "is_active": true,
+          "approval_status": "APPROVED",
+          "company_name": null,
+          "tax_id": null,
+          "contact_person": null,
+          "business_email": null,
+          "business_phone": null,
+          "created_at": "2026-04-03T12:04:47.069155Z"
+        },
+        "pending_approval": false,
+        "message": "Registration successful"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.069736+00:00"
+  },
+  {
+    "case_id": "AUTH-INT-002",
+    "test_name": "test_auth_register_invalid_role_returns_422",
+    "endpoint": "POST /api/v1/auth/register",
+    "input": {
+      "name": "Alice",
+      "email": "alice@example.com",
+      "phone": "9999999999",
+      "password": "StrongPass123",
+      "role": "INVALID_ROLE"
+    },
+    "expected_output": {
+      "status_code": 422,
+      "error_key": "detail"
+    },
+    "actual_output": {
+      "status_code": 422,
+      "body": {
+        "detail": [
+          {
+            "type": "literal_error",
+            "loc": [
+              "body",
+              "role"
+            ],
+            "msg": "Input should be 'INDIVIDUAL' or 'VENDOR'",
+            "input": "INVALID_ROLE",
+            "ctx": {
+              "expected": "'INDIVIDUAL' or 'VENDOR'"
+            }
+          }
+        ]
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.073298+00:00"
+  },
+  {
+    "case_id": "AUTH-INT-003",
+    "test_name": "test_auth_login_success",
+    "endpoint": "POST /api/v1/auth/login",
+    "input": {
+      "email": "alice@example.com",
+      "password": "StrongPass123"
+    },
+    "expected_output": {
+      "status_code": 200,
+      "keys": [
+        "access_token",
+        "refresh_token",
+        "user"
+      ]
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "access_token": "access-token-123",
+        "refresh_token": "refresh-token-123",
+        "token_type": "bearer",
+        "user": {
+          "id": "120f3fcf-9ab6-455a-a0da-d9c2de585d76",
+          "name": "Test User",
+          "username": "test.user",
+          "email": "test.user@example.com",
+          "phone": "9999999999",
+          "address": "123 Test Street",
+          "role": "INDIVIDUAL",
+          "warehouse_id": null,
+          "is_active": true,
+          "approval_status": "APPROVED",
+          "company_name": null,
+          "tax_id": null,
+          "contact_person": null,
+          "business_email": null,
+          "business_phone": null,
+          "created_at": "2026-04-03T12:04:47.075548Z"
+        }
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.076068+00:00"
+  },
+  {
+    "case_id": "AUTH-INT-004",
+    "test_name": "test_auth_token_login_success",
+    "endpoint": "POST /api/v1/auth/token",
+    "input": {
+      "username": "alice@example.com",
+      "password": "StrongPass123"
+    },
+    "expected_output": {
+      "status_code": 200,
+      "token_type": "bearer"
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "access_token": "access-token-123",
+        "refresh_token": "refresh-token-123",
+        "token_type": "bearer"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.082908+00:00"
+  },
+  {
+    "case_id": "AUTH-INT-005",
+    "test_name": "test_auth_logout_missing_header_returns_401",
+    "endpoint": "POST /api/v1/auth/logout",
+    "input": {
+      "authorization": null
+    },
+    "expected_output": {
+      "status_code": 401,
+      "detail": "Missing or invalid Authorization header"
+    },
+    "actual_output": {
+      "status_code": 401,
+      "body": {
+        "detail": "Missing or invalid Authorization header"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.085537+00:00"
+  },
+  {
+    "case_id": "AUTH-INT-006",
+    "test_name": "test_auth_me_requires_authentication",
+    "endpoint": "GET /api/v1/auth/me",
+    "input": {
+      "authorization": null
+    },
+    "expected_output": {
+      "status_code": 401,
+      "detail": "Not authenticated"
+    },
+    "actual_output": {
+      "status_code": 401,
+      "body": {
+        "detail": "Not authenticated"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.087773+00:00"
+  },
+  {
+    "case_id": "AUTH-INT-007",
+    "test_name": "test_auth_me_success",
+    "endpoint": "GET /api/v1/auth/me",
+    "input": {
+      "authorization": "Bearer <mocked>"
+    },
+    "expected_output": {
+      "status_code": 200,
+      "keys": [
+        "id",
+        "email",
+        "role"
+      ]
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "name": "Test User",
+        "username": "test.user",
+        "email": "test.user@example.com",
+        "phone": "9999999999",
+        "address": "123 Test Street",
+        "role": "LOGISTIC_MANAGER",
+        "warehouse_id": null,
+        "is_active": true,
+        "approval_status": "APPROVED",
+        "company_name": null,
+        "tax_id": null,
+        "contact_person": null,
+        "business_email": null,
+        "business_phone": null,
+        "created_at": "2026-04-03T12:04:47.089194Z"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.090598+00:00"
+  },
+  {
+    "case_id": "AUTH-INT-008",
+    "test_name": "test_auth_change_password_success",
+    "endpoint": "POST /api/v1/auth/change-password",
+    "input": {
+      "current_password": "old-pass-123",
+      "new_password": "new-pass-123"
+    },
+    "expected_output": {
+      "status_code": 200,
+      "message": "Password changed successfully"
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "message": "Password changed successfully"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.093767+00:00"
+  },
+  {
+    "case_id": "AUTH-INT-009",
+    "test_name": "test_auth_send_otp_success",
+    "endpoint": "POST /api/v1/auth/send-otp",
+    "input": {
+      "email": "alice@example.com"
+    },
+    "expected_output": {
+      "status_code": 200,
+      "message": "OTP sent"
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "message": "OTP sent",
+        "email": "alice@example.com",
+        "sent_at": "2026-04-03T00:00:00Z",
+        "debug_otp": "123456"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.097171+00:00"
+  },
+  {
+    "case_id": "AUTH-INT-010",
+    "test_name": "test_auth_verify_otp_success",
+    "endpoint": "POST /api/v1/auth/verify-otp",
+    "input": {
+      "email": "alice@example.com",
+      "otp": "123456"
+    },
+    "expected_output": {
+      "status_code": 200,
+      "verified": true
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "verified": true,
+        "message": "OTP verified"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.100295+00:00"
+  },
+  {
+    "case_id": "ORD-CON-002",
+    "test_name": "test_order_create_contract",
+    "endpoint": "POST /api/v1/orders",
+    "input": {
+      "order_type": "MOVE",
+      "pickup_addr": "123 Pickup Road",
+      "delivery_addr": "456 Delivery Road"
+    },
+    "expected_output": {
+      "status_code": 201,
+      "required_keys": [
+        "id",
+        "tracking_code",
+        "status"
+      ]
+    },
+    "actual_output": {
+      "status_code": 201,
+      "body": {
+        "id": "76cbf757-7403-49ba-a6b9-f9477fbc9aa1",
+        "tracking_code": "TRK-1001",
+        "order_type": "MOVE",
+        "status": "CREATED",
+        "warehouse_substatus": null,
+        "picking_started_at": null,
+        "picking_completed_at": null,
+        "packing_started_at": null,
+        "packing_completed_at": null,
+        "customer_id": "55651bdb-f10b-4dd1-aea2-b4575b3d417f",
+        "warehouse_id": "4a856653-c7a2-42bd-b096-8295726d7ee1",
+        "assigned_driver_id": null,
+        "assigned_vehicle_id": null,
+        "assigned_driver_name": null,
+        "assigned_vehicle_code": null,
+        "pickup_addr": "123 Pickup Road",
+        "delivery_addr": "456 Delivery Road",
+        "cargo_type": "HOUSEHOLD",
+        "vehicle_type": "TRUCK",
+        "labor_count": 2,
+        "base_amount": 1000.0,
+        "vehicle_amount": 300.0,
+        "labor_amount": 200.0,
+        "materials_amount": 50.0,
+        "packing_amount": 150.0,
+        "platform_fee": 20.0,
+        "tax_amount": 150.0,
+        "total_amount": 1870.0,
+        "payment_mode": "ONLINE",
+        "payment_status": "pending",
+        "paid_amount": 0.0,
+        "declared_value": 0.0,
+        "service_otp": null,
+        "service_otp_sent_at": null,
+        "service_otp_verified_at": null,
+        "service_time_block": null,
+        "scheduled_at": null,
+        "cancel_reason": null,
+        "cancellation_fee": 0.0,
+        "wallet_refund_amount": 0.0,
+        "delivered_at": null,
+        "delivery_notes": null,
+        "pod_photos": [],
+        "pod_signature": null,
+        "poc_signature": null,
+        "job_rating": null,
+        "job_feedback": null,
+        "customer_name": "Jane Doe",
+        "customer_phone": "9999999999",
+        "created_at": "2026-04-03T12:04:44.981132Z",
+        "items": [
+          {
+            "id": "23d06a51-49b3-4a3b-9da4-dfd4bd219c2f",
+            "sku": "BOX-MEDIUM",
+            "quantity": 3,
+            "box_count": 2,
+            "estimated_volume": 1.5
+          }
+        ]
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:44.981844+00:00"
+  },
+  {
+    "case_id": "ORD-CON-003",
+    "test_name": "test_order_list_contract",
+    "endpoint": "GET /api/v1/orders",
+    "input": {
+      "query": {
+        "page": 1,
+        "page_size": 20
+      }
+    },
+    "expected_output": {
+      "status_code": 200,
+      "required_keys": [
+        "items",
+        "total",
+        "page",
+        "page_size"
+      ]
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "items": [
+          {
+            "id": "28dee536-8036-4836-9de3-04360f88fd60",
+            "tracking_code": "TRK-1001",
+            "order_type": "MOVE",
+            "status": "CONFIRMED",
+            "warehouse_substatus": null,
+            "picking_started_at": null,
+            "picking_completed_at": null,
+            "packing_started_at": null,
+            "packing_completed_at": null,
+            "customer_id": "10ca3178-7b4f-4862-96ea-b30109f24b24",
+            "warehouse_id": "79237e52-e645-446f-930c-0db463712ef4",
+            "assigned_driver_id": null,
+            "assigned_vehicle_id": null,
+            "assigned_driver_name": null,
+            "assigned_vehicle_code": null,
+            "pickup_addr": "123 Pickup Road",
+            "delivery_addr": "456 Delivery Road",
+            "cargo_type": "HOUSEHOLD",
+            "vehicle_type": "TRUCK",
+            "labor_count": 2,
+            "base_amount": 1000.0,
+            "vehicle_amount": 300.0,
+            "labor_amount": 200.0,
+            "materials_amount": 50.0,
+            "packing_amount": 150.0,
+            "platform_fee": 20.0,
+            "tax_amount": 150.0,
+            "total_amount": 1870.0,
+            "payment_mode": "ONLINE",
+            "payment_status": "pending",
+            "paid_amount": 0.0,
+            "declared_value": 0.0,
+            "service_otp": null,
+            "service_otp_sent_at": null,
+            "service_otp_verified_at": null,
+            "service_time_block": null,
+            "scheduled_at": null,
+            "cancel_reason": null,
+            "cancellation_fee": 0.0,
+            "wallet_refund_amount": 0.0,
+            "delivered_at": null,
+            "delivery_notes": null,
+            "pod_photos": [],
+            "pod_signature": null,
+            "poc_signature": null,
+            "job_rating": null,
+            "job_feedback": null,
+            "customer_name": "Jane Doe",
+            "customer_phone": "9999999999",
+            "created_at": "2026-04-03T12:04:44.984545Z",
+            "items": [
+              {
+                "id": "52e607be-95be-406e-b60c-19f8d6f16c1b",
+                "sku": "BOX-MEDIUM",
+                "quantity": 3,
+                "box_count": 2,
+                "estimated_volume": 1.5
+              }
+            ]
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "page_size": 20
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:44.985186+00:00"
+  },
+  {
+    "case_id": "ORD-CON-004",
+    "test_name": "test_order_items_contract",
+    "endpoint": "GET /api/v1/orders/{order_id}/items",
+    "input": {
+      "path": {
+        "order_id": "f5f84df1-7d6d-4c3d-bc72-69bc76b32f36"
+      }
+    },
+    "expected_output": {
+      "status_code": 200,
+      "required_keys": [
+        "id",
+        "sku",
+        "quantity"
+      ]
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": [
+        {
+          "id": "e900362f-e985-4696-a862-2aea4edeb8ae",
+          "sku": "BOX-MEDIUM",
+          "quantity": 3,
+          "box_count": 2,
+          "estimated_volume": 1.5
+        }
+      ]
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:44.988275+00:00"
+  },
+  {
+    "case_id": "ORD-INT-001",
+    "test_name": "test_orders_create_success",
+    "endpoint": "POST /api/v1/orders",
+    "input": {
+      "order_type": "MOVE",
+      "pickup_addr": "123 Pickup Road",
+      "delivery_addr": "456 Delivery Road"
+    },
+    "expected_output": {
+      "status_code": 201,
+      "status": "CREATED"
+    },
+    "actual_output": {
+      "status_code": 201,
+      "body": {
+        "id": "8271a9e1-a6bb-4930-b5de-8fc6dce7f161",
+        "tracking_code": "TRK-1001",
+        "order_type": "MOVE",
+        "status": "CREATED",
+        "warehouse_substatus": null,
+        "picking_started_at": null,
+        "picking_completed_at": null,
+        "packing_started_at": null,
+        "packing_completed_at": null,
+        "customer_id": "86d2c231-0a84-4a75-808c-3a018d089e64",
+        "warehouse_id": "3a7fb0da-d08b-488b-ad3d-733fd8ec5a0e",
+        "assigned_driver_id": null,
+        "assigned_vehicle_id": null,
+        "assigned_driver_name": null,
+        "assigned_vehicle_code": null,
+        "pickup_addr": "123 Pickup Road",
+        "delivery_addr": "456 Delivery Road",
+        "cargo_type": "HOUSEHOLD",
+        "vehicle_type": "TRUCK",
+        "labor_count": 2,
+        "base_amount": 1000.0,
+        "vehicle_amount": 300.0,
+        "labor_amount": 200.0,
+        "materials_amount": 50.0,
+        "packing_amount": 150.0,
+        "platform_fee": 20.0,
+        "tax_amount": 150.0,
+        "total_amount": 1870.0,
+        "payment_mode": "ONLINE",
+        "payment_status": "pending",
+        "paid_amount": 0.0,
+        "declared_value": 0.0,
+        "service_otp": null,
+        "service_otp_sent_at": null,
+        "service_otp_verified_at": null,
+        "service_time_block": null,
+        "scheduled_at": null,
+        "cancel_reason": null,
+        "cancellation_fee": 0.0,
+        "wallet_refund_amount": 0.0,
+        "delivered_at": null,
+        "delivery_notes": null,
+        "pod_photos": [],
+        "pod_signature": null,
+        "poc_signature": null,
+        "job_rating": null,
+        "job_feedback": null,
+        "customer_name": "Jane Doe",
+        "customer_phone": "9999999999",
+        "created_at": "2026-04-03T12:04:47.102735Z",
+        "items": [
+          {
+            "id": "b5249a38-76db-4445-8635-1a1f63f0b4f1",
+            "sku": "BOX-MEDIUM",
+            "quantity": 3,
+            "box_count": 2,
+            "estimated_volume": 1.5
+          }
+        ]
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.103312+00:00"
+  },
+  {
+    "case_id": "ORD-INT-002",
+    "test_name": "test_orders_list_success",
+    "endpoint": "GET /api/v1/orders",
+    "input": {
+      "query": {
+        "page": 1,
+        "page_size": 20
+      }
+    },
+    "expected_output": {
+      "status_code": 200,
+      "total": 1
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "items": [
+          {
+            "id": "cfa8f1b6-64fe-4452-b9f4-30a889e82fd7",
+            "tracking_code": "TRK-1001",
+            "order_type": "MOVE",
+            "status": "CONFIRMED",
+            "warehouse_substatus": null,
+            "picking_started_at": null,
+            "picking_completed_at": null,
+            "packing_started_at": null,
+            "packing_completed_at": null,
+            "customer_id": "c24ae2b1-b437-4fb0-8a37-28519d4e0d4d",
+            "warehouse_id": "2f2af4f6-17a4-43eb-a508-b0bfdf28be5d",
+            "assigned_driver_id": null,
+            "assigned_vehicle_id": null,
+            "assigned_driver_name": null,
+            "assigned_vehicle_code": null,
+            "pickup_addr": "123 Pickup Road",
+            "delivery_addr": "456 Delivery Road",
+            "cargo_type": "HOUSEHOLD",
+            "vehicle_type": "TRUCK",
+            "labor_count": 2,
+            "base_amount": 1000.0,
+            "vehicle_amount": 300.0,
+            "labor_amount": 200.0,
+            "materials_amount": 50.0,
+            "packing_amount": 150.0,
+            "platform_fee": 20.0,
+            "tax_amount": 150.0,
+            "total_amount": 1870.0,
+            "payment_mode": "ONLINE",
+            "payment_status": "pending",
+            "paid_amount": 0.0,
+            "declared_value": 0.0,
+            "service_otp": null,
+            "service_otp_sent_at": null,
+            "service_otp_verified_at": null,
+            "service_time_block": null,
+            "scheduled_at": null,
+            "cancel_reason": null,
+            "cancellation_fee": 0.0,
+            "wallet_refund_amount": 0.0,
+            "delivered_at": null,
+            "delivery_notes": null,
+            "pod_photos": [],
+            "pod_signature": null,
+            "poc_signature": null,
+            "job_rating": null,
+            "job_feedback": null,
+            "customer_name": "Jane Doe",
+            "customer_phone": "9999999999",
+            "created_at": "2026-04-03T12:04:47.106110Z",
+            "items": [
+              {
+                "id": "c1726fd5-cf15-4289-beb3-405aaad7991c",
+                "sku": "BOX-MEDIUM",
+                "quantity": 3,
+                "box_count": 2,
+                "estimated_volume": 1.5
+              }
+            ]
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "page_size": 20
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.106804+00:00"
+  },
+  {
+    "case_id": "ORD-INT-003",
+    "test_name": "test_orders_get_success",
+    "endpoint": "GET /api/v1/orders/{order_id}",
+    "input": {
+      "path": {
+        "order_id": "42542189-7c5e-49c2-a73a-53ee2d222c2f"
+      }
+    },
+    "expected_output": {
+      "status_code": 200,
+      "id": "42542189-7c5e-49c2-a73a-53ee2d222c2f"
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "id": "42542189-7c5e-49c2-a73a-53ee2d222c2f",
+        "tracking_code": "TRK-1001",
+        "order_type": "MOVE",
+        "status": "CONFIRMED",
+        "warehouse_substatus": null,
+        "picking_started_at": null,
+        "picking_completed_at": null,
+        "packing_started_at": null,
+        "packing_completed_at": null,
+        "customer_id": "d79751d5-be5d-432f-bc62-b309ebebf9e0",
+        "warehouse_id": "66ed5f60-210a-4063-8646-b139b9da1dc0",
+        "assigned_driver_id": null,
+        "assigned_vehicle_id": null,
+        "assigned_driver_name": null,
+        "assigned_vehicle_code": null,
+        "pickup_addr": "123 Pickup Road",
+        "delivery_addr": "456 Delivery Road",
+        "cargo_type": "HOUSEHOLD",
+        "vehicle_type": "TRUCK",
+        "labor_count": 2,
+        "base_amount": 1000.0,
+        "vehicle_amount": 300.0,
+        "labor_amount": 200.0,
+        "materials_amount": 50.0,
+        "packing_amount": 150.0,
+        "platform_fee": 20.0,
+        "tax_amount": 150.0,
+        "total_amount": 1870.0,
+        "payment_mode": "ONLINE",
+        "payment_status": "pending",
+        "paid_amount": 0.0,
+        "declared_value": 0.0,
+        "service_otp": null,
+        "service_otp_sent_at": null,
+        "service_otp_verified_at": null,
+        "service_time_block": null,
+        "scheduled_at": null,
+        "cancel_reason": null,
+        "cancellation_fee": 0.0,
+        "wallet_refund_amount": 0.0,
+        "delivered_at": null,
+        "delivery_notes": null,
+        "pod_photos": [],
+        "pod_signature": null,
+        "poc_signature": null,
+        "job_rating": null,
+        "job_feedback": null,
+        "customer_name": "Jane Doe",
+        "customer_phone": "9999999999",
+        "created_at": "2026-04-03T12:04:47.109196Z",
+        "items": [
+          {
+            "id": "effa9390-ab24-4c03-a2b0-03aad31f6217",
+            "sku": "BOX-MEDIUM",
+            "quantity": 3,
+            "box_count": 2,
+            "estimated_volume": 1.5
+          }
+        ]
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.109768+00:00"
+  },
+  {
+    "case_id": "ORD-INT-004",
+    "test_name": "test_orders_update_success",
+    "endpoint": "PUT /api/v1/orders/{order_id}",
+    "input": {
+      "path": {
+        "order_id": "483204dc-43cf-4fa6-9327-618ed982faba"
+      },
+      "json": {
+        "pickup_addr": "999 Updated Pickup Road"
+      }
+    },
+    "expected_output": {
+      "status_code": 200,
+      "pickup_addr": "999 Updated Pickup Road"
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "id": "483204dc-43cf-4fa6-9327-618ed982faba",
+        "tracking_code": "TRK-1001",
+        "order_type": "MOVE",
+        "status": "CONFIRMED",
+        "warehouse_substatus": null,
+        "picking_started_at": null,
+        "picking_completed_at": null,
+        "packing_started_at": null,
+        "packing_completed_at": null,
+        "customer_id": "142ffdd5-af6b-45c6-bdc8-4a96bb1cf242",
+        "warehouse_id": "de0d6a61-d6f0-4ab0-b5d3-b7e77014b5ce",
+        "assigned_driver_id": null,
+        "assigned_vehicle_id": null,
+        "assigned_driver_name": null,
+        "assigned_vehicle_code": null,
+        "pickup_addr": "999 Updated Pickup Road",
+        "delivery_addr": "456 Delivery Road",
+        "cargo_type": "HOUSEHOLD",
+        "vehicle_type": "TRUCK",
+        "labor_count": 2,
+        "base_amount": 1000.0,
+        "vehicle_amount": 300.0,
+        "labor_amount": 200.0,
+        "materials_amount": 50.0,
+        "packing_amount": 150.0,
+        "platform_fee": 20.0,
+        "tax_amount": 150.0,
+        "total_amount": 1870.0,
+        "payment_mode": "ONLINE",
+        "payment_status": "pending",
+        "paid_amount": 0.0,
+        "declared_value": 0.0,
+        "service_otp": null,
+        "service_otp_sent_at": null,
+        "service_otp_verified_at": null,
+        "service_time_block": null,
+        "scheduled_at": null,
+        "cancel_reason": null,
+        "cancellation_fee": 0.0,
+        "wallet_refund_amount": 0.0,
+        "delivered_at": null,
+        "delivery_notes": null,
+        "pod_photos": [],
+        "pod_signature": null,
+        "poc_signature": null,
+        "job_rating": null,
+        "job_feedback": null,
+        "customer_name": "Jane Doe",
+        "customer_phone": "9999999999",
+        "created_at": "2026-04-03T12:04:47.112149Z",
+        "items": [
+          {
+            "id": "e22203f8-0dd2-4f5e-a664-1a9c3045f6ce",
+            "sku": "BOX-MEDIUM",
+            "quantity": 3,
+            "box_count": 2,
+            "estimated_volume": 1.5
+          }
+        ]
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.112937+00:00"
+  },
+  {
+    "case_id": "ORD-INT-005",
+    "test_name": "test_orders_create_validation_error_422",
+    "endpoint": "POST /api/v1/orders",
+    "input": {},
+    "expected_output": {
+      "status_code": 422,
+      "error_key": "detail"
+    },
+    "actual_output": {
+      "status_code": 422,
+      "body": {
+        "detail": [
+          {
+            "type": "missing",
+            "loc": [
+              "body",
+              "order_type"
+            ],
+            "msg": "Field required",
+            "input": {}
+          },
+          {
+            "type": "missing",
+            "loc": [
+              "body",
+              "pickup_addr"
+            ],
+            "msg": "Field required",
+            "input": {}
+          },
+          {
+            "type": "missing",
+            "loc": [
+              "body",
+              "delivery_addr"
+            ],
+            "msg": "Field required",
+            "input": {}
+          }
+        ]
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.116502+00:00"
+  },
+  {
+    "case_id": "ORD-INT-006",
+    "test_name": "test_orders_requires_authentication",
+    "endpoint": "GET /api/v1/orders",
+    "input": {
+      "authorization": null
+    },
+    "expected_output": {
+      "status_code": 401,
+      "detail": "Not authenticated"
+    },
+    "actual_output": {
+      "status_code": 401,
+      "body": {
+        "detail": "Not authenticated"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.118892+00:00"
+  },
+  {
+    "case_id": "ORD-INT-007",
+    "test_name": "test_orders_get_items_success",
+    "endpoint": "GET /api/v1/orders/{order_id}/items",
+    "input": {
+      "path": {
+        "order_id": "a0142794-78b9-4121-9e2f-30b79187e7ea"
+      }
+    },
+    "expected_output": {
+      "status_code": 200,
+      "item_count": 1
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": [
+        {
+          "id": "0a63f4c6-be16-4a34-a07c-9de6dc2bf0b2",
+          "sku": "BOX-MEDIUM",
+          "quantity": 3,
+          "box_count": 2,
+          "estimated_volume": 1.5
+        }
+      ]
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.121599+00:00"
+  },
+  {
+    "case_id": "ORD-INT-008",
+    "test_name": "test_orders_upsert_items_success",
+    "endpoint": "POST /api/v1/orders/{order_id}/items",
+    "input": {
+      "path": {
+        "order_id": "dd4e1bdc-998d-4b3d-844b-7e63d55f0c97"
+      },
+      "json": [
+        {
+          "sku": "BOX-MEDIUM",
+          "quantity": 3,
+          "box_count": 1
+        }
+      ]
+    },
+    "expected_output": {
+      "status_code": 200,
+      "item_count": 1
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": [
+        {
+          "id": "3d0f5329-1abe-4cc3-a949-f6659fcc4def",
+          "sku": "BOX-MEDIUM",
+          "quantity": 3,
+          "box_count": 2,
+          "estimated_volume": 1.5
+        }
+      ]
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.124777+00:00"
+  },
+  {
+    "case_id": "ORD-INT-009",
+    "test_name": "test_orders_send_delivery_otp_success_for_driver",
+    "endpoint": "POST /api/v1/orders/{order_id}/delivery-otp/send",
+    "input": {
+      "path": {
+        "order_id": "c5c1ca2e-99b6-4432-be8c-cd8865af8e64"
+      },
+      "json": {
+        "force_resend": false
+      }
+    },
+    "expected_output": {
+      "status_code": 200,
+      "message": "Delivery OTP sent"
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "message": "Delivery OTP sent",
+        "email": "customer@example.com",
+        "sent_at": "2026-04-03T00:00:00Z",
+        "debug_otp": "123456"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.128071+00:00"
+  },
+  {
+    "case_id": "ORD-INT-010",
+    "test_name": "test_orders_track_unknown_mismatch_showcase",
+    "endpoint": "GET /api/v1/orders/track/{tracking_code}",
+    "input": {
+      "path": {
+        "tracking_code": "UNKNOWN-TRACKING"
+      }
+    },
+    "expected_output": {
+      "status_code": 200,
+      "found": false
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "found": false,
+        "tracking_code": "UNKNOWN-TRACKING",
+        "message": "Tracking code not found"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.130763+00:00"
+  },
+  {
+    "case_id": "PUB-CON-002",
+    "test_name": "test_health_endpoint_contract",
+    "endpoint": "GET /health",
+    "input": {},
+    "expected_output": {
+      "status_code": 200,
+      "body": {
+        "status": "ok"
+      }
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "status": "ok"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:45.965904+00:00"
+  },
+  {
+    "case_id": "PUB-CON-003",
+    "test_name": "test_tracking_schema_contract_defined",
+    "endpoint": "GET /api/v1/tracking/drivers",
+    "input": {
+      "authorization": null
+    },
+    "expected_output": {
+      "openapi_200_item_schema_ref": "#/components/schemas/DriverLocationItem",
+      "runtime_status_code": 401
+    },
+    "actual_output": {
+      "status_code": 401,
+      "body": {
+        "detail": "Not authenticated"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.065747+00:00"
+  },
+  {
+    "case_id": "TRK-INT-001",
+    "test_name": "test_tracking_requires_authentication",
+    "endpoint": "GET /api/v1/tracking/drivers",
+    "input": {
+      "authorization": null
+    },
+    "expected_output": {
+      "status_code": 401,
+      "detail": "Not authenticated"
+    },
+    "actual_output": {
+      "status_code": 401,
+      "body": {
+        "detail": "Not authenticated"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.133551+00:00"
+  },
+  {
+    "case_id": "TRK-INT-002",
+    "test_name": "test_tracking_active_drivers_success",
+    "endpoint": "GET /api/v1/tracking/drivers",
+    "input": {
+      "authorization": "Bearer <mocked>"
+    },
+    "expected_output": {
+      "status_code": 200,
+      "driver_count": 1
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": [
+        {
+          "driver_id": "bc7e5746-fd45-4cb4-a043-1315bf795d97",
+          "driver_name": "Driver One",
+          "latitude": 19.076,
+          "longitude": 72.8777,
+          "vehicle_id": "7bd38fa6-aa42-47b6-bba6-f1b93146a665",
+          "vehicle_code": "VH-001",
+          "status": "On-Duty",
+          "last_updated": "2026-04-03T12:04:47.134757+00:00"
+        }
+      ]
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.136827+00:00"
+  },
+  {
+    "case_id": "TRK-INT-003",
+    "test_name": "test_tracking_order_driver_success",
+    "endpoint": "GET /api/v1/tracking/orders/{order_id}/driver",
+    "input": {
+      "path": {
+        "order_id": "3711e659-de34-4520-a6d1-2c3b342a5779"
+      }
+    },
+    "expected_output": {
+      "status_code": 200,
+      "driver_name": "Driver Two"
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": {
+        "driver_id": "a8415827-fd9b-4fa8-b3fd-9c7ba3b31984",
+        "driver_name": "Driver Two",
+        "latitude": 18.5204,
+        "longitude": 73.8567,
+        "vehicle_id": "1c6e170f-97b8-40a9-8877-15ca0c71fbf5",
+        "vehicle_code": "VH-002",
+        "status": "In-Transit",
+        "last_updated": "2026-04-03T12:04:47.138489+00:00"
+      }
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.140593+00:00"
+  },
+  {
+    "case_id": "TRK-INT-004",
+    "test_name": "test_tracking_order_driver_returns_null_when_unassigned",
+    "endpoint": "GET /api/v1/tracking/orders/{order_id}/driver",
+    "input": {
+      "path": {
+        "order_id": "6912fbc5-5f26-49e3-b5f9-dddebb0c859c"
+      }
+    },
+    "expected_output": {
+      "status_code": 200,
+      "body": null
+    },
+    "actual_output": {
+      "status_code": 200,
+      "body": null
+    },
+    "status": "PASS",
+    "notes": null,
+    "recorded_at": "2026-04-03T12:04:47.143001+00:00"
+  }
+]
