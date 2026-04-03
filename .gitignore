@@ -39,3 +39,8 @@ __pycache__/
 /DESIGN_OF_COMPONENTS.txt
 /ER_DIAGRAM.dbml
 /out/CLASS_DIAGRAM_UML/
+
+# Virtual environment
+venv/
+.venv/
+env/
