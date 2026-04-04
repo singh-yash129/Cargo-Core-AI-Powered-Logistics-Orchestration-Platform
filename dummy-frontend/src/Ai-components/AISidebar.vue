@@ -128,8 +128,8 @@
                     <span class="material-symbols-outlined text-white text-sm">smart_toy</span>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="text-sm font-medium text-gray-900 dark:text-white truncate">AI Admin</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-500 truncate">System Manager</div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ aiCardData.name }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-500 truncate">{{ aiCardData.designation }}</div>
                 </div>
                 <span class="material-symbols-outlined text-gray-500 dark:text-gray-400">more_vert</span>
             </div>
@@ -147,8 +147,8 @@
                         <span class="material-symbols-outlined text-white text-4xl">smart_toy</span>
                     </div>
                     <div>
-                        <h4 class="text-xl font-bold text-gray-900 dark:text-white">AI Admin</h4>
-                        <p class="text-gray-500">System Manager</p>
+                        <h4 class="text-xl font-bold text-gray-900 dark:text-white">{{ aiCardData.name }}</h4>
+                        <p class="text-gray-500">{{ aiCardData.designation }}</p>
                         <div
                             class="mt-2 text-xs bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
@@ -159,11 +159,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                         <div class="text-xs text-gray-500 mb-1">System ID</div>
-                        <div class="font-medium text-sm text-gray-900 dark:text-white">AI-SYS-001</div>
+                        <div class="font-medium text-sm text-gray-900 dark:text-white">{{ aiCardData.id }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                         <div class="text-xs text-gray-500 mb-1">Email Address</div>
-                        <div class="font-medium text-sm text-gray-900 dark:text-white">ai.admin@cargocore.com</div>
+                        <div class="font-medium text-sm text-gray-900 dark:text-white">{{ aiCardData.email }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                         <div class="text-xs text-gray-500 mb-1">Role</div>
@@ -171,7 +171,7 @@
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                         <div class="text-xs text-gray-500 mb-1">Last Active</div>
-                        <div class="font-medium text-sm text-gray-900 dark:text-white">Just Now</div>
+                        <div class="font-medium text-sm text-gray-900 dark:text-white">{{ lastActiveLabel }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                         <div class="text-xs text-gray-500 mb-1">Tickets Resolved</div>
@@ -238,12 +238,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseModal from '@/components/BaseModal.vue'
 import IdCard from '@/components/IdCard.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useAuthStore } from '@/stores/authStore'
+import { buildIdCardProfile, formatCardDate } from '@/utils/idCardProfile'
 
 defineProps({
     isOpen: Boolean
@@ -279,22 +280,24 @@ onUnmounted(() => {
 })
 
 // AI Card Data
-const aiCardData = {
-    name: 'AI Admin',
-    id: 'AI-SYS-001',
+const lastActiveLabel = computed(() => authStore.isAuthenticated ? 'Active session' : formatCardDate(authStore.user?.created_at || authStore.user?.createdAt))
+
+const aiCardData = computed(() => buildIdCardProfile({
+    user: {
+        ...authStore.user,
+        name: authStore.user?.name || 'AI Admin',
+        email: authStore.user?.email || 'ai.admin@cargocore.com',
+        createdAt: authStore.user?.created_at || authStore.user?.createdAt || '2025-01-01',
+    },
+    role: authStore.user?.role || 'ai_support',
+    roleLabel: 'Internal Support AI',
+    name: authStore.user?.name || 'AI Admin',
     designation: 'System Manager',
     department: 'Internal AI Support',
-    address: 'Cargo-Core HQ, Server Room 1',
-    phone: '+00 0000000000',
-    email: 'ai.admin@cargocore.com',
-    joinDate: '01 January 2025',
-    validUntil: '31 December 2027',
-    emergencyContact: {
-        name: 'IT Support',
-        relation: 'System Administrator',
-        phone: '+00 0000000001'
-    }
-}
+    address: 'CargoCore Platform Operations',
+    phone: 'Internal routing only',
+    email: authStore.user?.email || 'ai.admin@cargocore.com',
+}))
 
 const handleLogout = async () => {
     showLogoutConfirm.value = false

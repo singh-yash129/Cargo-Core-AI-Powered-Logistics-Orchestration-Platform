@@ -995,6 +995,94 @@ async def _get_return_case(db: AsyncSession, case_id: UUID) -> LogisticsReturnCa
     return case
 
 
+async def _get_completed_return_grading(
+    db: AsyncSession,
+    case: LogisticsReturnCase,
+) -> ReturnGrading | None:
+    query = (
+        select(ReturnGrading)
+        .options(selectinload(ReturnGrading.grader))
+        .where(ReturnGrading.status == "completed")
+        .order_by(ReturnGrading.graded_at.desc(), ReturnGrading.created_at.desc())
+    )
+    if case.reference_code:
+        grading = (
+            await db.execute(query.where(ReturnGrading.rma_code == case.reference_code).limit(1))
+        ).scalar_one_or_none()
+        if grading:
+            return grading
+    if case.order_id:
+        grading = (
+            await db.execute(query.where(ReturnGrading.order_id == case.order_id).limit(1))
+        ).scalar_one_or_none()
+        if grading:
+            return grading
+    return None
+
+
+async def _wallet_refund_credited(db: AsyncSession, reference_code: str | None) -> bool:
+    if not reference_code:
+        return False
+    from app.models.wallet import WalletTransaction
+
+    credited = (
+        await db.execute(
+            select(WalletTransaction.id).where(
+                WalletTransaction.reason == "DAMAGE_REFUND",
+                WalletTransaction.description.contains(reference_code),
+            )
+        )
+    ).scalar_one_or_none()
+    return bool(credited)
+
+
+async def _build_return_case_item(
+    db: AsyncSession,
+    case: LogisticsReturnCase,
+    completed_grading: ReturnGrading | None = None,
+    wallet_credited: bool | None = None,
+) -> LogisticsReturnCaseItem:
+    grading = completed_grading if completed_grading is not None else await _get_completed_return_grading(db, case)
+    credited = wallet_credited if wallet_credited is not None else await _wallet_refund_credited(db, case.reference_code)
+    is_physical_flow = getattr(case, "flow_type", None) == "pickup_inspection"
+    normalized_status = case.status
+    case_images = list(case.images or [])
+    if grading and grading.damage_photo_url and grading.damage_photo_url not in case_images:
+        case_images.append(grading.damage_photo_url)
+    if not is_physical_flow and case.status in {"Inspected", "Physically Inspected"}:
+        normalized_status = "Claims Reviewed"
+    display_status = normalized_status
+    if grading and is_physical_flow and normalized_status in {"Arrived at Warehouse", "At Warehouse", "Inspected", "Physically Inspected"}:
+        display_status = "Physically Inspected"
+
+    return LogisticsReturnCaseItem(
+        id=case.id,
+        hub_id=case.warehouse_id,
+        order_id=case.order_id,
+        customer=case.customer_name,
+        reason=case.reason,
+        flow_type=getattr(case, "flow_type", None),
+        condition=grading.item_condition if (grading and is_physical_flow) else case.condition,
+        status=display_status,
+        original_price=case.original_price,
+        refund_amount=case.refund_amount,
+        images=case_images,
+        reference_code=case.reference_code,
+        wallet_credited=credited,
+        wm_disposition=grading.disposition if (grading and is_physical_flow) else None,
+        wm_is_genuine=grading.is_genuine if (grading and is_physical_flow) else None,
+        wm_recommended_outcome=grading.recommended_outcome if (grading and is_physical_flow) else None,
+        wm_inspection_remarks=grading.inspection_remarks if (grading and is_physical_flow) else None,
+        wm_graded_at=grading.graded_at if (grading and is_physical_flow) else None,
+        wm_grader_name=grading.grader.name if (grading and is_physical_flow and grading.grader) else None,
+        transport_charge_amount=round(float(case.transport_charge_amount or 0.0), 2),
+        transport_charge_wallet_collected=round(float(case.transport_charge_wallet_collected or 0.0), 2),
+        transport_charge_pending_amount=round(float(case.transport_charge_pending_amount or 0.0), 2),
+        transport_charge_status=case.transport_charge_status,
+        transport_charge_applied_at=case.transport_charge_applied_at,
+    )
+
+
 async def _get_chat_thread(db: AsyncSession, thread_id: UUID) -> LogisticsChatThread:
     thread = (await db.execute(select(LogisticsChatThread).where(LogisticsChatThread.id == thread_id))).scalar_one_or_none()
     if not thread:
@@ -1368,8 +1456,9 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
                 reference_code=dr.reference_code,
                 customer_name=customer_name,
                 reason=(dr.description or "Damage reported")[:255],
+                flow_type=getattr(dr, "flow_type", "photo_review") or "photo_review",
                 condition="Reported",
-                status="Pending",
+                status="Pickup Requested" if (getattr(dr, "flow_type", "photo_review") == "pickup_inspection") else "Reported",
                 original_price=order_total,
                 refund_amount=0.0,
                 images=dr.photos or [],
@@ -1379,7 +1468,7 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
 
     # Backfill: warehouse/driver-side returns may create ReturnGrading records without
     # a LogisticsReturnCase entry. Surface them in Reverse Logistics so LM can still
-    # see "Arrived at Warehouse" / "Inspected" states.
+    # see "Arrived at Warehouse" / "Physically Inspected" states.
     for grading in return_gradings:
         if not grading.rma_code or grading.rma_code in existing_ref_codes:
             continue
@@ -1393,7 +1482,7 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
         )
 
         if grading.status == "completed":
-            derived_status = "Inspected"
+            derived_status = "Physically Inspected"
         elif grading.item_condition == "Awaiting Pickup":
             derived_status = "Pickup Scheduled"
         else:
@@ -1405,6 +1494,7 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
             reference_code=grading.rma_code,
             customer_name=customer_name,
             reason=grading.condition_notes or "Warehouse return",
+            flow_type="pickup_inspection",
             condition=grading.item_condition or "Pending Inspection",
             status=derived_status,
             original_price=(order_row.total_amount or 0.0) if order_row else 0.0,
@@ -1452,22 +1542,41 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
 
     def _to_return_case_item(item: LogisticsReturnCase) -> LogisticsReturnCaseItem:
         completed_grading = _wm_completed_grading_for_case(item)
+        is_physical_flow = getattr(item, "flow_type", None) == "pickup_inspection"
+        normalized_status = item.status
+        case_images = list(item.images or [])
+        if completed_grading and completed_grading.damage_photo_url and completed_grading.damage_photo_url not in case_images:
+            case_images.append(completed_grading.damage_photo_url)
+        if not is_physical_flow and item.status in {"Inspected", "Physically Inspected"}:
+            normalized_status = "Claims Reviewed"
+        display_status = normalized_status
+        if completed_grading and is_physical_flow and normalized_status in {"Arrived at Warehouse", "At Warehouse", "Inspected", "Physically Inspected"}:
+            display_status = "Physically Inspected"
         return LogisticsReturnCaseItem(
             id=item.id,
             hub_id=item.warehouse_id,
             order_id=item.order_id,
             customer=item.customer_name,
             reason=item.reason,
-            condition=completed_grading.item_condition if completed_grading else item.condition,
-            status="Inspected" if completed_grading else item.status,
+            flow_type=getattr(item, "flow_type", None),
+            condition=completed_grading.item_condition if (completed_grading and is_physical_flow) else item.condition,
+            status=display_status,
             original_price=item.original_price,
             refund_amount=item.refund_amount,
-            images=item.images or [],
+            images=case_images,
             reference_code=item.reference_code,
             wallet_credited=item.reference_code in _credited_ref_codes,
-            wm_disposition=completed_grading.disposition if completed_grading else None,
-            wm_graded_at=completed_grading.graded_at if completed_grading else None,
-            wm_grader_name=completed_grading.grader.name if completed_grading and completed_grading.grader else None,
+            wm_disposition=completed_grading.disposition if (completed_grading and is_physical_flow) else None,
+            wm_is_genuine=completed_grading.is_genuine if (completed_grading and is_physical_flow) else None,
+            wm_recommended_outcome=completed_grading.recommended_outcome if (completed_grading and is_physical_flow) else None,
+            wm_inspection_remarks=completed_grading.inspection_remarks if (completed_grading and is_physical_flow) else None,
+            wm_graded_at=completed_grading.graded_at if (completed_grading and is_physical_flow) else None,
+            wm_grader_name=completed_grading.grader.name if (completed_grading and is_physical_flow and completed_grading.grader) else None,
+            transport_charge_amount=round(float(item.transport_charge_amount or 0.0), 2),
+            transport_charge_wallet_collected=round(float(item.transport_charge_wallet_collected or 0.0), 2),
+            transport_charge_pending_amount=round(float(item.transport_charge_pending_amount or 0.0), 2),
+            transport_charge_status=item.transport_charge_status,
+            transport_charge_applied_at=item.transport_charge_applied_at,
         )
 
     inventory_items = (await db.execute(select(InventoryItem).order_by(InventoryItem.created_at.desc()))).scalars().all()
@@ -2640,6 +2749,39 @@ async def update_return_case(db: AsyncSession, case_id: UUID, data: LogisticsRet
     db.add(case)
 
     # Sync DamageReport status so customer sees the outcome
+    completed_grading = await _get_completed_return_grading(db, case)
+    should_apply_transport_charge = (
+        data.status == "Rejected"
+        and (
+            data.apply_transport_charge
+            or (
+                getattr(case, "flow_type", None) == "pickup_inspection"
+                and completed_grading is not None
+                and (
+                    completed_grading.is_genuine is False
+                    or (completed_grading.recommended_outcome or "").strip().lower() == "reject claim"
+                )
+            )
+        )
+    )
+
+    if should_apply_transport_charge:
+        from app.models.order import Order as OriginalOrder
+        from app.services.return_charge_service import apply_rejected_claim_transport_charge
+
+        customer_id = None
+        if case.order_id:
+            original_order = (await db.execute(
+                select(OriginalOrder).where(OriginalOrder.id == case.order_id)
+            )).scalar_one_or_none()
+            customer_id = getattr(original_order, "customer_id", None)
+        if customer_id:
+            await apply_rejected_claim_transport_charge(
+                db,
+                case=case,
+                customer_id=customer_id,
+            )
+
     if case.reference_code:
         damage_report = (await db.execute(
             select(DamageReport).where(DamageReport.reference_code == case.reference_code)
@@ -2656,7 +2798,7 @@ async def update_return_case(db: AsyncSession, case_id: UUID, data: LogisticsRet
                         order_id=case.order_id,
                         refund_amount=case.refund_amount,
                         reference_code=case.reference_code,
-                        warehouse_id=case.warehouse_id,
+                            warehouse_id=case.warehouse_id,
                     )
             elif data.status == "Rejected":
                 damage_report.status = "rejected"
@@ -2665,22 +2807,19 @@ async def update_return_case(db: AsyncSession, case_id: UUID, data: LogisticsRet
             db.add(damage_report)
 
     await db.flush()
-    from app.models.wallet import WalletTransaction
-    _credited = False
-    if case.reference_code:
-        _credited = bool((await db.execute(
-            select(WalletTransaction.id).where(
-                WalletTransaction.reason == "DAMAGE_REFUND",
-                WalletTransaction.description.contains(case.reference_code),
-            )
-        )).scalar_one_or_none())
-    return LogisticsReturnCaseItem(id=case.id, hub_id=case.warehouse_id, order_id=case.order_id, customer=case.customer_name, reason=case.reason, condition=case.condition, status=case.status, original_price=case.original_price, refund_amount=case.refund_amount, images=case.images or [], reference_code=case.reference_code, wallet_credited=_credited)
+    credited = await _wallet_refund_credited(db, case.reference_code)
+    return await _build_return_case_item(
+        db,
+        case,
+        completed_grading=completed_grading,
+        wallet_credited=credited,
+    )
 
 
 async def issue_return_refund(db: AsyncSession, case_id: UUID) -> dict:
     case = await _get_return_case(db, case_id)
-    if case.status != "Approved":
-        raise HTTPException(status_code=400, detail="Return case is not approved")
+    if case.status not in {"Approved", "Partially Approved", "Refunded"}:
+        raise HTTPException(status_code=400, detail="Return case is not approved for wallet refund")
     if not case.refund_amount or case.refund_amount <= 0:
         raise HTTPException(status_code=400, detail="No refund amount set on this return case")
 
@@ -2702,6 +2841,11 @@ async def issue_return_refund(db: AsyncSession, case_id: UUID) -> dict:
         reference_code=case.reference_code,
         warehouse_id=case.warehouse_id,
     )
+    case.status = "Refunded"
+    db.add(case)
+    damage_report.status = "resolved"
+    db.add(damage_report)
+    await db.flush()
     return {
         "credited": credited,
         "amount": case.refund_amount,
@@ -2719,7 +2863,7 @@ async def schedule_return_pickup(db: AsyncSession, case_id: UUID) -> LogisticsRe
     can be followed all the way through to the WM grading step.
     """
     case = await _get_return_case(db, case_id)
-    if case.status not in ("Approved", "Pickup Scheduled"):
+    if case.status not in ("Approved", "Pickup Approved", "Pickup Scheduled"):
         raise HTTPException(status_code=400, detail=f"Cannot schedule pickup: return case status is '{case.status}'")
 
     # Fetch original order and warehouse
@@ -2776,25 +2920,12 @@ async def schedule_return_pickup(db: AsyncSession, case_id: UUID) -> LogisticsRe
         )
         db.add(grading)
 
+    case.flow_type = "pickup_inspection"
     case.status = "Pickup Scheduled"
     db.add(case)
 
     await db.flush()
-
-    return LogisticsReturnCaseItem(
-        id=case.id,
-        hub_id=case.warehouse_id,
-        order_id=case.order_id,
-        customer=case.customer_name,
-        reason=case.reason,
-        condition=case.condition,
-        status=case.status,
-        original_price=case.original_price,
-        refund_amount=case.refund_amount,
-        images=case.images or [],
-        reference_code=case.reference_code,
-        wallet_credited=False,
-    )
+    return await _build_return_case_item(db, case, wallet_credited=False)
 
 
 async def create_zone(db: AsyncSession, data: LogisticsZoneCreate) -> LogisticsZoneItem:

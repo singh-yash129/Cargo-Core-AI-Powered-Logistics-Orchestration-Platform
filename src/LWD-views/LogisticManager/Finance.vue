@@ -930,6 +930,7 @@ const downloadSlip = (item) => {
 const TX_TYPE_LABELS = {
     'REVENUE_ONLINE': 'Online Payment',
     'REVENUE_COD': 'COD Collection',
+    'REVENUE_RETURN_CHARGE': 'Return Transport Charge',
     'REVENUE_REFUND': 'Cancellation Refund',
     'EXPENSE_DRIVER': 'Driver Cost',
     'EXPENSE_LABOUR': 'Labour Cost',

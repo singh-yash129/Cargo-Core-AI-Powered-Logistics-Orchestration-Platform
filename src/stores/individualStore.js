@@ -84,6 +84,7 @@ export const useIndividualStore = defineStore('individual', () => {
     const totalSpent = computed(() => orders.value.filter(o => o.paymentStatus === 'paid').reduce((s, o) => s + o.cost.total, 0))
 
     const walletBalance = ref(0)
+    const pendingTransportCharge = ref(0)
     function addFunds(amount) {
         if (amount > 0) walletBalance.value += amount
     }
@@ -96,6 +97,7 @@ export const useIndividualStore = defineStore('individual', () => {
             if (res.ok) {
                 const data = await res.json()
                 walletBalance.value = data.balance ?? 0
+                pendingTransportCharge.value = data.pending_transport_charge ?? 0
             }
         } catch (e) { /* silent */ }
     }
@@ -226,6 +228,7 @@ export const useIndividualStore = defineStore('individual', () => {
                 vehicle: Number(order.vehicle_amount || 0),
                 platformFee: Number(order.platform_fee || 0),
                 taxes: Number(order.tax_amount || 0),
+                carryForward: Number(order.carry_forward_charge_amount || 0),
                 total: Number(order.total_amount || 0),
             },
             driver: null,
@@ -834,6 +837,7 @@ export const useIndividualStore = defineStore('individual', () => {
                 orderId: report.order_id,
                 description: report.description,
                 photos: report.photos || [],
+                flow_type: report.flow_type ?? null,
                 status: report.status,
                 qrCode: report.qr_code,
                 createdAt: report.created_at,
@@ -850,7 +854,7 @@ export const useIndividualStore = defineStore('individual', () => {
         }
     }
 
-    async function reportDamageRemote(orderId, description, photos) {
+    async function reportDamageRemote(orderId, description, photos, resolutionType = 'photo_review') {
         try {
             const token = localStorage.getItem('auth_token')
             const response = await fetch(apiUrl('api/v1/customer/damage-reports'), {
@@ -863,6 +867,7 @@ export const useIndividualStore = defineStore('individual', () => {
                     order_id: orderId,
                     description,
                     photos,
+                    resolution_type: resolutionType,
                 }),
             })
 
@@ -957,9 +962,11 @@ export const useIndividualStore = defineStore('individual', () => {
     async function createOrder(data) {
         const vehicle = vehicleTypes.value.find(v => v.key === data.vehicleType) || vehicleTypes.value[0]
         const totalAmount = Number(data.cost?.total || 0)
+        const carryForwardChargeAmount = Number(data.carryForwardChargeAmount || 0)
+        const payableBookingTotal = totalAmount + carryForwardChargeAmount
         const initialPaymentAmount = data.paymentMode === 'COD'
             ? 0
-            : Math.min(Number(data.paymentAmount || 0), totalAmount)
+            : Math.min(Number(data.paymentAmount || 0), payableBookingTotal)
 
         // Prepare order data for backend API
         const orderPayload = {
@@ -1074,6 +1081,9 @@ export const useIndividualStore = defineStore('individual', () => {
                 warehouse_name: resolvedWarehouse?.name || assignmentPreview.value?.warehouse_name || null,
                 warehouse_address: resolvedWarehouse?.address || assignmentPreview.value?.warehouse_address || null,
             })
+            if (Number(backendOrder.carry_forward_charge_amount || 0) > 0) {
+                pendingTransportCharge.value = 0
+            }
 
             // Add to local state immediately for instant UI feedback
             orders.value.unshift(normalizedOrder)
@@ -1334,6 +1344,7 @@ export const useIndividualStore = defineStore('individual', () => {
         assignmentPreview, fetchOrderAssignmentPreview,
         orders, activeOrders, pendingOrders, deliveredOrders, cancelledOrders, totalSpent,
         walletBalance, addFunds, fetchWalletBalance,
+        pendingTransportCharge,
         monthlySpending, vehicleTypes,
         quotes, payments, damageReports,
         notifications, unreadNotificationsCount,

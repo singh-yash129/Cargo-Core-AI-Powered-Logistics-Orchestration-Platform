@@ -157,7 +157,7 @@
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 mb-1">Vendor ID</div>
-                        <div class="font-medium text-sm text-gray-900 dark:text-white">VND-2049</div>
+                        <div class="font-medium text-sm text-gray-900 dark:text-white">{{ vendorCardData.id }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 mb-1">Business Type</div>
@@ -165,7 +165,7 @@
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 mb-1">Last Login</div>
-                        <div class="font-medium text-sm text-gray-900 dark:text-white">Today, 09:30 AM</div>
+                        <div class="font-medium text-sm text-gray-900 dark:text-white">{{ vendorLastLogin }}</div>
                     </div>
                 </div>
             </div>
@@ -230,6 +230,8 @@ import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
 import IdCard from '@/components/IdCard.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import { useVendorStore } from '@/stores/vendorStore'
+import { buildIdCardProfile, formatCardDate } from '@/utils/idCardProfile'
 
 defineProps({
     isOpen: Boolean
@@ -241,6 +243,7 @@ const isMenuOpen = ref(false)
 const showProfileModal = ref(false)
 const showIdCardModal = ref(false)
 const showLogoutConfirm = ref(false)
+const vendorStore = useVendorStore()
 
 // Dark mode tracking for dynamic icon
 const isDark = ref(true)
@@ -262,9 +265,10 @@ onUnmounted(() => {
 })
 
 // Vendor Data
-const vendorName = ref('Acme Logistics')
-const vendorTier = ref('Enterprise Partner')
-const vendorEmail = ref('contact@acmelogistics.com')
+const vendorName = computed(() => authStore.user?.company_name || authStore.user?.name || vendorStore.companySettings.companyName)
+const vendorTier = computed(() => authStore.user?.role ? 'Authorized Vendor Partner' : 'Enterprise Partner')
+const vendorEmail = computed(() => authStore.user?.business_email || authStore.user?.email || vendorStore.companySettings.email)
+const vendorLastLogin = computed(() => authStore.isAuthenticated ? 'Active session' : formatCardDate(authStore.user?.created_at || authStore.user?.createdAt))
 const vendorInitials = computed(() => {
     return vendorName.value
         .split(' ')
@@ -274,22 +278,24 @@ const vendorInitials = computed(() => {
         .substring(0, 2)
 })
 
-const vendorCardData = {
-    name: 'Acme Logistics',
-    id: 'VND-2049',
-    designation: 'Enterprise Partner',
+const vendorCardData = computed(() => buildIdCardProfile({
+    user: {
+        ...authStore.user,
+        company_name: authStore.user?.company_name || vendorStore.companySettings.companyName,
+        business_email: authStore.user?.business_email || vendorStore.companySettings.email,
+        business_phone: authStore.user?.business_phone || vendorStore.companySettings.phone,
+        address: authStore.user?.address || vendorStore.companySettings.address,
+        createdAt: authStore.user?.created_at || authStore.user?.createdAt,
+    },
+    role: authStore.user?.role || 'vendor',
+    roleLabel: 'Vendor',
+    name: vendorName.value,
+    designation: vendorTier.value,
     department: 'Commercial Vendor',
-    address: '45, Trade Park, Mumbai - 400001',
-    phone: '+91 0000000000',
-    email: 'contact@acmelogistics.com',
-    joinDate: '01 March 2024',
-    validUntil: '28 February 2027',
-    emergencyContact: {
-        name: 'Support Desk',
-        relation: 'Account Manager',
-        phone: '+91 0000000000'
-    }
-}
+    address: authStore.user?.address || vendorStore.companySettings.address,
+    phone: authStore.user?.business_phone || authStore.user?.phone || vendorStore.companySettings.phone,
+    email: vendorEmail.value,
+}))
 
 const router = useRouter()
 const authStore = useAuthStore()

@@ -153,6 +153,7 @@ class CustomerDamageReportCreate(BaseModel):
     order_id: str
     description: str
     photos: list[str] = []
+    resolution_type: str = "photo_review"
 
 
 class CustomerDamageReport(BaseModel):
@@ -160,6 +161,7 @@ class CustomerDamageReport(BaseModel):
     order_id: str
     description: str
     photos: list[str]
+    flow_type: str | None = None
     status: str
     qr_code: str
     created_at: str
@@ -169,6 +171,24 @@ class CustomerDamageReport(BaseModel):
 
 class CustomerDamageReportsResponse(BaseModel):
     reports: list[CustomerDamageReport]
+
+
+class DamageReviewQueueItem(BaseModel):
+    id: str
+    order_id: str
+    customer: str
+    description: str
+    images: list[str] = []
+    flow_type: str | None = None
+    status: str
+
+
+class DamageReviewUpdate(BaseModel):
+    damage_severity: str | None = None
+    is_genuine: bool | None = None
+    recommended_settlement: str | None = None
+    remarks: str | None = None
+    new_status: str = "Claims Reviewed"
 
 
 class CustomerSettings(BaseModel):

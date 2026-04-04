@@ -41,7 +41,7 @@
             </div>
             <div v-if="nlResponse" class="mt-3 p-3 bg-green-50 dark:bg-primary/5 border border-primary/20 rounded-lg">
                 <div class="text-[10px] text-primary uppercase font-bold tracking-wider mb-1">AI Response</div>
-                <div class="text-sm text-gray-700 dark:text-gray-300">{{ nlResponse }}</div>
+                <div class="text-sm text-gray-700 dark:text-gray-300" v-html="nlResponse"></div>
             </div>
             <div class="mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1 max-w-full" @wheel.prevent="handleChipsScroll"
                 style="width: 75vw;">
@@ -193,7 +193,8 @@
                         </div>
                         <div class="max-w-[85%] p-3 rounded-xl text-sm shadow-sm font-medium"
                             :class="msg.sender === 'ai' ? 'bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-gray-800 dark:text-gray-100 rounded-tl-none' : 'bg-primary/30 border border-primary/40 text-black dark:text-white rounded-tr-none'">
-                            {{ msg.text }}
+                            <span v-if="msg.sender === 'ai'" v-html="msg.text"></span>
+                            <span v-else>{{ msg.text }}</span>
                         </div>
                     </div>
                     <div v-if="chatTyping" class="flex gap-2">
@@ -355,11 +356,29 @@ function applySuggestion(suggestion, actionLabel) {
     appliedSuggestions.value.add(suggestion.id)
 }
 
-// Chart.js Demand Prediction — next 6 hours from store hourly volumes
+// Chart.js Demand Prediction — derived from real order data bucketed by scheduled delivery hour
+const hourlyVolumes = computed(() => {
+    const buckets = Array(24).fill(0)
+    const allOrders = [...(store.pendingOrders || []), ...(store.activeOrders || [])]
+    allOrders.forEach(o => {
+        const dateStr = o.deadline || o.eta || o.lastUpdated
+        if (dateStr && dateStr !== '—') {
+            const h = new Date(dateStr).getHours()
+            if (!isNaN(h)) buckets[h]++
+        }
+    })
+    // If no timestamp data, use order counts spread across hours as a flat baseline
+    if (!buckets.some(v => v > 0)) {
+        const basePerHour = Math.ceil((store.pendingOrders?.length || 0) / 6)
+        if (basePerHour > 0) return Array.from({ length: 24 }, (_, i) => (i >= new Date().getHours() && i < new Date().getHours() + 6 ? basePerHour : 0))
+    }
+    return buckets
+})
+
 const demandChartData = computed(() => {
-    const hourlyVolumes = store.dashboardStats.hourlyVolumes || []
     const currentHour = new Date().getHours()
-    const next6h = Array.from({ length: 6 }, (_, i) => hourlyVolumes[(currentHour + i) % 24] || 0)
+    const vols = hourlyVolumes.value
+    const next6h = Array.from({ length: 6 }, (_, i) => vols[(currentHour + i) % 24] || 0)
     const maxVal = Math.max(...next6h, 1)
     return {
         labels: ['Now', '+1h', '+2h', '+3h', '+4h', '+5h'],
@@ -375,14 +394,14 @@ const demandChartData = computed(() => {
 })
 
 const demandPeakHint = computed(() => {
-    const hourlyVolumes = store.dashboardStats.hourlyVolumes || []
-    if (!hourlyVolumes.some(v => v > 0)) return null
     const currentHour = new Date().getHours()
-    const next6h = Array.from({ length: 6 }, (_, i) => ({ offset: i, vol: hourlyVolumes[(currentHour + i) % 24] || 0 }))
+    const vols = hourlyVolumes.value
+    const next6h = Array.from({ length: 6 }, (_, i) => ({ offset: i, vol: vols[(currentHour + i) % 24] || 0 }))
+    if (!next6h.some(v => v.vol > 0)) return null
     const peak = next6h.reduce((a, b) => a.vol > b.vol ? a : b)
     if (peak.vol === 0) return null
     const peakHour = (currentHour + peak.offset) % 24
-    return `Peak expected at ${String(peakHour).padStart(2, '0')}:00.`
+    return `Peak expected at ${String(peakHour).padStart(2, '0')}:00 — ${peak.vol} order(s) predicted.`
 })
 
 const demandChartOptions = {
@@ -449,13 +468,18 @@ const suggestions = computed(() => {
     const drivers = store.dispatcherDrivers
     if (!drivers.length) return result
 
-    // Load imbalance check
-    const overloaded = drivers.filter(d => (d.load || 0) > 85)
-    const idle = drivers.filter(d => (d.load || 0) < 30 && d.statusColor === 'bg-green-500')
+    // Load imbalance check — use efficiency if non-zero, else derive from stops (assigned orders)
+    const effectiveLoad = d => {
+        const effLoad = d.load || 0
+        if (effLoad > 0) return effLoad
+        return Math.min(100, (d.stops || 0) * 20) // 5 stops ≈ 100% load
+    }
+    const overloaded = drivers.filter(d => effectiveLoad(d) > 85)
+    const idle = drivers.filter(d => effectiveLoad(d) < 30 && d.statusColor === 'bg-green-500')
     if (overloaded.length && idle.length) {
         result.push({
             id: 'load-imbalance', title: 'Load Imbalance Detected', color: 'text-orange-600 dark:text-orange-400', applied: false,
-            message: `Driver <strong>${overloaded[0].name}</strong> is at ${overloaded[0].load}% capacity while <strong>${idle[0].name}</strong> (${idle[0].load || 0}% load) is available. Consider rebalancing.`,
+            message: `Driver <strong>${overloaded[0].name}</strong> is at ${effectiveLoad(overloaded[0])}% capacity while <strong>${idle[0].name}</strong> (${effectiveLoad(idle[0])}% load) is available. Consider rebalancing.`,
             explanation: `${overloaded.length} driver(s) are over 85% load. ${idle.length} driver(s) are under 30% load in the fleet.`,
             confidence: 91,
             actions: [
@@ -504,7 +528,8 @@ const delayPredictions = computed(() => {
     const crises = store.activeCrises || []
     const items = []
     disruptions.forEach(d => {
-        const risk = d.severity === 'High' || d.severity === 'Critical' ? 'High' : d.severity === 'Medium' ? 'Medium' : 'Low'
+        const sev = (d.severity || '').toLowerCase()
+        const risk = sev === 'high' || sev === 'critical' ? 'High' : sev === 'medium' ? 'Medium' : 'Low'
         const baseProbability = risk === 'High' ? 78 : risk === 'Medium' ? 45 : 15
         const key = d.route || d.location || d.name || String(d.id)
         const mitigated = mitigatedRoutes.value.has(key)

@@ -39,6 +39,8 @@ async def get_wallet_balance(db: AsyncSession, user_id: UUID) -> float:
 
 async def get_wallet_summary(db: AsyncSession, user: User):
     balance = await get_wallet_balance(db, user.id)
+    from app.services.return_charge_service import get_unattached_pending_transport_charge_total
+    pending_transport_charge = await get_unattached_pending_transport_charge_total(db, user.id)
 
     totals = await db.execute(
         select(
@@ -70,6 +72,7 @@ async def get_wallet_summary(db: AsyncSession, user: User):
         balance=round(balance, 2),
         total_credits=round(float(total_credits or 0.0), 2),
         total_debits=round(float(total_debits or 0.0), 2),
+        pending_transport_charge=round(pending_transport_charge, 2),
         transactions=[
             WalletTransactionRecord(
                 id=tx.id,
@@ -155,6 +158,14 @@ async def apply_wallet_payment(
     order.paid_amount = float(order.paid_amount or 0.0) + applied
     order.payment_status = "paid" if order.paid_amount >= order.total_amount else "partial"
     db.add(order)
+
+    from app.services.return_charge_service import settle_transport_charges_from_order_payment
+    await settle_transport_charges_from_order_payment(
+        db,
+        order=order,
+        payment_amount=applied,
+        collection_source="ORDER_WALLET",
+    )
     await db.flush()
 
     from app.schemas.wallet import WalletPaymentResponse

@@ -226,6 +226,9 @@ class ReturnGradingResponse(BaseModel):
     item_condition: str
     condition_notes: str | None
     disposition: str
+    is_genuine: bool | None = None
+    recommended_outcome: str | None = None
+    inspection_remarks: str | None = None
     damage_photo_url: str | None
     graded_by: UUID | None
     grader_name: str | None = None
@@ -242,12 +245,18 @@ class ReturnGradingCreate(BaseModel):
     item_condition: str = Field(default="Pending Inspection", min_length=1, max_length=50)
     condition_notes: str | None = None
     disposition: str = Field(default="pending", min_length=1, max_length=30)
+    is_genuine: bool | None = None
+    recommended_outcome: str | None = Field(default=None, max_length=100)
+    inspection_remarks: str | None = None
 
 
 class ReturnGradingUpdate(BaseModel):
     item_condition: str | None = None
     condition_notes: str | None = None
     disposition: str | None = None
+    is_genuine: bool | None = None
+    recommended_outcome: str | None = Field(default=None, max_length=100)
+    inspection_remarks: str | None = None
 
 
 class ReturnGradingListResponse(BaseModel):

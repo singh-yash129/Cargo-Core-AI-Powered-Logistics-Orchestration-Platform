@@ -19,6 +19,7 @@ class WalletSummary(BaseModel):
     balance: float = 0
     total_credits: float = 0
     total_debits: float = 0
+    pending_transport_charge: float = 0
     transactions: list[WalletTransactionRecord] = []
 
 

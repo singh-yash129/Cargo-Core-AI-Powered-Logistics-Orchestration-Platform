@@ -1564,6 +1564,87 @@ async def set_dock_maintenance(
 # Returns / Grading Operations
 # ======================
 
+async def _backfill_pending_return_gradings(
+    db: AsyncSession,
+    warehouse_id: UUID,
+) -> None:
+    linked_cases = (
+        await db.execute(
+            select(LogisticsReturnCase).where(
+                LogisticsReturnCase.warehouse_id == warehouse_id,
+                LogisticsReturnCase.reference_code.is_not(None),
+            )
+        )
+    ).scalars().all()
+    case_by_ref = {
+        case.reference_code: case for case in linked_cases if case.reference_code
+    }
+
+    photo_review_refs = [
+        ref for ref, case in case_by_ref.items() if getattr(case, "flow_type", None) == "photo_review"
+    ]
+    removed_any = False
+    if photo_review_refs:
+        stray_pending_gradings = (
+            await db.execute(
+                select(ReturnGrading).where(
+                    ReturnGrading.warehouse_id == warehouse_id,
+                    ReturnGrading.status == "pending",
+                    ReturnGrading.rma_code.in_(photo_review_refs),
+                )
+            )
+        ).scalars().all()
+        for grading in stray_pending_gradings:
+            await db.delete(grading)
+            removed_any = True
+
+    existing_rma_codes = set(
+        (
+            await db.execute(
+                select(ReturnGrading.rma_code).where(ReturnGrading.warehouse_id == warehouse_id)
+            )
+        ).scalars().all()
+    )
+
+    return_cases = [
+        case for case in linked_cases
+        if getattr(case, "flow_type", None) == "pickup_inspection"
+        and case.status in {
+            "Pending",
+            "Approved",
+            "Pickup Requested",
+            "Pickup Approved",
+            "Pickup Scheduled",
+            "Collected",
+            "At Warehouse",
+            "Arrived at Warehouse",
+        }
+    ]
+
+    created_any = False
+    for case in return_cases:
+        if not case.reference_code or case.reference_code in existing_rma_codes:
+            continue
+
+        item_condition = "Awaiting Pickup" if case.status == "Pickup Scheduled" else "Pending Inspection"
+        db.add(
+            ReturnGrading(
+                warehouse_id=warehouse_id,
+                order_id=case.order_id,
+                rma_code=case.reference_code,
+                item_condition=item_condition,
+                condition_notes=case.reason,
+                disposition="pending",
+                status="pending",
+            )
+        )
+        existing_rma_codes.add(case.reference_code)
+        created_any = True
+
+    if created_any or removed_any:
+        await db.commit()
+
+
 async def get_return_gradings(
     db: AsyncSession,
     warehouse_id: UUID,
@@ -1573,6 +1654,9 @@ async def get_return_gradings(
 ) -> ReturnGradingListResponse:
     """Get all return gradings for a warehouse."""
     await _get_warehouse(db, warehouse_id)
+
+    if status_filter in (None, "pending"):
+        await _backfill_pending_return_gradings(db, warehouse_id)
 
     query = select(ReturnGrading).where(ReturnGrading.warehouse_id == warehouse_id)
 
@@ -1609,6 +1693,9 @@ async def get_return_gradings(
             item_condition=grading.item_condition,
             condition_notes=grading.condition_notes,
             disposition=grading.disposition,
+            is_genuine=grading.is_genuine,
+            recommended_outcome=grading.recommended_outcome,
+            inspection_remarks=grading.inspection_remarks,
             damage_photo_url=grading.damage_photo_url,
             graded_by=grading.graded_by,
             grader_name=grader_name,
@@ -1651,6 +1738,9 @@ async def create_return_grading(
         item_condition=data.item_condition,
         condition_notes=data.condition_notes,
         disposition=data.disposition,
+        is_genuine=data.is_genuine,
+        recommended_outcome=data.recommended_outcome,
+        inspection_remarks=data.inspection_remarks,
         graded_by=graded_by,
         graded_at=datetime.now(timezone.utc) if graded_by else None,
         status="pending",
@@ -1668,6 +1758,9 @@ async def create_return_grading(
         item_condition=grading.item_condition,
         condition_notes=grading.condition_notes,
         disposition=grading.disposition,
+        is_genuine=grading.is_genuine,
+        recommended_outcome=grading.recommended_outcome,
+        inspection_remarks=grading.inspection_remarks,
         damage_photo_url=grading.damage_photo_url,
         graded_by=grading.graded_by,
         grader_name=None,
@@ -1693,12 +1786,19 @@ async def update_return_grading(
     if not grading:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Return grading not found")
 
-    if data.item_condition is not None:
+    provided_fields = data.model_fields_set
+    if "item_condition" in provided_fields:
         grading.item_condition = data.item_condition
-    if data.condition_notes is not None:
+    if "condition_notes" in provided_fields:
         grading.condition_notes = data.condition_notes
-    if data.disposition is not None:
+    if "disposition" in provided_fields:
         grading.disposition = data.disposition
+    if "is_genuine" in provided_fields:
+        grading.is_genuine = data.is_genuine
+    if "recommended_outcome" in provided_fields:
+        grading.recommended_outcome = data.recommended_outcome
+    if "inspection_remarks" in provided_fields:
+        grading.inspection_remarks = data.inspection_remarks
 
     await db.commit()
     await db.refresh(grading)
@@ -1715,6 +1815,9 @@ async def update_return_grading(
         item_condition=grading.item_condition,
         condition_notes=grading.condition_notes,
         disposition=grading.disposition,
+        is_genuine=grading.is_genuine,
+        recommended_outcome=grading.recommended_outcome,
+        inspection_remarks=grading.inspection_remarks,
         damage_photo_url=grading.damage_photo_url,
         graded_by=grading.graded_by,
         grader_name=grader_name,
@@ -1783,7 +1886,8 @@ async def complete_return_grading(
         )).scalar_one_or_none()
         if return_case:
             return_case.condition = grading.item_condition
-            return_case.status = "Inspected"
+            if getattr(return_case, "flow_type", None) == "pickup_inspection":
+                return_case.status = "Physically Inspected"
             db.add(return_case)
 
     await db.commit()
@@ -1801,6 +1905,9 @@ async def complete_return_grading(
         item_condition=grading.item_condition,
         condition_notes=grading.condition_notes,
         disposition=grading.disposition,
+        is_genuine=grading.is_genuine,
+        recommended_outcome=grading.recommended_outcome,
+        inspection_remarks=grading.inspection_remarks,
         damage_photo_url=grading.damage_photo_url,
         graded_by=grading.graded_by,
         grader_name=grader_name,

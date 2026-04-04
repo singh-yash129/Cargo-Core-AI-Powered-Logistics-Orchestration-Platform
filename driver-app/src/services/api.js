@@ -50,14 +50,21 @@ function buildNetworkErrorMessage() {
     return `${baseMessage} Check that the backend is running and the API URL is correct.`
 }
 
-async function fetchWithNetworkHelp(path, options) {
+async function fetchWithNetworkHelp(path, options, timeoutMs = 10000) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
     try {
-        return await fetch(`${API_BASE}${path}`, options)
+        return await fetch(`${API_BASE}${path}`, { ...options, signal: controller.signal })
     } catch (error) {
+        if (error?.name === 'AbortError') {
+            throw new Error(`Request timed out after ${timeoutMs / 1000}s. Check your connection.`)
+        }
         if (isProbablyNetworkError(error)) {
             throw new Error(buildNetworkErrorMessage())
         }
         throw error
+    } finally {
+        clearTimeout(timer)
     }
 }
 
@@ -234,25 +241,26 @@ export async function checkInCrewMember(labourerId) {
 }
 
 export async function getAssignedOrders() {
-    const query = new URLSearchParams({
-        page: '1',
-        page_size: '100'
-    })
+    const fetchByStatus = async (statusFilter) => {
+        const res = await fetchWithNetworkHelp(
+            `/api/v1/orders?status_filter=${statusFilter}&page_size=100`,
+            { headers: { 'Content-Type': 'application/json', ...authHeaders() } }
+        )
+        if (!res.ok) return []
+        const payload = await res.json()
+        return Array.isArray(payload) ? payload : (payload.items || [])
+    }
 
-    const res = await fetchWithNetworkHelp(`/api/v1/orders?${query.toString()}`, {
-        headers: { 'Content-Type': 'application/json', ...authHeaders() }
-    })
-
-    if (!res.ok) {
-        console.error('Failed to fetch assigned orders')
+    try {
+        const [assigned, inTransit] = await Promise.all([
+            fetchByStatus('ASSIGNED'),
+            fetchByStatus('IN_TRANSIT'),
+        ])
+        return [...assigned, ...inTransit]
+    } catch (err) {
+        console.error('Failed to fetch assigned orders', err)
         return []
     }
-    const payload = await res.json()
-    const orders = Array.isArray(payload) ? payload : (payload.items || [])
-    return orders.filter(order => {
-        const status = String(order.status || '').toUpperCase()
-        return !['DRAFT', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'CLOSED'].includes(status)
-    })
 }
 
 export async function completeReturn(orderId) {

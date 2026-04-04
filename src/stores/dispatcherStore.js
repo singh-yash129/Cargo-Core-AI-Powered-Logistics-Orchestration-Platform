@@ -431,6 +431,8 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
                 model: v.model || '',
                 status: v.status || '',
                 type: v.type || v.vehicle_type || '',
+                seatCapacity: v.seat_capacity ?? v.seatCapacity ?? null,
+                cargoCapacityTons: v.cargo_capacity_tons ?? v.cargoCapacityTons ?? null,
             }))
             : ls.filteredVehicles
     )

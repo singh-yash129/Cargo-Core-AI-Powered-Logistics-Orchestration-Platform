@@ -257,6 +257,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
 import IdCard from '@/components/IdCard.vue'
+import { buildIdCardProfile } from '@/utils/idCardProfile'
 
 // State for User Menu and Modals
 const isUserMenuOpen = ref(false)
@@ -291,21 +292,15 @@ const userInitials = computed(() => {
         .substring(0, 2)
 })
 
-const employeeData = computed(() => ({
-    name: userName.value,
-    id: userEmployeeId.value,
-    designation: userRole.value,
+const employeeData = computed(() => buildIdCardProfile({
+    user: authStore.currentUser,
+    role: authStore.currentUser?.role || 'DISPATCHER',
+    roleLabel: userRole.value,
     department: 'Dispatch Operations',
-    address: 'Cargo Core Dispatch Network',
-    phone: 'Managed by admin directory',
+    address: authStore.currentUser?.address || 'CargoCore Dispatch Network',
+    phone: authStore.currentUser?.phone || 'Managed by admin directory',
     email: userEmail.value,
     joinDate: userJoinDate.value,
-    validUntil: 'Active while account is enabled',
-    emergencyContact: {
-        name: 'Dispatch Support',
-        relation: 'Help Center',
-        phone: 'Available from support portal'
-    }
 }))
 
 const router = useRouter()

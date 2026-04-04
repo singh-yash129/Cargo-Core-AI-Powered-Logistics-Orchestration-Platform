@@ -6,7 +6,7 @@
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Service Move & Time Blocking</h2>
                 <p class="text-sm text-gray-400 mt-1">Manage house shifts, office relocations — crew manifest, extended time blocks, dwell time</p>
             </div>
-            <button @click="showNewMove = true" class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm">
+            <button @click="openNewMoveModal" class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm">
                 <span class="material-symbols-outlined text-[18px]">add</span> New Service Move
             </button>
         </div>
@@ -180,16 +180,22 @@
 
         <!-- New Service Move Modal -->
         <Teleport to="body">
-        <div v-if="showNewMove" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4" @click.self="showNewMove = false">
+        <div v-if="showNewMove" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4" @click.self="closeNewMoveModal">
             <div class="bg-gradient-to-br from-gray-900 to-gray-800 shadow-2xl border border-primary/20 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent">
                 <div class="flex items-center justify-between mb-5">
                     <h3 class="text-xl font-bold text-white flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary">add_circle</span>
                         Create New Service Move
                     </h3>
-                    <button @click="showNewMove = false" class="text-gray-400 hover:text-white transition-colors">
+                    <button @click="closeNewMoveModal" class="text-gray-400 hover:text-white transition-colors">
                         <span class="material-symbols-outlined">close</span>
                     </button>
+                </div>
+                <div v-if="formError" class="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    {{ formError }}
+                </div>
+                <div v-else-if="formSuccess" class="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                    {{ formSuccess }}
                 </div>
                 <div class="space-y-4">
                     <div>
@@ -283,7 +289,7 @@
                             Create Move
                         </span>
                     </button>
-                    <button @click="showNewMove = false" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 rounded-lg text-sm transition-colors">
+                    <button @click="closeNewMoveModal" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 rounded-lg text-sm transition-colors">
                         Cancel
                     </button>
                 </div>
@@ -447,13 +453,18 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useDispatcherStore } from '@/stores/dispatcherStore'
 import { API_BASE_URL, getStoredAccessToken } from '@/config/api'
+import { useToast } from '@/composables/useToast'
 import { LMap, LTileLayer, LMarker, LCircleMarker, LTooltip } from '@vue-leaflet/vue-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 
 const store = useDispatcherStore()
+const route = useRoute()
+const router = useRouter()
+const toast = useToast()
 onMounted(async () => {
     await store.initialize().catch(() => {})
     await fetchServiceMoves()
@@ -467,8 +478,107 @@ function authHeaders() {
         : { 'Content-Type': 'application/json' }
 }
 
+function formatVehicleLabel(vehicle) {
+    const parts = [vehicle.code, vehicle.type, vehicle.licensePlate].filter(Boolean)
+    return parts.length > 0 ? parts.join(' · ') : `Vehicle ${vehicle.id}`
+}
+
+function parseApiError(payload, fallback) {
+    if (Array.isArray(payload?.detail)) return payload.detail[0]?.msg || fallback
+    return payload?.detail || fallback
+}
+
+function parseServiceMoveMeta(raw) {
+    if (!raw) return { title: '', notes: '' }
+    if (!raw.startsWith('SERVICE_MOVE_META::')) return { title: '', notes: raw }
+
+    try {
+        const parsed = JSON.parse(raw.slice('SERVICE_MOVE_META::'.length))
+        return {
+            title: parsed?.title || '',
+            notes: parsed?.notes || '',
+        }
+    } catch (_) {
+        return { title: '', notes: raw }
+    }
+}
+
+function buildServiceMoveMeta() {
+    return `SERVICE_MOVE_META::${JSON.stringify({
+        title: newMove.title.trim(),
+        notes: newMove.notes.trim(),
+    })}`
+}
+
+function buildServiceTimeBlock() {
+    const durationHours = Number(newMove.estimatedDuration || 0)
+    const startText = newMove.scheduledTime || 'TBD'
+    if (!durationHours) return `${startText} start`
+    return `${startText} start · ${durationHours}h block`
+}
+
+function deriveDurationLabel(serviceTimeBlock) {
+    const match = String(serviceTimeBlock || '').match(/(\d+(?:\.\d+)?)h block/i)
+    if (match) return `${match[1]} hours`
+    return '4 hours'
+}
+
+function resetNewMoveForm() {
+    newMove.title = ''
+    newMove.type = 'House Shift'
+    newMove.pickup = ''
+    newMove.delivery = ''
+    newMove.vehicleId = ''
+    newMove.driverId = ''
+    newMove.laborerIds = []
+    newMove.scheduledDate = ''
+    newMove.scheduledTime = ''
+    newMove.estimatedDuration = '4'
+    newMove.notes = ''
+}
+
+function primeNewMoveDefaults() {
+    if (!newMove.vehicleId && vehicleOptions.value.length > 0) {
+        newMove.vehicleId = vehicleOptions.value[0].id
+    }
+    if (!newMove.driverId && availableDrivers.value.length > 0) {
+        newMove.driverId = availableDrivers.value[0].id
+    }
+    if (!newMove.scheduledDate) {
+        newMove.scheduledDate = new Date().toISOString().split('T')[0]
+    }
+    if (!newMove.scheduledTime) {
+        newMove.scheduledTime = '10:00'
+    }
+}
+
+async function closeNewMoveModal() {
+    showNewMove.value = false
+    formError.value = ''
+    formSuccess.value = ''
+
+    if (route.query.createMove === '1') {
+        const nextQuery = { ...route.query }
+        delete nextQuery.createMove
+        await router.replace({ query: nextQuery })
+    }
+}
+
+function openNewMoveModal() {
+    formError.value = ''
+    formSuccess.value = ''
+    showNewMove.value = true
+    primeNewMoveDefaults()
+}
+
 const vehicleOptions = computed(() =>
-    store.filteredVehicles.map(v => ({ id: v.id, label: v.code || v.model || v.licensePlate || `Vehicle ${v.id}` }))
+    store.filteredVehicles.map(v => ({
+        id: v.id,
+        label: formatVehicleLabel(v),
+        code: v.code || '',
+        type: v.type || '',
+        seatCapacity: v.seatCapacity ?? null,
+    }))
 )
 // Alias used in template
 const realVehicleOptions = vehicleOptions
@@ -493,11 +603,16 @@ const crewMsg = ref('')
 const crewMessages = ref([])
 const moveMenu = ref(null)
 const loading = ref(false)
+const formError = ref('')
+const formSuccess = ref('')
 const showTrackingModal = ref(false)
 const trackingMove = ref(null)
 const trackedDriver = ref(null)
 const trackingLoading = ref(false)
 const crewThreadId = ref(null)
+const selectedVehicleOption = computed(() =>
+    vehicleOptions.value.find(vehicle => vehicle.id === newMove.vehicleId) || null
+)
 
 const driverMapIcon = computed(() =>
     L.divIcon({
@@ -537,21 +652,26 @@ const totalCrewCount = computed(() => serviceMoves.value.reduce((sum, m) => sum 
 const blockedHours = computed(() => serviceMoves.value.reduce((sum, m) => sum + parseInt(m.duration), 0))
 const vehiclesReserved = computed(() => serviceMoves.value.length)
 
-// Set default vehicle and driver when modal opens
 watch(showNewMove, (isOpen) => {
-    if (isOpen && vehicleOptions.value.length > 0) {
-        newMove.vehicleId = vehicleOptions.value[0].id
-    }
-    if (isOpen && availableDrivers.value.length > 0) {
-        newMove.driverId = availableDrivers.value[0].id
-    }
-    // Set default date to today
     if (isOpen) {
-        const today = new Date().toISOString().split('T')[0]
-        newMove.scheduledDate = today
-        newMove.scheduledTime = '10:00'
+        formError.value = ''
+        formSuccess.value = ''
+        primeNewMoveDefaults()
     }
 })
+
+watch(() => route.query.createMove, (value) => {
+    if (value === '1') {
+        openNewMoveModal()
+        return
+    }
+
+    if (showNewMove.value) {
+        showNewMove.value = false
+        formError.value = ''
+        formSuccess.value = ''
+    }
+}, { immediate: true })
 
 // Fetch service moves from backend — fetch all active statuses separately
 // (backend status_filter only accepts one value at a time)
@@ -585,7 +705,9 @@ async function fetchServiceMoves() {
 
         // Count completed today
         const today = new Date().toISOString().split('T')[0]
-        completedToday.value = delivered.filter(o => o.delivered_at?.startsWith(today)).length
+        completedToday.value = delivered.filter(o =>
+            o.delivered_at?.startsWith(today) && SERVICE_CARGO.includes(o.cargo_type)
+        ).length
     } catch (err) {
         console.error('Failed to fetch service moves:', err)
     }
@@ -598,6 +720,7 @@ function mapServiceMove(order) {
 
     const moveType = order.cargo_type || order.order_type || 'service_move'
     const c = colorMap[moveType] || 'blue'
+    const moveMeta = parseServiceMoveMeta(order.delivery_notes)
 
     // Get driver and crew info
     const driver = store.dispatcherDrivers.find(d => d.id === String(order.assigned_driver_id))
@@ -605,7 +728,7 @@ function mapServiceMove(order) {
 
     // Get vehicle info
     const vehicle = store.filteredVehicles.find(v => v.id === String(order.assigned_vehicle_id))
-    const vehicleCode = vehicle?.code || vehicle?.model || 'Vehicle'
+    const vehicleCode = order.assigned_vehicle_code || vehicle?.code || order.vehicle_type || 'Vehicle pending'
 
     // Calculate progress based on status
     let progress = 0
@@ -625,7 +748,7 @@ function mapServiceMove(order) {
     return {
         id: order.tracking_code || order.id,
         orderId: order.id,
-        title: order.special_instructions || `${moveType} - ${order.id}`,
+        title: moveMeta.title || `${moveType} · ${order.tracking_code || String(order.id).slice(0, 8)}`,
         type: moveType,
         icon: iconMap[moveType] || 'local_shipping',
         iconClass: `text-${c}-400`,
@@ -636,17 +759,19 @@ function mapServiceMove(order) {
         delivery: order.delivery_addr || 'Not specified',
         deliveryLat: order.delivery_lat ?? null,
         deliveryLng: order.delivery_lng ?? null,
-        timeBlock: order.scheduled_at
-            ? new Date(order.scheduled_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-            : 'Not scheduled',
-        duration: '4 hours', // Could be calculated from order data
+        timeBlock: order.service_time_block || (
+            order.scheduled_at
+                ? new Date(order.scheduled_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+                : 'Not scheduled'
+        ),
+        duration: deriveDurationLabel(order.service_time_block),
         packingTime: '1h',
         dwellTime: '0.5h',
         transitTime: '2.5h',
         progress,
         vehicle: vehicleCode,
-        seatsAvailable: vehicle?.seats || 4,
-        notes: order.notes || order.special_instructions || '',
+        seatsAvailable: vehicle?.seatCapacity || 4,
+        notes: moveMeta.notes || '',
         tracking: false,
         crew
     }
@@ -764,6 +889,8 @@ async function createServiceMove() {
     if (!newMove.title || !newMove.pickup || !newMove.delivery) return
 
     loading.value = true
+    formError.value = ''
+    formSuccess.value = ''
     try {
         // Build scheduled timestamp
         const scheduledAt = newMove.scheduledDate && newMove.scheduledTime
@@ -773,15 +900,13 @@ async function createServiceMove() {
         // Create order payload
         const payload = {
             cargo_type: newMove.type,
-            order_type: 'service_move',
+            order_type: 'SERVICE_MOVE',
             pickup_addr: newMove.pickup,
             delivery_addr: newMove.delivery,
-            special_instructions: newMove.title,
-            notes: newMove.notes,
+            vehicle_type: selectedVehicleOption.value?.code || selectedVehicleOption.value?.type || null,
+            delivery_notes: buildServiceMoveMeta(),
+            service_time_block: buildServiceTimeBlock(),
             scheduled_at: scheduledAt,
-            assigned_vehicle_id: newMove.vehicleId || null,
-            assigned_driver_id: newMove.driverId || null,
-            status: 'CONFIRMED'
         }
 
         const res = await fetch(`${API_BASE_URL}/api/v1/orders`, {
@@ -790,33 +915,43 @@ async function createServiceMove() {
             body: JSON.stringify(payload)
         })
 
-        if (res.ok) {
-            const createdOrder = await res.json()
-
-            // Optionally assign driver if selected
-            if (newMove.driverId && createdOrder.id) {
-                await fetch(`${API_BASE_URL}/api/v1/orders/${createdOrder.id}/assign`, {
-                    method: 'POST',
-                    headers: authHeaders(),
-                    body: JSON.stringify({
-                        driver_id: newMove.driverId,
-                        vehicle_id: newMove.vehicleId || null
-                    })
-                })
-            }
-
-            // Refresh list
-            await fetchServiceMoves()
-
-            // Reset form
-            showNewMove.value = false
-            newMove.title = ''
-            newMove.pickup = ''
-            newMove.delivery = ''
-            newMove.notes = ''
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}))
+            throw new Error(parseApiError(error, 'Failed to create service move'))
         }
+
+        const createdOrder = await res.json()
+
+        if (newMove.driverId && createdOrder.id) {
+            const assignRes = await fetch(`${API_BASE_URL}/api/v1/orders/${createdOrder.id}/assign`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({
+                    driver_id: newMove.driverId,
+                    vehicle_id: newMove.vehicleId || null,
+                }),
+            })
+
+            if (!assignRes.ok) {
+                const assignError = await assignRes.json().catch(() => ({}))
+                await fetchServiceMoves()
+                const partialMessage = parseApiError(assignError, 'Service move created, but assignment failed')
+                toast.warning(partialMessage)
+                resetNewMoveForm()
+                await closeNewMoveModal()
+                return
+            }
+        }
+
+        await fetchServiceMoves()
+        formSuccess.value = 'Service move created successfully.'
+        toast.success('Service move created successfully.')
+        resetNewMoveForm()
+        await closeNewMoveModal()
     } catch (err) {
         console.error('Failed to create service move:', err)
+        formError.value = err instanceof Error ? err.message : 'Failed to create service move'
+        toast.error(formError.value)
     }
     loading.value = false
 }

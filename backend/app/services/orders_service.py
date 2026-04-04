@@ -30,7 +30,7 @@ from app.schemas.orders import (
     OrderUpdate,
 )
 
-ORDER_TYPES = {"INDIVIDUAL", "VENDOR"}
+ORDER_TYPES = {"INDIVIDUAL", "VENDOR", "SERVICE_MOVE"}
 ORDER_STATUSES = {
     "DRAFT",
     "CONFIRMED",
@@ -267,6 +267,8 @@ def _to_order_response(
         platform_fee=order.platform_fee,
         tax_amount=order.tax_amount,
         total_amount=order.total_amount,
+        carry_forward_charge_amount=order.carry_forward_charge_amount,
+        carry_forward_charge_paid_amount=order.carry_forward_charge_paid_amount,
         payment_mode=order.payment_mode,
         payment_status=order.payment_status,
         paid_amount=order.paid_amount,
@@ -343,14 +345,33 @@ async def create_order(db: AsyncSession, data: OrderCreate, user: User) -> Order
     if order_type not in ORDER_TYPES:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid order_type")
 
-    warehouse_id = await _resolve_warehouse_id(db, data.warehouse_id)
+    if order_type == "SERVICE_MOVE" and user.role.name not in {"LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only logistics operations roles can create service moves",
+        )
+
+    from app.services.return_charge_service import attach_pending_transport_charges_to_order
+
+    requested_warehouse_id = data.warehouse_id
+    if requested_warehouse_id is None and user.role.name in {"WAREHOUSE_MANAGER", "DISPATCHER"}:
+        requested_warehouse_id = user.warehouse_id
+
+    warehouse_id = await _resolve_warehouse_id(db, requested_warehouse_id)
+
+    initial_status = "DRAFT"
+    initial_substatus = None
+    if order_type == "SERVICE_MOVE" and user.role.name in {"LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"}:
+        initial_status = "CONFIRMED"
+        initial_substatus = "AWAITING_PICK"
 
     order = Order(
         tracking_code=_tracking_code(),
         order_type=order_type,
-        status="DRAFT",
+        status=initial_status,
         customer_id=user.id,
         warehouse_id=warehouse_id,
+        warehouse_substatus=initial_substatus,
         pickup_addr=data.pickup_addr,
         delivery_addr=data.delivery_addr,
         cargo_type=data.cargo_type,
@@ -370,12 +391,19 @@ async def create_order(db: AsyncSession, data: OrderCreate, user: User) -> Order
         service_otp=data.service_otp,
         service_time_block=data.service_time_block,
         scheduled_at=data.scheduled_at,
+        delivery_notes=data.delivery_notes,
         priority=data.priority.upper() if data.priority else "NORMAL",
         delivery_lat=data.delivery_lat,
         delivery_lng=data.delivery_lng,
     )
     db.add(order)
     await db.flush()
+
+    carry_forward_charge_amount = await attach_pending_transport_charges_to_order(db, order)
+    if carry_forward_charge_amount > 0:
+        order.total_amount = float(order.total_amount or 0.0) + carry_forward_charge_amount
+        db.add(order)
+        await db.flush()
 
     initial_payment_amount = min(float(data.initial_payment_amount or 0.0), float(order.total_amount or 0.0))
     if initial_payment_amount > 0:
@@ -769,10 +797,15 @@ async def complete_return_order(db: AsyncSession, order_id: UUID, caller: "User"
     db.add(order)
 
     # Auto-create a pending return grading so the Warehouse Manager queue is populated.
-    # If this is a scheduled return pickup order, delivery_notes holds the original RMA
-    # reference code (e.g. "RMA-9921") — use that so WM grading links back to the LM case.
+    # If this is a scheduled return pickup order, delivery_notes holds the original
+    # return reference code (for example "RMA-9921" or "DMG-209F82") — use that so
+    # WM grading links back to the LM case.
     if order.warehouse_id:
-        rma_code = (order.delivery_notes or "").strip() if (order.delivery_notes or "").startswith("RMA-") else f"RMA-{order.tracking_code}"
+        raw_reference = (order.delivery_notes or "").strip()
+        if raw_reference.startswith(("RMA-", "DMG-")):
+            rma_code = raw_reference
+        else:
+            rma_code = f"RMA-{order.tracking_code}"
         existing = (
             await db.execute(select(ReturnGrading).where(ReturnGrading.rma_code == rma_code))
         ).scalar_one_or_none()
@@ -794,7 +827,7 @@ async def complete_return_order(db: AsyncSession, order_id: UUID, caller: "User"
             select(LogisticsReturnCase).where(LogisticsReturnCase.reference_code == rma_code)
         )).scalar_one_or_none()
         if return_case and return_case.status == "Pickup Scheduled":
-            return_case.status = "Arrived at Warehouse"
+            return_case.status = "At Warehouse"
             db.add(return_case)
 
     await _release_order_resources(db, order)
@@ -905,6 +938,8 @@ async def cancel_order(
     data: CancelOrderRequest,
     user: User,
 ) -> OrderResponse:
+    from app.services.return_charge_service import release_attached_transport_charges
+
     order = await _get_order(db, order_id)
     if user.role.name in {"INDIVIDUAL", "VENDOR"} and order.customer_id != user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
@@ -926,19 +961,26 @@ async def cancel_order(
         # stayed at payment_status='pending' with payment_mode='Partial'. Refund the expected 50%.
         effective_paid = round(float(order.total_amount or 0.0) / 2, 2)
 
-    if effective_paid > 0:
+    non_refundable_carry_forward = min(
+        float(order.carry_forward_charge_paid_amount or 0.0),
+        effective_paid,
+    )
+    refundable_paid = max(effective_paid - non_refundable_carry_forward, 0.0)
+
+    if refundable_paid > 0:
         from app.services import wallet_service
 
         wallet_refund_amount = await wallet_service.credit_cancellation_refund(
             db,
             order=order,
-            refund_amount=max(effective_paid - cancellation_fee, 0.0),
+            refund_amount=max(refundable_paid - cancellation_fee, 0.0),
             fee_amount=cancellation_fee,
         )
 
 
     # Release all assigned resources
     await _release_order_resources(db, order)
+    await release_attached_transport_charges(db, order)
     order.status = "CANCELLED"
     order.cancel_reason = f"{data.reason} ({cancellation_note})"
     # Clear driver and vehicle assignment on the order since it's cancelled

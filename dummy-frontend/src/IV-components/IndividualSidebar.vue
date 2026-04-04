@@ -104,7 +104,12 @@
                         </button>
 
                         <!-- ID Card -->
-               
+                        <button @click="showIdCardModal = true"
+                            class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors">
+                            <span
+                                class="material-symbols-outlined text-[20px] text-green-500 dark:text-green-400">badge</span>
+                            Customer ID Card
+                        </button>
 
                         <!-- Appearance Toggle -->
                         <div class="w-full px-4 py-2.5 flex items-center gap-3">
@@ -190,6 +195,18 @@
     </Teleport>
 
     <!-- ID Card Modal -->
+    <Teleport to="body">
+        <BaseModal :isOpen="showIdCardModal" @close="showIdCardModal = false">
+            <template #title>{{ idCardData.cardTitle }}</template>
+            <div class="flex justify-center w-full">
+                <IdCard :employee="idCardData" />
+            </div>
+            <template #footer>
+                <button @click="showIdCardModal = false"
+                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Close</button>
+            </template>
+        </BaseModal>
+    </Teleport>
 
     <!-- Logout Confirmation Modal -->
     <Teleport to="body">
@@ -227,7 +244,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
-
+import IdCard from '@/components/IdCard.vue'
+import { buildIdCardProfile } from '@/utils/idCardProfile'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useIndividualStore } from '@/stores/individualStore'
 
@@ -239,6 +257,7 @@ const store = useIndividualStore()
 // Menu & Modal State
 const isMenuOpen = ref(false)
 const showProfileModal = ref(false)
+const showIdCardModal = ref(false)
 const showLogoutConfirm = ref(false)
 
 
@@ -258,17 +277,22 @@ onUnmounted(() => {
     if (themeObserver) themeObserver.disconnect()
 })
 
-const idCardData = computed(() => ({
-    name: store.user.name,
-    id: 'IND-4021',
-    designation: 'Individual Customer',
+const idCardData = computed(() => buildIdCardProfile({
+    user: {
+        ...authStore.user,
+        name: authStore.user?.name || store.user.name,
+        email: authStore.user?.email || store.user.email,
+        phone: authStore.user?.phone || store.user.phone,
+        address: authStore.user?.address || store.user.address,
+        joiningDate: authStore.user?.created_at || authStore.user?.createdAt || store.user.joiningDate,
+    },
+    role: authStore.user?.role || 'customer',
+    roleLabel: 'Customer',
+    designation: store.user.tier || 'Customer',
     department: 'Personal Moves',
-    address: store.user.address,
-    phone: store.user.phone,
-    email: store.user.email,
-    joinDate: '15 January 2025',
-    validUntil: '31 December 2027',
-    emergencyContact: { name: 'Support Desk', relation: 'Help Center', phone: '+91 0000000000' },
+    address: authStore.user?.address || store.user.address,
+    phone: authStore.user?.phone || store.user.phone,
+    email: authStore.user?.email || store.user.email,
 }))
 
 const router = useRouter()

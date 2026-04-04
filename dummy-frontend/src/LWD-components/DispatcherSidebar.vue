@@ -183,7 +183,7 @@
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 mb-1">Employee ID</div>
-                        <div class="font-medium text-sm">DP-2041</div>
+                        <div class="font-medium text-sm">{{ employeeData.id }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 mb-1">Department</div>
@@ -191,7 +191,7 @@
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 mb-1">Last Login</div>
-                        <div class="font-medium text-sm">Today, 06:15 AM</div>
+                        <div class="font-medium text-sm">{{ userLastLogin }}</div>
                     </div>
                 </div>
             </div>
@@ -257,6 +257,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
 import IdCard from '@/components/IdCard.vue'
+import { buildIdCardProfile, formatCardDate } from '@/utils/idCardProfile'
 
 // State for User Menu and Modals
 const isUserMenuOpen = ref(false)
@@ -266,9 +267,11 @@ const showIdCardModal = ref(false)
 const showLogoutConfirm = ref(false)
 
 // User Data
-const userName = ref('Dispatcher Mike')
-const userRole = ref('Regional Ops')
-const userEmail = ref('mike.dispatch@quadcore.dev')
+const userName = computed(() => authStore.user?.name || authStore.user?.fullName || 'Dispatcher Mike')
+const userRole = computed(() => authStore.user?.role ? 'Dispatcher' : 'Regional Ops')
+const userEmail = computed(() => authStore.user?.email || 'mike.dispatch@quadcore.dev')
+const userCreatedAt = computed(() => authStore.user?.created_at || authStore.user?.createdAt || null)
+const userLastLogin = computed(() => authStore.isAuthenticated ? 'Active session' : formatCardDate(userCreatedAt.value))
 const userInitials = computed(() => {
     return userName.value
         .split(' ')
@@ -278,22 +281,15 @@ const userInitials = computed(() => {
         .substring(0, 2)
 })
 
-const employeeData = {
-    name: 'Dispatcher Mike',
-    id: 'DP-2041',
-    designation: 'Senior Dispatcher',
+const employeeData = computed(() => buildIdCardProfile({
+    user: authStore.user,
+    role: authStore.user?.role || 'dispatcher',
+    roleLabel: userRole.value,
     department: 'Dispatch Operations',
-    address: '123, MG Road, Bangalore - 560001',
-    phone: '+91 0000000000',
-    email: 'mike.dispatch@quadcore.dev',
-    joinDate: '15 January 2024',
-    validUntil: '31 December 2026',
-    emergencyContact: {
-        name: 'Jane Doe',
-        relation: 'Spouse',
-        phone: '+91 0000000000'
-    }
-}
+    address: authStore.user?.address || 'CargoCore Dispatch Network',
+    phone: authStore.user?.phone || 'Managed by admin directory',
+    email: userEmail.value,
+}))
 
 const router = useRouter()
 const authStore = useAuthStore()

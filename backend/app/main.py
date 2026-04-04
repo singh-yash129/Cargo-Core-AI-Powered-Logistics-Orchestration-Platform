@@ -9,6 +9,7 @@ from app.middleware.logging_middleware import LoggingMiddleware
 from app.routers import auth as auth_router
 from app.routers import ai as ai_router
 from app.routers import customer as customer_router
+from app.routers import damage_reports as damage_reports_router
 from app.routers import geocoding as geocoding_router
 from app.routers import inventory as inventory_router
 from app.routers import labourers as labourers_router
@@ -87,6 +88,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router.router)
     app.include_router(ai_router.router)
     app.include_router(customer_router.router)
+    app.include_router(damage_reports_router.router)
     app.include_router(vendor_router.router)
     app.include_router(geocoding_router.router)
     app.include_router(users_router.router)

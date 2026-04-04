@@ -128,6 +128,7 @@ class LogisticsReturnCaseItem(BaseModel):
     order_id: UUID | None
     customer: str
     reason: str
+    flow_type: str | None = None
     condition: str
     status: str
     original_price: float
@@ -136,8 +137,16 @@ class LogisticsReturnCaseItem(BaseModel):
     reference_code: str
     wallet_credited: bool = False
     wm_disposition: str | None = None
+    wm_is_genuine: bool | None = None
+    wm_recommended_outcome: str | None = None
+    wm_inspection_remarks: str | None = None
     wm_graded_at: datetime | None = None
     wm_grader_name: str | None = None
+    transport_charge_amount: float = 0
+    transport_charge_wallet_collected: float = 0
+    transport_charge_pending_amount: float = 0
+    transport_charge_status: str | None = None
+    transport_charge_applied_at: datetime | None = None
 
 
 class LogisticsZoneItem(BaseModel):
@@ -349,6 +358,8 @@ class LogisticsReturnCaseUpdate(BaseModel):
     status: str = Field(..., min_length=2, max_length=30)
     refund_amount: float | None = None
     condition: str | None = None
+    notes: str | None = None
+    apply_transport_charge: bool = False
 
 
 class LogisticsZoneCreate(BaseModel):

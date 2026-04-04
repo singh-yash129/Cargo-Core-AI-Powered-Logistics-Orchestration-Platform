@@ -55,7 +55,7 @@
                     </svg>
                     <div class="relative z-10 h-full flex items-center justify-center">
                       <h2 class="text-white text-[9px] font-bold tracking-widest uppercase">
-                        EMPLOYEE ID CARD
+                        {{ employee.cardTitle || 'Employee ID Card' }}
                       </h2>
                     </div>
                   </div>
@@ -123,10 +123,10 @@
                             <div class="border-t border-gray-400 mb-1"></div>
                             <div class="text-[10px] italic text-[#2C3E50] mb-0.5"
                               style="font-family: 'Dancing Script', cursive">
-                              Amit Patel
+                              {{ employee.authorizedBy?.name || 'CargoCore Operations' }}
                             </div>
                             <div class="text-[6px] text-gray-600">
-                              Logistics Manager
+                              {{ employee.authorizedBy?.title || 'Access Management' }}
                             </div>
                           </div>
                         </div>
@@ -172,7 +172,7 @@
                     </svg>
                     <div class="relative z-10 h-full flex items-center justify-center">
                       <h2 class="text-white text-[9px] font-bold tracking-widest uppercase">
-                        EMPLOYEE INFORMATION
+                        {{ employee.infoTitle || 'Employee Information' }}
                       </h2>
                     </div>
                   </div>
@@ -225,7 +225,7 @@
                       <div class="flex-1">
                         <div class="text-[5px] text-gray-600 italic leading-[1.2]">
                           <div class="font-semibold text-[#3D5A99]">Property of CargoCore</div>
-                          <div>If found, return to: CargoCore Logistics Koramangala, Bangalore</div>
+                          <div>If found, report it to the registered CargoCore support desk.</div>
                         </div>
                       </div>
                       <div class="flex flex-col items-center flex-shrink-0">
@@ -257,7 +257,7 @@
         <!-- Professional Badge -->
         <div class="mt-3 flex items-center justify-center gap-2">
           <div class="h-px w-16 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-          <span class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Professional ID</span>
+          <span class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">{{ employee.footerBadge || 'Verified Access' }}</span>
           <div class="h-px w-16 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
         </div>
       </div>
@@ -289,6 +289,7 @@ const qrData = computed(() => {
     id: props.employee.id,
     name: props.employee.name,
     designation: props.employee.designation,
+    cardTitle: props.employee.cardTitle,
     validUntil: props.employee.validUntil,
     company: 'CargoCore'
   })

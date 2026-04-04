@@ -29,6 +29,7 @@ class OrderCreate(BaseModel):
     declared_value: float = Field(default=0, ge=0)
     service_otp: str | None = None
     service_time_block: str | None = None
+    delivery_notes: str | None = None
     scheduled_at: datetime | None = None
     priority: str = "NORMAL"
     delivery_lat: float | None = None
@@ -54,6 +55,7 @@ class OrderUpdate(BaseModel):
     payment_status: str | None = None
     service_otp: str | None = None
     service_time_block: str | None = None
+    delivery_notes: str | None = None
     scheduled_at: datetime | None = None
 
 
@@ -112,6 +114,8 @@ class OrderResponse(BaseModel):
     platform_fee: float
     tax_amount: float
     total_amount: float
+    carry_forward_charge_amount: float = 0
+    carry_forward_charge_paid_amount: float = 0
     payment_mode: str | None
     payment_status: str
     paid_amount: float = 0

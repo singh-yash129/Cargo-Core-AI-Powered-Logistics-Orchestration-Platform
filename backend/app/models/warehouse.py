@@ -142,6 +142,9 @@ class ReturnGrading(Base):
     item_condition: Mapped[str] = mapped_column(String(50), nullable=False)  # Like New, Minor Wear, Damaged, Broken
     condition_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     disposition: Mapped[str] = mapped_column(String(30), nullable=False)  # restock, claims, discard, recycle
+    is_genuine: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    recommended_outcome: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    inspection_remarks: Mapped[str | None] = mapped_column(Text, nullable=True)
     damage_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     graded_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)

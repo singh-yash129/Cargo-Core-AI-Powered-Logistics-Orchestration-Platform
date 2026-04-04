@@ -523,12 +523,16 @@
                             <div class="flex justify-between text-sm"><span
                                     class="text-gray-500 dark:text-gray-400">GST (18%)</span><span
                                     class="text-gray-900 dark:text-white font-mono">₹{{ quote.taxes.toLocaleString() }}</span></div>
+                            <div v-if="carryForwardCharge > 0" class="flex justify-between text-sm">
+                                <span class="text-amber-600 dark:text-amber-300">Previous rejected-claim transport charge</span>
+                                <span class="text-amber-600 dark:text-amber-300 font-mono">₹{{ carryForwardCharge.toLocaleString() }}</span>
+                            </div>
                         </div>
                         <div class="border-t border-gray-200 dark:border-white/10 pt-4 mb-2">
                             <div class="flex justify-between items-end">
                                 <span class="text-lg font-bold text-gray-900 dark:text-white">Total</span>
                                 <span class="text-3xl font-bold text-green-600 dark:text-primary">₹{{
-                                    totalCost.toLocaleString() }}</span>
+                                    bookingTotal.toLocaleString() }}</span>
                             </div>
                             <div class="text-xs text-gray-500 text-right mt-1">*Dedicated truck — no batching</div>
                         </div>
@@ -563,12 +567,16 @@
                             <div v-if="pkgMinimumAdjustment > 0" class="flex justify-between text-sm"><span
                                     class="text-gray-500 dark:text-gray-400">Minimum Charge Adjustment</span><span
                                     class="text-gray-900 dark:text-white font-mono">₹{{ pkgMinimumAdjustment.toLocaleString() }}</span></div>
+                            <div v-if="carryForwardCharge > 0" class="flex justify-between text-sm">
+                                <span class="text-amber-600 dark:text-amber-300">Previous rejected-claim transport charge</span>
+                                <span class="text-amber-600 dark:text-amber-300 font-mono">₹{{ carryForwardCharge.toLocaleString() }}</span>
+                            </div>
                         </div>
                         <div class="border-t border-gray-200 dark:border-white/10 pt-4 mb-4">
                             <div class="flex justify-between items-end">
                                 <span class="text-lg font-bold text-gray-900 dark:text-white">Total</span>
                                 <span class="text-3xl font-bold text-blue-600 dark:text-blue-400">₹{{
-                                    pkgTotal.toLocaleString() }}</span>
+                                    bookingTotal.toLocaleString() }}</span>
                             </div>
                             <div class="text-xs text-gray-500 text-right mt-1">Auto-pickup scheduled</div>
                         </div>
@@ -636,7 +644,7 @@
                             <div class="text-xs text-gray-500 mb-1">Total</div>
                             <div class="font-bold"
                                 :class="moveType === 'house-shift' ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'">
-                                ₹{{ (moveType === 'house-shift' ? totalCost : pkgTotal).toLocaleString() }}</div>
+                                ₹{{ bookingTotal.toLocaleString() }}</div>
                         </div>
                         <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div class="text-xs text-gray-500 mb-1">
@@ -803,6 +811,9 @@ const pkgDeliveryFee = computed(() => distanceKm.value ? Math.round(distanceKm.v
 const pkgSubtotal = computed(() => pkgBase.value + pkgDeliveryFee.value)
 const pkgMinimumAdjustment = computed(() => Math.max((rates.value.minimumCharge ?? 500) - pkgSubtotal.value, 0))
 const pkgTotal = computed(() => pkgSubtotal.value + pkgMinimumAdjustment.value)
+const carryForwardCharge = computed(() => Number(store.pendingTransportCharge || 0))
+const bookingBaseTotal = computed(() => moveType.value === 'house-shift' ? totalCost.value : pkgTotal.value)
+const bookingTotal = computed(() => bookingBaseTotal.value + carryForwardCharge.value)
 const estimatedDelivery = computed(() => {
     if (!pkg.preferredDate) return null
     const d = new Date(pkg.preferredDate); d.setDate(d.getDate() + 2)
@@ -822,9 +833,8 @@ const showPaymentModal = ref(false)
 const isProcessingPayment = ref(false)
 
 const paymentAmount = computed(() => {
-    const total = moveType.value === 'house-shift' ? totalCost.value : pkgTotal.value
-    if (form.paymentMode === 'Partial') return Math.round(total / 2)
-    return total
+    if (form.paymentMode === 'Partial') return Math.round((bookingBaseTotal.value / 2) + carryForwardCharge.value)
+    return bookingTotal.value
 })
 
 function handleBookingClick() {
@@ -859,6 +869,7 @@ async function confirmBooking(payment_id = null, method = null) {
             vehicleType: moveType.value === 'house-shift' ? form.vehicleType : 'mini-truck',
             materials: moveType.value === 'house-shift' ? { ...form.materials } : {},
             cost: moveType.value === 'house-shift' ? { ...quote.value } : { base: pkgBase.value, labor: 0, materials: 0, packing: 0, vehicle: 0, total: pkgTotal.value },
+            carryForwardChargeAmount: carryForwardCharge.value,
             paymentMode: form.paymentMode, isDummyPayment: false,
             preferredPickupDate: moveType.value === 'small-package' ? pkg.preferredDate : null,
             estimatedDelivery: moveType.value === 'small-package' ? estimatedDelivery.value : null,
@@ -910,5 +921,6 @@ watch(() => form.hubId, (hubId) => {
 onMounted(async () => {
     await store.fetchWarehouses()
     await store.fetchOrderAssignmentPreview(form.hubId || null)
+    await store.fetchWalletBalance()
 })
 </script>

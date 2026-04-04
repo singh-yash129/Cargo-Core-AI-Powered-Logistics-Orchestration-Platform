@@ -270,6 +270,7 @@ import IdCard from '@/components/IdCard.vue'
 import { useWarehouseFloorStore } from '@/stores/warehouseFloorStore'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { getEffectiveWarehouseSubstatus, isWarehouseOrderAccepted } from '@/utils/warehouseOrderState'
+import { buildIdCardProfile } from '@/utils/idCardProfile'
 
 const store = useWarehouseFloorStore()
 const logisticStore = useLogisticStore()
@@ -307,21 +308,15 @@ const userInitials = computed(() => {
         .substring(0, 2)
 })
 
-const employeeData = computed(() => ({
-    name: userName.value,
-    id: userEmployeeId.value,
-    designation: userRole.value,
+const employeeData = computed(() => buildIdCardProfile({
+    user: authStore.currentUser,
+    role: authStore.currentUser?.role || 'WAREHOUSE_MANAGER',
+    roleLabel: userRole.value,
     department: 'Warehouse Operations',
-    address: 'Cargo Core Warehouse Network',
-    phone: 'Managed by admin directory',
+    address: authStore.currentWarehouse?.name || authStore.currentUser?.address || 'CargoCore Warehouse Network',
+    phone: authStore.currentUser?.phone || 'Managed by admin directory',
     email: userEmail.value,
     joinDate: userJoinDate.value,
-    validUntil: 'Active while account is enabled',
-    emergencyContact: {
-        name: 'Operations Support',
-        relation: 'Help Center',
-        phone: 'Available from support portal'
-    }
 }))
 
 const router = useRouter()
