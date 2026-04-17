@@ -76,12 +76,26 @@
 
                 <div class="space-y-2 mb-4">
                     <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                        <span class="material-symbols-outlined text-[14px] text-blue-500">arrow_forward</span>
-                        {{ rule.route }}
+                        <span class="material-symbols-outlined text-[14px] text-blue-500">warehouse</span>
+                        Hub: {{ getRuleMeta(rule).hub || rule.route }}
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                        <span class="material-symbols-outlined text-[14px] text-amber-500">schedule</span>
+                        Vendor Drop Time: {{ getRuleMeta(rule).dropOffTime || 'Not set' }}
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                        <span class="material-symbols-outlined text-[14px] text-emerald-500">pin_drop</span>
+                        Destination: {{ formatRuleDestination(getRuleMeta(rule)) }}
                     </div>
                     <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
                         <span class="material-symbols-outlined text-[14px] text-purple-500">inventory_2</span>
-                        {{ rule.details }}
+                        {{ getRuleMeta(rule).cargo }}
+                    </div>
+                    <div class="flex items-center gap-2 text-xs" :class="getRuleMeta(rule).autoDebitEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
+                        <span class="material-symbols-outlined text-[14px]" :class="getRuleMeta(rule).autoDebitEnabled ? 'text-emerald-500' : 'text-amber-500'">
+                            {{ getRuleMeta(rule).autoDebitEnabled ? 'account_balance_wallet' : 'warning' }}
+                        </span>
+                        {{ getRuleMeta(rule).autoDebitEnabled ? 'Wallet auto-debit enabled' : 'Wallet auto-debit disabled' }}
                     </div>
                 </div>
 
@@ -151,19 +165,74 @@
                             <p v-if="formErrors.nextRun" class="text-xs text-red-500 mt-1">{{ formErrors.nextRun }}</p>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Route *</label>
-                        <input v-model="form.route" type="text" placeholder="e.g. Mumbai Hub → Store #402"
-                            class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
-                            :class="formErrors.route ? 'border-red-400' : ''">
-                        <p v-if="formErrors.route" class="text-xs text-red-500 mt-1">{{ formErrors.route }}</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Hub *</label>
+                            <select v-model="form.hub"
+                                class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+                                :class="formErrors.hub ? 'border-red-400' : ''">
+                                <option value="" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Select hub</option>
+                                <option v-for="hub in availableHubs" :key="hub.id" :value="hub.name" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ hub.name }}</option>
+                            </select>
+                            <p v-if="formErrors.hub" class="text-xs text-red-500 mt-1">{{ formErrors.hub }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Vendor Drop Time (each schedule day) *</label>
+                            <input v-model="form.dropOffTime" type="time"
+                                class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+                                :class="formErrors.dropOffTime ? 'border-red-400' : ''">
+                            <p v-if="formErrors.dropOffTime" class="text-xs text-red-500 mt-1">{{ formErrors.dropOffTime }}</p>
+                        </div>
                     </div>
+
+                    <div class="space-y-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-4">
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Destination Address *</label>
+                            <button type="button" @click="openDestinationMapPicker"
+                                class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-left flex items-center justify-between gap-2 hover:border-blue-500 transition-colors focus:outline-none focus:border-blue-500"
+                                :class="form.destinationAddress ? 'text-gray-900 dark:text-white' : 'text-gray-400'">
+                                <span class="truncate">{{ form.destinationAddress || 'Select destination on map...' }}</span>
+                                <span class="material-symbols-outlined text-[20px] text-gray-400 flex-shrink-0">map</span>
+                            </button>
+                            <p v-if="formErrors.destinationAddress" class="text-xs text-red-500 mt-1">{{ formErrors.destinationAddress }}</p>
+                            <p class="text-[11px] text-gray-400 mt-1">Use the same map-style destination picker as Commercial (B2B) orders.</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Destination City *</label>
+                                <input v-model="form.destinationCity" type="text" placeholder="City name"
+                                    class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+                                    :class="formErrors.destinationCity ? 'border-red-400' : ''">
+                                <p v-if="formErrors.destinationCity" class="text-xs text-red-500 mt-1">{{ formErrors.destinationCity }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Pincode *</label>
+                                <input v-model="form.destinationPincode" type="text" placeholder="e.g. 560100"
+                                    class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+                                    :class="formErrors.destinationPincode ? 'border-red-400' : ''">
+                                <p v-if="formErrors.destinationPincode" class="text-xs text-red-500 mt-1">{{ formErrors.destinationPincode }}</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Cargo Details *</label>
                         <input v-model="form.details" type="text" placeholder="e.g. 12 Pallets • General Goods"
                             class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
                             :class="formErrors.details ? 'border-red-400' : ''">
                         <p v-if="formErrors.details" class="text-xs text-red-500 mt-1">{{ formErrors.details }}</p>
+                    </div>
+
+                    <div class="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 p-3 space-y-2">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input v-model="form.autoDebitEnabled" type="checkbox" class="mt-0.5" />
+                            <div>
+                                <p class="text-sm font-bold text-amber-800 dark:text-amber-300">Enable Wallet Auto-Debit</p>
+                                <p class="text-xs text-amber-700 dark:text-amber-400">For recurring orders only. Debits happen from wallet on scheduled date, or immediately when warehouse marks goods arrived early.</p>
+                            </div>
+                        </label>
+                        <p class="text-[11px] text-amber-700 dark:text-amber-400">Keep sufficient wallet balance before schedule day/drop time to avoid skipped auto-debits.</p>
                     </div>
 
                     <!-- API error -->
@@ -203,21 +272,37 @@
                 </template>
             </BaseModal>
         </Teleport>
+
+        <Teleport to="body">
+            <MapPicker
+                v-if="showDestinationMapPicker"
+                :isOpen="showDestinationMapPicker"
+                title="Select Recurring Destination on Map"
+                :initial-lat="destinationMapInitialLat"
+                :initial-lon="destinationMapInitialLon"
+                @close="showDestinationMapPicker = false"
+                @select="handleDestinationSelect"
+            />
+        </Teleport>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import { useVendorStore } from '@/stores/vendorStore'
 import BaseModal from '@/components/BaseModal.vue'
 
 const store = useVendorStore()
+const MapPicker = defineAsyncComponent(() => import('@/components/MapPicker.vue'))
 
 // Modal state
 const showFormModal = ref(false)
 const showDeleteModal = ref(false)
 const editingRule = ref(null)
 const deletingRule = ref(null)
+const showDestinationMapPicker = ref(false)
+const destinationMapInitialLat = ref(12.9716)
+const destinationMapInitialLon = ref(77.5946)
 
 // Loading/error state
 const isSubmitting = ref(false)
@@ -228,13 +313,107 @@ const deleteError = ref('')
 const formErrors = ref({})
 
 // Form
-const defaultForm = { name: '', description: '', frequency: 'Every Monday', route: '', details: '', nextRun: '' }
+const defaultForm = {
+    name: '',
+    description: '',
+    frequency: 'Every Monday',
+    hub: '',
+    dropOffTime: '09:00',
+    destinationAddress: '',
+    destinationCity: '',
+    destinationPincode: '',
+    destinationLat: null,
+    destinationLon: null,
+    details: '',
+    autoDebitEnabled: false,
+    nextRun: '',
+}
 const form = ref({ ...defaultForm })
 
 // Today's date for the date picker minimum
 const todayISO = new Date().toISOString().split('T')[0]
 
 const activeCount = computed(() => store.recurringRules.filter(r => r.active).length)
+const availableHubs = computed(() => (store.warehouses || []).map((hub) => ({ id: hub.id, name: hub.name })))
+
+function parseRuleDetails(details) {
+    try {
+        const parsed = JSON.parse(details)
+        if (parsed && typeof parsed === 'object' && parsed.cargo) {
+            return {
+                cargo: parsed.cargo,
+                hub: parsed.hub || '',
+                dropOffTime: parsed.dropOffTime || '',
+                destinationAddress: parsed.destinationAddress || '',
+                destinationCity: parsed.destinationCity || '',
+                destinationPincode: parsed.destinationPincode || '',
+                destinationLat: parsed.destinationLat ?? null,
+                destinationLon: parsed.destinationLon ?? null,
+                autoDebitEnabled: !!parsed.autoDebitEnabled,
+            }
+        }
+    } catch (e) {
+        // Ignore parse errors for legacy plain-text details
+    }
+    return {
+        cargo: details || '—',
+        hub: '',
+        dropOffTime: '',
+        destinationAddress: '',
+        destinationCity: '',
+        destinationPincode: '',
+        destinationLat: null,
+        destinationLon: null,
+        autoDebitEnabled: false,
+    }
+}
+
+function getRuleMeta(rule) {
+    return parseRuleDetails(rule.details)
+}
+
+function inferDestinationFromRoute(route) {
+    if (!route) return ''
+    const parts = String(route).split('→').map((part) => part.trim()).filter(Boolean)
+    return parts[parts.length - 1] || ''
+}
+
+function inferHubFromRoute(route) {
+    if (!route) return ''
+    const parts = String(route).split('→').map((part) => part.trim()).filter(Boolean)
+    return parts[0] || ''
+}
+
+function formatRuleDestination(meta) {
+    const address = meta.destinationAddress || ''
+    const city = meta.destinationCity || ''
+    const pincode = meta.destinationPincode || ''
+    if (address && city) return `${address}, ${city}${pincode ? ` - ${pincode}` : ''}`
+    if (address) return address
+    if (city) return `${city}${pincode ? ` - ${pincode}` : ''}`
+    return '—'
+}
+
+function buildDetailsPayload() {
+    return JSON.stringify({
+        cargo: form.value.details,
+        hub: form.value.hub,
+        dropOffTime: form.value.dropOffTime,
+        destinationAddress: form.value.destinationAddress,
+        destinationCity: form.value.destinationCity,
+        destinationPincode: form.value.destinationPincode,
+        destinationLat: form.value.destinationLat,
+        destinationLon: form.value.destinationLon,
+        autoDebitEnabled: !!form.value.autoDebitEnabled,
+    })
+}
+
+function buildRoutePayload() {
+    const hubLabel = (form.value.hub || 'Vendor Hub').trim()
+    const destinationLabel = (form.value.destinationCity || form.value.destinationAddress || 'Destination').trim()
+    const compactRoute = `${hubLabel} → ${destinationLabel}`
+    return compactRoute.length > 240 ? `${hubLabel} → ${destinationLabel.slice(0, 180)}…` : compactRoute
+}
 
 function formatNextRun(val) {
     if (!val) return '—'
@@ -248,7 +427,11 @@ function formatNextRun(val) {
 function validateForm() {
     const errs = {}
     if (!form.value.name?.trim()) errs.name = 'Schedule name is required'
-    if (!form.value.route?.trim()) errs.route = 'Route is required'
+    if (!form.value.hub?.trim()) errs.hub = 'Hub is required'
+    if (!form.value.dropOffTime) errs.dropOffTime = 'Drop time is required'
+    if (!form.value.destinationAddress?.trim()) errs.destinationAddress = 'Destination is required'
+    if (!form.value.destinationCity?.trim()) errs.destinationCity = 'Destination city is required'
+    if (!form.value.destinationPincode?.trim()) errs.destinationPincode = 'Destination pincode is required'
     if (!form.value.details?.trim()) errs.details = 'Cargo details are required'
     if (!form.value.nextRun) errs.nextRun = 'Next run date is required'
     formErrors.value = errs
@@ -268,7 +451,10 @@ async function toggleRule(rule) {
     }
 }
 
-function openCreateModal() {
+async function openCreateModal() {
+    if (!availableHubs.value.length) {
+        await store.fetchWarehouses().catch(() => {})
+    }
     editingRule.value = null
     form.value = { ...defaultForm }
     formErrors.value = {}
@@ -278,13 +464,29 @@ function openCreateModal() {
 
 function openEditModal(rule) {
     editingRule.value = rule
+    const parsedDetails = parseRuleDetails(rule.details)
     // Normalize nextRun to ISO date if possible
     let nextRun = rule.nextRun || ''
     if (nextRun && !/^\d{4}-\d{2}-\d{2}/.test(nextRun)) {
         const parsed = new Date(nextRun)
         if (!isNaN(parsed)) nextRun = parsed.toISOString().split('T')[0]
     }
-    form.value = { name: rule.name, description: rule.description || '', frequency: rule.frequency, route: rule.route, details: rule.details, nextRun }
+    const destinationAddress = parsedDetails.destinationAddress || inferDestinationFromRoute(rule.route) || ''
+    form.value = {
+        name: rule.name,
+        description: rule.description || '',
+        frequency: rule.frequency,
+        hub: parsedDetails.hub || inferHubFromRoute(rule.route) || '',
+        dropOffTime: parsedDetails.dropOffTime || '09:00',
+        destinationAddress,
+        destinationCity: parsedDetails.destinationCity || '',
+        destinationPincode: parsedDetails.destinationPincode || '',
+        destinationLat: parsedDetails.destinationLat ?? null,
+        destinationLon: parsedDetails.destinationLon ?? null,
+        details: parsedDetails.cargo,
+        autoDebitEnabled: !!parsedDetails.autoDebitEnabled,
+        nextRun,
+    }
     formErrors.value = {}
     submitError.value = ''
     showFormModal.value = true
@@ -296,16 +498,38 @@ function closeFormModal() {
     formErrors.value = {}
 }
 
+function openDestinationMapPicker() {
+    destinationMapInitialLat.value = Number(form.value.destinationLat ?? 12.9716)
+    destinationMapInitialLon.value = Number(form.value.destinationLon ?? 77.5946)
+    showDestinationMapPicker.value = true
+}
+
+function handleDestinationSelect(data) {
+    form.value.destinationAddress = data.address
+    form.value.destinationLat = data.lat
+    form.value.destinationLon = data.lon
+}
+
 async function submitForm() {
     if (!validateForm()) return
     isSubmitting.value = true
     submitError.value = ''
     try {
         if (editingRule.value) {
-            await store.updateRecurringRule(editingRule.value.id, { ...form.value, active: editingRule.value.active })
+            await store.updateRecurringRule(editingRule.value.id, {
+                ...form.value,
+                route: buildRoutePayload(),
+                details: buildDetailsPayload(),
+                active: editingRule.value.active,
+            })
             showToast('Schedule updated')
         } else {
-            await store.addRecurringRule({ ...form.value, active: true })
+            await store.addRecurringRule({
+                ...form.value,
+                route: buildRoutePayload(),
+                details: buildDetailsPayload(),
+                active: true,
+            })
             showToast('Schedule created')
         }
         closeFormModal()

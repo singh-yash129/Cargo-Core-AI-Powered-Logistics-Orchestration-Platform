@@ -2,10 +2,19 @@
     <div class="space-y-6">
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Returns Processing (Warehouse)</h2>
-            <div class="bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-1 flex">
+            <div class="bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-1 flex gap-1">
+                <button
+                    :class="activeTab === 'damage_review' ? 'px-4 py-1.5 bg-blue-600 rounded text-white text-sm font-bold shadow-lg' : 'px-4 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm transition-colors'"
+                    @click="activeTab = 'damage_review'">
+                    <span class="flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[14px]">photo_camera</span>
+                        Damage Review
+                        <span v-if="damageReviewQueue.length > 0" class="bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">{{ damageReviewQueue.length }}</span>
+                    </span>
+                </button>
                 <button
                     :class="activeTab === 'processing' ? 'px-4 py-1.5 bg-primary rounded text-background-dark text-sm font-bold shadow-lg' : 'px-4 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm transition-colors'"
-                    @click="activeTab = 'processing'">Processing</button>
+                    @click="activeTab = 'processing'">Physical Inspection</button>
                 <button
                     :class="activeTab === 'completed' ? 'px-4 py-1.5 bg-primary rounded text-background-dark text-sm font-bold shadow-lg' : 'px-4 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm transition-colors'"
                     @click="activeTab = 'completed'">Completed</button>
@@ -13,11 +22,16 @@
         </div>
 
         <!-- Stats Row -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="glass-panel p-4 rounded-xl text-center">
+                <div v-if="loading" class="text-2xl font-bold text-blue-600 dark:text-blue-400 animate-pulse">--</div>
+                <div v-else class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ damageReviewQueue.length }}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Damage Reviews Pending</div>
+            </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div v-if="loading" class="text-2xl font-bold text-yellow-600 dark:text-yellow-400 animate-pulse">--</div>
                 <div v-else class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ processingItems.length }}</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Awaiting Inspection</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Awaiting Physical Inspection</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <div v-if="loading" class="text-2xl font-bold text-green-600 dark:text-green-400 animate-pulse">--</div>
@@ -43,7 +57,126 @@
         </div>
 
         <template v-else>
-        <!-- ===== PROCESSING TAB ===== -->
+
+        <!-- ===== DAMAGE REVIEW TAB (Flow 1: photo_review) ===== -->
+        <div v-if="activeTab === 'damage_review'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Review Form -->
+            <div class="lg:col-span-2 glass-panel p-6 rounded-xl">
+                <div class="flex justify-between items-center mb-5">
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white">Damage Review / Claims Review</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Review customer-submitted photos and provide your assessment to the Logistics Manager.</p>
+                    </div>
+                    <span class="px-2 py-1 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs rounded border border-blue-500/30 animate-pulse">Photo Review</span>
+                </div>
+
+                <div v-if="!selectedDamageReport" class="flex flex-col items-center justify-center py-12 text-gray-400 opacity-60">
+                    <span class="material-symbols-outlined text-5xl mb-2">photo_library</span>
+                    <p class="text-sm">Select a claim from the queue to begin review</p>
+                </div>
+
+                <div v-else class="space-y-4">
+                    <!-- Claim info -->
+                    <div class="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm">{{ selectedDamageReport.id }}</span>
+                            <span class="text-xs text-gray-500">Order: {{ selectedDamageReport.orderId }}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 italic">"{{ selectedDamageReport.description }}"</p>
+                    </div>
+
+                    <!-- Customer photos -->
+                    <div v-if="selectedDamageReport.images?.length > 0">
+                        <label class="text-xs text-gray-500 mb-2 block font-bold uppercase tracking-wide">Customer Photos ({{ selectedDamageReport.images.length }})</label>
+                        <div class="flex gap-2 flex-wrap">
+                            <button v-for="(img, i) in selectedDamageReport.images" :key="i"
+                                @click="reviewPhotoPreview = img"
+                                class="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 hover:border-blue-400 transition-colors">
+                                <img :src="img" class="w-full h-full object-cover" />
+                            </button>
+                        </div>
+                    </div>
+                    <div v-else class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl text-xs text-gray-500 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px]">hide_image</span> No photos attached by customer.
+                    </div>
+
+                    <!-- WM assessment fields -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-bold uppercase">Damage Severity</label>
+                            <select v-model="damageReviewForm.severity"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 text-sm">
+                                <option value="" class="bg-white dark:bg-gray-800">Select severity...</option>
+                                <option value="Minor" class="bg-white dark:bg-gray-800">Minor — Small cosmetic damage</option>
+                                <option value="Moderate" class="bg-white dark:bg-gray-800">Moderate — Functional issue possible</option>
+                                <option value="Severe" class="bg-white dark:bg-gray-800">Severe — Major damage / non-functional</option>
+                                <option value="Cannot Determine" class="bg-white dark:bg-gray-800">Cannot Determine from photos</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-bold uppercase">Claim Genuineness</label>
+                            <select v-model="damageReviewForm.genuineness"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 text-sm">
+                                <option value="" class="bg-white dark:bg-gray-800">Assess claim...</option>
+                                <option :value="true" class="bg-white dark:bg-gray-800">Looks Genuine</option>
+                                <option :value="false" class="bg-white dark:bg-gray-800">Looks Suspicious</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-bold uppercase">Recommended Settlement</label>
+                            <select v-model="damageReviewForm.recommendedSettlement"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 text-sm">
+                                <option value="" class="bg-white dark:bg-gray-800">Select recommendation...</option>
+                                <option value="Full Refund" class="bg-white dark:bg-gray-800">Full Refund</option>
+                                <option value="Partial Refund" class="bg-white dark:bg-gray-800">Partial Refund</option>
+                                <option value="Reject Claim" class="bg-white dark:bg-gray-800">Reject Claim</option>
+                                <option value="Need More Evidence" class="bg-white dark:bg-gray-800">Need More Evidence</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-bold uppercase">Remarks to LM</label>
+                            <textarea v-model="damageReviewForm.remarks" rows="3" placeholder="Add remarks, observations, or instructions for the LM..."
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 text-sm resize-none"></textarea>
+                        </div>
+                    </div>
+
+                    <button @click="submitDamageReview"
+                        :disabled="!damageReviewForm.severity || damageReviewForm.genuineness === '' || !damageReviewForm.recommendedSettlement || submittingReview"
+                        class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        <span v-if="submittingReview" class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                        {{ submittingReview ? 'Submitting Review...' : 'Submit Damage Review to LM' }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Damage Review Queue -->
+            <div class="glass-panel rounded-xl overflow-hidden p-6">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Claims Review Queue</h3>
+                <div class="space-y-3 max-h-[600px] overflow-y-auto">
+                    <div v-for="claim in damageReviewQueue" :key="claim.id"
+                        class="p-3 rounded-lg border cursor-pointer transition-colors"
+                        :class="selectedDamageReport?.id === claim.id
+                            ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/40'
+                            : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-blue-400/40'"
+                        @click="selectDamageReport(claim)">
+                        <div class="flex justify-between items-start">
+                            <div class="font-mono font-bold text-blue-600 dark:text-blue-400 text-xs">{{ claim.id }}</div>
+                            <span v-if="claim.images?.length > 0" class="text-[9px] font-bold text-blue-500 bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                <span class="material-symbols-outlined text-[10px]">photo_library</span> {{ claim.images.length }}
+                            </span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-0.5">{{ claim.customer }}</div>
+                        <div class="text-xs text-gray-700 dark:text-gray-300 mt-1 line-clamp-1 italic">"{{ claim.description }}"</div>
+                    </div>
+                    <div v-if="damageReviewQueue.length === 0" class="text-center text-gray-500 py-8">
+                        <span class="material-symbols-outlined text-3xl opacity-50">check_circle</span>
+                        <div class="text-sm mt-2">No damage reviews pending</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PHYSICAL INSPECTION TAB (Flow 2: pickup_inspection) ===== -->
         <div v-if="activeTab === 'processing'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Grading Station -->
             <div class="lg:col-span-2 glass-panel p-6 rounded-xl">
@@ -134,6 +267,35 @@
                             </div>
                         </div>
 
+                        <!-- Genuineness + Recommended Outcome for damage claims -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Claim Valid?</label>
+                                <select v-model="inspectionGenuineness"
+                                    class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm">
+                                    <option value="" class="bg-white dark:bg-gray-800">Assess claim...</option>
+                                    <option :value="true" class="bg-white dark:bg-gray-800">Genuine</option>
+                                    <option :value="false" class="bg-white dark:bg-gray-800">Not Genuine</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Recommended Outcome</label>
+                                <select v-model="inspectionRecommendedOutcome"
+                                    class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm">
+                                    <option value="" class="bg-white dark:bg-gray-800">Select...</option>
+                                    <option value="Full Refund" class="bg-white dark:bg-gray-800">Full Refund</option>
+                                    <option value="Partial Refund" class="bg-white dark:bg-gray-800">Partial Refund</option>
+                                    <option value="Reject Claim" class="bg-white dark:bg-gray-800">Reject Claim</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Remarks to LM</label>
+                            <textarea v-model="inspectionRemarks" placeholder="Explain what WM found during physical inspection..."
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm h-20 resize-none"></textarea>
+                        </div>
+
                         <div v-if="disposition === 'claims' || disposition === 'discard'"
                             class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
                             <span class="material-symbols-outlined text-[16px]">info</span>
@@ -146,7 +308,7 @@
                         </div>
                         <button v-else @click="submitReturn"
                             class="w-full py-3 bg-primary hover:bg-primary-dark text-background-dark font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            :disabled="!rmaId || !itemCondition || !disposition || submitting">
+                            :disabled="!rmaId || !itemCondition || !disposition || inspectionGenuineness === '' || !inspectionRecommendedOutcome || submitting">
                             <span v-if="submitting" class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-background-dark"></span>
                             {{ submitting ? 'Submitting...' : 'Submit Return Decision' }}
                         </button>
@@ -297,7 +459,7 @@ const authStore = useAuthStore()
 const openScanner = inject('openScanner')
 const lastGlobalScan = inject('lastGlobalScan')
 
-const activeTab = ref('processing')
+const activeTab = ref('damage_review')
 const rmaId = ref('')
 const itemCondition = ref('')
 const conditionNotes = ref('')
@@ -309,9 +471,83 @@ const showPhotoModal = ref(false)
 const photoItem = ref(null)
 const loading = ref(false)
 const submitting = ref(false)
+const submittingReview = ref(false)
 const selectedOrderForReturn = ref(null)
 const selectedGradingId = ref(null)   // set when editing an existing pending grading
 const warehouseId = ref(null)
+
+// Flow 2 (physical inspection) extra fields
+const inspectionGenuineness = ref('')
+const inspectionRecommendedOutcome = ref('')
+const inspectionRemarks = ref('')
+
+// Flow 1 (damage review) state
+const damageReviewQueue = ref([])  // claims with status = 'Under Review' and flow_type = 'photo_review'
+const selectedDamageReport = ref(null)
+const reviewPhotoPreview = ref(null)
+const damageReviewForm = ref({ severity: '', genuineness: '', recommendedSettlement: '', remarks: '' })
+
+function selectDamageReport(claim) {
+    selectedDamageReport.value = claim
+    damageReviewForm.value = { severity: '', genuineness: '', recommendedSettlement: '', remarks: '' }
+}
+
+async function submitDamageReview() {
+    if (!selectedDamageReport.value || submittingReview.value) return
+    submittingReview.value = true
+    try {
+        const headers = {
+            'Authorization': `Bearer ${authStore.authToken}`,
+            'Content-Type': 'application/json'
+        }
+        // PATCH the damage report with WM assessment and set status to Claims Reviewed
+        const reviewRes = await fetch(
+            `http://localhost:8000/api/v1/damage-reports/${selectedDamageReport.value.id}/review`,
+            {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    damage_severity: damageReviewForm.value.severity,
+                    is_genuine: damageReviewForm.value.genuineness,
+                    recommended_settlement: damageReviewForm.value.recommendedSettlement,
+                    remarks: damageReviewForm.value.remarks,
+                    new_status: 'Claims Reviewed',
+                })
+            }
+        )
+        if (!reviewRes.ok) throw new Error(`HTTP ${reviewRes.status}`)
+        // Remove from local queue
+        damageReviewQueue.value = damageReviewQueue.value.filter(c => c.id !== selectedDamageReport.value.id)
+        selectedDamageReport.value = null
+        damageReviewForm.value = { severity: '', genuineness: '', recommendedSettlement: '', remarks: '' }
+        toastMsg.value = 'Damage review submitted to Logistics Manager.'
+    } catch (e) {
+        console.error('submitDamageReview error:', e)
+        toastMsg.value = 'Failed to submit damage review.'
+    } finally {
+        submittingReview.value = false
+        setTimeout(() => { toastMsg.value = '' }, 2500)
+    }
+}
+
+async function fetchDamageReviewQueue() {
+    if (!authStore.authToken) return
+    try {
+        const headers = { 'Authorization': `Bearer ${authStore.authToken}` }
+        const res = await fetch(
+            `http://localhost:8000/api/v1/damage-reports?status=Reported&flow_type=photo_review&page_size=50`,
+            { headers }
+        )
+        if (res.ok) {
+            const data = await res.json()
+            damageReviewQueue.value = data.items || data || []
+        } else {
+            console.warn(`Damage review queue fetch failed: HTTP ${res.status}`)
+        }
+    } catch (e) {
+        console.error('fetchDamageReviewQueue error:', e)
+    }
+}
 let refreshTimer = null
 
 // Real data from API
@@ -439,6 +675,7 @@ async function fetchReturns({ silent = false } = {}) {
 
 async function refreshReturnsContext() {
     await fetchWarehouseId()
+    await fetchDamageReviewQueue()
     if (!warehouseId.value) {
         pendingGradings.value = []
         completedItems.value = []
@@ -489,7 +726,14 @@ const processingItems = computed(() => {
             : '--',
         rawOrder: { id: g.order_id, tracking_code: g.order_tracking },
         // Pre-fill fields if grading already has partial data
-        prefill: { condition: g.item_condition, notes: g.condition_notes, disposition: g.disposition },
+        prefill: {
+            condition: g.item_condition,
+            notes: g.condition_notes,
+            disposition: g.disposition,
+            genuineness: g.is_genuine,
+            recommendedOutcome: g.recommended_outcome,
+            remarks: g.inspection_remarks,
+        },
     }))
 
     // Only show ON_HOLD orders that don't already have a pending grading
@@ -554,6 +798,16 @@ function selectItem(item) {
         itemCondition.value = item.prefill.condition || ''
         conditionNotes.value = item.prefill.notes || ''
         disposition.value = item.prefill.disposition || ''
+        inspectionGenuineness.value = typeof item.prefill.genuineness === 'boolean' ? item.prefill.genuineness : ''
+        inspectionRecommendedOutcome.value = item.prefill.recommendedOutcome || ''
+        inspectionRemarks.value = item.prefill.remarks || ''
+    } else {
+        itemCondition.value = ''
+        conditionNotes.value = ''
+        disposition.value = ''
+        inspectionGenuineness.value = ''
+        inspectionRecommendedOutcome.value = ''
+        inspectionRemarks.value = ''
     }
 }
 
@@ -586,6 +840,9 @@ async function submitReturn() {
                         item_condition: itemCondition.value,
                         condition_notes: conditionNotes.value || null,
                         disposition: disposition.value,
+                        is_genuine: inspectionGenuineness.value !== '' ? inspectionGenuineness.value : null,
+                        recommended_outcome: inspectionRecommendedOutcome.value || null,
+                        inspection_remarks: inspectionRemarks.value || null,
                     })
                 }
             )
@@ -602,6 +859,9 @@ async function submitReturn() {
                         item_condition: itemCondition.value,
                         condition_notes: conditionNotes.value || null,
                         disposition: disposition.value,
+                        is_genuine: inspectionGenuineness.value !== '' ? inspectionGenuineness.value : null,
+                        recommended_outcome: inspectionRecommendedOutcome.value || null,
+                        inspection_remarks: inspectionRemarks.value || null,
                     })
                 }
             )
@@ -642,6 +902,9 @@ async function submitReturn() {
         itemCondition.value = ''
         conditionNotes.value = ''
         disposition.value = ''
+        inspectionGenuineness.value = ''
+        inspectionRecommendedOutcome.value = ''
+        inspectionRemarks.value = ''
         selectedOrderForReturn.value = null
         selectedGradingId.value = null
 

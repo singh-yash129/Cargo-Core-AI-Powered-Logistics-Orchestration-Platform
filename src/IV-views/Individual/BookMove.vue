@@ -9,7 +9,7 @@
                 <span class="material-symbols-outlined text-purple-500">psychology</span>
                 <div>
                     <p class="text-sm font-bold text-purple-700 dark:text-purple-300">✨ AI Estimator pre-filled your booking!</p>
-                    <p class="text-xs text-purple-600 dark:text-purple-400">Vehicle, labor count, cargo type and packing materials were auto-selected based on your room scan. You can adjust anything below.</p>
+                    <p class="text-xs text-purple-600 dark:text-purple-400">Vehicle, labor count, cargo type, and volume estimate were carried in from your room scan. You can adjust anything below.</p>
                 </div>
             </div>
         </Transition>
@@ -252,22 +252,55 @@
                                 <label class="block text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Packing
                                     Materials</label>
                                 <div class="space-y-2 max-h-44 overflow-y-auto no-scrollbar">
-                                    <div v-for="mat in store.materialsCatalog" :key="mat.key"
+                                    <div v-if="packingCatalogLoading" class="text-xs text-gray-400 py-2 text-center">Loading materials...</div>
+                                    <div v-for="mat in packingCatalog" :key="mat.key"
                                         class="flex justify-between items-center text-sm p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
                                         <div class="flex items-center gap-2"><span
                                                 class="material-symbols-outlined text-sm text-gray-400">{{ mat.icon
                                                 }}</span><span
                                                 class="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">{{ mat.name
-                                                }}</span></div>
+                                                }}</span>
+                                            <span v-if="mat.stock !== null" class="text-[10px] font-mono" :class="mat.stock <= 5 ? 'text-red-400' : 'text-gray-500'">({{ mat.stock }} in stock)</span>
+                                        </div>
                                         <div class="flex items-center gap-2">
                                             <span class="text-xs text-gray-400">₹{{ mat.price }}/{{ mat.unit }}</span>
                                             <input type="number" :value="form.materials[mat.key] || 0"
                                                 @input="form.materials[mat.key] = parseInt($event.target.value) || 0"
-                                                min="0"
+                                                min="0" :max="mat.stock ?? 9999"
                                                 class="w-14 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded px-2 py-1 text-right text-gray-900 dark:text-white text-sm" />
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">
+                                    Approx. Cargo Weight (kg)
+                                </label>
+                                <input
+                                    v-model.number="form.cargoWeightKg"
+                                    type="number"
+                                    min="0"
+                                    step="0.1"
+                                    placeholder="e.g. 650"
+                                    class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all"
+                                />
+                                <p class="text-[11px] text-gray-500 mt-1">Recommended for dispatch planning and vehicle fit.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">
+                                    Approx. Cargo Volume (m³)
+                                </label>
+                                <input
+                                    v-model.number="form.cargoVolumeM3"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="e.g. 8.5"
+                                    class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all"
+                                />
+                                <p class="text-[11px] text-gray-500 mt-1">AI room scan can prefill this when available.</p>
                             </div>
                         </div>
                     </div>
@@ -523,12 +556,16 @@
                             <div class="flex justify-between text-sm"><span
                                     class="text-gray-500 dark:text-gray-400">GST (18%)</span><span
                                     class="text-gray-900 dark:text-white font-mono">₹{{ quote.taxes.toLocaleString() }}</span></div>
+                            <div v-if="carryForwardCharge > 0" class="flex justify-between text-sm">
+                                <span class="text-amber-600 dark:text-amber-300">Previous rejected-claim transport charge</span>
+                                <span class="text-amber-600 dark:text-amber-300 font-mono">₹{{ carryForwardCharge.toLocaleString() }}</span>
+                            </div>
                         </div>
                         <div class="border-t border-gray-200 dark:border-white/10 pt-4 mb-2">
                             <div class="flex justify-between items-end">
                                 <span class="text-lg font-bold text-gray-900 dark:text-white">Total</span>
                                 <span class="text-3xl font-bold text-green-600 dark:text-primary">₹{{
-                                    totalCost.toLocaleString() }}</span>
+                                    bookingTotal.toLocaleString() }}</span>
                             </div>
                             <div class="text-xs text-gray-500 text-right mt-1">*Dedicated truck — no batching</div>
                         </div>
@@ -563,12 +600,16 @@
                             <div v-if="pkgMinimumAdjustment > 0" class="flex justify-between text-sm"><span
                                     class="text-gray-500 dark:text-gray-400">Minimum Charge Adjustment</span><span
                                     class="text-gray-900 dark:text-white font-mono">₹{{ pkgMinimumAdjustment.toLocaleString() }}</span></div>
+                            <div v-if="carryForwardCharge > 0" class="flex justify-between text-sm">
+                                <span class="text-amber-600 dark:text-amber-300">Previous rejected-claim transport charge</span>
+                                <span class="text-amber-600 dark:text-amber-300 font-mono">₹{{ carryForwardCharge.toLocaleString() }}</span>
+                            </div>
                         </div>
                         <div class="border-t border-gray-200 dark:border-white/10 pt-4 mb-4">
                             <div class="flex justify-between items-end">
                                 <span class="text-lg font-bold text-gray-900 dark:text-white">Total</span>
                                 <span class="text-3xl font-bold text-blue-600 dark:text-blue-400">₹{{
-                                    pkgTotal.toLocaleString() }}</span>
+                                    bookingTotal.toLocaleString() }}</span>
                             </div>
                             <div class="text-xs text-gray-500 text-right mt-1">Auto-pickup scheduled</div>
                         </div>
@@ -636,7 +677,7 @@
                             <div class="text-xs text-gray-500 mb-1">Total</div>
                             <div class="font-bold"
                                 :class="moveType === 'house-shift' ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'">
-                                ₹{{ (moveType === 'house-shift' ? totalCost : pkgTotal).toLocaleString() }}</div>
+                                ₹{{ bookingTotal.toLocaleString() }}</div>
                         </div>
                         <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div class="text-xs text-gray-500 mb-1">
@@ -683,6 +724,7 @@
             :description="moveType === 'house-shift' ? 'House Shift — ' + form.cargoType : 'Small Package'"
             :name="authStore.currentUser?.name || ''"
             :email="authStore.currentUser?.email || ''"
+            :wallet-balance="store.walletBalance"
             @success="onRazorpaySuccess"
         />
 
@@ -699,6 +741,7 @@
 
 <script setup>
 import { ref, computed, reactive, watch, onMounted } from 'vue'
+import { apiUrl, getStoredAccessToken } from '@/config/api'
 import { useIndividualStore } from '@/stores/individualStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useSlipPrinter } from '@/composables/useSlipPrinter'
@@ -718,7 +761,8 @@ const aiPrefillApplied = ref(false)
 const form = reactive({
     cargoType: 'Household Goods', pickup: '', destination: '', date: '',
     timeWindow: '09:00 AM - 12:00 PM', laborCount: 2, packingRequired: true, vehicleType: 'tempo',
-    materials: { boxes: 10, bubbleWrap: 2, plasticCrates: 0, blankets: 4, wardrobeBoxes: 0, tape: 3 },
+    materials: {},
+    cargoWeightKg: null, cargoVolumeM3: null,
     instructions: '', paymentMode: 'Full Payment', isDummyPayment: false, hubId: '',
 })
 
@@ -791,7 +835,7 @@ const routingPreview = computed(() => store.assignmentPreview)
 const selectedVehicle = computed(() => store.vehicleTypes.find(v => v.key === form.vehicleType))
 const serviceTimeBlock = computed(() => { const v = selectedVehicle.value; return v?.key === 'hcv' ? '4-5 hours' : v?.key === 'lcv' ? '3-4 hours' : v?.key === 'tempo' ? '2-3 hours' : '1-2 hours' })
 
-const materialsCostTotal = computed(() => { let t = 0; for (const mat of store.materialsCatalog) { t += (form.materials[mat.key] || 0) * mat.price }; return t })
+const materialsCostTotal = computed(() => { let t = 0; for (const mat of packingCatalog.value) { t += (form.materials[mat.key] || 0) * mat.price }; return t })
 // Use real distance if both locations selected, otherwise fall back to 10 km minimum
 const effectiveDistanceKm = computed(() => distanceKm.value ?? 10)
 const quote = computed(() => store.calculateQuote(effectiveDistanceKm.value, form.laborCount, form.packingRequired, materialsCostTotal.value, form.vehicleType, rates.value))
@@ -803,6 +847,9 @@ const pkgDeliveryFee = computed(() => distanceKm.value ? Math.round(distanceKm.v
 const pkgSubtotal = computed(() => pkgBase.value + pkgDeliveryFee.value)
 const pkgMinimumAdjustment = computed(() => Math.max((rates.value.minimumCharge ?? 500) - pkgSubtotal.value, 0))
 const pkgTotal = computed(() => pkgSubtotal.value + pkgMinimumAdjustment.value)
+const carryForwardCharge = computed(() => Number(store.pendingTransportCharge || 0))
+const bookingBaseTotal = computed(() => moveType.value === 'house-shift' ? totalCost.value : pkgTotal.value)
+const bookingTotal = computed(() => bookingBaseTotal.value + carryForwardCharge.value)
 const estimatedDelivery = computed(() => {
     if (!pkg.preferredDate) return null
     const d = new Date(pkg.preferredDate); d.setDate(d.getDate() + 2)
@@ -822,9 +869,8 @@ const showPaymentModal = ref(false)
 const isProcessingPayment = ref(false)
 
 const paymentAmount = computed(() => {
-    const total = moveType.value === 'house-shift' ? totalCost.value : pkgTotal.value
-    if (form.paymentMode === 'Partial') return Math.round(total / 2)
-    return total
+    if (form.paymentMode === 'Partial') return Math.round((bookingBaseTotal.value / 2) + carryForwardCharge.value)
+    return bookingTotal.value
 })
 
 function handleBookingClick() {
@@ -858,7 +904,19 @@ async function confirmBooking(payment_id = null, method = null) {
             packingRequired: moveType.value === 'house-shift' ? form.packingRequired : false,
             vehicleType: moveType.value === 'house-shift' ? form.vehicleType : 'mini-truck',
             materials: moveType.value === 'house-shift' ? { ...form.materials } : {},
+            materialItems: moveType.value === 'house-shift'
+                ? packingCatalog.value
+                    .filter(m => (form.materials[m.key] || 0) > 0)
+                    .map(m => ({
+                        id: m.id || m.key,
+                        key: m.key,
+                        name: m.name,
+                        sku: m.sku || '',
+                        quantity: form.materials[m.key],
+                    }))
+                : [],
             cost: moveType.value === 'house-shift' ? { ...quote.value } : { base: pkgBase.value, labor: 0, materials: 0, packing: 0, vehicle: 0, total: pkgTotal.value },
+            carryForwardChargeAmount: carryForwardCharge.value,
             paymentMode: form.paymentMode, isDummyPayment: false,
             preferredPickupDate: moveType.value === 'small-package' ? pkg.preferredDate : null,
             estimatedDelivery: moveType.value === 'small-package' ? estimatedDelivery.value : null,
@@ -866,6 +924,9 @@ async function confirmBooking(payment_id = null, method = null) {
             paymentAmount: form.paymentMode === 'COD' ? 0 : paymentAmount.value,
             paymentRef: payment_id,
             paymentMethod: method || razorpayMethod.value || 'Online',
+            packageWeight: moveType.value === 'small-package' ? pkg.weight : null,
+            cargoWeightKg: moveType.value === 'house-shift' ? form.cargoWeightKg : null,
+            cargoVolumeM3: moveType.value === 'house-shift' ? form.cargoVolumeM3 : null,
             warehouseId: form.hubId || null,
         })
 
@@ -896,19 +957,103 @@ function saveQuote() {
 function resetForm() {
     form.pickup = ''; form.destination = ''; form.date = ''; form.laborCount = 2
     form.packingRequired = true; form.cargoType = 'Household Goods'; form.vehicleType = 'tempo'
-    form.materials = { boxes: 10, bubbleWrap: 2, plasticCrates: 0, blankets: 4, wardrobeBoxes: 0, tape: 3 }
+    form.cargoWeightKg = null; form.cargoVolumeM3 = null
+    form.materials = {}
     form.instructions = ''; form.paymentMode = 'Full Payment'; form.isDummyPayment = false; form.hubId = ''
     pkg.description = ''; pkg.weight = 2.5; pkg.preferredDate = ''; pkg.packageType = 'Document'
     pickupCoords.value = null; destCoords.value = null
     showToast('Form reset.', 'success')
 }
 
-watch(() => form.hubId, (hubId) => {
-    store.fetchOrderAssignmentPreview(hubId || null).catch(() => {})
+watch(
+    () => store.aiPrefill,
+    (prefill) => {
+        if (!prefill) return
+        moveType.value = 'house-shift'
+        form.vehicleType = prefill.vehicleType || form.vehicleType
+        form.laborCount = Number(prefill.laborCount || form.laborCount)
+        form.cargoType = prefill.cargoType || form.cargoType
+        form.packingRequired = Boolean(prefill.packingRequired)
+        if (prefill.estimatedVolumeM3 !== null && prefill.estimatedVolumeM3 !== undefined) {
+            const normalizedVolume = Number(prefill.estimatedVolumeM3)
+            form.cargoVolumeM3 = Number.isFinite(normalizedVolume) && normalizedVolume > 0
+                ? normalizedVolume
+                : form.cargoVolumeM3
+        }
+        aiPrefillApplied.value = true
+        window.setTimeout(() => {
+            aiPrefillApplied.value = false
+        }, 5000)
+        store.clearAiPrefill()
+    },
+    { deep: true }
+)
+
+watch(() => form.hubId, async (hubId) => {
+    const preview = await store.fetchOrderAssignmentPreview(hubId || null).catch(() => null)
+    form.materials = {}
+    await fetchPackingCatalog(hubId || preview?.warehouse_id || null)
 })
+
+// Packing materials — fetched from real WM inventory so customer sees exact same items
+const packingCatalog = ref([])
+const packingCatalogLoading = ref(false)
+
+const PACKING_KEYWORDS = ['pack', 'wrap', 'box', 'carton', 'tape', 'label', 'blanket', 'crate', 'film', 'pallet', 'protector', 'bag', 'rope', 'bubble', 'foam', 'sheet']
+const MATERIAL_ICONS = { box: 'inventory_2', carton: 'inventory_2', wrap: 'bubble_chart', bubble: 'bubble_chart', tape: 'straighten', blanket: 'bedding', crate: 'deployed_code', pallet: 'pallet', bag: 'shopping_bag', foam: 'layers', sheet: 'layers', default: 'package_2' }
+
+function iconForItem(name) {
+    const lower = (name || '').toLowerCase()
+    for (const [kw, icon] of Object.entries(MATERIAL_ICONS)) {
+        if (lower.includes(kw)) return icon
+    }
+    return MATERIAL_ICONS.default
+}
+
+async function fetchPackingCatalog(warehouseId = null) {
+    packingCatalogLoading.value = true
+    try {
+        const token = getStoredAccessToken()
+        const query = warehouseId ? `?warehouse_id=${encodeURIComponent(warehouseId)}` : ''
+        const res = await fetch(apiUrl(`api/v1/inventory/packing-catalog${query}`), {
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+        })
+        if (res.ok) {
+            const items = await res.json()
+            packingCatalog.value = items.map(item => {
+                // Price: inventory selling_price → matched rates catalog → fallback 50
+                const ratesMat = rates.value.materials?.find?.(m =>
+                    (item.name || '').toLowerCase().includes(m.id.toLowerCase()) ||
+                    (item.sku || '').toLowerCase().includes(m.id.toLowerCase())
+                )
+                const price = (item.selling_price && item.selling_price > 0)
+                    ? item.selling_price
+                    : (ratesMat?.rate || 50)
+                return {
+                    key: item.id,
+                    name: item.name,
+                    sku: item.sku,
+                    price,
+                    unit: item.unit || ratesMat?.unit || 'pcs',
+                    stock: item.stock,
+                    icon: iconForItem(item.name)
+                }
+            })
+        }
+    } catch (e) {
+        // silently fall back below
+    }
+    // Fallback to rates catalog if inventory unavailable
+    if (packingCatalog.value.length === 0) {
+        packingCatalog.value = store.materialsCatalog
+    }
+    packingCatalogLoading.value = false
+}
 
 onMounted(async () => {
     await store.fetchWarehouses()
-    await store.fetchOrderAssignmentPreview(form.hubId || null)
+    const preview = await store.fetchOrderAssignmentPreview(form.hubId || null)
+    await store.fetchWalletBalance()
+    await fetchPackingCatalog(form.hubId || preview?.warehouse_id || null)
 })
 </script>

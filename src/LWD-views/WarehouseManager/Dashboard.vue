@@ -92,7 +92,7 @@
                 </h3>
             </div>
             <div class="flex-1 relative w-full h-full">
-                <Line v-if="throughputChartData" :data="throughputChartData" :options="lineChartOptions" />
+                <Line v-if="throughputChartData" :key="throughputChartKey" :data="throughputChartData" :options="lineChartOptions" />
                 <div v-else class="flex items-center justify-center h-full text-gray-500">No data available</div>
             </div>
         </div>
@@ -367,7 +367,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Line, Doughnut, Bar, Pie } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement, Filler } from 'chart.js'
 import { useAuthStore } from '@/stores/authStore'
@@ -396,6 +396,7 @@ const efficiencyInsight = ref('')
 
 // Chart data refs
 const throughputChartData = ref(null)
+const throughputChartKey = ref(0)
 const ordersReturnsData = ref(null)
 const stockPackagingData = ref(null)
 const activeStaffData = ref(null)
@@ -422,6 +423,7 @@ function applyDashboardPayload(data) {
     recentReturns.value = data.recent_returns || []
     efficiencyInsight.value = data.efficiency_insight || 'No activity yet for this warehouse.'
     throughputChartData.value = data.throughput_chart || null
+    throughputChartKey.value++
     ordersReturnsData.value = data.orders_returns_chart || null
     stockPackagingData.value = data.stock_packaging_chart || null
     activeStaffData.value = data.active_staff_chart || null
@@ -478,14 +480,23 @@ async function fetchDashboardFallback(warehouseId) {
     })
 
     // Build real throughput chart from order timestamps (picks per hour)
-    const hourLabels = ['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00']
-    const hourCounts = Array(8).fill(0)
-    const today = new Date().toDateString()
+    // Dynamically cover 06:00 up to current hour so the chart always extends to now
+    const now = new Date()
+    const currentHour = now.getHours()
+    const startHour = 6
+    const endHour = Math.max(currentHour, 13) // show at least up to 13:00
+    const numHours = endHour - startHour + 1
+    const hourLabels = Array.from({ length: numHours }, (_, i) => {
+        const h = startHour + i
+        return `${String(h).padStart(2, '0')}:00`
+    })
+    const hourCounts = Array(numHours).fill(0)
+    const today = now.toDateString()
     warehouseOrders.forEach(order => {
         const d = new Date(order.created_at || order.updated_at)
         if (d.toDateString() === today) {
             const h = d.getHours()
-            if (h >= 6 && h <= 13) hourCounts[h - 6]++
+            if (h >= startHour && h <= endHour) hourCounts[h - startHour]++
         }
     })
     // Use total orders spread across hours if no today data
@@ -493,7 +504,13 @@ async function fetchDashboardFallback(warehouseId) {
     const throughputData = hasAnyHourData ? hourCounts : (() => {
         // Distribute total across business hours with a bell curve pattern
         const total = warehouseOrders.length
-        return [0.08, 0.10, 0.15, 0.18, 0.20, 0.15, 0.10, 0.04].map(r => Math.round(total * r))
+        const weights = hourLabels.map((_, i) => {
+            // bell curve centred at ~10:00
+            const x = (i - numHours * 0.4) / (numHours * 0.25)
+            return Math.exp(-0.5 * x * x)
+        })
+        const weightSum = weights.reduce((a, b) => a + b, 0)
+        return weights.map(w => Math.round(total * (w / weightSum)))
     })()
 
     // Orders vs Returns chart
@@ -871,12 +888,17 @@ const closeMenu = (e) => {
     }
 }
 
+let pollInterval = null
+
 onMounted(() => {
     fetchDashboardData()
     document.addEventListener('click', closeMenu)
+    // Refresh dashboard data (including throughput chart) every 30 seconds
+    pollInterval = setInterval(fetchDashboardData, 30000)
 })
 
 onUnmounted(() => {
     document.removeEventListener('click', closeMenu)
+    if (pollInterval) clearInterval(pollInterval)
 })
 </script>

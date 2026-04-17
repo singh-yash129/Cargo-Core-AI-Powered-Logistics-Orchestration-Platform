@@ -35,6 +35,18 @@ function resolveApiBase() {
 const API_BASE = resolveApiBase()
 const ACCESS_TOKEN_STORAGE_KEY = 'cargo-core:driver-access-token'
 
+// FastAPI validation errors return detail as an array of {loc, msg, type} objects.
+// This helper always returns a plain string regardless of the shape of the error body.
+function extractErrorMessage(error, fallback = 'Request failed') {
+    if (!error) return fallback
+    const detail = error.detail ?? error.message ?? null
+    if (!detail) return fallback
+    if (Array.isArray(detail)) {
+        return detail.map((e) => e.msg || JSON.stringify(e)).join('; ') || fallback
+    }
+    return String(detail) || fallback
+}
+
 function isProbablyNetworkError(error) {
     const message = String(error?.message || error || '')
     return /failed to fetch|networkerror|load failed/i.test(message)
@@ -50,14 +62,21 @@ function buildNetworkErrorMessage() {
     return `${baseMessage} Check that the backend is running and the API URL is correct.`
 }
 
-async function fetchWithNetworkHelp(path, options) {
+async function fetchWithNetworkHelp(path, options, timeoutMs = 10000) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
     try {
-        return await fetch(`${API_BASE}${path}`, options)
+        return await fetch(`${API_BASE}${path}`, { ...options, signal: controller.signal })
     } catch (error) {
+        if (error?.name === 'AbortError') {
+            throw new Error(`Request timed out after ${timeoutMs / 1000}s. Check your connection.`)
+        }
         if (isProbablyNetworkError(error)) {
             throw new Error(buildNetworkErrorMessage())
         }
         throw error
+    } finally {
+        clearTimeout(timer)
     }
 }
 
@@ -85,30 +104,78 @@ function removeStoredToken() {
     }
 }
 
+const REFRESH_TOKEN_STORAGE_KEY = 'cargo-core:driver-refresh-token'
+
+function readStoredRefreshToken() {
+    try { return window.localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY) } catch { return null }
+}
+function writeStoredRefreshToken(token) {
+    try { window.localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, token) } catch {}
+}
+function removeStoredRefreshToken() {
+    try { window.localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY) } catch {}
+}
+
 // Store token in memory, but hydrate from local storage so native activity restarts
 // do not force a relogin.
 let accessToken = readStoredToken()
+let refreshToken = readStoredRefreshToken()
 
 export function setAccessToken(token) {
     accessToken = token
-    if (token) {
-        writeStoredToken(token)
-    } else {
-        removeStoredToken()
-    }
+    if (token) { writeStoredToken(token) } else { removeStoredToken() }
 }
 
-export function getAccessToken() {
-    return accessToken
+export function setRefreshToken(token) {
+    refreshToken = token
+    if (token) { writeStoredRefreshToken(token) } else { removeStoredRefreshToken() }
 }
+
+export function getAccessToken() { return accessToken }
 
 export function clearAccessToken() {
     accessToken = null
+    refreshToken = null
     removeStoredToken()
+    removeStoredRefreshToken()
 }
 
 function authHeaders() {
     return accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
+}
+
+// Auto-refresh access token when a 401 is received
+let _isRefreshing = false
+async function tryRefreshToken() {
+    if (!refreshToken || _isRefreshing) return false
+    _isRefreshing = true
+    try {
+        const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+        })
+        if (!res.ok) return false
+        const data = await res.json()
+        setAccessToken(data.access_token)
+        if (data.refresh_token) setRefreshToken(data.refresh_token)
+        return true
+    } catch {
+        return false
+    } finally {
+        _isRefreshing = false
+    }
+}
+
+async function fetchWithAuth(path, options, timeoutMs = 10000) {
+    let res = await fetchWithNetworkHelp(path, { ...options, ...{ headers: { ...options?.headers, ...authHeaders() } } }, timeoutMs)
+    if (res.status === 401) {
+        const refreshed = await tryRefreshToken()
+        if (refreshed) {
+            res = await fetchWithNetworkHelp(path, { ...options, ...{ headers: { ...options?.headers, ...authHeaders() } } }, timeoutMs)
+        }
+    }
+    return res
 }
 
 function normalizeVehiclePayload(v) {
@@ -148,7 +215,7 @@ export async function loginDriver(username, password) {
 
     if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: 'Login failed' }))
-        throw new Error(error.detail || error.message || 'Authentication failed')
+        throw new Error(extractErrorMessage(error, 'Authentication failed'))
     }
 
     const data = await res.json()
@@ -161,6 +228,7 @@ export async function loginDriver(username, password) {
     }
 
     setAccessToken(data.access_token)
+    if (data.refresh_token) setRefreshToken(data.refresh_token)
     return data
 }
 
@@ -215,7 +283,7 @@ export async function bindDriverVehicle({ vehicleId = null, vehicleCode = null }
 
     if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: 'Failed to bind vehicle' }))
-        throw new Error(error.detail || 'Failed to bind vehicle')
+        throw new Error(extractErrorMessage(error, 'Failed to bind vehicle'))
     }
     return normalizeVehiclePayload(await res.json())
 }
@@ -228,31 +296,58 @@ export async function checkInCrewMember(labourerId) {
 
     if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: 'Failed to check in crew member' }))
-        throw new Error(error.detail || 'Failed to check in crew member')
+        throw new Error(extractErrorMessage(error, 'Failed to check in crew member'))
     }
     return await res.json()
 }
 
 export async function getAssignedOrders() {
-    const query = new URLSearchParams({
-        page: '1',
-        page_size: '100'
-    })
+    const fetchByStatus = async (statusFilter) => {
+        const res = await fetchWithNetworkHelp(
+            `/api/v1/orders?status_filter=${statusFilter}&page_size=100`,
+            { headers: { 'Content-Type': 'application/json', ...authHeaders() } }
+        )
+        if (!res.ok) return []
+        const payload = await res.json()
+        return Array.isArray(payload) ? payload : (payload.items || [])
+    }
 
-    const res = await fetchWithNetworkHelp(`/api/v1/orders?${query.toString()}`, {
-        headers: { 'Content-Type': 'application/json', ...authHeaders() }
+    try {
+        const [assigned, inTransit] = await Promise.all([
+            fetchByStatus('ASSIGNED'),
+            fetchByStatus('IN_TRANSIT'),
+        ])
+        return [...assigned, ...inTransit]
+    } catch (err) {
+        console.error('Failed to fetch assigned orders', err)
+        return []
+    }
+}
+
+export async function getTripIntelligence(orderId) {
+    const res = await fetchWithAuth(`/api/v1/orders/${orderId}/trip-intelligence`, {
+        headers: { 'Content-Type': 'application/json' },
     })
 
     if (!res.ok) {
-        console.error('Failed to fetch assigned orders')
-        return []
+        const error = await res.json().catch(() => ({ detail: 'Failed to load trip intelligence' }))
+        throw new Error(extractErrorMessage(error, 'Failed to load trip intelligence'))
     }
-    const payload = await res.json()
-    const orders = Array.isArray(payload) ? payload : (payload.items || [])
-    return orders.filter(order => {
-        const status = String(order.status || '').toUpperCase()
-        return !['DRAFT', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'CLOSED'].includes(status)
+    return await res.json()
+}
+
+export async function reportTripDeviation(orderId, payload) {
+    const res = await fetchWithAuth(`/api/v1/orders/${orderId}/trip-intelligence/deviation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
     })
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: 'Failed to report deviation' }))
+        throw new Error(extractErrorMessage(error, 'Failed to report deviation'))
+    }
+    return await res.json()
 }
 
 export async function completeReturn(orderId) {
@@ -287,7 +382,7 @@ export async function sendDeliveryOtp(orderId, forceResend = false) {
 
     if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: 'Failed to send delivery OTP' }))
-        throw new Error(error.detail || 'Failed to send delivery OTP')
+        throw new Error(extractErrorMessage(error, 'Failed to send delivery OTP'))
     }
     return await res.json()
 }
@@ -309,9 +404,32 @@ export async function uploadProofOfDelivery(orderId, imagesBase64 = [], signatur
 
     if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: 'Failed to upload proof of delivery' }))
-        throw new Error(error.detail || error.message || 'Failed to upload proof of delivery')
+        throw new Error(extractErrorMessage(error, 'Failed to upload proof of delivery'))
     }
     return await res.json()
+}
+
+export async function getOrderItems(orderId) {
+    try {
+        const res = await fetchWithAuth(`/api/v1/orders/${orderId}/items`)
+        if (!res.ok) return []
+        return await res.json()
+    } catch {
+        return []
+    }
+}
+
+export async function submitPackingReturn(orderId, payload) {
+    try {
+        const res = await fetchWithAuth(`/api/v1/orders/${orderId}/packing-return`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        })
+        return res.ok
+    } catch {
+        return false
+    }
 }
 
 export async function submitHouseShiftSignoff(orderId, signatureData, customerName = null, notes = null) {
@@ -327,7 +445,7 @@ export async function submitHouseShiftSignoff(orderId, signatureData, customerNa
 
     if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: 'Failed to submit house-shift sign-off' }))
-        throw new Error(error.detail || error.message || 'Failed to submit house-shift sign-off')
+        throw new Error(extractErrorMessage(error, 'Failed to submit house-shift sign-off'))
     }
     return await res.json()
 }
@@ -341,7 +459,7 @@ export async function submitJobRating(orderId, rating, feedback = null) {
 
     if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: 'Failed to submit job rating' }))
-        throw new Error(error.detail || error.message || 'Failed to submit job rating')
+        throw new Error(extractErrorMessage(error, 'Failed to submit job rating'))
     }
     return await res.json()
 }
@@ -420,7 +538,7 @@ export async function submitFuelReceipt({ amount, liters, station, photoBase64 =
     })
     if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: 'Failed to submit fuel receipt' }))
-        throw new Error(error.detail || 'Failed to submit fuel receipt')
+        throw new Error(extractErrorMessage(error, 'Failed to submit fuel receipt'))
     }
     return await res.json()
 }
@@ -428,22 +546,43 @@ export async function submitFuelReceipt({ amount, liters, station, photoBase64 =
 // ── Dispatch Chat ──────────────────────────────────────────────────────────────
 
 export async function getDispatchThread() {
-    const res = await fetchWithNetworkHelp('/api/v1/logistics/drivers/me/dispatch-thread', {
-        headers: { 'Content-Type': 'application/json', ...authHeaders() }
+    const res = await fetchWithAuth('/api/v1/logistics/drivers/me/dispatch-thread', {
+        headers: { 'Content-Type': 'application/json' }
     })
-    if (!res.ok) throw new Error('Failed to load dispatch thread')
+    if (!res.ok) throw new Error(`Failed to load dispatch thread (${res.status})`)
     return await res.json()
 }
 
 export async function sendDispatchMessage(text) {
-    const res = await fetchWithNetworkHelp('/api/v1/logistics/drivers/me/dispatch-thread/messages', {
+    const res = await fetchWithAuth('/api/v1/logistics/drivers/me/dispatch-thread/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
     })
     if (!res.ok) {
-        const error = await res.json().catch(() => ({ detail: 'Failed to send message' }))
-        throw new Error(error.detail || 'Failed to send message')
+        const error = await res.json().catch(() => ({ detail: `Server error ${res.status}` }))
+        throw new Error(extractErrorMessage(error, `Failed to send (${res.status})`))
+    }
+    return await res.json()
+}
+
+export async function getManagerThread() {
+    const res = await fetchWithAuth('/api/v1/logistics/drivers/me/manager-thread', {
+        headers: { 'Content-Type': 'application/json' }
+    })
+    if (!res.ok) throw new Error(`Failed to load manager thread (${res.status})`)
+    return await res.json()
+}
+
+export async function sendManagerMessage(text) {
+    const res = await fetchWithAuth('/api/v1/logistics/drivers/me/manager-thread/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+    })
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: `Server error ${res.status}` }))
+        throw new Error(extractErrorMessage(error, `Failed to send (${res.status})`))
     }
     return await res.json()
 }
@@ -468,7 +607,37 @@ export async function requestCashout(amount) {
     })
     if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: 'Failed to request cashout' }))
-        throw new Error(error.detail || 'Failed to request cashout')
+        throw new Error(extractErrorMessage(error, 'Failed to request cashout'))
+    }
+    return await res.json()
+}
+
+// ── Driver Notifications ───────────────────────────────────────────────────────
+
+export async function getDriverNotifications() {
+    const res = await fetchWithAuth('/api/v1/logistics/drivers/me/notifications', {
+        headers: { 'Content-Type': 'application/json' }
+    })
+    if (!res.ok) return []
+    return await res.json()
+}
+
+// ── Crisis Alert ───────────────────────────────────────────────────────────────
+
+export async function sendCrisisAlert({ type, latitude, longitude, description }) {
+    const res = await fetchWithAuth('/api/v1/logistics/drivers/me/crisis-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            type,
+            latitude,
+            longitude,
+            description
+        })
+    })
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: 'Failed to send crisis alert' }))
+        throw new Error(extractErrorMessage(error, 'Failed to send crisis alert'))
     }
     return await res.json()
 }

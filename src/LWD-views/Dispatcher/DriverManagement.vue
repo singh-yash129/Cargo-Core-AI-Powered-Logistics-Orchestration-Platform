@@ -62,16 +62,27 @@
             <h3 class="font-bold text-gray-900 dark:text-white mb-4 text-lg">HOS Compliance Overview</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-2">
                 <div v-for="d in drivers" :key="d.id" class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
-                    <div class="text-sm font-bold text-gray-900 dark:text-white mb-2">{{ d.name }}</div>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ d.name }}</div>
+                        <span v-if="d.suspended" class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/20 font-bold ml-2 shrink-0">SUSP</span>
+                    </div>
                     <div class="space-y-2">
                         <div class="flex items-center gap-2">
                             <div class="flex-1 h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                <div class="h-full rounded-full" :class="getHOSBarClass(d.hours, d.maxHours)" :style="{ width: (d.hours / d.maxHours) * 100 + '%' }"></div>
+                                <div class="h-full rounded-full transition-all duration-500"
+                                    :class="getHOSBarClass(d.hours, d.maxHours)"
+                                    :style="{ width: (d.hosPct ?? 0) + '%' }"></div>
                             </div>
                             <span class="text-xs font-mono font-bold" :class="getHOSTextClass(d.hours, d.maxHours)">{{ d.hours }}h</span>
                         </div>
-                        <div class="text-xs font-semibold" :class="getHOSStatusClass(d.hours, d.maxHours)">{{ getHOSStatus(d.hours, d.maxHours) }}</div>
-                        <div class="text-[10px] text-gray-500 dark:text-gray-400 pt-1">Max: {{ d.maxHours }}h | Stops: {{ d.stops }}</div>
+                        <div class="text-xs font-semibold" :class="getHOSStatusClass(d.hours, d.maxHours)">
+                            {{ d.hours === 0 ? 'Not on shift' : getHOSStatus(d.hours, d.maxHours) }}
+                        </div>
+                        <div class="text-[10px] text-gray-500 dark:text-gray-400 pt-1 flex justify-between">
+                            <span>Max: {{ d.maxHours }}h</span>
+                            <span>{{ d.stops }} active order{{ d.stops !== 1 ? 's' : '' }}</span>
+                            <span v-if="d.totalWeightKg > 0">{{ d.totalWeightKg }} kg</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -153,49 +164,83 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="p-4 text-gray-600 dark:text-gray-300">{{ driver.vehicle || '—' }}</td>
+                        <!-- Vehicle -->
+                        <td class="p-4 text-gray-600 dark:text-gray-300 text-xs">{{ driver.vehicle || '—' }}</td>
+
+                        <!-- Current Load — real order weight / count -->
                         <td class="p-4">
-                            <div class="flex items-center gap-2">
-                                <div class="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                    <div class="h-full rounded-full" :class="driver.load > 85 ? 'bg-red-500' : 'bg-primary'" :style="`width: ${driver.load}%`"></div>
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full rounded-full transition-all duration-500"
+                                            :class="driver.load > 85 ? 'bg-red-500' : driver.load > 60 ? 'bg-orange-400' : 'bg-primary'"
+                                            :style="`width: ${driver.load}%`"></div>
+                                    </div>
+                                    <span class="text-xs font-mono"
+                                        :class="driver.load > 85 ? 'text-red-400' : driver.load > 60 ? 'text-orange-400' : 'text-gray-400'">
+                                        {{ driver.load }}%
+                                    </span>
                                 </div>
-                                <span class="text-xs text-gray-400">{{ driver.load }}%</span>
+                                <!-- Show weight if real orders present, else efficiency note -->
+                                <div class="text-[9px] text-gray-500">
+                                    <template v-if="driver.stops > 0 && driver.totalWeightKg > 0">
+                                        {{ driver.totalWeightKg }} kg · {{ driver.stops }} order{{ driver.stops !== 1 ? 's' : '' }}
+                                    </template>
+                                    <template v-else-if="driver.stops > 0">
+                                        {{ driver.stops }} active order{{ driver.stops !== 1 ? 's' : '' }}
+                                    </template>
+                                    <template v-else>
+                                        Standby · eff. {{ driver.efficiency ?? 0 }}%
+                                    </template>
+                                </div>
                             </div>
                         </td>
+
+                        <!-- HOS Compliance — real shift hours from order timestamps -->
                         <td class="p-4">
                             <div class="space-y-1">
                                 <div class="flex items-center gap-1.5">
                                     <div class="w-14 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                        <div class="h-full rounded-full" :class="getHOSBarClass(driver.hours, driver.maxHours)"
-                                            :style="`width: ${(driver.hours / driver.maxHours) * 100}%`"></div>
+                                        <div class="h-full rounded-full transition-all duration-500"
+                                            :class="getHOSBarClass(driver.hours, driver.maxHours)"
+                                            :style="`width: ${driver.hosPct ?? 0}%`"></div>
                                     </div>
                                     <span class="text-[10px] font-mono" :class="getHOSTextClass(driver.hours, driver.maxHours)">
                                         {{ driver.hours }}h / {{ driver.maxHours }}h
                                     </span>
                                 </div>
                                 <div class="text-[10px]" :class="getHOSStatusClass(driver.hours, driver.maxHours)">
-                                    {{ getHOSStatus(driver.hours, driver.maxHours) }}
+                                    <template v-if="driver.hours === 0">Not on shift</template>
+                                    <template v-else>{{ getHOSStatus(driver.hours, driver.maxHours) }}</template>
                                 </div>
                                 <div v-if="driver.breakDue" class="text-[10px] text-orange-400 flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[10px]">coffee</span>
-                                    Break due in {{ driver.breakDueIn }}
+                                    Break in {{ driver.breakDueIn }}
                                 </div>
                             </div>
                         </td>
-                        <td class="p-4 text-xs text-gray-400">
-                            <div>{{ driver.hours }}h logged</div>
-                            <div>{{ driver.stops }} stops done</div>
+
+                        <!-- Shift Stats — real hours + active order count -->
+                        <td class="p-4">
+                            <div class="space-y-0.5">
+                                <div class="text-xs font-mono"
+                                    :class="driver.hours > 0 ? 'text-gray-300' : 'text-gray-500'">
+                                    {{ driver.hours > 0 ? driver.hours + 'h logged' : '—' }}
+                                </div>
+                                <div class="text-xs text-gray-400">
+                                    {{ driver.stops }} order{{ driver.stops !== 1 ? 's' : '' }} active
+                                </div>
+                                <div v-if="driver.stops === 0" class="text-[9px] text-gray-600">Standby</div>
+                            </div>
                         </td>
                         <td class="p-4">
                             <div class="flex gap-1">
                                 <button @click="chatDriver(driver)" class="text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 p-1.5 rounded-lg transition-colors" title="Chat"><span
                                         class="material-symbols-outlined text-[18px]">chat</span></button>
-                                <button @click="assignToDriver(driver)" class="text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 p-1.5 rounded-lg transition-colors" title="Assign"><span
-                                        class="material-symbols-outlined text-[18px]">person_add</span></button>
                                 <button @click="toggleMoreMenu(driver)" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 p-1.5 rounded-lg transition-colors relative" title="More">
                                     <span class="material-symbols-outlined text-[18px]">more_vert</span>
                                     <div v-if="moreMenuDriver === driver.id" class="absolute right-0 top-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-20 w-40 py-1">
-                                        <button @click.stop="suspendDriver(driver)" class="block w-full text-left px-3 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">{{ driver.suspended ? 'Unsuspend' : 'Suspend' }}</button>
+                                        <button @click.stop="promptSuspend(driver)" class="block w-full text-left px-3 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">{{ driver.suspended ? 'Unsuspend' : 'Suspend' }}</button>
                                         <button @click.stop="viewDriverProfile(driver)" class="block w-full text-left px-3 py-2 text-sm font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">View Profile</button>
                                     </div>
                                 </button>
@@ -224,34 +269,60 @@
         </div>
         </Teleport>
 
-        <!-- Driver Chat Modal -->
+        <!-- Driver Chat Modal — real thread via dispatcherContacts -->
         <Teleport to="body">
-        <div v-if="showDriverChat" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showDriverChat = false">
-            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl w-full max-w-sm m-4 flex flex-col h-[400px]">
-                <div class="p-4 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
+        <div v-if="showDriverChat" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showDriverChat = false">
+            <div class="bg-gray-900 border border-white/10 shadow-2xl rounded-2xl w-full max-w-sm m-4 flex flex-col overflow-hidden" style="height:420px">
+                <!-- Header -->
+                <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
                     <div class="flex items-center gap-2">
-                        <img :src="chatTargetDriver?.avatar" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700">
+                        <img :src="chatTargetDriver?.avatar" class="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0">
                         <div>
-                            <div class="text-sm font-bold text-gray-900 dark:text-white">{{ chatTargetDriver?.name }}</div>
-                            <div class="text-[10px] text-gray-400">{{ chatTargetDriver?.status }}</div>
+                            <div class="text-sm font-bold text-white">{{ chatTargetDriver?.name }}</div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="chatTargetDriver?.suspended ? 'bg-red-500' : 'bg-green-500'"></span>
+                                <span class="text-[10px] text-gray-400">{{ chatTargetDriver?.status }}</span>
+                                <span v-if="chatThreadId" class="text-[9px] text-primary/70 ml-1">• Live</span>
+                            </div>
                         </div>
                     </div>
-                    <button @click="showDriverChat = false" class="text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                        <span class="material-symbols-outlined">close</span>
+                    <button @click="showDriverChat = false" class="text-gray-500 hover:text-white transition-colors">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
                     </button>
                 </div>
-                <div class="flex-1 overflow-y-auto no-scrollbar p-4 space-y-2">
-                    <div v-for="msg in driverChatMessages" :key="msg.id" :class="msg.from === 'dispatch' ? 'flex justify-end' : 'flex justify-start'">
-                        <div class="max-w-[80%] p-2 rounded-xl text-xs"
-                            :class="msg.from === 'dispatch' ? 'bg-primary/20 text-gray-900 dark:text-white' : 'bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300'">
+
+                <!-- No thread warning -->
+                <div v-if="!chatLoading && !chatThreadId" class="mx-4 mt-3 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center gap-2 flex-shrink-0">
+                    <span class="material-symbols-outlined text-yellow-400 text-[14px]">warning</span>
+                    <span class="text-[10px] text-yellow-300">No chat thread found — message will be sent once a thread is created.</span>
+                </div>
+
+                <!-- Loading state -->
+                <div v-if="chatLoading" class="flex-1 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary animate-spin text-[28px]">progress_activity</span>
+                </div>
+
+                <!-- Messages -->
+                <div v-else ref="chatMsgEl" class="flex-1 overflow-y-auto no-scrollbar px-4 py-3 space-y-2">
+                    <div v-if="driverChatMessages.length === 0" class="text-center py-8 text-gray-500 text-xs">No messages yet. Start the conversation.</div>
+                    <div v-for="msg in driverChatMessages" :key="msg.id"
+                        class="flex flex-col max-w-[80%] text-xs"
+                        :class="msg.from === 'dispatch' ? 'ml-auto items-end' : 'mr-auto items-start'">
+                        <span class="text-[9px] text-gray-500 mb-0.5 px-1">{{ msg.from === 'dispatch' ? 'You' : chatTargetDriver?.name }}</span>
+                        <div class="px-3 py-2 rounded-xl"
+                            :class="msg.from === 'dispatch' ? 'bg-primary text-black font-medium rounded-br-none' : 'bg-white/10 text-gray-200 rounded-bl-none'">
                             {{ msg.text }}
                         </div>
+                        <span v-if="msg.time" class="text-[9px] text-gray-600 mt-0.5 px-1">{{ msg.time }}</span>
                     </div>
                 </div>
-                <div class="p-3 border-t border-gray-200 dark:border-white/5 flex gap-2">
-                    <input v-model="driverChatMsg" @keyup.enter="sendDriverChatMsg" type="text" placeholder="Type message..."
-                        class="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full px-3 py-1.5 text-sm text-gray-900 dark:text-white focus:outline-none">
-                    <button @click="sendDriverChatMsg" class="p-1.5 bg-primary rounded-full text-black">
+
+                <!-- Input -->
+                <div class="px-4 py-3 border-t border-white/10 flex gap-2 flex-shrink-0">
+                    <input v-model="driverChatMsg" @keyup.enter="sendDriverChatMsg" type="text" placeholder="Message driver..."
+                        class="flex-1 bg-white/5 border border-white/10 focus:border-primary/50 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none transition-colors">
+                    <button @click="sendDriverChatMsg" :disabled="!driverChatMsg.trim()"
+                        class="bg-primary hover:bg-primary-dark text-black px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
                         <span class="material-symbols-outlined text-[16px]">send</span>
                     </button>
                 </div>
@@ -261,38 +332,120 @@
 
         <!-- Driver Profile Modal -->
         <Teleport to="body">
-        <div v-if="showDriverProfile" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showDriverProfile = false">
-            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-md m-4">
-                <div class="flex items-center gap-4 mb-6">
-                    <img :src="profileTargetDriver?.avatar" class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 ring-2 ring-primary/20">
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ profileTargetDriver?.name }}</h3>
-                        <p class="text-sm text-gray-500">{{ profileTargetDriver?.vehicle }}</p>
-                        <span class="text-xs px-2 py-0.5 rounded-full mt-1 inline-block" :class="profileTargetDriver?.statusClass">{{ profileTargetDriver?.status }}</span>
+        <div v-if="showDriverProfile" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showDriverProfile = false">
+            <div class="bg-gray-900 border border-white/10 shadow-2xl rounded-2xl p-6 w-full max-w-md m-4">
+                <!-- Header -->
+                <div class="flex items-center gap-4 mb-5">
+                    <div class="relative">
+                        <img :src="profileTargetDriver?.avatar" class="w-16 h-16 rounded-full bg-gray-700 ring-2 ring-primary/30">
+                        <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-gray-900 flex-shrink-0"
+                            :class="profileTargetDriver?.suspended ? 'bg-red-500' : profileTargetDriver?.statusColor || 'bg-gray-500'"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-bold text-white truncate">{{ profileTargetDriver?.name }}</h3>
+                        <p class="text-sm text-gray-400 truncate">{{ profileTargetDriver?.vehicle || 'No vehicle assigned' }}</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-xs px-2 py-0.5 rounded-full border font-bold" :class="profileTargetDriver?.statusClass">{{ profileTargetDriver?.status }}</span>
+                            <span v-if="profileTargetDriver?.suspended" class="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 font-bold">SUSPENDED</span>
+                        </div>
+                    </div>
+                    <button @click="showDriverProfile = false" class="text-gray-500 hover:text-white transition-colors flex-shrink-0">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <!-- Stat cards -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="p-3 bg-white/5 rounded-xl border border-white/8">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Phone</div>
+                        <div class="text-sm font-semibold text-white">{{ profileTargetDriver?.phone || '—' }}</div>
+                    </div>
+                    <div class="p-3 bg-white/5 rounded-xl border border-white/8">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Load Capacity</div>
+                        <div class="text-sm font-semibold" :class="(profileTargetDriver?.load || 0) > 85 ? 'text-red-400' : 'text-white'">{{ profileTargetDriver?.load ?? 0 }}%</div>
+                    </div>
+                    <div class="p-3 bg-white/5 rounded-xl border border-white/8">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Hours Logged</div>
+                        <div class="text-sm font-semibold text-white">{{ profileTargetDriver?.hours }}h / {{ profileTargetDriver?.maxHours }}h</div>
+                    </div>
+                    <div class="p-3 bg-white/5 rounded-xl border border-white/8">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Active Orders</div>
+                        <div class="text-sm font-semibold text-white">{{ profileTargetDriver?.stops ?? 0 }}</div>
+                    </div>
+                    <div class="p-3 bg-white/5 rounded-xl border border-white/8">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Efficiency</div>
+                        <div class="text-sm font-semibold text-primary">{{ profileTargetDriver?.efficiency ?? 0 }}%</div>
+                    </div>
+                    <div class="p-3 bg-white/5 rounded-xl border border-white/8">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Rating</div>
+                        <div class="text-sm font-semibold text-yellow-400">{{ profileTargetDriver?.rating ?? '—' }} ★</div>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                        <div class="text-xs text-gray-500 mb-1">Phone</div>
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ profileTargetDriver?.phone }}</div>
+
+                <!-- Authorization flags -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <div class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold" :class="profileTargetDriver?.authorized ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'">
+                        <span class="material-symbols-outlined text-[12px]">{{ profileTargetDriver?.authorized ? 'verified' : 'cancel' }}</span>
+                        {{ profileTargetDriver?.authorized ? 'Authorized' : 'Not Authorized' }}
                     </div>
-                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                        <div class="text-xs text-gray-500 mb-1">Load Capacity</div>
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ profileTargetDriver?.load }}%</div>
+                    <div class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold" :class="profileTargetDriver?.licenseValid ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'">
+                        <span class="material-symbols-outlined text-[12px]">badge</span>
+                        License {{ profileTargetDriver?.licenseValid ? 'Valid' : 'Expired' }}
                     </div>
-                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                        <div class="text-xs text-gray-500 mb-1">Hours Logged</div>
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ profileTargetDriver?.hours }}h / {{ profileTargetDriver?.maxHours }}h</div>
-                    </div>
-                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                        <div class="text-xs text-gray-500 mb-1">Stops Done</div>
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ profileTargetDriver?.stops }}</div>
+                    <div v-if="profileTargetDriver?.breakDue" class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                        <span class="material-symbols-outlined text-[12px]">coffee</span>
+                        Break Due
                     </div>
                 </div>
-                <button @click="showDriverProfile = false" class="mt-4 w-full bg-gray-50 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm font-bold hover:bg-gray-100 dark:hover:bg-white/20 transition-colors">Close</button>
+
+                <div class="flex gap-2">
+                    <button @click="chatDriver(profileTargetDriver); showDriverProfile = false"
+                        class="flex-1 bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">chat</span> Message
+                    </button>
+                    <button @click="showDriverProfile = false"
+                        class="flex-1 bg-white/5 hover:bg-white/10 text-gray-300 py-2 rounded-lg text-sm font-bold transition-colors">Close</button>
+                </div>
             </div>
         </div>
         </Teleport>
+
+    <!-- Suspend Confirm Modal -->
+    <Teleport to="body">
+    <div v-if="showSuspendConfirm" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showSuspendConfirm = false">
+        <div class="bg-gray-900 border border-white/10 shadow-2xl rounded-2xl p-6 w-full max-w-sm m-4">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    :class="suspendConfirmDriver?.suspended ? 'bg-green-500/15' : 'bg-red-500/15'">
+                    <span class="material-symbols-outlined" :class="suspendConfirmDriver?.suspended ? 'text-green-400' : 'text-red-400'">
+                        {{ suspendConfirmDriver?.suspended ? 'lock_open' : 'block' }}
+                    </span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-white text-sm">{{ suspendConfirmDriver?.suspended ? 'Unsuspend Driver' : 'Suspend Driver' }}</h3>
+                    <p class="text-[11px] text-gray-400">{{ suspendConfirmDriver?.name }}</p>
+                </div>
+            </div>
+            <p class="text-[12px] text-gray-400 mb-5 leading-relaxed">
+                <template v-if="suspendConfirmDriver?.suspended">
+                    This will <strong class="text-green-400">restore access</strong> for {{ suspendConfirmDriver?.name }}. They will appear in the driver assignment list and can receive new orders.
+                </template>
+                <template v-else>
+                    This will <strong class="text-red-400">block {{ suspendConfirmDriver?.name }}</strong> from receiving new order assignments. They will be excluded from dispatch until unsuspended.
+                </template>
+            </p>
+            <div class="flex gap-2">
+                <button @click="confirmSuspend"
+                    class="flex-1 font-bold py-2 rounded-lg text-sm transition-colors"
+                    :class="suspendConfirmDriver?.suspended ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'">
+                    {{ suspendConfirmDriver?.suspended ? 'Yes, Unsuspend' : 'Yes, Suspend' }}
+                </button>
+                <button @click="showSuspendConfirm = false"
+                    class="flex-1 bg-white/5 hover:bg-white/10 text-gray-300 py-2 rounded-lg text-sm font-bold transition-colors">Cancel</button>
+            </div>
+        </div>
+    </div>
+    </Teleport>
 
     <!-- Slip Picker Modal -->
     <Teleport to="body">
@@ -322,14 +475,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useDispatcherStore } from '@/stores/dispatcherStore'
 import { useSlipPrinter } from '@/composables/useSlipPrinter'
 
-const { openSlipWithData } = useSlipPrinter()
+const { openSlipWithData, prefetchSlips } = useSlipPrinter()
 
 const store = useDispatcherStore()
-onMounted(() => store.initialize().catch(() => {}))
+onMounted(() => {
+    store.initialize().catch(() => {})
+    // Pre-fetch slip HTML so opens are synchronous (bypasses popup blocker)
+    prefetchSlips(['vehicleSafetyChecklist', 'assetCheckout'])
+})
 
 const driverSearch = ref('')
 const statusFilter = ref('')
@@ -339,6 +496,8 @@ const showBroadcast = ref(false)
 const showDriverChat = ref(false)
 const showDriverProfile = ref(false)
 const chatTargetDriver = ref(null)
+const chatThreadId = ref(null)
+const chatLoading = ref(false)
 const profileTargetDriver = ref(null)
 const driverChatMsg = ref('')
 const driverChatMessages = ref([])
@@ -348,14 +507,15 @@ const moreMenuDriver = ref(null)
 const showSlipPickerModal = ref(false)
 const slipPickerType = ref('')
 const slipPickerDriver = ref(null)
-
+const suspendConfirmDriver = ref(null)
+const showSuspendConfirm = ref(false)
+const chatMsgEl = ref(null)
 
 const drivers = computed(() => store.dispatcherDrivers)
 
 const ACTIVE_STATUSES = ['active', 'on route', 'on_route']
 const BREAK_STATUSES  = ['idle', 'on break', 'on_break']
 
-// Computed stats from real backend data
 const totalDrivers    = computed(() => drivers.value.length)
 const activeDrivers   = computed(() => drivers.value.filter(d => ACTIVE_STATUSES.includes((d.status || '').toLowerCase())).length)
 const onBreakDrivers  = computed(() => drivers.value.filter(d => BREAK_STATUSES.includes((d.status || '').toLowerCase())).length)
@@ -383,49 +543,94 @@ const filteredDrivers = computed(() => {
     })
 })
 
-function chatDriver(driver) {
+// ── Real chat via dispatcherContacts (same as ServiceMoves contactCrew) ──────
+async function chatDriver(driver) {
     chatTargetDriver.value = driver
+    chatThreadId.value = null
+    chatLoading.value = true
     driverChatMsg.value = ''
-    driverChatMessages.value = (driver.chatHistory || []).length > 0
-        ? driver.chatHistory.map((m, i) => ({ id: i, from: m.sender === 'dispatch' ? 'dispatch' : 'driver', text: m.text, time: m.time || '' }))
-        : [
-            { id: 1, from: 'driver', text: `Hey dispatch, ${driver.name.split(' ')[0]} here. What's up?`, time: '' },
-            { id: 2, from: 'dispatch', text: 'Checking in on your status. All good?', time: '' },
-            { id: 3, from: 'driver', text: 'All good, on schedule.', time: '' },
-        ]
+    driverChatMessages.value = []
     showDriverChat.value = true
+
+    // Look up the contact by driver id or name
+    const contact = store.dispatcherContacts.find(c => c.id === String(driver.id))
+        || store.dispatcherContacts.find(c => c.name === driver.name)
+
+    if (contact?.threadId) {
+        chatThreadId.value = String(contact.threadId)
+        driverChatMessages.value = (contact.messages || []).map(m => ({
+            id: m.id || Date.now(),
+            from: m.from || m.sender || 'driver',
+            text: m.text || '',
+            time: m.time || '',
+        }))
+    } else if (contact) {
+        // No thread yet — create one
+        const thread = await store.createChatForContact(contact.name, contact.phone)
+        if (thread?.id) chatThreadId.value = String(thread.id)
+    }
+
+    chatLoading.value = false
+    await nextTick()
+    scrollChatToBottom()
 }
 
-function sendDriverChatMsg() {
-    if (!driverChatMsg.value.trim()) return
-    const text = driverChatMsg.value
-    driverChatMessages.value.push({ id: Date.now(), from: 'dispatch', text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
+async function sendDriverChatMsg() {
+    const text = driverChatMsg.value.trim()
+    if (!text) return
     driverChatMsg.value = ''
-    store.sendMessageToDriver(chatTargetDriver.value?.id, text)
-    setTimeout(() => {
-        const replies = ['Roger that.', 'Copy, will do.', 'Acknowledged.', 'Got it, thanks!']
-        driverChatMessages.value.push({ id: Date.now(), from: 'driver', text: replies[Math.floor(Math.random() * replies.length)], time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
-    }, 1200)
+
+    if (chatThreadId.value) {
+        const updated = await store.sendDispatchMessage(chatThreadId.value, text)
+        if (updated) {
+            driverChatMessages.value = (updated.messages || []).map(m => ({
+                id: m.id || Date.now(),
+                from: m.from || m.sender || 'driver',
+                text: m.text || '',
+                time: m.time || '',
+            }))
+            await nextTick()
+            scrollChatToBottom()
+            return
+        }
+    }
+    // Fallback: show locally if thread not yet established
+    driverChatMessages.value.push({ id: Date.now(), from: 'dispatch', text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
+    await nextTick()
+    scrollChatToBottom()
 }
 
+function scrollChatToBottom() {
+    if (chatMsgEl.value) chatMsgEl.value.scrollTop = chatMsgEl.value.scrollHeight
+}
+
+// ── Suspend / Unsuspend ───────────────────────────────────────────────────────
+function promptSuspend(driver) {
+    suspendConfirmDriver.value = driver
+    showSuspendConfirm.value = true
+    moreMenuDriver.value = null
+}
+
+async function confirmSuspend() {
+    if (!suspendConfirmDriver.value) return
+    await store.toggleDriverSuspend(suspendConfirmDriver.value.id)
+    showSuspendConfirm.value = false
+    suspendConfirmDriver.value = null
+}
+
+// ── View Profile ──────────────────────────────────────────────────────────────
 function viewDriverProfile(driver) {
     profileTargetDriver.value = driver
     showDriverProfile.value = true
     moreMenuDriver.value = null
 }
-function assignToDriver(driver) { if (driver.load !== undefined) driver.load = Math.min(100, driver.load + 20) }
+
 function toggleMoreMenu(driver) { moreMenuDriver.value = moreMenuDriver.value === driver.id ? null : driver.id }
-function suspendDriver(driver) {
-    driver.suspended = !driver.suspended
-    driver.authorized = !driver.suspended
-    moreMenuDriver.value = null
-}
 
 function sendBroadcast() {
     broadcastSent.value = true
     setTimeout(() => { showBroadcast.value = false; broadcastSent.value = false; broadcastMsg.value = '' }, 1500)
 }
-
 
 function getHOSBarClass(hours, maxHours) {
     const pct = (hours / maxHours) * 100
@@ -466,7 +671,6 @@ async function confirmSlipOpen() {
     const driver = slipPickerDriver.value
     if (!driver) return
 
-    // Find the actual vehicle from store by matching the driver's vehicle string
     const vehicle = store.filteredVehicles.find(v =>
         v.id === driver.vehicleId ||
         v.code === driver.vehicle ||

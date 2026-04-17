@@ -60,13 +60,19 @@
             <div v-if="activeTab === 'control_tower'" class="space-y-6 animate-fade-in">
                 <!-- Top Row Alerts -->
                 <div v-if="crisisAlerts.length > 0" class="flex gap-4 overflow-x-auto pb-2">
-                    <div v-for="(alert, i) in crisisAlerts" :key="i"
-                        class="flex-shrink-0 w-80 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-4 rounded-xl flex items-start gap-3 shadow-sm hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
+                    <div v-for="alert in crisisAlerts" :key="alert.id"
+                        class="flex-shrink-0 w-80 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-4 rounded-xl flex items-start gap-3 shadow-sm">
                         <span class="material-symbols-outlined text-red-600 animate-bounce">warning</span>
-                        <div>
+                        <div class="flex-1 min-w-0">
                             <h4 class="font-bold text-red-700 dark:text-red-400 text-sm">{{ alert.title }}</h4>
                             <p class="text-xs text-red-600/80 dark:text-red-400/80 mt-1">{{ alert.desc }}</p>
-                            <p class="text-[10px] text-red-500 font-mono mt-2">Active Alert</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <p class="text-[10px] text-red-500 font-mono">Active Alert</p>
+                                <button @click="store.resolveAlert(alert.id)"
+                                    class="text-[10px] px-2 py-0.5 rounded bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-500/30 font-bold transition-colors">
+                                    Dismiss
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1003,7 +1009,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { useAuthStore } from '@/stores/authStore'
 import { apiUrl } from '@/config/api'
@@ -1026,6 +1032,14 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 const store = useLogisticStore()
 const authStore = useAuthStore()
+
+// Poll alerts every 30s so LM sees dispatcher resolutions without manual refresh
+let alertPollTimer = null
+onMounted(() => {
+    store.fetchAlerts()
+    alertPollTimer = setInterval(() => store.fetchAlerts(), 30000)
+})
+onUnmounted(() => clearInterval(alertPollTimer))
 const financeSummary = computed(() => store.activeFinanceSummary)
 
 // State

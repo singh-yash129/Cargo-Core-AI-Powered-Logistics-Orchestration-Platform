@@ -16,6 +16,16 @@
 
             <!-- Session Controls -->
             <div class="flex items-center gap-2">
+                <router-link to="/logistic/recovery-tickets"
+                    class="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-600/20 border border-yellow-500/30 text-xs text-yellow-300 hover:bg-yellow-600/30 transition-colors"
+                >
+                    <span class="material-symbols-outlined text-[16px]">healing</span>
+                    Recovery Tickets
+                    <span
+                        v-if="recoveryCount > 0"
+                        class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none"
+                    >{{ recoveryCount }}</span>
+                </router-link>
                 <button
                     @click="showSessions = !showSessions"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-white/10 transition-colors"
@@ -178,7 +188,7 @@
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
-import { fetchSessions, fetchConversation, escalateConversation } from '@/utils/aiApi'
+import { fetchSessions, fetchConversation, escalateConversation, fetchRecoveryTicketsCount } from '@/utils/aiApi'
 
 const store = useLogisticStore()
 const userInput = ref('')
@@ -188,6 +198,7 @@ const showSessions = ref(false)
 const sessions = ref([])
 const sessionsLoading = ref(false)
 const escalated = ref(false)
+const recoveryCount = ref(0)
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -273,6 +284,12 @@ async function escalateChat() {
 onMounted(async () => {
     await loadSessionList()
     await scrollToBottom()
+    try {
+        const res = await fetchRecoveryTicketsCount()
+        recoveryCount.value = res?.count ?? 0
+    } catch {
+        recoveryCount.value = 0
+    }
 })
 </script>
 

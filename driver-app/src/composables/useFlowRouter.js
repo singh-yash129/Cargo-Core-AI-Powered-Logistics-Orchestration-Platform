@@ -54,6 +54,7 @@ const STATE_ROUTE_MAP = {
         UNLOADING_INVENTORY: '/unloading-inventory',
         FINAL_CHECKLIST: '/final-walkthrough',
         POC_CAPTURE: '/customer-signoff',
+        PACKING_RETURN: '/packing-return',
         COMPLETED: '/job-completion',
     }
 }
@@ -95,6 +96,7 @@ export const FLOW_STEPS = {
         { state: 'UNLOADING_INVENTORY', label: 'Unload', icon: 'unarchive' },
         { state: 'FINAL_CHECKLIST', label: 'Checklist', icon: 'checklist' },
         { state: 'POC_CAPTURE', label: 'Sign-off', icon: 'draw' },
+        { state: 'PACKING_RETURN', label: 'Assets', icon: 'inventory_2' },
         { state: 'COMPLETED', label: 'Done', icon: 'check_circle' },
     ]
 }
@@ -206,6 +208,7 @@ export function useFlowRouter() {
             UNLOADING_INVENTORY: 'Unload Items',
             FINAL_CHECKLIST: 'Final Walkthrough',
             POC_CAPTURE: 'Get Customer Sign-off',
+            PACKING_RETURN: 'Log Packing Assets',
             COMPLETED: 'View Summary',
         }
 

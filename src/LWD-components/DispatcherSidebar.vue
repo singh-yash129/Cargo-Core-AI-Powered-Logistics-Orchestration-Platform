@@ -67,7 +67,7 @@
                 leave-from-class="transform scale-100 opacity-100 translate-y-0"
                 leave-to-class="transform scale-95 opacity-0 translate-y-2">
                 <div v-if="isUserMenuOpen"
-                    class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-card-dark rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50">
+                    class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-card-darker rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50">
                     <div class="py-1">
                         <!-- Profile Option -->
                         <button @click="showProfileModal = true"
@@ -83,18 +83,14 @@
                             ID Card
                         </button>
 
-                        <!-- Need Support Option -->
-                        <div class="relative group/support">
-                            <button @click="showSupportModal = true"
-                                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[20px]">help</span>
-                                Need Support
-                            </button>
-                            <!-- Tooltip/Hover for email -->
-                            <div
-                                class="hidden group-hover/support:block absolute left-full bottom-0 ml-2 p-2 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
-                                {{ userEmail }}
-                            </div>
+                        <!-- Appearance Toggle -->
+                        <div class="w-full px-4 py-2.5 flex items-center gap-3">
+                            <span
+                                class="material-symbols-outlined text-[20px] text-primary transition-all duration-300">
+                                {{ isDark ? 'dark_mode' : 'light_mode' }}
+                            </span>
+                            <span class="text-sm text-gray-700 dark:text-gray-200 flex-1">Appearance</span>
+                            <ThemeToggle />
                         </div>
 
                         <div class="border-t border-gray-200 dark:border-white/5 my-1"></div>
@@ -123,39 +119,6 @@
             </div>
         </div>
     </aside>
-
-    <!-- Support Modal -->
-    <Teleport to="body">
-        <BaseModal :isOpen="showSupportModal" @close="showSupportModal = false">
-            <template #title>Need Support?</template>
-            <div class="space-y-4">
-                <p class="text-gray-600 dark:text-gray-300">
-                    Contact our support team for assistance with any issues or questions.
-                </p>
-                <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
-                    <div class="flex items-center gap-3 mb-2">
-                        <span class="material-symbols-outlined text-primary">mail</span>
-                        <span class="font-medium">Email Support</span>
-                    </div>
-                    <a :href="'mailto:' + userEmail" class="text-primary hover:underline block ml-9">{{ userEmail }}</a>
-                </div>
-                <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
-                    <div class="flex items-center gap-3 mb-2">
-                        <span class="material-symbols-outlined text-primary">phone</span>
-                        <span class="font-medium">Phone Support</span>
-                    </div>
-                    <a href="tel:+1234567890" class="text-gray-600 dark:text-gray-300 hover:text-primary block ml-9">+1
-                        (234) 567-890</a>
-                </div>
-            </div>
-            <template #footer>
-                <button @click="showSupportModal = false"
-                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
-                    Close
-                </button>
-            </template>
-        </BaseModal>
-    </Teleport>
 
     <!-- Profile Modal -->
     <Teleport to="body">
@@ -252,18 +215,36 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
 import IdCard from '@/components/IdCard.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
+import { buildIdCardProfile } from '@/utils/idCardProfile'
 
 // State for User Menu and Modals
 const isUserMenuOpen = ref(false)
-const showSupportModal = ref(false)
 const showProfileModal = ref(false)
 const showIdCardModal = ref(false)
 const showLogoutConfirm = ref(false)
+const isDark = ref(true)
+let themeObserver = null
+
+onMounted(() => {
+    isDark.value = document.documentElement.classList.contains('dark')
+    themeObserver = new MutationObserver(() => {
+        isDark.value = document.documentElement.classList.contains('dark')
+    })
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class']
+    })
+})
+
+onUnmounted(() => {
+    if (themeObserver) themeObserver.disconnect()
+})
 
 // User Data
 const userName = computed(() => authStore.currentUser?.name || 'Dispatcher')
@@ -291,21 +272,15 @@ const userInitials = computed(() => {
         .substring(0, 2)
 })
 
-const employeeData = computed(() => ({
-    name: userName.value,
-    id: userEmployeeId.value,
-    designation: userRole.value,
+const employeeData = computed(() => buildIdCardProfile({
+    user: authStore.currentUser,
+    role: authStore.currentUser?.role || 'DISPATCHER',
+    roleLabel: userRole.value,
     department: 'Dispatch Operations',
-    address: 'Cargo Core Dispatch Network',
-    phone: 'Managed by admin directory',
+    address: authStore.currentUser?.address || 'CargoCore Dispatch Network',
+    phone: authStore.currentUser?.phone || 'Managed by admin directory',
     email: userEmail.value,
     joinDate: userJoinDate.value,
-    validUntil: 'Active while account is enabled',
-    emergencyContact: {
-        name: 'Dispatch Support',
-        relation: 'Help Center',
-        phone: 'Available from support portal'
-    }
 }))
 
 const router = useRouter()
@@ -322,7 +297,7 @@ const menuItems = [
     { label: 'Pending Queue', icon: 'pending_actions', route: '/dispatcher/pending-queue' },
     { label: 'Order Clustering', icon: 'hub', route: '/dispatcher/clustering' },
     { label: 'Route Optimization', icon: 'alt_route', route: '/dispatcher/optimization' },
-    { label: 'Load Balancing', icon: 'balance', route: '/dispatcher/load-balancing' },
+    { label: 'Smart Assignment', icon: 'person_add', route: '/dispatcher/load-balancing' },
     { label: 'Driver Management', icon: 'badge', route: '/dispatcher/drivers' },
     { label: 'Manifest Center', icon: 'inventory_2', route: '/dispatcher/manifest' },
     { label: 'Service Moves', icon: 'local_shipping', route: '/dispatcher/service-moves' },

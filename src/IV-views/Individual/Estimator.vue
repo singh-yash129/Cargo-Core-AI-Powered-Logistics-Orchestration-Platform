@@ -261,6 +261,7 @@ const previewUrl = ref(null)
 const scanStatus = ref('')
 const processTime = ref(0)
 const errorMsg = ref('')
+const estimatedVolumeM3 = ref(null)
 
 // These are filled by the real Gemini Vision response
 const aiResults = ref([])
@@ -304,6 +305,7 @@ function resetEstimator() {
     previewUrl.value = null
     uploadedFile.value = null
     errorMsg.value = ''
+    estimatedVolumeM3.value = null
     aiResults.value = []
     detectedItems.value = []
     if (fileInput.value) fileInput.value.value = ''
@@ -354,11 +356,15 @@ async function analyzePhoto() {
         }))
 
         const m = data.metrics || {}
+        estimatedVolumeM3.value = Number.isFinite(Number(m.estimated_volume_cubic_feet))
+            ? Number((Number(m.estimated_volume_cubic_feet) * 0.0283168).toFixed(2))
+            : null
         aiResults.value = [
             { label: 'Boxes Needed',  value: String(m.boxes_needed ?? '?'),       icon: 'inventory_2',    color: 'text-blue-500',   confidence: 91 },
             { label: 'Laborers',      value: String(m.laborers ?? '?'),            icon: 'group',          color: 'text-green-500',  confidence: 98 },
             { label: 'Bubble Wrap',   value: `${m.bubble_wrap_rolls ?? '?'} Rolls`, icon: 'bubble_chart', color: 'text-amber-500',  confidence: 88 },
             { label: 'Heavy Items',   value: String(m.heavy_items ?? '?'),         icon: 'fitness_center', color: 'text-purple-500', confidence: 95 },
+            { label: 'Volume',        value: estimatedVolumeM3.value !== null ? `${estimatedVolumeM3.value} m³` : '?', icon: 'deployed_code', color: 'text-cyan-500', confidence: 90 },
         ]
 
         processTime.value = Math.round(performance.now() - startTime)
@@ -392,6 +398,7 @@ function useForBooking() {
         packingRequired:  hasFragile,             // auto-enable packing if fragile
         boxes:            m.boxes,
         bubbleWrap:       m.bubbleWrap,
+        estimatedVolumeM3: estimatedVolumeM3.value,
     })
     router.push('/individual/book-move')
 }

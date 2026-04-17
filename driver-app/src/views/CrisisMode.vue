@@ -120,15 +120,15 @@
                             immediately broadcast your location.</span>
                     </p>
                     <div class="flex gap-3">
-                        <button @click="selectedAction = null"
+                        <button @click="selectedAction = null" :disabled="isSending"
                             class="flex-1 py-3.5 rounded-xl font-bold uppercase tracking-wide text-xs transition-colors"
                             :class="isDark ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'">
                             Cancel
                         </button>
-                        <button @click="confirmAction"
-                            class="flex-1 py-3.5 rounded-xl font-bold uppercase tracking-wide text-xs text-white shadow-glow transition-transform active:scale-95"
+                        <button @click="confirmAction" :disabled="isSending"
+                            class="flex-1 py-3.5 rounded-xl font-bold uppercase tracking-wide text-xs text-white shadow-glow transition-transform active:scale-95 disabled:opacity-50"
                             :class="selectedAction.primary ? 'bg-red-500 shadow-glow-red' : 'bg-primary'">
-                            Confirm
+                            {{ isSending ? 'Sending...' : 'Confirm' }}
                         </button>
                     </div>
                 </div>
@@ -141,12 +141,15 @@
 import { ref, computed } from 'vue'
 import { useUiStore } from '../stores/uiStore.js'
 import { useLocalNotifications } from '../composables/useLocalNotifications.js'
+import { sendCrisisAlert } from '../services/api.js'
+import { Geolocation } from '@capacitor/geolocation'
 
 const uiStore = useUiStore()
 const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
 const sosActive = ref(false)
 const selectedAction = ref(null)
+const isSending = ref(false)
 
 const emergencyActions = [
     { id: 'sos', label: 'SOS Alert', description: 'Send GPS location to dispatch immediately', icon: 'emergency', primary: true },
@@ -166,17 +169,47 @@ function triggerAction(action) {
     selectedAction.value = action
 }
 
-function confirmAction() {
-    if (!selectedAction.value) return
-
-    if (selectedAction.value.id === 'sos') {
-        sosActive.value = true
-        uiStore.showToast('🚨 SOS Alert sent — GPS location shared', 'error')
-        notify({ title: 'SOS Activated', body: 'Emergency alert sent — GPS shared with dispatch', type: 'error' })
-    } else {
-        uiStore.showToast(`${selectedAction.value.label} reported to dispatch`, 'warning')
-        notify({ title: selectedAction.value.label, body: 'Reported to dispatch control', type: 'warning' })
+async function confirmAction() {
+    if (!selectedAction.value || isSending.value) return
+    
+    isSending.value = true
+    const action = selectedAction.value
+    
+    try {
+        // Get current GPS location
+        let latitude = null
+        let longitude = null
+        try {
+            const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000 })
+            latitude = position.coords.latitude
+            longitude = position.coords.longitude
+        } catch (e) {
+            console.log('Could not get location:', e)
+        }
+        
+        // Send crisis alert to backend
+        await sendCrisisAlert({
+            type: action.id,
+            latitude,
+            longitude,
+            description: action.description
+        })
+        
+        // Success feedback
+        if (action.id === 'sos') {
+            sosActive.value = true
+            uiStore.showToast('🚨 SOS Alert sent to dispatcher!', 'error')
+            notify({ title: 'SOS Activated', body: 'Emergency alert sent — Dispatcher notified', type: 'error' })
+        } else {
+            uiStore.showToast(`✓ ${action.label} sent to dispatcher!`, 'success')
+            notify({ title: action.label, body: 'Alert sent to dispatch control', type: 'warning' })
+        }
+    } catch (error) {
+        console.error('Failed to send crisis alert:', error)
+        uiStore.showToast(`Failed to send alert: ${error.message}`, 'error')
+    } finally {
+        isSending.value = false
+        selectedAction.value = null
     }
-    selectedAction.value = null
 }
 </script>

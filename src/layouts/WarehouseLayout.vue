@@ -1,6 +1,6 @@
 <template>
     <div
-        class="min-h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased flex">
+        class="warehouse-theme min-h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased flex">
 
         <!-- Mobile Overlay -->
         <div v-if="sidebarOpen" class="fixed inset-0 bg-black/50 z-40 lg:hidden" @click="sidebarOpen = false"></div>
@@ -38,15 +38,19 @@
                     <div class="hidden md:flex gap-4 border-r border-gray-200 dark:border-white/10 pr-6">
                         <div class="text-right">
                             <div class="text-[10px] text-gray-500 uppercase">Capacity</div>
-                            <div class="text-sm font-bold text-teal-500 dark:text-teal-400">84%</div>
+                            <div class="text-sm font-bold text-teal-500 dark:text-teal-400">{{ warehouseCapacityLabel }}</div>
                         </div>
                         <div class="text-right">
                             <div class="text-[10px] text-gray-500 uppercase">Pending</div>
-                            <div class="text-sm font-bold text-gray-900 dark:text-white">1,204</div>
+                            <div class="text-sm font-bold text-gray-900 dark:text-white">{{ warehousePendingLabel }}</div>
                         </div>
                     </div>
 
                     <div class="flex items-center gap-1 sm:gap-3">
+                        <div class="hidden sm:block">
+                            <HeaderWeather hub-id="1" />
+                        </div>
+
                         <!-- Notifications -->
                         <NotificationPopover :notifications="store.notifications"
                             :unread-count="store.unreadNotificationsCount" @open="store.fetchNotifications()"
@@ -63,22 +67,9 @@
                             <HeaderTodo />
                         </div>
 
-                        <!-- Theme Toggle -->
-                        <ThemeToggle />
-
-                        <div class="hidden sm:block h-6 w-px bg-gray-200 dark:bg-white/10 mx-2"></div>
-
-                        <button @click="isScannerOpen = true"
-                            class="hidden sm:flex w-10 h-10 rounded-full items-center justify-center bg-teal-500 text-white hover:bg-teal-600 dark:text-black dark:hover:bg-teal-400 transition-colors shadow-sm">
-                            <span class="material-symbols-outlined">qr_code_scanner</span>
-                        </button>
                     </div>
                 </div>
             </header>
-
-            <!-- Global Scanner/Camera Modal -->
-            <SmartScannerModal :is-open="isScannerOpen" @close="isScannerOpen = false" @scan="handleGlobalScan"
-                @camera="handleGlobalCamera" />
 
             <!-- Page Content -->
             <div class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden">
@@ -92,26 +83,32 @@
 </template>
 
 <script setup>
-import { computed, onMounted, provide, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import WarehouseSidebar from '../LWD-components/WarehouseSidebar.vue'
+import HeaderWeather from '@/components/HeaderWeather.vue'
 import HeaderTodo from '@/components/HeaderTodo.vue'
 import HeaderMeetingScheduler from '@/components/HeaderMeetingScheduler.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'
-import ThemeToggle from '@/components/ThemeToggle.vue'
-import SmartScannerModal from '@/components/SmartScannerModal.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { useAuthStore } from '@/stores/authStore'
 import { RouterView, useRouter } from 'vue-router'
+import { authenticatedJsonRequest } from '@/config/api'
 
 const store = useLogisticStore()
 const authStore = useAuthStore()
 const router = useRouter()
 const sidebarOpen = ref(false)
 const warehouseContextReady = ref(false)
+const warehouseHeaderStats = ref({
+    pendingCount: null,
+    capacityPercent: null,
+})
 
 const warehouseTitle = computed(() => {
     return authStore.currentWarehouse?.name || authStore.currentUser?.warehouse_name || 'Assigned Warehouse'
 })
+
+const warehouseId = computed(() => authStore.currentWarehouse?.id || authStore.currentUser?.warehouse_id || null)
 
 const warehouseSubtitle = computed(() => {
     const warehouse = authStore.currentWarehouse
@@ -120,32 +117,75 @@ const warehouseSubtitle = computed(() => {
     return 'No warehouse linked to this account'
 })
 
-// Global Scanner State & Provide (so children can open it)
-const isScannerOpen = ref(false)
-const scannerActiveTab = ref('scan')
-
-provide('openScanner', (tab = 'scan') => {
-    scannerActiveTab.value = tab
-    isScannerOpen.value = true
+const warehouseCapacityLabel = computed(() => {
+    const value = warehouseHeaderStats.value.capacityPercent
+    return Number.isFinite(value) ? `${value}%` : '--'
 })
 
-// Used by children to read the last scan globally if they don't have their own modal
-const lastGlobalScan = ref(null)
-provide('lastGlobalScan', lastGlobalScan)
+const warehousePendingLabel = computed(() => {
+    const value = warehouseHeaderStats.value.pendingCount
+    return Number.isFinite(value) ? new Intl.NumberFormat('en-IN').format(value) : '--'
+})
 
-const handleGlobalScan = (barcode) => {
-    lastGlobalScan.value = barcode
-    console.log("[Global Header Scanner] Received:", barcode)
-    // Optional: Global logic could navigate based on barcode format, for now just log/store.
+
+async function fetchWarehouseHeaderStats() {
+    if (!warehouseId.value) {
+        warehouseHeaderStats.value = { pendingCount: null, capacityPercent: null }
+        return
+    }
+
+    try {
+        const [dashboard, kpis] = await Promise.all([
+            authenticatedJsonRequest(`api/v1/warehouses/${warehouseId.value}/dashboard`).catch(() => null),
+            authenticatedJsonRequest(`api/v1/warehouses/${warehouseId.value}/kpis`).catch(() => null),
+        ])
+
+        const capacityLimit = Number(authStore.currentWarehouse?.capacity_limit ?? 0)
+        const orderCount = Number(kpis?.order_count ?? 0)
+        const pendingCount = Number(dashboard?.pending_orders_count ?? 0)
+
+        warehouseHeaderStats.value = {
+            pendingCount,
+            capacityPercent: capacityLimit > 0
+                ? Math.max(0, Math.min(100, Math.round((orderCount / capacityLimit) * 100)))
+                : null,
+        }
+    } catch (error) {
+        console.error('Error loading warehouse header stats:', error)
+        warehouseHeaderStats.value = { pendingCount: null, capacityPercent: null }
+    }
 }
 
-const handleGlobalCamera = (image) => {
-    console.log("[Global Header Camera] Captured:", image)
+function refreshWarehouseHeaderStats() {
+    fetchWarehouseHeaderStats().catch(() => {})
 }
 
 onMounted(async () => {
+    document.body.classList.add('warehouse-theme-portal')
     await authStore.ensureWarehouseContext()
     warehouseContextReady.value = true
+    await fetchWarehouseHeaderStats()
     store.fetchNotifications().catch(() => {})
+    window.addEventListener('warehouse-orders-updated', refreshWarehouseHeaderStats)
+})
+
+onBeforeUnmount(() => {
+    document.body.classList.remove('warehouse-theme-portal')
+})
+
+onUnmounted(() => {
+    window.removeEventListener('warehouse-orders-updated', refreshWarehouseHeaderStats)
+})
+
+watch(warehouseId, (nextId, prevId) => {
+    if (nextId === prevId) return
+    refreshWarehouseHeaderStats()
 })
 </script>
+
+<style>
+:is(.warehouse-theme, body.warehouse-theme-portal) {
+    --primary: #1ce783;
+    --primary-dark: #17c06d;
+}
+</style>

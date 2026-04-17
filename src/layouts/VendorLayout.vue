@@ -40,14 +40,20 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-1 sm:gap-3">
+        <div class="flex items-center gap-1 sm:gap-3">
+            <div class="hidden sm:block">
+              <HeaderWeather hub-id="1" />
+            </div>
+
             <NotificationPopover
               :notifications="store.notifications"
               :unread-count="store.unreadNotificationsCount"
+              @open="store.fetchNotifications ? store.fetchNotifications() : undefined"
               @mark-read="store.markNotificationRead"
               @mark-all-read="store.markAllNotificationsRead"
               @clear-all="store.clearNotifications"
             />
+            <ThemeToggle />
             <div class="hidden sm:block h-6 w-px bg-gray-200 dark:bg-white/10 mx-1" />
             <router-link
               to="/vendor/create-shipment"
@@ -64,8 +70,6 @@
         <RouterView />
       </div>
 
-      <!-- AI chat orb - available on all vendor pages -->
-      <AIHelpOrb />
     </main>
 
     <Teleport to="body">
@@ -129,10 +133,11 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
+import HeaderWeather from '@/components/HeaderWeather.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 import VendorSidebar from '@/IV-components/VendorSidebar.vue'
 import { useVendorStore } from '@/stores/vendorStore'
-import AIHelpOrb from '@/components/AIHelpOrb.vue'
 
 const store = useVendorStore()
 const route = useRoute()
@@ -145,9 +150,10 @@ function closeFundsModal() {
   addAmount.value = null
 }
 
-function submitAddFunds() {
+async function submitAddFunds() {
   if (!addAmount.value || addAmount.value <= 0) return
-  store.addFunds(addAmount.value)
+  const ok = await store.addFunds(addAmount.value)
+  if (!ok) return
   closeFundsModal()
 }
 

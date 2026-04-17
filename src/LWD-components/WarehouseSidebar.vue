@@ -76,7 +76,7 @@
                 leave-from-class="transform scale-100 opacity-100 translate-y-0"
                 leave-to-class="transform scale-95 opacity-0 translate-y-2">
                 <div v-if="isUserMenuOpen"
-                    class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-card-dark rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50">
+                    class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-card-darker rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50">
                     <div class="py-1">
                         <!-- Profile Option -->
                         <button @click="showProfileModal = true"
@@ -92,18 +92,14 @@
                             ID Card
                         </button>
 
-                        <!-- Need Support Option -->
-                        <div class="relative group/support">
-                            <button @click="showSupportModal = true"
-                                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[20px]">help</span>
-                                Need Support
-                            </button>
-                            <!-- Tooltip/Hover for email -->
-                            <div
-                                class="hidden group-hover/support:block absolute left-full bottom-0 ml-2 p-2 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
-                                {{ userEmail }}
-                            </div>
+                        <!-- Appearance Toggle -->
+                        <div class="w-full px-4 py-2.5 flex items-center gap-3">
+                            <span
+                                class="material-symbols-outlined text-[20px] text-primary transition-all duration-300">
+                                {{ isDark ? 'dark_mode' : 'light_mode' }}
+                            </span>
+                            <span class="text-sm text-gray-700 dark:text-gray-200 flex-1">Appearance</span>
+                            <ThemeToggle />
                         </div>
 
                         <div class="border-t border-gray-200 dark:border-white/5 my-1"></div>
@@ -132,40 +128,6 @@
             </div>
         </div>
     </aside>
-
-    <!-- Support Modal -->
-    <Teleport to="body">
-        <BaseModal :isOpen="showSupportModal" @close="showSupportModal = false">
-            <template #title>Need Support?</template>
-            <div class="space-y-4">
-                <p class="text-gray-600 dark:text-gray-300">
-                    Contact our support team for assistance with any issues or questions.
-                </p>
-                <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
-                    <div class="flex items-center gap-3 mb-2">
-                        <span class="material-symbols-outlined text-primary">mail</span>
-                        <span class="font-medium">Email Support</span>
-                    </div>
-                    <a :href="'mailto:' + userEmail" class="text-primary hover:underline block ml-9">{{ userEmail }}</a>
-                </div>
-                <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
-                    <div class="flex items-center gap-3 mb-2">
-                        <span class="material-symbols-outlined text-primary">phone</span>
-                        <span class="font-medium">Phone Support</span>
-                    </div>
-                    <a href="tel:+1234567890" class="text-gray-600 dark:text-gray-300 hover:text-primary block ml-9">+1
-                        (234)
-                        567-890</a>
-                </div>
-            </div>
-            <template #footer>
-                <button @click="showSupportModal = false"
-                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
-                    Close
-                </button>
-            </template>
-        </BaseModal>
-    </Teleport>
 
     <!-- Profile Modal -->
     <Teleport to="body">
@@ -270,16 +232,19 @@ import IdCard from '@/components/IdCard.vue'
 import { useWarehouseFloorStore } from '@/stores/warehouseFloorStore'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { getEffectiveWarehouseSubstatus, isWarehouseOrderAccepted } from '@/utils/warehouseOrderState'
+import { buildIdCardProfile } from '@/utils/idCardProfile'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const store = useWarehouseFloorStore()
 const logisticStore = useLogisticStore()
 
 // State for User Menu and Modals
 const isUserMenuOpen = ref(false)
-const showSupportModal = ref(false)
 const showProfileModal = ref(false)
 const showIdCardModal = ref(false)
 const showLogoutConfirm = ref(false)
+const isDark = ref(true)
+let themeObserver = null
 
 // User Data
 const userName = computed(() => authStore.currentUser?.name || 'Warehouse Manager')
@@ -307,21 +272,15 @@ const userInitials = computed(() => {
         .substring(0, 2)
 })
 
-const employeeData = computed(() => ({
-    name: userName.value,
-    id: userEmployeeId.value,
-    designation: userRole.value,
+const employeeData = computed(() => buildIdCardProfile({
+    user: authStore.currentUser,
+    role: authStore.currentUser?.role || 'WAREHOUSE_MANAGER',
+    roleLabel: userRole.value,
     department: 'Warehouse Operations',
-    address: 'Cargo Core Warehouse Network',
-    phone: 'Managed by admin directory',
+    address: authStore.currentWarehouse?.name || authStore.currentUser?.address || 'CargoCore Warehouse Network',
+    phone: authStore.currentUser?.phone || 'Managed by admin directory',
     email: userEmail.value,
     joinDate: userJoinDate.value,
-    validUntil: 'Active while account is enabled',
-    emergencyContact: {
-        name: 'Operations Support',
-        relation: 'Help Center',
-        phone: 'Available from support portal'
-    }
 }))
 
 const router = useRouter()
@@ -411,6 +370,15 @@ const menuItems = computed(() => [
 ])
 
 onMounted(() => {
+    isDark.value = document.documentElement.classList.contains('dark')
+    themeObserver = new MutationObserver(() => {
+        isDark.value = document.documentElement.classList.contains('dark')
+    })
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class']
+    })
+
     window.addEventListener('warehouse-orders-updated', fetchSidebarBadges)
     authStore.ensureWarehouseContext().finally(() => {
         fetchSidebarBadges()
@@ -418,11 +386,20 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+    if (themeObserver) themeObserver.disconnect()
     window.removeEventListener('warehouse-orders-updated', fetchSidebarBadges)
 })
 
+// Default zones when no floor plan groups exist
+const defaultZones = [
+    { id: 'zone-a', name: 'Zone A', value: '72%', status: 'Normal', color: '#3b82f6' },
+    { id: 'zone-b', name: 'Zone B', value: '85%', status: 'Full', color: '#ef4444' },
+    { id: 'zone-c', name: 'Zone C', value: '45%', status: 'Normal', color: '#10b981' },
+    { id: 'zone-d', name: 'Zone D', value: '2 RMA', status: 'Alert', color: '#f59e0b' },
+]
+
 const zones = computed(() => {
-    if (!store.groups.length) return []
+    if (!store.groups.length) return defaultZones
     return store.groups.slice(0, 4).map((group, index) => {
         const groupSections = store.sections.filter(section => section.groupId === group.id)
         const groupRackIds = store.racks

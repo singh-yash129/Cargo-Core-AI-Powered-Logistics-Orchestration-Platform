@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -9,6 +10,7 @@ from app.middleware.logging_middleware import LoggingMiddleware
 from app.routers import auth as auth_router
 from app.routers import ai as ai_router
 from app.routers import customer as customer_router
+from app.routers import damage_reports as damage_reports_router
 from app.routers import geocoding as geocoding_router
 from app.routers import inventory as inventory_router
 from app.routers import labourers as labourers_router
@@ -22,6 +24,7 @@ from app.routers import warehouse_operations as warehouse_operations_router
 from app.routers import warehouses as warehouses_router
 from app.routers import finance as finance_router
 from app.routers import ws_fleet as ws_fleet_router
+from app.routers import dev_seed as dev_seed_router
 
 settings = get_settings()
 
@@ -31,6 +34,7 @@ async def lifespan(app: FastAPI):
     # Startup
     from loguru import logger
     from app.services.auth_service import ensure_logistic_manager_account
+    from app.services import vendor_service
 
     if not settings.gemini_api_key:
         logger.warning(
@@ -45,7 +49,28 @@ async def lifespan(app: FastAPI):
             await session.rollback()
             raise
 
+    async def recurring_runner() -> None:
+        while True:
+            try:
+                async with AsyncSessionLocal() as session:
+                    created = await vendor_service.run_due_recurring_rules(session)
+                    if created:
+                        await session.commit()
+                        logger.info(f"Recurring schedules generated {created} inbound vendor order(s)")
+            except Exception:
+                logger.exception("Recurring scheduler run failed")
+            await asyncio.sleep(300)
+
+    recurring_task = asyncio.create_task(recurring_runner())
+
     yield
+
+    recurring_task.cancel()
+    try:
+        await recurring_task
+    except asyncio.CancelledError:
+        pass
+
     # Shutdown: dispose async engines
     await engine.dispose()
     await ro_engine.dispose()
@@ -77,6 +102,11 @@ def create_app() -> FastAPI:
             "http://localhost:5173",
             "http://127.0.0.1:5173",
             "http://localhost:3000",
+            # Android Capacitor origins
+            "http://192.168.1.3",
+            "https://192.168.1.3",
+            "http://192.168.1.3:5173",
+            "capacitor://192.168.1.3",
         ],
         allow_credentials=True,
         allow_methods=["*"],
@@ -87,6 +117,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router.router)
     app.include_router(ai_router.router)
     app.include_router(customer_router.router)
+    app.include_router(damage_reports_router.router)
     app.include_router(vendor_router.router)
     app.include_router(geocoding_router.router)
     app.include_router(users_router.router)
@@ -100,6 +131,10 @@ def create_app() -> FastAPI:
     app.include_router(tracking_router.router)
     app.include_router(finance_router.router)
     app.include_router(ws_fleet_router.router)
+
+    # Dev seed: GPS coordinate injection for testing AI dispatch features.
+    # Role-gated (LOGISTIC_MANAGER / DISPATCHER) — safe to include in all envs.
+    app.include_router(dev_seed_router.router)
 
     # ── Health check ──────────────────────────────────────────────────────────
     @app.get("/health", tags=["Health"])

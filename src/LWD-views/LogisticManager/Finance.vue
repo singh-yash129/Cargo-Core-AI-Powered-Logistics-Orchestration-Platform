@@ -74,11 +74,11 @@
         </div>
 
         <!-- Tabs Navigation -->
-        <div class="flex gap-1 bg-slate-800/70 p-1 rounded-lg self-start border border-white/10">
+        <div class="flex gap-1 bg-slate-100 dark:bg-slate-800/70 p-1 rounded-lg self-start border border-gray-200 dark:border-white/10 shadow-sm">
             <button v-for="tab in tabs" :key="tab.id"
                 @click="activeTab = tab.id"
                 class="px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5"
-                :class="activeTab === tab.id ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-300 hover:text-white'">
+                :class="activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-600 dark:text-white' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5'">
                 <span class="material-symbols-outlined text-[16px]">{{ tab.icon }}</span>
                 {{ tab.label }}
             </button>
@@ -87,7 +87,7 @@
         <!-- Main Content Area -->
         <div class="glass-panel rounded-xl overflow-hidden flex flex-col border border-gray-200 dark:border-white/5 relative" style="height: calc(100vh - 18rem)">
             <!-- Filter Bar -->
-            <div class="p-4 border-b border-white/10 flex justify-between items-center bg-slate-800/70">
+            <div class="p-4 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-slate-800/70">
                 <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     {{ activeTabLabel }}
                 </h3>
@@ -95,32 +95,32 @@
                     <div class="relative">
                         <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">search</span>
                         <input v-model="searchQuery" type="text" placeholder="Search records..." 
-                            class="pl-9 pr-4 py-1.5 bg-slate-900/80 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-200 placeholder:text-slate-400 w-64">
+                            class="pl-9 pr-4 py-1.5 bg-white dark:bg-slate-900/80 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 w-64 shadow-sm">
                     </div>
                 </div>
             </div>
             
-            <div class="flex-1 overflow-auto custom-scrollbar bg-slate-900/70">
+            <div class="flex-1 overflow-auto custom-scrollbar bg-white dark:bg-slate-900/70">
                 <table class="w-full text-left text-sm border-separate border-spacing-0">
-                    <thead class="bg-slate-800 sticky top-0 z-10 shadow-sm">
+                    <thead class="bg-slate-100 dark:bg-slate-800 sticky top-0 z-10 shadow-sm">
                         <tr class="text-gray-500 dark:text-gray-400 uppercase tracking-wider text-[10px]">
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10">Ref ID</th>
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10">Date</th>
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10">
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10">Ref ID</th>
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10">Date</th>
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10">
                                 {{ activeTab === 'cod' ? 'Driver / Route' : 'Beneficiary / Description' }}
                             </th>
-                            <th v-if="activeTab !== 'cod'" class="py-3 px-4 font-medium border-b dark:border-white/10">Role/Category</th>
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10 text-right">Amount</th>
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10 text-right">Status</th>
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10 text-right">Action</th>
+                            <th v-if="activeTab !== 'cod'" class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10">Role/Category</th>
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10 text-right">Amount</th>
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10 text-right">Status</th>
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10 text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                         <template v-for="item in filteredItems" :key="item.id">
                             <!-- Main Row -->
                             <tr @click="toggleRow(item.id)"
-                                class="hover:bg-white/5 transition-colors cursor-pointer group"
-                                :class="expandedRow === item.id ? 'bg-primary/10' : ''">
+                                class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+                                :class="expandedRow === item.id ? 'bg-primary/5 dark:bg-primary/10' : ''">
                                 <td class="py-4 px-4 font-mono text-gray-600 dark:text-gray-300 text-xs flex items-center gap-2">
                                     <span class="material-symbols-outlined text-gray-400 transition-transform text-sm"
                                         :class="expandedRow === item.id ? 'rotate-90 text-primary' : ''">chevron_right</span>
@@ -141,7 +141,7 @@
                                             ? 'bg-red-500/10 text-red-400 border-red-500/30'
                                             : item.type === 'PAYROLL_RUN'
                                             ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
-                                            : 'bg-white/10 text-slate-300 border-white/10'">
+                                            : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-white/10 dark:text-slate-300 dark:border-white/10'">
                                         {{ item.role || txTypeLabel(item.type) }}
                                     </span>
                                 </td>
@@ -179,8 +179,8 @@
                             </tr>
                             
                             <!-- Expanded Detail Row -->
-                            <tr v-if="expandedRow === item.id" class="bg-white/[0.03]">
-                                <td :colspan="activeTab === 'cod' ? 6 : 7" class="p-4 border-b border-white/10">
+                            <tr v-if="expandedRow === item.id" class="bg-slate-50/80 dark:bg-white/[0.03]">
+                                <td :colspan="activeTab === 'cod' ? 6 : 7" class="p-4 border-b border-gray-200 dark:border-white/10">
                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm ml-8">
                                         <div class="space-y-2">
                                             <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">Transaction Details</p>
@@ -193,7 +193,7 @@
                                         </div>
                                         <div class="space-y-2">
                                             <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">Breakdown</p>
-                                            <div class="bg-slate-900/80 p-3 rounded border border-white/10 space-y-1">
+                                            <div class="bg-white dark:bg-slate-900/80 p-3 rounded border border-gray-200 dark:border-white/10 space-y-1 shadow-sm">
                                                 <div class="flex justify-between text-gray-600 dark:text-gray-400">
                                                     <span>Base Amount</span>
                                                     <span>₹{{ Math.abs(item.amount * 0.9).toFixed(2) }}</span>
@@ -474,22 +474,22 @@
 
         <!-- Create Transaction Modal -->
         <Teleport to="body">
-            <div v-if="showTransactionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scale-in">
-                    <div class="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Record Transaction</h3>
-                        <button @click="showTransactionModal = false" class="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+            <div v-if="showTransactionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                <div class="lm-transaction-modal bg-slate-950/98 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scale-in border border-white/10 backdrop-blur-xl">
+                    <div class="p-6 border-b border-white/10 flex justify-between items-center bg-slate-900/90">
+                        <h3 class="text-lg font-bold text-white">Record Transaction</h3>
+                        <button @click="showTransactionModal = false" class="text-gray-400 hover:text-white transition-colors">
                             <span class="material-symbols-outlined">close</span>
                         </button>
                     </div>
-                    <div class="p-6 space-y-4">
+                    <div class="p-6 space-y-4 bg-slate-950/95 text-slate-200">
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Description</label>
+                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Description</label>
                             <input v-model="newTx.desc" type="text" placeholder="e.g. Office Rent Payment" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white">
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Category</label>
+                                <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Category</label>
                                 <select v-model="newTx.type" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white">
                                     <option value="Incoming" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Income</option>
                                     <option value="Expense" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Expense</option>
@@ -497,12 +497,12 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Amount (₹)</label>
+                                <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Amount (₹)</label>
                                 <input v-model.number="newTx.amount" type="number" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white">
                             </div>
                         </div>
                     </div>
-                    <div class="p-4 bg-gray-50 dark:bg-white/5 flex justify-end gap-2">
+                    <div class="p-4 bg-slate-900/90 flex justify-end gap-2 border-t border-white/10">
                         <button @click="showTransactionModal = false" class="px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 dark:bg-white/10 dark:hover:bg-white/15 dark:text-gray-200 rounded-lg border border-slate-700 dark:border-white/10">Cancel</button>
                         <button @click="addTransaction" class="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 shadow-sm flex items-center gap-2">
                             <span class="material-symbols-outlined text-[18px]">save</span> Save Record
@@ -571,8 +571,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
 import salarySlipTemplate from '../../../html-slips/SalarySlip.html?raw'
-import salaryLogoUrl from '../../../html-slips/assets/cargocore-logo.jpeg'
 
 const store = useLogisticStore()
 const {
@@ -587,10 +587,12 @@ const {
 } = storeToRefs(store)
 
 const financeLoaded = computed(() => initialized.value && !isLoading.value)
+const { openSlipWithData, prefetchSlips } = useSlipPrinter()
 
 onMounted(() => {
     store.initialize().catch(() => {})
     store.fetchFinanceSummary(store.activeWarehouse).catch(() => {})
+    prefetchSlips(['bookingConfirmation', 'financeTransaction']).catch(() => {})
 })
 
 // View State
@@ -875,13 +877,100 @@ const confirmSinglePayment = async () => {
     }, 2000)
 }
 
-const downloadSlip = (item) => {
+const TRACKING_CODE_REGEX = /\b([A-Z]{2,5}-[A-Z0-9]{4,})\b/i
+
+const extractTrackingCode = (value) => {
+    const match = String(value || '').match(TRACKING_CODE_REGEX)
+    return match?.[1]?.toUpperCase() || ''
+}
+
+const findRelatedOrder = (item) => {
+    if (item.relatedOrder) return item.relatedOrder
+    const metadata = item.metadataJson || {}
+    const trackingCode = (
+        item.desc === item.id
+            ? item.desc
+            : metadata.tracking_code || extractTrackingCode(item.desc) || extractTrackingCode(item.id)
+    )
+    if (!trackingCode) return null
+    return filteredTransactions.value.find(tx => tx.relatedOrder?.tracking_code === trackingCode)?.relatedOrder || null
+}
+
+const isPayrollSlip = (item) => (
+    activeTab.value === 'staff'
+    || activeTab.value === 'drivers'
+    || item.type === 'PAYROLL_RUN'
+)
+
+const isBookingSlip = (item) => ['REVENUE_ONLINE', 'REVENUE_COD', 'COD'].includes(item.type)
+
+const buildBookingSlipPayload = (item) => {
+    const order = findRelatedOrder(item)
+    if (!order) return null
+
+    return {
+        order: {
+            id: order.tracking_code || order.id,
+            createdAt: order.created_at || item.date,
+            eta: order.scheduled_at || order.created_at || item.date,
+            serviceTimeBlock: order.service_time_block || 'Flexible',
+            origin: order.pickup_addr || '—',
+            destination: order.delivery_addr || '—',
+            amount: Number(order.total_amount ?? Math.abs(item.amount || 0)),
+            paidAmount: Number(order.paid_amount ?? Math.abs(item.amount || 0)),
+            paymentMode: order.payment_mode || item.metadataJson?.payment_mode || txTypeLabel(item.type),
+            laborCount: Number(order.labor_count || 0),
+            vehicleType: order.vehicle_type || order.assigned_vehicle_code || 'Assigned vehicle',
+        },
+        user: {
+            name: order.customer_name || 'Customer',
+            phone: order.customer_phone || '—',
+            email: order.customer_email || '—',
+        },
+    }
+}
+
+const financeSlipTitle = (item) => {
+    if (item.type === 'EXPENSE_DRIVER') return 'Driver Shift Fee Slip'
+    if (item.type === 'EXPENSE_FUEL' || item.type === 'FUEL_EXPENSE') return 'Fuel Expense Slip'
+    if (item.type === 'REVENUE_RETURN_CHARGE') return 'Transport Charge Slip'
+    if (item.type === 'REVENUE_REFUND' && item.desc?.toLowerCase().includes('damage')) return 'Damage Return Refund Slip'
+    if (item.type === 'REVENUE_REFUND') return 'Refund / Reversal Slip'
+    if (item.type === 'DRIVER_CASHOUT') return 'Driver Cashout Slip'
+    if (item.type === 'CAPITAL_INVESTMENT') return 'Capital Investment Slip'
+    return 'Finance Transaction Slip'
+}
+
+const buildFinanceSlipPayload = (item) => {
+    const metadata = item.metadataJson || {}
+    const relatedOrder = findRelatedOrder(item)
+    const trackingCode = relatedOrder?.tracking_code || metadata.tracking_code || extractTrackingCode(item.desc)
+    const beneficiary = metadata.driver_name
+        || relatedOrder?.customer_name
+        || item.name
+        || 'Cargo-Core Ledger'
+
+    return {
+        ...item,
+        metadataJson: metadata,
+        relatedOrder,
+        slipTitle: financeSlipTitle(item),
+        typeLabel: txTypeLabel(item.type),
+        beneficiary,
+        transactionCode: item.transactionCode || item.id,
+        notes: trackingCode
+            ? `${item.desc}. Linked reference: ${trackingCode}.`
+            : `${item.desc}.`,
+    }
+}
+
+const openSalarySlip = (item) => {
     const now = new Date()
     const period = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
     const paymentDate = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
     const shortDate = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
-    const net = Math.round(item.amount || 0)
+    const net = Math.round(Math.abs(item.amount || 0))
     const profTax = 200
     const tds = Math.round(net * 0.1)
     const totalDeductions = profTax + tds
@@ -896,8 +985,6 @@ const downloadSlip = (item) => {
     const role = item.role || 'Staff'
 
     const html = salarySlipTemplate
-        // fix asset paths so they resolve correctly in blob context
-        .replaceAll('assets/cargocore-logo.jpeg', salaryLogoUrl)
         // meta & title
         .replace('Salary Slip – February 2026', `Salary Slip – ${period}`)
         .replace('For the month of February 2026', `For the month of ${period}`)
@@ -927,17 +1014,38 @@ const downloadSlip = (item) => {
     if (win) win.addEventListener('load', () => URL.revokeObjectURL(url))
 }
 
+const downloadSlip = async (item) => {
+    if (isPayrollSlip(item)) {
+        openSalarySlip(item)
+        return
+    }
+
+    if (isBookingSlip(item)) {
+        const bookingPayload = buildBookingSlipPayload(item)
+        if (bookingPayload) {
+            await openSlipWithData('bookingConfirmation', bookingPayload.order, bookingPayload.user)
+            return
+        }
+    }
+
+    await openSlipWithData('financeTransaction', buildFinanceSlipPayload(item))
+}
+
 const TX_TYPE_LABELS = {
     'REVENUE_ONLINE': 'Online Payment',
     'REVENUE_COD': 'COD Collection',
-    'REVENUE_REFUND': 'Cancellation Refund',
+    'REVENUE_RETURN_CHARGE': 'Return Transport Charge',
+    'REVENUE_REFUND': 'Refund / Reversal',
     'EXPENSE_DRIVER': 'Driver Cost',
     'EXPENSE_LABOUR': 'Labour Cost',
     'EXPENSE_FUEL': 'Fuel',
+    'FUEL_EXPENSE': 'Fuel Receipt',
     'EXPENSE_WAREHOUSE': 'Warehouse',
     'EXPENSE_PROCUREMENT': 'Procurement',
     'PAYROLL_RUN': 'Payroll',
+    'DRIVER_CASHOUT': 'Driver Cashout',
     'CAPITAL_INVESTMENT': 'Capital Investment',
+    'COD': 'COD Collection',
     'Expense': 'Expense',
     'Incoming': 'Income',
     'Payroll': 'Payroll',
@@ -946,5 +1054,44 @@ const txTypeLabel = (type) => TX_TYPE_LABELS[type] || type
 
 
 </script>
+
+<style scoped>
+.lm-transaction-modal {
+    color: #e2e8f0;
+}
+
+.lm-transaction-modal :deep(label) {
+    color: #cbd5e1 !important;
+}
+
+.lm-transaction-modal :deep(input),
+.lm-transaction-modal :deep(select),
+.lm-transaction-modal :deep(textarea) {
+    background-color: rgba(15, 23, 42, 0.92) !important;
+    color: #f8fafc !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color-scheme: dark;
+}
+
+.lm-transaction-modal :deep(input::placeholder),
+.lm-transaction-modal :deep(textarea::placeholder) {
+    color: #94a3b8 !important;
+}
+
+.lm-transaction-modal :deep(option) {
+    background-color: rgb(15 23 42) !important;
+    color: #f8fafc !important;
+}
+
+.lm-transaction-modal :deep(.text-gray-400),
+.lm-transaction-modal :deep(.text-gray-500) {
+    color: #94a3b8 !important;
+}
+
+.lm-transaction-modal :deep(input[type='date']::-webkit-calendar-picker-indicator) {
+    filter: invert(1);
+    opacity: 0.85;
+}
+</style>
 
 

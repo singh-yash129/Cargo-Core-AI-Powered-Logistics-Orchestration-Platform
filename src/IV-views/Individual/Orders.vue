@@ -135,10 +135,11 @@
 
                             <!-- Actions -->
                             <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-200 dark:border-white/5">
-                                <router-link v-if="order.status === 'in-transit' || order.status === 'dispatched'"
+                                <router-link v-if="['in-transit', 'dispatched', 'delivered'].includes(order.status)"
                                     :to="'/individual/tracking?orderId=' + order.id"
                                     class="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-sm">gps_fixed</span> Track
+                                    <span class="material-symbols-outlined text-sm">{{ order.status === 'delivered' ? 'route' : 'gps_fixed' }}</span>
+                                    {{ order.status === 'delivered' ? 'Route Blueprint' : 'Track' }}
                                 </router-link>
                                 <button @click="openSlipWithData('bookingConfirmation', order, authStore.currentUser)"
                                     class="px-4 py-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-sm font-bold rounded-lg hover:bg-indigo-500/20 transition-colors flex items-center gap-1.5">
@@ -156,11 +157,16 @@
                                     class="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-sm">schedule</span> Reschedule
                                 </button>
-                                <button v-if="order.status === 'pending' || order.status === 'dispatched' || order.status === 'in-transit'"
+                                <button v-if="order.status === 'pending' || order.status === 'dispatched'"
                                     @click="showCancelModal(order)"
                                     class="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-sm">cancel</span> Cancel Order
                                 </button>
+                                <div v-if="order.status === 'in-transit'"
+                                    class="px-4 py-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs rounded-lg flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-sm">info</span>
+                                    This order is already in progress. Please contact support to request changes or cancellation.
+                                </div>
                                 <router-link v-if="order.status === 'delivered'" to="/individual/damage-report"
                                     class="px-4 py-2 bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-bold rounded-lg hover:bg-red-500/20 transition-colors flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-sm">report</span> Report Damage
@@ -348,7 +354,17 @@ async function doCancel() {
 // Reschedule
 const rescheduleModal = reactive({ show: false, order: null, date: '', time: '09:00 AM - 12:00 PM' })
 function showRescheduleModal(order) { Object.assign(rescheduleModal, { show: true, order, date: '', time: '09:00 AM - 12:00 PM' }) }
-function doReschedule() { store.rescheduleOrder(rescheduleModal.order.id, rescheduleModal.date, rescheduleModal.time); rescheduleModal.show = false; showToast('Rescheduled!') }
+async function doReschedule() {
+    const { id } = rescheduleModal.order
+    const { date, time } = rescheduleModal
+    rescheduleModal.show = false
+    const result = await store.rescheduleOrderRemote(id, date, time)
+    if (result.success) {
+        showToast('Rescheduled successfully!', 'success')
+    } else {
+        showToast(result.message || 'Failed to reschedule. Please try again.', 'error')
+    }
+}
 
 const toast = reactive({ show: false, message: '', type: 'success' })
 function showToast(msg, type = 'success') { toast.show = true; toast.message = msg; toast.type = type; setTimeout(() => { toast.show = false }, 3000) }

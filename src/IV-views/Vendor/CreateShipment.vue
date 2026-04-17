@@ -80,6 +80,13 @@
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
                             </div>
                             <div>
+                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Estimated Volume
+                                    (m³)</label>
+                                <input v-model.number="form.volume" type="number" min="0" step="0.01"
+                                    placeholder="e.g. 12.5"
+                                    class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
                                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Declared Value
                                     (₹)</label>
                                 <input v-model.number="form.declaredValue" type="number" placeholder="e.g. 50000"
@@ -769,6 +776,7 @@
                 description="Full Payment for Shipment"
                 :name="authStore.currentUser?.name || ''"
                 :email="authStore.currentUser?.email || ''"
+                :wallet-balance="store.walletBalance"
                 @success="onRazorpaySuccess"
             />
 
@@ -1107,7 +1115,7 @@ const handlingOptions = ['Fragile', 'Cold Storage', 'Hazardous', 'Oversize', 'Hi
 
 const form = reactive({
     category: 'commercial',
-    description: '', hsnCode: '', palletCount: 1, weight: 100, declaredValue: 0, insuranceRequired: 'no',
+    description: '', hsnCode: '', palletCount: 1, weight: 100, volume: null, declaredValue: 0, insuranceRequired: 'no',
     customerName: '', customerPhone: '',
     pickupType: 'hub', pickupAddress: '', pickupCity: '', pickupPincode: '', pickupLat: null, pickupLng: null,
     handling: [], pickupHub: '', destination: '', destinationCity: '', pincode: '', destLat: null, destLng: null,
@@ -1286,7 +1294,7 @@ function saveDraft() {
 
 function resetForm() {
     Object.assign(form, {
-        category: 'commercial', description: '', hsnCode: '', palletCount: 1, weight: 100, declaredValue: 0, insuranceRequired: 'no', customerName: '', customerPhone: '',
+        category: 'commercial', description: '', hsnCode: '', palletCount: 1, weight: 100, volume: null, declaredValue: 0, insuranceRequired: 'no', customerName: '', customerPhone: '',
         pickupType: 'hub', pickupAddress: '', pickupCity: '', pickupPincode: '',
         handling: [], pickupHub: store.warehouses[0]?.name || '', destination: '', destinationCity: '', pincode: '', pickupDate: '', deliveryDate: '', timeWindow: '08:00 AM - 12:00 PM', priority: 'Standard', packingRequired: false, laborRequired: false, laborCount: 1, paymentMode: 'Invoice'
     })

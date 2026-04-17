@@ -18,7 +18,7 @@
                     <span class="material-symbols-outlined text-[14px]">{{ autoRefreshEnabled ? 'pause' : 'play_arrow' }}</span>
                     {{ autoRefreshEnabled ? 'Pause' : 'Auto' }}
                 </button>
-                <button @click="openSlip('digitalPickList')"
+                <button @click="openMasterPickList"
                     class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-1">
                     <span class="material-symbols-outlined text-[18px]">checklist</span>
                     Pick List
@@ -125,6 +125,28 @@
                 </div>
             </div>
         </div>
+
+        <!-- Dispatcher-Assigned Direct Transport Notifications -->
+        <TransitionGroup name="slide-up" tag="div" class="space-y-2">
+            <div v-for="order in dispatcherAssignedOrders" :key="order.rawId"
+                class="flex items-start gap-3 px-4 py-3 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                <span class="material-symbols-outlined text-blue-400 text-[20px] shrink-0 mt-0.5">local_shipping</span>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-bold text-blue-300">Dispatcher assigned a driver to {{ order.id }}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold border border-blue-500/20">No WM Action</span>
+                    </div>
+                    <div class="text-xs text-blue-300/70 mt-0.5">
+                        <span class="font-semibold text-blue-300">{{ order.driverName }}</span> will pick up directly from {{ order.pickupAddr || 'the pickup location' }}. No warehouse picking or packing required.
+                    </div>
+                </div>
+                <button @click="dismissDispatcherOrder(order.rawId)"
+                    class="shrink-0 text-blue-400/60 hover:text-blue-300 transition-colors mt-0.5"
+                    title="Dismiss">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+        </TransitionGroup>
 
         <!-- Active Pick Waves - Clean Tab Layout -->
         <div class="glass-panel rounded-xl overflow-hidden">
@@ -258,14 +280,14 @@
                         </div>
 
                         <!-- Labour Badge (for other orders) -->
-                        <div v-else-if="wave.laborRequired > 1 || wave.laborAssigned?.length" class="mb-3">
+                        <div v-else-if="wave.laborRequired > 0" class="mb-3">
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-gray-500">Labour:</span>
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold"
-                                    :class="(wave.laborAssigned?.length || 0) >= (wave.laborRequired || 1)
+                                    :class="(wave.laborAssigned?.length || 0) >= wave.laborRequired
                                         ? 'bg-green-500/20 text-green-600 dark:text-green-400'
                                         : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'">
-                                    {{ wave.laborAssigned?.length || 0 }}/{{ wave.laborRequired || 1 }}
+                                    {{ wave.laborAssigned?.length || 0 }}/{{ wave.laborRequired }}
                                 </span>
                                 <div v-if="wave.laborAssigned?.length" class="flex -space-x-1">
                                     <span v-for="(l, idx) in wave.laborAssigned.slice(0, 3)" :key="l.id"
@@ -280,6 +302,30 @@
                             </div>
                         </div>
 
+                        <!-- Direct Transport Notice -->
+                        <div v-if="isDirectTransport(wave)"
+                            class="mb-3 p-2.5 rounded-lg flex items-start gap-2"
+                            :class="wave.isDispatcherAssigned
+                                ? 'bg-blue-500/10 border border-blue-500/30'
+                                : 'bg-teal-500/10 border border-teal-500/30'">
+                            <span class="material-symbols-outlined text-[16px] shrink-0 mt-0.5"
+                                :class="wave.isDispatcherAssigned ? 'text-blue-400' : 'text-teal-400'">local_shipping</span>
+                            <div>
+                                <div class="text-[11px] font-bold"
+                                    :class="wave.isDispatcherAssigned ? 'text-blue-400' : 'text-teal-400'">
+                                    Direct Transport Order
+                                </div>
+                                <template v-if="wave.isDispatcherAssigned">
+                                    <div class="text-[10px] text-blue-300/70 mt-0.5 leading-snug">
+                                        Dispatcher assigned <span class="font-bold text-blue-300">{{ wave.assignedDriverName || 'a driver' }}</span> — driver will handle pickup directly. No warehouse action required.
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <div class="text-[10px] text-teal-300/70 mt-0.5 leading-snug">No packing service selected — driver handles pickup directly. No warehouse processing needed.</div>
+                                </template>
+                            </div>
+                        </div>
+
                         <!-- Details -->
                         <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
                             <span>{{ formatCurrency(wave.value) }}</span>
@@ -290,7 +336,15 @@
                         </div>
 
                         <!-- Action Button -->
-                        <div v-if="wave.status === 'ON_HOLD'" class="flex gap-2">
+                        <div v-if="isDirectTransport(wave)" class="text-center text-xs py-2 border rounded-lg"
+                            :class="wave.isDispatcherAssigned
+                                ? 'text-blue-400/80 border-blue-500/20 bg-blue-500/5'
+                                : 'text-teal-400/70 border-teal-500/20 bg-teal-500/5'">
+                            {{ wave.isDispatcherAssigned
+                                ? 'Driver assigned by Dispatcher — no warehouse action required'
+                                : 'Awaiting Dispatcher — driver assignment pending' }}
+                        </div>
+                        <div v-else-if="wave.status === 'ON_HOLD'" class="flex gap-2">
                             <button @click.stop="openAssignLabourers(wave)"
                                 class="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1">
                                 <span class="material-symbols-outlined text-[14px]">group_add</span>
@@ -299,13 +353,13 @@
                         </div>
                         <div v-else-if="hasAction(wave)" class="flex gap-2">
                             <button @click.stop="handleWaveAction(wave)"
-                                :disabled="isStartPickingBlocked(wave)"
-                                :title="isStartPickingBlocked(wave) ? 'Prerequisites not met — see warnings above' : ''"
+                                :disabled="isStartPickingBlocked(wave) || isWaveActionPending(wave)"
+                                :title="isWaveActionPending(wave) ? 'Action in progress...' : (isStartPickingBlocked(wave) ? 'Prerequisites not met — see warnings above' : '')"
                                 class="flex-1 py-2 rounded-lg text-xs font-bold transition-colors"
-                                :class="isStartPickingBlocked(wave)
+                                :class="(isStartPickingBlocked(wave) || isWaveActionPending(wave))
                                     ? 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                                     : 'bg-primary hover:bg-primary-dark text-background-dark'">
-                                {{ getActionLabel(wave) }}
+                                {{ isWaveActionPending(wave) ? 'Working...' : getActionLabel(wave) }}
                             </button>
                             <button v-if="wave.canUndo" @click.stop="undoWaveStatus(wave)"
                                 class="px-3 py-2 bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-300 dark:hover:bg-white/20 transition-colors"
@@ -419,9 +473,10 @@
             </div>
         </div>
         <div v-if="actionToast"
-            class="fixed bottom-6 left-6 bg-blue-500/90 text-white px-6 py-4 rounded-xl shadow-2xl shadow-blue-500/30 flex items-center gap-3 z-50 animate-bounce">
-            <span class="material-symbols-outlined">inventory</span>
-            <div class="font-bold">{{ actionToast }}</div>
+            class="fixed bottom-6 left-6 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce max-w-md"
+            :class="actionToast.startsWith('⚠') ? 'bg-amber-500/95 shadow-amber-500/30' : 'bg-blue-500/90 shadow-blue-500/30'">
+            <span class="material-symbols-outlined shrink-0">{{ actionToast.startsWith('⚠') ? 'warning' : 'inventory' }}</span>
+            <div class="font-bold text-sm leading-tight">{{ actionToast }}</div>
         </div>
 
         <!-- Pick List Modal -->
@@ -793,7 +848,7 @@ import { getEffectiveWarehouseSubstatus, patchWarehouseOrderUiState } from '@/ut
 import { apiUrl } from '@/config/api'
 import { useSlipPrinter } from '@/composables/useSlipPrinter'
 
-const { openSlip } = useSlipPrinter()
+const { openSlip, openSlipWithData } = useSlipPrinter()
 
 const authStore = useAuthStore()
 const openScanner = inject('openScanner', null)
@@ -802,6 +857,7 @@ const dispatchToast = ref('')
 const actionToast = ref('')
 const loading = ref(false)
 const pipelineLoading = ref(false)
+const waveActionPending = ref({})
 // Prerequisite checks — null = not yet checked, 0 = empty/missing, >0 = ok
 const inventoryCount = ref(null)
 const floorPlanConfigured = ref(null) // null=checking, false=not set up, true=ok
@@ -869,6 +925,9 @@ const checkFields = [
 // Dynamic data
 const waves = ref([])
 const qualityChecks = ref([])
+// Dispatcher-assigned direct transport orders — shown as notification banners, not picking cards
+const dispatcherAssignedOrders = ref([])
+const dismissedDispatcherOrders = ref(new Set())
 const pipelineSteps = ref([
     { label: 'Accepted', icon: 'task_alt', active: true, count: 0 },
     { label: 'Picking', icon: 'shopping_basket', active: false, count: 0 },
@@ -977,6 +1036,13 @@ const activePickers = computed(() => {
 // no inventory tracking, no floor plan needed. Only a labourer is required for all types.
 function isHouseShift(wave) {
     return wave.laborRequired > 0
+}
+
+// Direct transport orders have packing_amount == 0, meaning the customer did NOT request
+// packing services. The driver goes straight to the pickup location — no warehouse
+// picking, packing, or loading dock processing is needed.
+function isDirectTransport(wave) {
+    return wave.packingAmount === 0
 }
 
 const prerequisiteWarnings = computed(() => {
@@ -1277,6 +1343,10 @@ function getWarehouseId() {
     return authStore.currentWarehouse?.id || authStore.currentUser?.warehouse_id
 }
 
+function isWaveActionPending(wave) {
+    return Boolean(wave?.rawId && waveActionPending.value[wave.rawId])
+}
+
 function getActionLabel(wave) {
     if (wave.status === 'AWAITING_PICK' || wave.status === 'CONFIRMED') return 'Start Picking'
     if (wave.status === 'PICKING') return 'Complete Picking'
@@ -1324,6 +1394,11 @@ function notifyOrdersUpdated() {
     if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('warehouse-orders-updated'))
     }
+}
+
+function dismissDispatcherOrder(rawId) {
+    dismissedDispatcherOrders.value.add(rawId)
+    dispatcherAssignedOrders.value = dispatcherAssignedOrders.value.filter(o => o.rawId !== rawId)
 }
 
 // ==================
@@ -1718,21 +1793,19 @@ async function toggleItemPicked(item, source = 'button') {
     }
 }
 
-function printPickList() {
-    const printContent = pickListItems.value.map((item, idx) =>
-        `${idx + 1}. ${item.item_name || item.name} (${item.sku}) - Qty: ${item.required_quantity || item.quantity} - Location: ${item.location_path || formatLocation(item)}`
-    ).join('\n')
+/** Top-level "Pick List" button — master overview of all active waves */
+async function openMasterPickList() {
+    await fetchPickingData()   // get fresh order items before building the slip
+    await openSlipWithData('digitalPickList', { waves: waves.value })
+}
 
-    const printWindow = window.open('', '_blank')
-    printWindow.document.write(`<pre style="font-family: monospace; font-size: 14px;">
-PICK LIST - Order: ${selectedWave.value?.id}
-${'='.repeat(50)}
-${printContent}
-${'='.repeat(50)}
-Printed: ${new Date().toLocaleString()}
-</pre>`)
-    printWindow.document.close()
-    printWindow.print()
+/** Per-wave "Print" button inside the pick list modal */
+async function printPickList() {
+    const items = pickListItems.value.map(item => ({
+        ...item,
+        location_path: item.location_path || formatLocation(item),
+    }))
+    await openSlipWithData('digitalPickList', { wave: selectedWave.value, items })
 }
 
 async function completePickList() {
@@ -1956,8 +2029,9 @@ async function fetchPickingData() {
     const warehouseId = getWarehouseId()
 
     try {
-        // Fetch orders
-        const response = await fetch(apiUrl('api/v1/orders?page=1&page_size=100'), {
+        // Fetch orders (include backend search when query is set)
+        const searchParam = searchQuery.value.trim() ? `&search=${encodeURIComponent(searchQuery.value.trim())}` : ''
+        const response = await fetch(apiUrl(`api/v1/orders?page=1&page_size=100${searchParam}`), {
             headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
         })
 
@@ -1980,6 +2054,39 @@ async function fetchPickingData() {
                 ...order,
                 warehouse_substatus: 'AWAITING_PICK'
             }))
+
+            // Direct transport order (packing_amount == 0) routing logic:
+            //
+            // Case A — normal WM flow: WM assigned a vehicle first → keep in picking
+            //   (vehicle already set means WM owns this order; dispatcher will be called later)
+            //
+            // Case B — dispatcher-direct flow: CONFIRMED + no vehicle → WM has nothing to do yet.
+            //   Remove from WM Picking; dispatcher handles driver assignment via Order Clustering.
+            //
+            // Case C — dispatcher already assigned driver (ASSIGNED status, no vehicle):
+            //   Surface as an info-only card so WM knows a driver is inbound but no action is needed.
+            const warehousePickOrders = awaitingPickOrders.filter(o => Number(o.packing_amount ?? 0) > 0)
+            const wmOwnedDirectTransport = awaitingPickOrders.filter(o =>
+                Number(o.packing_amount ?? 0) === 0 && o.assigned_vehicle_id != null
+            )
+            // Case C orders are surfaced as notification banners, NOT picking cards.
+            // We update the ref here so the banner stays visible across refreshes.
+            const dispatcherAssignedDirect = warehouseOrders.filter(order =>
+                order.status === 'ASSIGNED' &&
+                Number(order.packing_amount ?? 0) === 0 &&
+                order.assigned_driver_id != null &&
+                order.assigned_vehicle_id == null
+            )
+            dispatcherAssignedOrders.value = dispatcherAssignedDirect
+                .filter(order => !dismissedDispatcherOrders.value.has(order.id))
+                .map(order => ({
+                    id: order.tracking_code || String(order.id).slice(0, 8).toUpperCase(),
+                    rawId: order.id,
+                    driverName: order.assigned_driver_name || 'a driver',
+                    pickupAddr: order.pickup_addr || '',
+                    value: order.total_amount || 0,
+                }))
+            awaitingPickOrders = [...warehousePickOrders, ...wmOwnedDirectTransport]
             pickingOrders = warehouseOrders.filter(order => order.status !== 'CANCELLED' && getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKING')
                 .map(order => ({ ...order, warehouse_substatus: 'PICKING' }))
             pickedOrders = warehouseOrders.filter(order => order.status !== 'CANCELLED' && getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKED')
@@ -2034,12 +2141,19 @@ async function fetchPickingData() {
                 assignedPicker: assignment?.labourerName || null,
                 canUndo: hasUndoHistory,
                 laborRequired: order.labor_count ?? order.laborCount ?? 0,
-                laborAssigned: laborAssigned
+                laborAssigned: laborAssigned,
+                materialsAmount: Number(order.materials_amount ?? 0),
+                packingAmount: Number(order.packing_amount ?? 0),
+                assignedDriverId: order.assigned_driver_id || null,
+                assignedDriverName: order.assigned_driver_name || null,
+                assignedVehicleId: order.assigned_vehicle_id || null,
+                // Dispatcher-direct flow: driver assigned by dispatcher, no WM vehicle yet
+                isDispatcherAssigned: !!order.assigned_driver_id && !order.assigned_vehicle_id && Number(order.packing_amount ?? 0) === 0
             }
         })
-
-        pipelineSteps.value[0].count = awaitingPickOrders.length
-        pipelineSteps.value[0].active = awaitingPickOrders.length > 0
+        const warehouseAwaitingCount = awaitingPickOrders.filter(o => Number(o.packing_amount ?? 0) > 0).length
+        pipelineSteps.value[0].count = warehouseAwaitingCount
+        pipelineSteps.value[0].active = warehouseAwaitingCount > 0
         pipelineSteps.value[1].count = pickingOrders.length + pickedOrders.length
         pipelineSteps.value[1].active = pipelineSteps.value[1].count > 0
         pipelineSteps.value[2].count = packingOrders.length
@@ -2129,6 +2243,19 @@ async function updateWaveStatus(wave, targetStatus, request, options = {}) {
         setTimeout(() => { actionToast.value = '' }, 2500)
         return false
     }
+    if (!wave?.rawId) {
+        actionToast.value = 'Order action is missing an order id'
+        setTimeout(() => { actionToast.value = '' }, 2500)
+        return false
+    }
+    if (waveActionPending.value[wave.rawId]) {
+        return false
+    }
+
+    waveActionPending.value = {
+        ...waveActionPending.value,
+        [wave.rawId]: true,
+    }
 
     try {
         const response = await fetch(request.url, request.options)
@@ -2158,6 +2285,10 @@ async function updateWaveStatus(wave, targetStatus, request, options = {}) {
         // Refresh to get accurate state from backend
         await fetchPickingData()
         return false
+    } finally {
+        const nextPending = { ...waveActionPending.value }
+        delete nextPending[wave.rawId]
+        waveActionPending.value = nextPending
     }
 }
 
@@ -2210,6 +2341,48 @@ async function handleWaveAction(wave) {
     }
 
     if (wave.status === 'PACKING') {
+        // Check if this order has real packing materials that need issuance.
+        // Cross-reference order items against actual WM inventory to avoid
+        // phantom items from old default form values (boxes:10, blankets:4, etc.)
+        try {
+            const [catalogRes, orderItemsRes] = await Promise.all([
+                fetch(apiUrl('api/v1/inventory/packing-catalog'), { headers }),
+                fetch(apiUrl(`api/v1/orders/${wave.rawId}/items`), { headers })
+            ])
+
+            if (catalogRes.ok && orderItemsRes.ok) {
+                const catalog = await catalogRes.json()
+                const realSkus = new Set(catalog.map(c => c.sku).filter(Boolean))
+
+                const orderItems = await orderItemsRes.json()
+                // Only items whose SKU actually exists in this WM's inventory count
+                const realMaterialItems = (orderItems || []).filter(i =>
+                    i.quantity > 0 && realSkus.has(i.sku)
+                )
+
+                if (realMaterialItems.length > 0) {
+                    // Customer selected real materials — verify they were issued
+                    const movRes = await fetch(
+                        apiUrl(`api/v1/inventory/movements?reference_order_id=${wave.rawId}&page_size=50`),
+                        { headers }
+                    )
+                    if (movRes.ok) {
+                        const movements = await movRes.json()
+                        const issued = movements.filter(m =>
+                            (m.movement_type || '').toUpperCase() === 'ISSUE'
+                        )
+                        if (issued.length === 0) {
+                            actionToast.value = '⚠ Packing materials not issued! Go to Packing Materials → Issue to Order before completing packing.'
+                            setTimeout(() => { actionToast.value = '' }, 6000)
+                            return false
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            // Network error — allow to proceed
+        }
+
         return updateWaveStatus(wave, 'PACKED', {
             url: apiUrl(`api/v1/warehouses/${warehouseId}/operations/orders/${wave.rawId}/complete-packing`),
             options: { method: 'POST', headers }
@@ -2291,6 +2464,15 @@ async function triggerDispatch(check) {
     setTimeout(() => { dispatchToast.value = '' }, 3000)
 }
 
+// Debounced backend search when searchQuery changes
+let searchDebounceTimer = null
+watch(searchQuery, () => {
+    clearTimeout(searchDebounceTimer)
+    searchDebounceTimer = setTimeout(() => {
+        fetchPickingData()
+    }, 400)
+})
+
 onMounted(() => {
     window.addEventListener('warehouse-orders-updated', fetchPickingData)
     fetchPickingData()
@@ -2303,6 +2485,7 @@ onUnmounted(() => {
     window.removeEventListener('warehouse-orders-updated', fetchPickingData)
     stopAutoRefresh()
     if (undoTimeout) clearTimeout(undoTimeout)
+    clearTimeout(searchDebounceTimer)
 })
 </script>
 

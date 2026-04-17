@@ -155,6 +155,14 @@ async def record_order_payment(
         order.payment_status = "partial"
     db.add(order)
 
+    from app.services.return_charge_service import settle_transport_charges_from_order_payment
+    await settle_transport_charges_from_order_payment(
+        db,
+        order=order,
+        payment_amount=amount,
+        collection_source=payment_mode.upper(),
+    )
+
     # 3. LogisticsTransaction
     tx_type = "REVENUE_COD" if payment_mode.upper() == "COD" else "REVENUE_ONLINE"
     tx = LogisticsTransaction(
@@ -338,15 +346,22 @@ async def get_finance_summary(db: AsyncSession, warehouse_id: UUID | None = None
             revenue_by_day_acc[order.created_at.date()] += legacy_amount
 
     total_refunds_issued = 0.0
+    return_charge_revenue = 0.0
     for tx in scoped_transactions:
-        if tx.transaction_type != "REVENUE_REFUND":
+        tx_amount = float(tx.amount or 0.0)
+        if tx.transaction_type == "REVENUE_REFUND":
+            refund_amount = abs(tx_amount)
+            total_refunds_issued += refund_amount
+            if tx.transaction_date:
+                refunds_by_day_acc[tx.transaction_date.date()] += refund_amount
             continue
-        refund_amount = abs(float(tx.amount or 0.0))
-        total_refunds_issued += refund_amount
-        if tx.transaction_date:
-            refunds_by_day_acc[tx.transaction_date.date()] += refund_amount
+        if tx.transaction_type == "REVENUE_RETURN_CHARGE" and tx_amount > 0:
+            return_charge_revenue += tx_amount
+            revenue_by_mode_acc["RETURN_CHARGE"] += tx_amount
+            if tx.transaction_date:
+                revenue_by_day_acc[tx.transaction_date.date()] += tx_amount
 
-    total_revenue = max(0.0, normalized_revenue + legacy_revenue - total_refunds_issued)
+    total_revenue = max(0.0, normalized_revenue + legacy_revenue + return_charge_revenue - total_refunds_issued)
 
     expense_breakdown_acc: dict[str, float] = defaultdict(float)
     total_expenses = 0.0

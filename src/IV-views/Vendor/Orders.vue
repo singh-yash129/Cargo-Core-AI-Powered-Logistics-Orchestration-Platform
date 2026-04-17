@@ -109,9 +109,12 @@
                                     <button v-if="s.status === 'Delivered'" @click="openDamageModal(s)" class="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors" title="Report Damage">
                                         <span class="material-symbols-outlined text-[16px]">report</span>
                                     </button>
-                                    <button v-if="s.status !== 'Delivered' && s.status !== 'Cancelled'" @click="cancelOrder(s)" class="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors" title="Cancel">
+                                    <button v-if="s.status !== 'Delivered' && s.status !== 'Cancelled' && s.status !== 'In Transit'" @click="cancelOrder(s)" class="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors" title="Cancel">
                                         <span class="material-symbols-outlined text-[16px]">cancel</span>
                                     </button>
+                                    <span v-if="s.status === 'In Transit'" class="p-1.5 text-amber-400 cursor-default" title="This order is already in progress. Please contact support to request changes or cancellation.">
+                                        <span class="material-symbols-outlined text-[16px]">info</span>
+                                    </span>
                                 </div>
                             </td>
                         </tr>

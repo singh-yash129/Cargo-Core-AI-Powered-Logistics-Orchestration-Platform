@@ -13,6 +13,11 @@
                         :class="isDark ? 'text-gray-500' : 'text-gray-400'">{{ currentDate }}</p>
                 </div>
                 <div class="flex items-center gap-2">
+                    <button @click="$router.push('/manager-chat')"
+                        class="w-10 h-10 rounded-full flex items-center justify-center border"
+                        :class="isDark ? 'bg-surface-dark/50 border-white/5 text-primary' : 'bg-primary/10 border-primary/20 text-primary shadow-sm'">
+                        <span class="material-icons text-xl">support_agent</span>
+                    </button>
                     <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold"
                         :class="isDark ? 'bg-surface-dark/50 border-white/5 text-primary' : 'bg-primary/10 border-primary/20 text-primary'">
                         <span class="relative w-2 h-2 flex">
@@ -364,15 +369,13 @@ const currentTime = ref('')
 const period = ref('')
 const currentDate = ref('')
 let clockTimer = null
+let assignmentPollTimer = null
 const greeting = computed(() => {
     const h = new Date().getHours()
     return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'
 })
 
-onMounted(async () => {
-    updateTime()
-    clockTimer = setInterval(updateTime, 30000)
-
+async function loadCurrentJob() {
     const context = await driverStore.refreshDashboard()
     if (context?.current_job) {
         jobStore.loadJob(context.current_job)
@@ -384,12 +387,29 @@ onMounted(async () => {
             jobStore.reset()
         }
     }
+}
+
+onMounted(async () => {
+    updateTime()
+    clockTimer = setInterval(updateTime, 30000)
+    await loadCurrentJob()
+
+    // Poll every 20s for new assignments while driver has no active job (WebSocket fallback)
+    assignmentPollTimer = setInterval(async () => {
+        if (!jobStore.jobType || jobStore.jobState === 'IDLE') {
+            await loadCurrentJob()
+        }
+    }, 20000)
 })
 
 onUnmounted(() => {
     if (clockTimer) {
         clearInterval(clockTimer)
         clockTimer = null
+    }
+    if (assignmentPollTimer) {
+        clearInterval(assignmentPollTimer)
+        assignmentPollTimer = null
     }
     jobStore.stopSimulatedTracking()
 })

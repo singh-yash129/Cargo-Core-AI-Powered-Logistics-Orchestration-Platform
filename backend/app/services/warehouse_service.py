@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -339,19 +340,38 @@ async def get_warehouse_dashboard(db: AsyncSession, warehouse_id: UUID) -> Wareh
         for report in recent_damage_reports
     ]
 
-    # Chart data - Throughput (hourly picks for today)
-    today = datetime.now(timezone.utc).date()
-    today_start = datetime.combine(today, datetime.min.time()).replace(tzinfo=timezone.utc)
+    # Chart data - Throughput (hourly orders for today in IST, dynamic window up to current hour)
+    IST = ZoneInfo("Asia/Kolkata")
+    now_ist = datetime.now(IST)
+    today_ist = now_ist.date()
+    today_start_ist = datetime.combine(today_ist, datetime.min.time(), tzinfo=IST)
 
-    # Get hourly movement data for outbound picks
+    start_hour = 6  # 6 AM IST
+    end_hour = max(now_ist.hour, 13)  # extend to at least 13:00 IST
+
+    hour_labels = [f"{h:02d}:00" for h in range(start_hour, end_hour + 1)]
     hourly_picks = []
-    for hour in range(8):  # 8 hours
-        hour_start = today_start + timedelta(hours=6 + hour)
+
+    for hour in range(start_hour, end_hour + 1):
+        hour_start = today_start_ist + timedelta(hours=hour)
         hour_end = hour_start + timedelta(hours=1)
 
+        # Count orders placed in this hour for this warehouse
+        order_count = (
+            await db.execute(
+                select(func.count(Order.id))
+                .where(
+                    Order.warehouse_id == warehouse_id,
+                    Order.created_at >= hour_start,
+                    Order.created_at < hour_end
+                )
+            )
+        ).scalar_one()
+
+        # Also count outbound inventory movements (actual picks by staff)
         pick_count = (
             await db.execute(
-                select(func.coalesce(func.sum(InventoryMovement.quantity), 0))
+                select(func.coalesce(func.count(InventoryMovement.id), 0))
                 .join(InventoryItem, InventoryMovement.item_id == InventoryItem.id)
                 .where(
                     InventoryItem.warehouse_id == warehouse_id,
@@ -362,10 +382,10 @@ async def get_warehouse_dashboard(db: AsyncSession, warehouse_id: UUID) -> Wareh
             )
         ).scalar_one()
 
-        hourly_picks.append(int(pick_count) if pick_count else 0)
+        hourly_picks.append(int(order_count or 0) + int(pick_count or 0))
 
     throughput_chart = ChartData(
-        labels=['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00'],
+        labels=hour_labels,
         datasets=[ChartDataset(
             label='Items Picked',
             data=hourly_picks,
@@ -383,7 +403,7 @@ async def get_warehouse_dashboard(db: AsyncSession, warehouse_id: UUID) -> Wareh
     day_labels = []
 
     for i in range(7):
-        day = today - timedelta(days=6 - i)
+        day = today_ist - timedelta(days=6 - i)
         day_start = datetime.combine(day, datetime.min.time()).replace(tzinfo=timezone.utc)
         day_end = day_start + timedelta(days=1)
 
@@ -510,7 +530,7 @@ async def get_warehouse_dashboard(db: AsyncSession, warehouse_id: UUID) -> Wareh
             .where(
                 Order.warehouse_id == warehouse_id,
                 Order.status.in_(['PACKED', 'READY', 'DISPATCHED']),
-                Order.updated_at >= today_start
+                Order.updated_at >= today_start_ist
             )
         )
     ).scalars().all()

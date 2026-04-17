@@ -22,8 +22,13 @@
                 <div v-for="(msg, idx) in chatMessages" :key="idx" class="flex"
                     :class="msg.type === 'user' ? 'justify-end' : 'justify-start'">
                     <div class="max-w-[80%] p-3 rounded-lg text-sm"
-                        :class="msg.type === 'user' ? 'bg-primary/20 text-green-800 dark:text-primary border border-primary/20' : 'bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-white/5'">
+                        :class="msg.type === 'user' ? 'bg-primary/20 text-green-800 dark:text-primary border border-primary/20 whitespace-pre-line' : 'bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-white/5 whitespace-pre-line'">
                         {{ msg.text }}
+                    </div>
+                </div>
+                <div v-if="chatLoading" class="flex justify-start">
+                    <div class="max-w-[80%] p-3 rounded-lg text-sm bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-white/5 whitespace-pre-line">
+                        Analyzing live warehouse state...
                     </div>
                 </div>
             </div>
@@ -31,7 +36,7 @@
                 <input v-model="chatInput" @keyup.enter="sendChat" type="text"
                     placeholder="Ask: 'Which aisle has free space?' or 'How many laborers are free at 3 PM?'"
                     class="flex-1 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-purple-500/50 text-sm" />
-                <button @click="sendChat"
+                <button @click="sendChat" :disabled="chatLoading"
                     class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-gray-900 dark:text-white px-5 py-3 rounded-lg font-bold transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]">send</span>
                 </button>
@@ -126,13 +131,15 @@ const authStore = useAuthStore()
 const chatInput = ref('')
 const chatContainer = ref(null)
 const chatLoading = ref(false)
+const chatSessionId = ref(null)
 
 // Live data
 const allOrders = ref([])
 const labourers = ref([])
+const dashboardData = ref(null)
 
 const totalOrders = computed(() => allOrders.value.length)
-const pendingOrders = computed(() => allOrders.value.filter(o =>
+const pendingOrders = computed(() => dashboardData.value?.pending_orders_count ?? allOrders.value.filter(o =>
     o.warehouse_substatus === 'AWAITING_PICK' ||
     o.status === 'PENDING' ||
     o.status === 'CONFIRMED'
@@ -146,9 +153,9 @@ const availableStaff = computed(() => labourers.value.filter(l =>
     l.status === 'AVAILABLE' || l.status === 'IN_WAREHOUSE' || l.status === 'In Warehouse'
 ).length)
 const onFieldStaff = computed(() => labourers.value.filter(l =>
-    l.status === 'ON_DUTY' || l.status === 'ASSIGNED' || l.status === 'assigned'
+    l.status === 'ON_DUTY' || l.status === 'ASSIGNED' || l.status === 'assigned' || l.status === 'ON_FIELD'
 ).length)
-const totalStaff = computed(() => labourers.value.length)
+const totalStaff = computed(() => dashboardData.value?.total_labor ?? labourers.value.length)
 
 // Predicted tomorrow workload (real current + 20%)
 const predictedOrders = computed(() => Math.round(totalOrders.value * 1.2))
@@ -166,10 +173,15 @@ async function fetchLiveData() {
         const labourUrl = warehouseId
             ? `${API_BASE_URL}/api/v1/labourers?page=1&page_size=100&warehouse_id=${warehouseId}`
             : `${API_BASE_URL}/api/v1/labourers?page=1&page_size=100`
-        const [ordersRes, labourRes] = await Promise.allSettled([
+        const dashboardUrl = warehouseId
+            ? `${API_BASE_URL}/api/v1/warehouses/${warehouseId}/dashboard`
+            : null
+        const requests = [
             fetch(`${API_BASE_URL}/api/v1/orders?page=1&page_size=200`, { headers }),
             fetch(labourUrl, { headers })
-        ])
+        ]
+        if (dashboardUrl) requests.push(fetch(dashboardUrl, { headers }))
+        const [ordersRes, labourRes, dashboardRes] = await Promise.allSettled(requests)
         if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
             const data = await ordersRes.value.json()
             allOrders.value = data.items || []
@@ -178,25 +190,11 @@ async function fetchLiveData() {
             const data = await labourRes.value.json()
             labourers.value = data.items || []
         }
-        updateAIResponses()
+        if (dashboardRes?.status === 'fulfilled' && dashboardRes.value.ok) {
+            dashboardData.value = await dashboardRes.value.json()
+        }
     } catch (error) {
         console.error('SmartWMS fetch error:', error)
-    }
-}
-
-const aiResponses = ref({})
-
-function updateAIResponses() {
-    const fieldStaff = labourers.value.filter(l =>
-        l.status === 'ON_DUTY' || l.status === 'ASSIGNED'
-    ).slice(0, 3).map(l => l.name || l.full_name || 'Staff').join(', ') || 'No staff currently assigned'
-
-    aiResponses.value = {
-        'which aisle has free space': 'Zone C, Aisle 18 has 55% free space. Zone A, Aisle 14 has 30% availability. Zone D, Aisle 01 has most capacity at 60% free.',
-        'which laborers are on-field': `Currently ${onFieldStaff.value} laborer(s) are on duty. ${fieldStaff}. ${availableStaff.value} are available and ready for assignment.`,
-        'do we have capacity for 5 more orders': `Current orders: ${totalOrders.value} total. Adding 5 more would bring us to ${totalOrders.value + 5}. Available staff: ${availableStaff.value}. Recommendation: ${availableStaff.value >= 3 ? 'Yes, capacity looks good.' : 'Caution — limited staff available.'}`,
-        'predict tomorrow\'s workload': `Based on today's pipeline of ${totalOrders.value} orders, tomorrow's expected load is approximately ${predictedOrders.value} orders (+20%). Suggest scheduling ${extraStaffNeeded.value > 0 ? extraStaffNeeded.value + ' extra' : 'current'} staff for the morning shift.`,
-        'suggest staff reallocation': `Total staff: ${totalStaff.value}. Available: ${availableStaff.value}. On duty: ${onFieldStaff.value}. Pending orders needing attention: ${pendingOrders.value}. Recommend assigning available staff to PICKING priority first.`,
     }
 }
 
@@ -213,66 +211,49 @@ const chatMessages = ref([
 ])
 
 async function sendChat() {
-    if (!chatInput.value.trim()) return
+    if (!chatInput.value.trim() || chatLoading.value) return
     const userMsg = chatInput.value.trim()
     chatMessages.value.push({ type: 'user', text: userMsg })
     chatInput.value = ''
     await nextTick()
-
-    // Check for predefined quick responses first
-    const key = Object.keys(aiResponses.value).find(k => userMsg.toLowerCase().includes(k))
-
-    if (key) {
-        // Use predefined response for known queries
-        setTimeout(() => {
-            chatMessages.value.push({ type: 'ai', text: aiResponses.value[key] })
-            nextTick(() => {
-                if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+    chatLoading.value = true
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/ai/chat`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authStore.authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: userMsg,
+                context: 'warehouse_management',
+                session_id: chatSessionId.value
             })
-        }, 400)
-    } else {
-        // Try to call the real AI endpoint
-        chatLoading.value = true
-        try {
-            const warehouseContext = `Warehouse context: ${totalOrders.value} total orders, ${pendingOrders.value} pending, ${pickingOrders.value} in picking/packing. Staff: ${availableStaff.value} available, ${onFieldStaff.value} on duty, ${totalStaff.value} total.`
+        })
 
-            const response = await fetch('http://localhost:8000/api/v1/ai/chat', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${authStore.authToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: `${warehouseContext}\n\nUser question: ${userMsg}`,
-                    context: 'warehouse_management'
-                })
-            })
-
-            if (response.ok) {
-                const data = await response.json()
-                chatMessages.value.push({
-                    type: 'ai',
-                    text: data.response || data.message || 'I processed your request.'
-                })
-            } else {
-                // Fallback to generated response
-                chatMessages.value.push({
-                    type: 'ai',
-                    text: `I analyzed your query "${userMsg}". Current warehouse snapshot: ${totalOrders.value} total orders, ${availableStaff.value} staff available, ${pickingOrders.value} orders in picking/packing. Would you like specific details?`
-                })
-            }
-        } catch (error) {
-            console.error('AI chat error:', error)
-            // Fallback response
+        if (response.ok) {
+            const data = await response.json()
+            chatSessionId.value = data.session_id || chatSessionId.value
             chatMessages.value.push({
                 type: 'ai',
-                text: `Current warehouse status: ${totalOrders.value} orders, ${availableStaff.value}/${totalStaff.value} staff available, ${pickingOrders.value} in processing. How can I help?`
+                text: data.response || data.message || 'I processed your request.'
             })
-        } finally {
-            chatLoading.value = false
-            await nextTick()
-            if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+        } else {
+            chatMessages.value.push({
+                type: 'ai',
+                text: `I couldn't complete that warehouse analysis right now. Current snapshot: ${pendingOrders.value} orders need attention, ${availableStaff.value}/${totalStaff.value} staff are available, and ${pickingOrders.value} orders are in picking or packing.`
+            })
         }
+    } catch (error) {
+        console.error('AI chat error:', error)
+        chatMessages.value.push({
+            type: 'ai',
+            text: `Smart WMS is temporarily unavailable. Current warehouse snapshot: ${pendingOrders.value} orders need attention, ${availableStaff.value}/${totalStaff.value} staff are available, and ${pickingOrders.value} orders are in picking or packing.`
+        })
+    } finally {
+        chatLoading.value = false
+        await nextTick()
+        if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight
     }
 }
 
@@ -311,7 +292,9 @@ const aiInsights = computed(() => [
     {
         title: 'Slotting Optimization',
         icon: 'inventory_2', color: 'purple', confidence: 'Confidence: 99%',
-        description: 'Move high-demand items to Zone A (Near Dock) to reduce travel time for upcoming orders.',
+        description: dashboardData.value?.picking_queue?.length
+            ? `Highest live queue pressure is around ${dashboardData.value.picking_queue[0]?.zone || 'the primary picking aisle'}. Rebalance fast-moving SKUs closer to dispatch to reduce pick path length.`
+            : 'Queue volume is light right now. Use this window to tidy high-frequency aisles and prep fast movers near dispatch.',
         action: 'Optimize Layout'
     },
     {
@@ -338,14 +321,16 @@ const aiInsights = computed(() => [
     {
         title: 'Visual Damage Assessment',
         icon: 'image_search', color: 'orange', confidence: 'AI Vision: Active',
-        description: 'Automated damage detection is monitoring inbound returns. Flag suspicious items during grading for review.',
+        description: dashboardData.value?.recent_returns?.length
+            ? `${dashboardData.value.recent_returns.length} recent return case(s) need attention. Review suspicious items during grading and confirm disposition quickly.`
+            : 'No recent graded returns were pulled into the dashboard. Keep inbound inspection active for new damage cases.',
         action: 'Review Items'
     },
     {
         title: 'Tomorrow\'s Prediction',
         icon: 'auto_graph', color: 'teal',
         confidence: `~${predictedOrders.value} orders expected`,
-        description: `Based on current pipeline of ${totalOrders.value} orders, tomorrow's load is estimated at ${predictedOrders.value} orders. Staff needed: ~${predictedStaffNeeded.value}.`,
+        description: `Based on the current pipeline of ${totalOrders.value} orders and ${pendingOrders.value} waiting actions, tomorrow's load is estimated at ${predictedOrders.value} orders. Staff needed: ~${predictedStaffNeeded.value}.`,
         action: 'Plan Schedule'
     },
 ])

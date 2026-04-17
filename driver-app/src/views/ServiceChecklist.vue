@@ -55,7 +55,7 @@
                     ? 'bg-primary text-background-dark shadow-glow'
                     : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
                 <span class="material-icons">{{ allRequiredDone ? 'check_circle' : 'lock' }}</span>
-                {{ allRequiredDone ? 'Proceed to POD' : 'Complete required items' }}
+                {{ allRequiredDone ? proceedLabel : 'Complete required items' }}
             </button>
         </div>
     </div>
@@ -110,6 +110,9 @@ function buildChecklist() {
 
 const checklist = ref(buildChecklist())
 const checklistSubtitle = computed(() => `${jobStore.jobTypeLabel} · Stop #${stop.value.stopNumber || 1}`)
+const proceedLabel = computed(() =>
+    jobStore.jobType === 'HOUSE_SHIFT' ? 'Proceed to Sign-off' : 'Proceed to POD'
+)
 
 watch([() => stop.value?.id, () => jobStore.jobType, () => jobStore.jobData?.checklist], () => {
     checklist.value = buildChecklist()
@@ -128,11 +131,18 @@ function proceed() {
         }
         if (jobStore.canTransitionTo('POC_CAPTURE')) {
             advanceAndNavigate('POC_CAPTURE')
+        } else if (jobStore.jobState === 'COMPLETED') {
+            // Already completed — go straight to completion screen
+            router.push('/job-completion')
         } else {
-            // FSM state is inconsistent — force navigate directly
+            // FSM state is out of sync — force it to POC_CAPTURE before navigating
+            jobStore.jobState = 'POC_CAPTURE'
             router.push('/customer-signoff')
         }
     } else {
+        if (!jobStore.canTransitionTo('POD_CAPTURE')) {
+            jobStore.jobState = 'SERVICE_CHECKLIST'
+        }
         advanceAndNavigate('POD_CAPTURE')
     }
 }

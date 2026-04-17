@@ -13,6 +13,64 @@ const asWarehouseId = (value) => {
 }
 const financeScopeFor = (warehouseId) => warehouseId && warehouseId !== 'all' ? String(warehouseId) : 'all'
 
+function normalizeReturnStatus(status) {
+    if (status === 'Inspected') return 'Physically Inspected'
+    return status
+}
+
+function deriveReturnFlowType(item) {
+    const explicit = item.flow_type || item.flowType || null
+    if (explicit) return explicit
+
+    const status = normalizeReturnStatus(item.status || '')
+    if (['Under Review', 'Claims Reviewed'].includes(status)) {
+        return 'photo_review'
+    }
+    if (
+        ['Pickup Requested', 'Pickup Approved', 'Pickup Rejected', 'Pickup Scheduled', 'Collected', 'At Warehouse', 'Physically Inspected'].includes(status) ||
+        item.wm_disposition ||
+        item.wm_graded_at ||
+        item.wm_grader_name
+    ) {
+        return 'pickup_inspection'
+    }
+    return null
+}
+
+function mapReturnRecord(item) {
+    const flowType = deriveReturnFlowType(item)
+    return {
+        id: asStringId(item.id),
+        hubId: asWarehouseId(item.hub_id),
+        orderId: item.order_id ? String(item.order_id) : '',
+        customer: item.customer,
+        reason: item.reason,
+        condition: item.condition,
+        status: normalizeReturnStatus(item.status),
+        flow_type: flowType,
+        originalPrice: item.original_price,
+        refundAmount: item.refund_amount,
+        images: item.images || [],
+        referenceCode: item.reference_code,
+        walletCredited: item.wallet_credited ?? false,
+        wmDisposition: item.wm_disposition || null,
+        wmGenuineness: typeof item.wm_is_genuine === 'boolean' ? item.wm_is_genuine : undefined,
+        wmRecommendedSettlement: item.wm_recommended_outcome || null,
+        wmRemarks: item.wm_inspection_remarks || null,
+        wmActualCondition: flowType === 'pickup_inspection' ? item.condition || null : null,
+        wmDamageSeverity: flowType === 'photo_review' ? item.condition || null : null,
+        wmGradedAt: item.wm_graded_at || null,
+        wmGraderName: item.wm_grader_name || null,
+        transportChargeAmount: Number(item.transport_charge_amount || 0),
+        transportChargeWalletCollected: Number(item.transport_charge_wallet_collected || 0),
+        transportChargePendingAmount: Number(item.transport_charge_pending_amount || 0),
+        transportChargeStatus: item.transport_charge_status || null,
+        transportChargeAppliedAt: item.transport_charge_applied_at || null,
+        isUrgent: item.is_urgent ?? false,
+        urgentReason: item.urgent_reason || null,
+    }
+}
+
 function loadCredentialCache() {
     try {
         return JSON.parse(localStorage.getItem(CREDENTIAL_CACHE_KEY) || '{}')
@@ -39,8 +97,23 @@ function roleLabel(role) {
     if (role === 'WAREHOUSE_MANAGER') return 'Warehouse Manager'
     if (role === 'DISPATCHER') return 'Dispatcher'
     if (role === 'DRIVER') return 'Driver'
+    if (role === 'AI_AGENT' || role === 'AI_SUPPORT' || role === 'CUSTOMER_SUPPORT') return 'Customer Support'
     if (role === 'VENDOR') return 'Vendor'
     return role || 'User'
+}
+
+function roleApiValue(role) {
+    const normalized = String(role || 'DRIVER')
+        .trim()
+        .replace(/\s+/g, '_')
+        .replace(/-/g, '_')
+        .toUpperCase()
+
+    if (normalized === 'CUSTOMER_SUPPORT' || normalized === 'AI_SUPPORT') {
+        return 'AI_AGENT'
+    }
+
+    return normalized
 }
 
 async function apiRequest(path, options = {}) {
@@ -93,6 +166,7 @@ export const useLogisticStore = defineStore('logistic', () => {
     const aiSuggestionChips = ref([])
     const aiMessages = ref([])
     const aiSessionId = ref(null)
+    const dispatcherAiSessionId = ref(null) // separate session for dispatcher role
     const financeSummary = ref({})
     const financeCodRecords = ref([])
     const financeStaffRecords = ref([])
@@ -258,11 +332,14 @@ export const useLogisticStore = defineStore('logistic', () => {
         transactions.value = asArray(payload.transactions).map((tx) => ({
             id: asStringId(tx.id),
             hubId: asWarehouseId(tx.hub_id),
+            transactionCode: tx.transaction_code || '',
             date: tx.date,
             desc: tx.desc,
             type: tx.type,
             amount: tx.amount,
             status: tx.status,
+            metadataJson: tx.metadata_json || {},
+            relatedOrder: tx.related_order || null,
         }))
 
         reports.value = asArray(payload.reports).map((report) => ({
@@ -276,23 +353,7 @@ export const useLogisticStore = defineStore('logistic', () => {
 
         users.value = asArray(payload.users).map(normalizeUserRecord)
 
-        returns.value = asArray(payload.returns).map((item) => ({
-            id: asStringId(item.id),
-            hubId: asWarehouseId(item.hub_id),
-            orderId: item.order_id ? String(item.order_id) : '',
-            customer: item.customer,
-            reason: item.reason,
-            condition: item.condition,
-            status: item.status,
-            originalPrice: item.original_price,
-            refundAmount: item.refund_amount,
-            images: item.images || [],
-            referenceCode: item.reference_code,
-            walletCredited: item.wallet_credited ?? false,
-            wmDisposition: item.wm_disposition || null,
-            wmGradedAt: item.wm_graded_at || null,
-            wmGraderName: item.wm_grader_name || null,
-        }))
+        returns.value = asArray(payload.returns).map(mapReturnRecord)
 
         equipmentLedger.value = asArray(payload.equipment_ledger).map((eq) => ({
             id: asStringId(eq.id),
@@ -445,8 +506,20 @@ export const useLogisticStore = defineStore('logistic', () => {
     const filteredUsers = computed(() => filterByWarehouse(users.value))
     const filteredReturns = computed(() => filterByWarehouse(returns.value))
     const filteredZones = computed(() => filterByWarehouse(zones.value))
-    const filteredChats = computed(() => filterByWarehouse(chats.value))
-    const filteredEscalations = computed(() => filterByWarehouse(escalations.value))
+    const filteredChats = computed(() => {
+        const all = filterByWarehouse(chats.value)
+        // Deduplicate: if a "LM Driver: X" legacy thread exists alongside a plain "X"
+        // thread, hide the legacy one to avoid duplicate entries in the sidebar.
+        const plainNames = new Set(
+            all.filter((c) => !c.name.startsWith('LM Driver: ')).map((c) => c.name)
+        )
+        return all.filter(
+            (c) => !c.name.startsWith('LM Driver: ') || !plainNames.has(c.name.slice('LM Driver: '.length))
+        )
+    })
+    const filteredEscalations = computed(() =>
+        filterByWarehouse(escalations.value).filter((item) => item.status === 'OPEN')
+    )
     const filteredInventory = computed(() => filterByWarehouse(inventory.value))
     const filteredFinanceCodRecords = computed(() => filterByWarehouse(financeCodRecords.value))
     const filteredFinanceStaffRecords = computed(() => filterByWarehouse(financeStaffRecords.value))
@@ -525,8 +598,8 @@ export const useLogisticStore = defineStore('logistic', () => {
     }
 
     async function markAllNotificationsRead() {
-        await apiRequest('/logistics/notifications/mark-all-read', { method: 'POST', headers: authHeaders() })
         notifications.value.forEach((item) => { item.read = true })
+        await apiRequest('/logistics/notifications/mark-all-read', { method: 'POST', headers: authHeaders() }).catch(() => {})
     }
 
     async function clearNotifications() {
@@ -555,11 +628,14 @@ export const useLogisticStore = defineStore('logistic', () => {
         transactions.value = [{
             id: asStringId(created.id),
             hubId: asWarehouseId(created.hub_id),
+            transactionCode: created.transaction_code || '',
             date: created.date,
             desc: created.desc,
             type: created.type,
             amount: created.amount,
             status: created.status,
+            metadataJson: created.metadata_json || {},
+            relatedOrder: created.related_order || null,
         }, ...transactions.value]
 
         if (created.amount > 0) {
@@ -590,6 +666,24 @@ export const useLogisticStore = defineStore('logistic', () => {
         }
     }
 
+    async function askAiDispatcher(query) {
+        try {
+            const payload = { message: query, context: 'dispatcher' }
+            if (dispatcherAiSessionId.value) payload.session_id = dispatcherAiSessionId.value
+            const response = await apiRequest('/ai/chat', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify(payload),
+            })
+            if (response.session_id) dispatcherAiSessionId.value = response.session_id
+            let text = response.message || response.reply || response.text || 'No response.'
+            text = text.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+            return { text }
+        } catch (err) {
+            return { text: 'AI engine unavailable. Please try again.' }
+        }
+    }
+
     async function askAi(query) {
         const userMessage = {
             id: `user-${Date.now()}`,
@@ -600,7 +694,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         aiMessages.value.push(userMessage)
 
         try {
-            const payload = { message: query }
+            const payload = { message: query, context: 'logistic_manager' }
             if (aiSessionId.value) {
                 payload.session_id = aiSessionId.value
             }
@@ -652,28 +746,29 @@ export const useLogisticStore = defineStore('logistic', () => {
                 refund_amount: details.refundAmount ?? null,
                 condition: details.condition ?? null,
                 notes: details.notes ?? null,
+                apply_transport_charge: details.applyTransportCharge ?? false,
             }),
         })
         const existingIndex = returns.value.findIndex((item) => item.id === String(rmaId))
         if (existingIndex !== -1) {
+            const previous = returns.value[existingIndex]
             returns.value.splice(existingIndex, 1, {
-                ...returns.value[existingIndex],
-                id: asStringId(updatedReturn.id),
-                hubId: asWarehouseId(updatedReturn.hub_id),
-                orderId: updatedReturn.order_id ? String(updatedReturn.order_id) : '',
-                customer: updatedReturn.customer,
-                reason: updatedReturn.reason,
-                condition: updatedReturn.condition,
-                status: updatedReturn.status,
-                originalPrice: updatedReturn.original_price,
-                refundAmount: updatedReturn.refund_amount,
-                images: updatedReturn.images || [],
-                referenceCode: updatedReturn.reference_code,
-                walletCredited: updatedReturn.wallet_credited ?? false,
-                wmDisposition: updatedReturn.wm_disposition ?? returns.value[existingIndex].wmDisposition ?? null,
-                wmGradedAt: updatedReturn.wm_graded_at ?? returns.value[existingIndex].wmGradedAt ?? null,
-                wmGraderName: updatedReturn.wm_grader_name ?? returns.value[existingIndex].wmGraderName ?? null,
-                notes: details.notes ?? returns.value[existingIndex].notes ?? '',
+                ...previous,
+                ...mapReturnRecord(updatedReturn),
+                wmDisposition: updatedReturn.wm_disposition ?? previous.wmDisposition ?? null,
+                wmGenuineness: typeof updatedReturn.wm_is_genuine === 'boolean' ? updatedReturn.wm_is_genuine : previous.wmGenuineness,
+                wmRecommendedSettlement: updatedReturn.wm_recommended_outcome ?? previous.wmRecommendedSettlement ?? null,
+                wmRemarks: updatedReturn.wm_inspection_remarks ?? previous.wmRemarks ?? null,
+                wmActualCondition: updatedReturn.condition ?? previous.wmActualCondition ?? null,
+                wmDamageSeverity: updatedReturn.condition ?? previous.wmDamageSeverity ?? null,
+                wmGradedAt: updatedReturn.wm_graded_at ?? previous.wmGradedAt ?? null,
+                wmGraderName: updatedReturn.wm_grader_name ?? previous.wmGraderName ?? null,
+                transportChargeAmount: Number(updatedReturn.transport_charge_amount ?? previous.transportChargeAmount ?? 0),
+                transportChargeWalletCollected: Number(updatedReturn.transport_charge_wallet_collected ?? previous.transportChargeWalletCollected ?? 0),
+                transportChargePendingAmount: Number(updatedReturn.transport_charge_pending_amount ?? previous.transportChargePendingAmount ?? 0),
+                transportChargeStatus: updatedReturn.transport_charge_status ?? previous.transportChargeStatus ?? null,
+                transportChargeAppliedAt: updatedReturn.transport_charge_applied_at ?? previous.transportChargeAppliedAt ?? null,
+                notes: details.notes ?? previous.notes ?? '',
             })
         } else {
             await refresh()
@@ -690,6 +785,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         if (existingIndex !== -1) {
             returns.value.splice(existingIndex, 1, {
                 ...returns.value[existingIndex],
+                status: 'Refunded',
                 walletCredited: true,
             })
         }
@@ -705,10 +801,31 @@ export const useLogisticStore = defineStore('logistic', () => {
         if (existingIndex !== -1) {
             returns.value.splice(existingIndex, 1, {
                 ...returns.value[existingIndex],
-                status: updatedCase.status || 'Pickup Scheduled',
+                ...mapReturnRecord(updatedCase),
+                status: normalizeReturnStatus(updatedCase.status || 'Pickup Scheduled'),
             })
         }
         return updatedCase
+    }
+
+    async function fetchAlerts() {
+        try {
+            const data = await apiRequest('/logistics/alerts', { headers: authHeaders() })
+            if (Array.isArray(data)) {
+                alerts.value = data.map(alert => ({
+                    id: String(alert.id),
+                    type: alert.type,
+                    title: alert.title,
+                    description: alert.description,
+                    severity: alert.severity,
+                    icon: alert.icon || 'warning',
+                    timestamp: alert.timestamp,
+                    location: alert.location,
+                    recommendation: alert.recommendation,
+                    ...(alert.impact || {}),
+                }))
+            }
+        } catch (_) {}
     }
 
     async function addAlert(alert) {
@@ -738,6 +855,23 @@ export const useLogisticStore = defineStore('logistic', () => {
             sender: 'dispatch',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         })
+    }
+
+    function getManagerDriverThreadName(driverOrName) {
+        const rawName = typeof driverOrName === 'string'
+            ? driverOrName
+            : driverOrName?.name
+        const safeName = String(rawName || '').trim()
+        return safeName || 'Unknown Driver'
+    }
+
+    function findManagerDriverThread(driver) {
+        if (!driver) return null
+        const threadName = getManagerDriverThreadName(driver)
+        // Match by exact name OR the legacy "LM Driver: X" format
+        return chats.value.find(
+            (chat) => chat.name === threadName || chat.name === `LM Driver: ${threadName}`
+        ) || null
     }
 
     async function fetchWmChats() {
@@ -783,13 +917,13 @@ export const useLogisticStore = defineStore('logistic', () => {
         return { messages: mappedMessages }
     }
 
-    async function createChatThread(name, phone = null) {
+    async function createChatThread(name, phone = null, warehouseId = null) {
         const created = await apiRequest('/logistics/chats', {
             method: 'POST',
             headers: authHeaders(),
-            body: JSON.stringify({ name, phone }),
+            body: JSON.stringify({ name, phone, warehouse_id: warehouseId }),
         })
-        chats.value.unshift({
+        const mappedThread = {
             id: String(created.id),
             hubId: asWarehouseId(created.hub_id),
             name: created.name,
@@ -798,8 +932,33 @@ export const useLogisticStore = defineStore('logistic', () => {
             status: created.status || 'Online',
             phone: created.phone || null,
             muted: false,
-            messages: [],
-        })
+            messages: (created.messages || []).map((m) => ({
+                id: String(m.id),
+                text: m.text,
+                sender: m.sender,
+                time: m.time,
+            })),
+        }
+        const existingIdx = chats.value.findIndex((chat) => chat.id === String(created.id))
+        if (existingIdx !== -1) {
+            chats.value[existingIdx] = mappedThread
+        } else {
+            chats.value.unshift(mappedThread)
+        }
+        return mappedThread
+    }
+
+    async function ensureManagerDriverThread(driver) {
+        if (!driver?.name) throw new Error('Driver context is required')
+
+        const existing = findManagerDriverThread(driver)
+        if (existing) return existing
+
+        const created = await createChatThread(
+            getManagerDriverThreadName(driver),
+            driver.phone || null,
+            driver.hubId || driver.warehouseId || null,
+        )
         return created
     }
 
@@ -1038,7 +1197,7 @@ export const useLogisticStore = defineStore('logistic', () => {
                 email: userData.email,
                 phone: userData.mobile || userData.phone || null,
                 password: userData.password || '12345678',
-                role: String(userData.role || 'DRIVER').replace(' ', '_').toUpperCase(),
+                role: roleApiValue(userData.role),
                 warehouse_id: userData.hubId && userData.hubId !== 'all' ? userData.hubId : null,
             }),
         })
@@ -1281,6 +1440,9 @@ export const useLogisticStore = defineStore('logistic', () => {
         filteredZones,
         filteredChats,
         filteredEscalations,
+        warehouseManagerUsers: computed(() =>
+            users.value.filter((u) => u.role === 'Warehouse Manager')
+        ),
         filteredInventory,
         filteredFinanceCodRecords,
         filteredFinanceStaffRecords,
@@ -1297,10 +1459,12 @@ export const useLogisticStore = defineStore('logistic', () => {
         addTransaction,
         fetchFinanceSummary,
         askAi,
+        askAiDispatcher,
         updateReturnStatus,
         issueReturnRefund,
         scheduleReturnPickup,
         addAlert,
+        fetchAlerts,
         resolveAlert,
         setWarehouse,
         togglePin,
@@ -1318,6 +1482,9 @@ export const useLogisticStore = defineStore('logistic', () => {
         sendMessageToDriver,
         sendChatMessage,
         createChatThread,
+        getManagerDriverThreadName,
+        findManagerDriverThread,
+        ensureManagerDriverThread,
         deleteChatThread,
         muteChatThread,
         sendBroadcast,

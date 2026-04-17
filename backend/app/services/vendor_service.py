@@ -1,5 +1,6 @@
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta, timezone
+import json
 import uuid
 
 from fastapi import HTTPException, status
@@ -19,6 +20,7 @@ from app.models.vendor import (
     VendorSupportTicket,
     VendorTeamMember,
 )
+from app.models.warehouse import Warehouse
 from app.schemas.auth import UserProfile
 from app.schemas.vendor import (
     VendorAnalytics,
@@ -193,6 +195,7 @@ def _shipment(
         amount=order.total_amount,
         scheduled_at=order.scheduled_at,
         created_at=order.created_at,
+        auto_debit_note=_latest_auto_debit_note(order.delivery_notes),
         eta_label=_eta_label(order),
         progress=_progress(key),
         cost=VendorShipmentCost(
@@ -240,6 +243,78 @@ async def _resolve_assignment_maps(
         }
 
     return driver_names, driver_phones, vehicle_codes
+
+
+def _rule_run_marker(rule_id: uuid.UUID, run_iso: str) -> str:
+    return f"RECURRING_RULE:{rule_id}|RUN:{run_iso}"
+
+
+async def _has_materialized_rule_run(
+    db: AsyncSession,
+    *,
+    rule_id: uuid.UUID,
+    run_iso: str,
+) -> bool:
+    marker = _rule_run_marker(rule_id, run_iso)
+    row = (
+        await db.execute(
+            select(Order.id).where(Order.delivery_notes.ilike(f"%{marker}%")).limit(1)
+        )
+    ).scalar_one_or_none()
+    return row is not None
+
+
+async def _materialize_rule_run_order(
+    db: AsyncSession,
+    *,
+    rule: VendorRecurringRule,
+    owner: User,
+    run_iso: str,
+) -> bool:
+    if await _has_materialized_rule_run(db, rule_id=rule.id, run_iso=run_iso):
+        return False
+
+    details = _parse_rule_details(rule.details)
+    hub_name = (details.get("hub") or "Vendor Hub").strip()
+    destination = (details.get("destinationAddress") or "Destination").strip()
+    cargo = (details.get("cargo") or rule.description or "Recurring cargo").strip()
+    drop_time = details.get("dropOffTime")
+
+    target_warehouse_id = owner.warehouse_id
+    if target_warehouse_id is None:
+        fallback_wh = (
+            await db.execute(
+                select(Warehouse.id).where(Warehouse.is_active.is_(True)).order_by(Warehouse.created_at.asc())
+            )
+        ).scalar_one_or_none()
+        target_warehouse_id = fallback_wh
+
+    if target_warehouse_id is None:
+        return False
+
+    marker = _rule_run_marker(rule.id, run_iso)
+    order = Order(
+        tracking_code=_tracking_code(),
+        order_type="VENDOR",
+        status="CONFIRMED",
+        warehouse_substatus="AWAITING_INBOUND",
+        customer_id=owner.id,
+        warehouse_id=target_warehouse_id,
+        pickup_addr=hub_name,
+        pickup_type="hub",
+        delivery_addr=destination,
+        delivery_lat=_safe_float(details.get("destinationLat")),
+        delivery_lng=_safe_float(details.get("destinationLon")),
+        cargo_type=cargo,
+        vehicle_type="Mini Truck",
+        labor_count=0,
+        payment_mode="invoice",
+        payment_status="pending",
+        scheduled_at=_scheduled_datetime(run_iso, drop_time),
+        delivery_notes=marker,
+    )
+    db.add(order)
+    return True
 
 
 def _invoice_status(order: Order, now: datetime) -> str:
@@ -366,9 +441,389 @@ def _api_key_response(api_key: VendorApiKey) -> VendorApiKeyResponse:
     )
 
 
+def _tracking_code() -> str:
+    return f"QC-{uuid.uuid4().hex[:10].upper()}"
+
+
+def _parse_rule_details(details: str) -> dict:
+    try:
+        parsed = json.loads(details)
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+    return {}
+
+
+def _is_auto_debit_enabled(details: dict) -> bool:
+    value = details.get("autoDebitEnabled", False)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on", "enabled"}
+    return False
+
+
+def _parse_rule_marker(delivery_notes: str | None) -> tuple[uuid.UUID | None, str | None]:
+    if not delivery_notes:
+        return None, None
+    marker = str(delivery_notes)
+    if "RECURRING_RULE:" not in marker or "|RUN:" not in marker:
+        return None, None
+    try:
+        tail = marker.split("RECURRING_RULE:", 1)[1]
+        rule_raw, run_iso = tail.split("|RUN:", 1)
+        rule_id = uuid.UUID(rule_raw.strip())
+        run = run_iso.splitlines()[0].strip()
+        return rule_id, run
+    except Exception:
+        return None, None
+
+
+def _append_auto_debit_event(
+    order: Order,
+    *,
+    run_iso: str,
+    event_type: str,
+    message: str,
+) -> None:
+    now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    event_line = f"AUTODEBIT_EVENT|RUN:{run_iso}|TYPE:{event_type}|TS:{now_iso}|MSG:{message}"
+    existing = str(order.delivery_notes or "")
+    marker = f"|RUN:{run_iso}|TYPE:{event_type}|"
+    if marker in existing:
+        return
+    order.delivery_notes = f"{existing}\n{event_line}".strip()
+
+
+def _latest_auto_debit_note(delivery_notes: str | None) -> str | None:
+    if not delivery_notes:
+        return None
+    lines = [line.strip() for line in str(delivery_notes).splitlines() if line.strip()]
+    for line in reversed(lines):
+        if not line.startswith("AUTODEBIT_EVENT|"):
+            continue
+        try:
+            parts = line.split("|")
+            fields = {}
+            for part in parts[1:]:
+                if ":" not in part:
+                    continue
+                k, v = part.split(":", 1)
+                fields[k] = v
+            note_type = fields.get("TYPE", "")
+            msg = fields.get("MSG", "").strip()
+            if not msg:
+                continue
+            if note_type.startswith("SKIPPED"):
+                return f"Auto-debit skipped: {msg}"
+            if note_type == "DEBT":
+                return f"Auto-debit processed with wallet debt: {msg}"
+            if note_type == "SUCCESS":
+                return f"Auto-debit success: {msg}"
+            return msg
+        except Exception:
+            continue
+    return None
+
+
+async def _auto_debit_order_if_eligible(
+    db: AsyncSession,
+    *,
+    order: Order,
+    owner: User,
+    rule: VendorRecurringRule,
+    run_iso: str,
+    trigger: str,
+) -> tuple[bool, str]:
+    if (order.payment_mode or "").lower() != "invoice":
+        return False, ""
+    if order.payment_status == "paid":
+        return False, ""
+
+    outstanding = max(float(order.total_amount or 0.0) - float(order.paid_amount or 0.0), 0.0)
+    if outstanding <= 0:
+        return False, ""
+
+    details = _parse_rule_details(rule.details)
+    if not _is_auto_debit_enabled(details):
+        _append_auto_debit_event(
+            order,
+            run_iso=run_iso,
+            event_type="SKIPPED_DISABLED",
+            message="Recurring auto-debit is disabled",
+        )
+        db.add(order)
+        return False, "Recurring auto-debit is disabled for this schedule"
+
+    # Scheduled auto-debit must happen only on the exact scheduled day.
+    if trigger == "scheduled":
+        today = datetime.now(timezone.utc).date()
+        scheduled_day = order.scheduled_at.date() if order.scheduled_at else None
+        if scheduled_day is None:
+            try:
+                scheduled_day = date.fromisoformat(run_iso)
+            except Exception:
+                scheduled_day = None
+        if scheduled_day != today:
+            return False, ""
+
+    from app.services import wallet_service
+
+    try:
+        payment = await wallet_service.apply_wallet_payment(
+            db,
+            order=order,
+            user=owner,
+            amount=outstanding,
+            allow_negative=True,
+        )
+        if float(payment.remaining_wallet_balance or 0.0) < 0:
+            debt = abs(float(payment.remaining_wallet_balance or 0.0))
+            _append_auto_debit_event(
+                order,
+                run_iso=run_iso,
+                event_type="DEBT",
+                message=f"Wallet balance is negative by INR {debt:.2f}. Please top up to clear dues.",
+            )
+            db.add(order)
+            return True, "Auto-debit completed. Wallet is now negative; please top up"
+
+        _append_auto_debit_event(
+            order,
+            run_iso=run_iso,
+            event_type="SUCCESS",
+            message="Debited from wallet",
+        )
+        db.add(order)
+        return True, "Auto-debit completed from vendor wallet"
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_400_BAD_REQUEST:
+            detail = exc.detail or "Auto-debit skipped"
+            if "insufficient wallet balance" in str(detail).lower():
+                _append_auto_debit_event(
+                    order,
+                    run_iso=run_iso,
+                    event_type="SKIPPED_LOW_BALANCE",
+                    message="Insufficient wallet balance",
+                )
+                db.add(order)
+            return False, exc.detail or "Auto-debit skipped"
+        raise
+
+
+async def auto_debit_recurring_order_if_eligible(
+    db: AsyncSession,
+    *,
+    order: Order,
+    trigger: str,
+) -> tuple[bool, str]:
+    """Attempt wallet auto-debit for a recurring order.
+
+    trigger:
+    - "scheduled": run by scheduler on due date only
+    - "arrived": run when warehouse marks goods arrived (can be before scheduled date)
+    """
+    rule_id, run_iso = _parse_rule_marker(order.delivery_notes)
+    if not rule_id or not run_iso:
+        return False, ""
+
+    rule = (
+        await db.execute(select(VendorRecurringRule).where(VendorRecurringRule.id == rule_id))
+    ).scalar_one_or_none()
+    if not rule:
+        return False, ""
+
+    owner = (
+        await db.execute(select(User).where(User.id == order.customer_id))
+    ).scalar_one_or_none()
+    if not owner:
+        return False, ""
+
+    return await _auto_debit_order_if_eligible(
+        db,
+        order=order,
+        owner=owner,
+        rule=rule,
+        run_iso=run_iso,
+        trigger=trigger,
+    )
+
+
+def _safe_float(value) -> float | None:
+    try:
+        if value is None:
+            return None
+        return float(value)
+    except Exception:
+        return None
+
+
+def _next_run_for_frequency(current_due: date, frequency: str) -> date:
+    label = (frequency or "").strip().lower()
+    if label == "daily":
+        return current_due + timedelta(days=1)
+    if label == "bi-weekly":
+        return current_due + timedelta(days=14)
+    if label == "1st of month":
+        year = current_due.year + (1 if current_due.month == 12 else 0)
+        month = 1 if current_due.month == 12 else current_due.month + 1
+        return date(year, month, 1)
+    if label == "15th of month":
+        year = current_due.year + (1 if current_due.month == 12 else 0)
+        month = 1 if current_due.month == 12 else current_due.month + 1
+        return date(year, month, 15)
+
+    weekday_map = {
+        "every monday": 0,
+        "every tuesday": 1,
+        "every wednesday": 2,
+        "every thursday": 3,
+        "every friday": 4,
+        "every saturday": 5,
+        "every sunday": 6,
+    }
+    target = weekday_map.get(label)
+    if target is not None:
+        days_ahead = (target - current_due.weekday()) % 7
+        return current_due + timedelta(days=days_ahead or 7)
+
+    # Fallback to weekly cadence for unknown labels.
+    return current_due + timedelta(days=7)
+
+
+def _scheduled_datetime(next_run: str, drop_off_time: str | None) -> datetime | None:
+    try:
+        run_day = date.fromisoformat(next_run)
+    except Exception:
+        return None
+    hh, mm = 9, 0
+    if drop_off_time:
+        try:
+            parts = drop_off_time.split(":")
+            hh = int(parts[0])
+            mm = int(parts[1])
+        except Exception:
+            pass
+    return datetime.combine(run_day, time(hour=hh, minute=mm, tzinfo=timezone.utc))
+
+
+async def run_due_recurring_rules(
+    db: AsyncSession,
+    *,
+    vendor_id: uuid.UUID | None = None,
+) -> int:
+    today = datetime.now(timezone.utc).date()
+    stmt = select(VendorRecurringRule).where(VendorRecurringRule.active.is_(True))
+    if vendor_id:
+        stmt = stmt.where(VendorRecurringRule.vendor_id == vendor_id)
+
+    rules = (
+        await db.execute(
+            stmt.order_by(VendorRecurringRule.created_at.asc()).with_for_update(skip_locked=True)
+        )
+    ).scalars().all()
+    if not rules:
+        return 0
+
+    vendor_ids = {rule.vendor_id for rule in rules}
+    users = (
+        await db.execute(select(User).where(User.id.in_(vendor_ids)))
+    ).scalars().all()
+    user_by_id = {user.id: user for user in users}
+
+    created = 0
+    for rule in rules:
+        try:
+            due = date.fromisoformat(rule.next_run)
+        except Exception:
+            continue
+
+        if due > today:
+            continue
+
+        owner = user_by_id.get(rule.vendor_id)
+        if not owner:
+            continue
+
+        run_iso = rule.next_run
+
+        was_created = await _materialize_rule_run_order(
+            db,
+            rule=rule,
+            owner=owner,
+            run_iso=run_iso,
+        )
+
+        marker = _rule_run_marker(rule.id, run_iso)
+        run_order = (
+            await db.execute(
+                select(Order).where(
+                    Order.customer_id == owner.id,
+                    Order.delivery_notes.ilike(f"%{marker}%"),
+                ).order_by(Order.created_at.desc())
+            )
+        ).scalars().first()
+        if run_order:
+            await _auto_debit_order_if_eligible(
+                db,
+                order=run_order,
+                owner=owner,
+                rule=rule,
+                run_iso=run_iso,
+                trigger="scheduled",
+            )
+
+        next_due = _next_run_for_frequency(due, rule.frequency)
+        rule.next_run = next_due.isoformat()
+        db.add(rule)
+        if was_created:
+            created += 1
+
+    if created:
+        await db.flush()
+    return created
+
+
+async def ensure_upcoming_recurring_orders(
+    db: AsyncSession,
+    *,
+    vendor_id: uuid.UUID | None = None,
+) -> int:
+    stmt = select(VendorRecurringRule).where(VendorRecurringRule.active.is_(True))
+    if vendor_id:
+        stmt = stmt.where(VendorRecurringRule.vendor_id == vendor_id)
+    rules = (await db.execute(stmt.order_by(VendorRecurringRule.created_at.asc()))).scalars().all()
+    if not rules:
+        return 0
+
+    vendor_ids = {rule.vendor_id for rule in rules}
+    users = (await db.execute(select(User).where(User.id.in_(vendor_ids)))).scalars().all()
+    user_by_id = {user.id: user for user in users}
+
+    created = 0
+    for rule in rules:
+        owner = user_by_id.get(rule.vendor_id)
+        if not owner:
+            continue
+        try:
+            date.fromisoformat(rule.next_run)
+        except Exception:
+            continue
+        if await _materialize_rule_run_order(db, rule=rule, owner=owner, run_iso=rule.next_run):
+            created += 1
+
+    if created:
+        await db.flush()
+    return created
+
+
 def _ticket_response(ticket: VendorSupportTicket) -> VendorSupportTicketResponse:
     return VendorSupportTicketResponse(
         id=f"TK-{str(ticket.id).split('-')[0].upper()}",
+        backend_id=ticket.id,
         subject=ticket.subject,
         description=ticket.description,
         order_id=str(ticket.order_id) if ticket.order_id else None,
@@ -635,6 +1090,12 @@ async def revoke_api_key(db: AsyncSession, user: User, key_id: uuid.UUID) -> Ven
 
 async def list_recurring_rules(db: AsyncSession, user: User) -> list[VendorRecurringRuleResponse]:
     _ensure_vendor(user)
+    due_created = await run_due_recurring_rules(db, vendor_id=user.id)
+    if due_created:
+        await db.commit()
+    upcoming_created = await ensure_upcoming_recurring_orders(db, vendor_id=user.id)
+    if upcoming_created:
+        await db.commit()
     rows = (
         await db.execute(
             select(VendorRecurringRule)
@@ -643,6 +1104,10 @@ async def list_recurring_rules(db: AsyncSession, user: User) -> list[VendorRecur
         )
     ).scalars().all()
     return [VendorRecurringRuleResponse.model_validate(row) for row in rows]
+
+def _compact_route(route: str) -> str:
+    route = route.strip()
+    return route if len(route) <= 255 else route[:252].rstrip() + "..."
 
 
 async def create_recurring_rule(
@@ -654,12 +1119,32 @@ async def create_recurring_rule(
         name=data.name,
         description=data.description,
         frequency=data.frequency,
-        route=data.route,
+        route=_compact_route(data.route),
         details=data.details,
         next_run=data.next_run,
         active=data.active,
     )
     db.add(rule)
+    await db.flush()
+    await _materialize_rule_run_order(db, rule=rule, owner=user, run_iso=rule.next_run)
+    marker = _rule_run_marker(rule.id, rule.next_run)
+    run_order = (
+        await db.execute(
+            select(Order).where(
+                Order.customer_id == user.id,
+                Order.delivery_notes.ilike(f"%{marker}%"),
+            ).order_by(Order.created_at.desc())
+        )
+    ).scalars().first()
+    if run_order:
+        await _auto_debit_order_if_eligible(
+            db,
+            order=run_order,
+            owner=user,
+            rule=rule,
+            run_iso=rule.next_run,
+            trigger="scheduled",
+        )
     await db.flush()
     await db.refresh(rule)
     return VendorRecurringRuleResponse.model_validate(rule)
@@ -682,7 +1167,7 @@ async def update_recurring_rule(
     rule.name = data.name
     rule.description = data.description
     rule.frequency = data.frequency
-    rule.route = data.route
+    rule.route = _compact_route(data.route)
     rule.details = data.details
     rule.next_run = data.next_run
     rule.active = data.active
@@ -816,6 +1301,13 @@ async def create_support_ticket(
     reply = VendorSupportReply(ticket_id=ticket.id, from_name="You", message=data.description)
     db.add(reply)
     await db.flush()
+    from app.services import ai_support_service
+
+    await ai_support_service.sync_vendor_ticket_to_support_ticket(
+        db=db,
+        vendor=user,
+        vendor_ticket=ticket,
+    )
     result = (
         await db.execute(
             select(VendorSupportTicket)
@@ -842,12 +1334,21 @@ async def reply_support_ticket(
     ).scalar_one_or_none()
     if not ticket:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Support ticket not found")
+    if ticket.status == "Resolved":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This support ticket is already resolved and the chat is closed.",
+        )
     reply = VendorSupportReply(ticket_id=ticket.id, from_name="You", message=data.message)
     db.add(reply)
-    if ticket.status == "Resolved":
-        ticket.status = "In Progress"
-        db.add(ticket)
     await db.flush()
+    from app.services import ai_support_service
+
+    await ai_support_service.sync_vendor_ticket_to_support_ticket(
+        db=db,
+        vendor=user,
+        vendor_ticket=ticket,
+    )
     refreshed = (
         await db.execute(
             select(VendorSupportTicket)
@@ -877,6 +1378,13 @@ async def resolve_support_ticket(
     ticket.status = "Resolved"
     db.add(ticket)
     await db.flush()
+    from app.services import ai_support_service
+
+    await ai_support_service.sync_vendor_ticket_to_support_ticket(
+        db=db,
+        vendor=user,
+        vendor_ticket=ticket,
+    )
     await db.refresh(ticket, attribute_names=["replies"])
     return _ticket_response(ticket)
 

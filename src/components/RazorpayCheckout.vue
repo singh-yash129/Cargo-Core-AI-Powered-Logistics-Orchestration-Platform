@@ -250,6 +250,71 @@
                   </div>
                 </div>
 
+                <!-- Cargo Core Wallet -->
+                <div v-if="activeTab === 'cargowallet'" class="space-y-4">
+                  <!-- Balance card -->
+                  <div class="rounded-2xl border-2 p-4 flex items-center gap-4 transition-all"
+                    :class="cargoWalletSufficient
+                      ? 'border-green-400 dark:border-green-500/60 bg-green-50 dark:bg-green-900/10'
+                      : 'border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-900/10'">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                      :class="cargoWalletSufficient ? 'bg-green-100 dark:bg-green-800/30' : 'bg-red-100 dark:bg-red-800/30'">
+                      <svg class="w-6 h-6" :class="cargoWalletSufficient ? 'text-green-600 dark:text-green-400' : 'text-red-500'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                      </svg>
+                    </div>
+                    <div class="flex-1">
+                      <div class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Cargo Core Wallet</div>
+                      <div class="text-2xl font-black mt-0.5" :class="cargoWalletSufficient ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+                        ₹{{ props.walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                      </div>
+                      <div class="text-[10px] mt-0.5" :class="cargoWalletSufficient ? 'text-green-600 dark:text-green-500' : 'text-red-500'">
+                        {{ cargoWalletSufficient ? 'Available balance' : 'Insufficient balance' }}
+                      </div>
+                    </div>
+                    <svg v-if="cargoWalletSufficient" class="w-6 h-6 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <svg v-else class="w-6 h-6 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                  </div>
+
+                  <!-- Payment breakdown -->
+                  <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3 space-y-2 text-xs border border-gray-200 dark:border-white/10">
+                    <div class="flex justify-between">
+                      <span class="text-gray-500">Amount to pay</span>
+                      <span class="font-bold text-gray-900 dark:text-white">₹{{ props.amount.toLocaleString() }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-gray-500">Wallet balance</span>
+                      <span class="font-bold" :class="cargoWalletSufficient ? 'text-green-600 dark:text-green-400' : 'text-red-500'">
+                        ₹{{ props.walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                      </span>
+                    </div>
+                    <div class="border-t border-gray-200 dark:border-white/10 pt-2 flex justify-between">
+                      <span class="font-semibold" :class="cargoWalletSufficient ? 'text-gray-600 dark:text-gray-400' : 'text-red-600 dark:text-red-400'">
+                        {{ cargoWalletSufficient ? 'Balance after payment' : 'Shortfall' }}
+                      </span>
+                      <span class="font-black" :class="cargoWalletSufficient ? 'text-gray-900 dark:text-white' : 'text-red-600 dark:text-red-400'">
+                        {{ cargoWalletSufficient
+                          ? '₹' + (props.walletBalance - props.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                          : '₹' + (props.amount - props.walletBalance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' needed'
+                        }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Insufficient notice -->
+                  <div v-if="!cargoWalletSufficient"
+                    class="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
+                    <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Top up your Cargo Core Wallet in the <strong>Wallet</strong> section, then come back to pay.</span>
+                  </div>
+                </div>
+
               </div>
 
               <!-- Pay Button -->
@@ -263,7 +328,7 @@
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                   </svg>
-                  Pay ₹{{ amount.toLocaleString() }} Securely
+                  {{ activeTab === 'cargowallet' ? 'Pay ₹' + amount.toLocaleString() + ' from Wallet' : 'Pay ₹' + amount.toLocaleString() + ' Securely' }}
                 </button>
                 <div class="flex items-center justify-center gap-2 text-[10px] text-gray-400">
                   <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -291,6 +356,7 @@ const props = defineProps({
   description: { type: String, default: '' },
   name: { type: String, default: '' },
   email: { type: String, default: '' },
+  walletBalance: { type: Number, default: 0 },
 })
 
 const emit = defineEmits(['update:modelValue', 'success', 'close'])
@@ -344,6 +410,7 @@ const tabs = [
   { key: 'card', label: 'Card' },
   { key: 'netbanking', label: 'Net Banking' },
   { key: 'wallet', label: 'Wallet' },
+  { key: 'cargowallet', label: 'Cargo Core' },
 ]
 
 // UPI
@@ -382,11 +449,14 @@ const wallets = [
   { name: 'Mobikwik', color: '#e92b2b', sub: 'Superwallet' },
 ]
 
+const cargoWalletSufficient = computed(() => props.walletBalance >= props.amount)
+
 const selectedMethodLabel = computed(() => {
   if (activeTab.value === 'upi') return upiId.value || 'UPI'
   if (activeTab.value === 'card') return `Card ending ${card.value.number.slice(-4) || '****'}`
   if (activeTab.value === 'netbanking') return selectedBank.value || 'Net Banking'
   if (activeTab.value === 'wallet') return selectedWallet.value || 'Wallet'
+  if (activeTab.value === 'cargowallet') return 'Cargo Core Wallet'
   return 'Online'
 })
 
@@ -395,6 +465,7 @@ const canPay = computed(() => {
   if (activeTab.value === 'card') return card.value.number.length >= 18 && card.value.expiry.length === 5 && card.value.cvv.length >= 3
   if (activeTab.value === 'netbanking') return !!selectedBank.value
   if (activeTab.value === 'wallet') return !!selectedWallet.value
+  if (activeTab.value === 'cargowallet') return cargoWalletSufficient.value
   return false
 })
 

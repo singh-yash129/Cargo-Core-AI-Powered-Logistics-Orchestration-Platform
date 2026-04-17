@@ -125,7 +125,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useGpsTracking } from '../composables/useGpsTracking.js'
@@ -133,7 +133,8 @@ import { useFlowRouter } from '../composables/useFlowRouter.js'
 import { formatDistance } from '../utils/geofence.js'
 
 const route = useRoute()
-const { advanceAndNavigate } = useFlowRouter()
+const router = useRouter()
+const { navigateToCurrentState } = useFlowRouter()
 const jobStore = useJobStore()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
@@ -169,15 +170,50 @@ const distanceColor = computed(() => {
     return isDark.value ? 'text-gray-400' : 'text-gray-500'
 })
 
-onMounted(() => {
-    if (route.params.id) {
-        jobStore.setCurrentStopById(route.params.id)
+function syncPickupArrivalState() {
+    const stopId = route.params.id || null
+
+    if (stopId) {
+        jobStore.setCurrentStopById(stopId)
     }
 
+    if (jobStore.jobState === 'SCAN_ITEMS') {
+        navigateToCurrentState()
+        return false
+    }
+
+    if (jobStore.jobState === 'ARRIVE_PICKUP') {
+        return true
+    }
+
+    const progressed = jobStore.ensureArrivalState(stopId, {
+        arrivedAt: new Date().toISOString(),
+    })
+
+    if (progressed || jobStore.jobState === 'ARRIVE_PICKUP') {
+        return true
+    }
+
+    // Fallback recovery for pickup jobs that land on this screen with a stale
+    // in-memory state one step behind the visual route.
+    if (jobStore.jobType === 'PARCEL_PICKUP') {
+        if (jobStore.jobState === 'ASSIGNED' && jobStore.canTransitionTo('START_ROUTE')) {
+            jobStore.transition('START_ROUTE', { recoveredAt: new Date().toISOString(), stopId })
+        }
+        if (jobStore.jobState === 'START_ROUTE' && jobStore.canTransitionTo('IN_TRANSIT_TO_PICKUP')) {
+            jobStore.transition('IN_TRANSIT_TO_PICKUP', { recoveredAt: new Date().toISOString(), stopId })
+        }
+        if (jobStore.jobState === 'IN_TRANSIT_TO_PICKUP' && jobStore.canTransitionTo('ARRIVE_PICKUP')) {
+            jobStore.transition('ARRIVE_PICKUP', { recoveredAt: new Date().toISOString(), stopId })
+        }
+    }
+
+    return jobStore.jobState === 'ARRIVE_PICKUP'
+}
+
+onMounted(() => {
     try {
-        jobStore.ensureArrivalState(route.params.id || null, {
-            arrivedAt: new Date().toISOString(),
-        })
+        syncPickupArrivalState()
     } catch (error) {
         console.warn('Unable to mark pickup arrival state:', error)
     }
@@ -193,19 +229,43 @@ onUnmounted(() => {
 async function proceedToScanning() {
     if (!isWithinGeofence.value && !geofenceOverride.value) return
 
-    // Re-ensure arrival state in case onMounted transition failed
-    try {
-        jobStore.ensureArrivalState(route.params.id || null, {
-            arrivedAt: new Date().toISOString(),
-        })
-    } catch (e) {
-        console.warn('ensureArrivalState in proceedToScanning failed:', e)
+    const stopId = route.params.id || jobStore.currentStopId || jobStore.currentStop?.id || null
+
+    if (stopId) {
+        jobStore.setCurrentStopById(stopId)
     }
 
-    // Transition FSM state and navigate
-    advanceAndNavigate('SCAN_ITEMS', {
-        arrivedAt: new Date().toISOString(),
-        location: currentLocation.value
-    })
+    if (jobStore.jobState === 'SCAN_ITEMS') {
+        router.push(`/pickup-scanning/${stopId || 'current'}`)
+        return
+    }
+
+    try {
+        const readyForScanning = syncPickupArrivalState()
+        if (!readyForScanning) {
+            // Final fallback: normalize stale persisted state so the driver can
+            // continue the pickup flow without getting blocked on an old session snapshot.
+            jobStore.jobState = 'ARRIVE_PICKUP'
+        }
+    } catch (e) {
+        console.warn('ensureArrivalState in proceedToScanning failed:', e)
+        jobStore.jobState = 'ARRIVE_PICKUP'
+    }
+
+    if (jobStore.jobState !== 'ARRIVE_PICKUP') {
+        jobStore.jobState = 'ARRIVE_PICKUP'
+    }
+
+    if (jobStore.canTransitionTo('SCAN_ITEMS')) {
+        jobStore.transition('SCAN_ITEMS', {
+            arrivedAt: new Date().toISOString(),
+            location: currentLocation.value
+        })
+    } else {
+        console.warn('Unable to validate ARRIVE_PICKUP -> SCAN_ITEMS transition, forcing scanning state')
+        jobStore.jobState = 'SCAN_ITEMS'
+    }
+
+    router.push(`/pickup-scanning/${stopId || 'current'}`)
 }
 </script>

@@ -2,8 +2,8 @@
     <div class="h-[calc(100vh-8rem)] flex gap-6">
         <!-- Conversation & Escalation Sidebar -->
         <div class="w-80 glass-panel rounded-xl flex flex-col overflow-hidden">
-            <!-- Tabs -->
-            <div class="flex border-b border-gray-200 dark:border-white/5">
+            <!-- Tabs + New Chat button -->
+            <div class="flex items-center border-b border-gray-200 dark:border-white/5">
                 <button @click="activeTab = 'chats'" class="flex-1 py-3 text-sm font-bold text-center transition-colors"
                     :class="activeTab === 'chats' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'">Messages</button>
                 <button @click="activeTab = 'escalations'"
@@ -13,6 +13,63 @@
                         class="bg-red-500 text-white text-[10px] px-1.5 rounded-full">{{ filteredEscalations.length
                         }}</span>
                 </button>
+                <!-- New Chat Button -->
+                <div class="relative flex-shrink-0">
+                    <button @click="isNewChatOpen = !isNewChatOpen"
+                        class="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/10 rounded-full transition-colors mx-1"
+                        title="New Chat">
+                        <span class="material-symbols-outlined text-[20px]">edit_square</span>
+                    </button>
+                    <!-- Contact Picker Dropdown -->
+                    <div v-if="isNewChatOpen"
+                        class="absolute right-0 top-12 w-64 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden z-50 animate-fade-in-up origin-top-right">
+                        <div class="p-3 border-b border-gray-100 dark:border-white/5">
+                            <input v-model="contactSearchQuery" type="text" placeholder="Search contacts..."
+                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-1.5 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors"
+                                autofocus />
+                        </div>
+                        <div class="max-h-72 overflow-y-auto no-scrollbar">
+                            <!-- Drivers -->
+                            <div v-if="filteredContactDrivers.length">
+                                <div class="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-black/20">Drivers</div>
+                                <button v-for="d in filteredContactDrivers" :key="'dr-'+d.id"
+                                    @click="startChatWith(d, 'driver')"
+                                    class="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-primary/5 dark:hover:bg-white/5 transition-colors text-left">
+                                    <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white"
+                                        :class="d.avatarColor || 'bg-gray-600'">
+                                        {{ d.name?.substring(0, 2).toUpperCase() }}
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ d.name }}</div>
+                                        <div class="text-[10px] text-gray-400 flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full"
+                                                :class="d.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'"></span>
+                                            {{ d.status }}
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                            <!-- Warehouse Managers -->
+                            <div v-if="filteredContactWMs.length">
+                                <div class="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-black/20">Warehouse Managers</div>
+                                <button v-for="wm in filteredContactWMs" :key="'wm-'+wm.id"
+                                    @click="startChatWith(wm, 'wm')"
+                                    class="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-primary/5 dark:hover:bg-white/5 transition-colors text-left">
+                                    <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white bg-purple-600">
+                                        {{ wm.name?.substring(0, 2).toUpperCase() }}
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ wm.name }}</div>
+                                        <div class="text-[10px] text-gray-400">Warehouse Manager</div>
+                                    </div>
+                                </button>
+                            </div>
+                            <div v-if="!filteredContactDrivers.length && !filteredContactWMs.length"
+                                class="p-6 text-center text-sm text-gray-400">No contacts found.</div>
+                        </div>
+                    </div>
+                    <div v-if="isNewChatOpen" @click="isNewChatOpen = false" class="fixed inset-0 z-40"></div>
+                </div>
             </div>
             <div class="p-4 border-b border-gray-200 dark:border-white/5">
                 <div class="relative">
@@ -31,7 +88,7 @@
                         :class="activeChatId === chat.id ? 'bg-primary/5 border-l-2 border-l-primary dark:bg-white/5' : ''"
                         @click="activeChatId = chat.id">
                         <div class="flex justify-between items-start mb-1">
-                            <div class="font-bold text-gray-900 dark:text-white text-sm">{{ chat.name }}</div>
+                            <div class="font-bold text-gray-900 dark:text-white text-sm">{{ chatDisplayName(chat.name) }}</div>
                             <div class="text-[10px] text-gray-500">{{ chat.time }}</div>
                         </div>
                         <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ chat.lastMessage }}</div>
@@ -83,10 +140,10 @@
                     <div class="flex items-center gap-3">
                         <div
                             class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold shadow-sm">
-                            {{ activeChat.name.substring(0, 2).toUpperCase() }}</div>
+                            {{ chatDisplayName(activeChat.name).substring(0, 2).toUpperCase() }}</div>
                         <div>
                             <div class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                {{ activeChat.name }}
+                                {{ chatDisplayName(activeChat.name) }}
                                 <span v-if="activeChat.muted"
                                     class="material-symbols-outlined text-gray-400 text-[16px]"
                                     title="Chat Muted">notifications_off</span>
@@ -142,7 +199,7 @@
                         :class="{ 'flex-row-reverse': msg.sender === 'me' }">
                         <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold shadow-sm"
                             :class="msg.sender === 'me' ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-white' : 'bg-purple-600 text-white'">
-                            {{ msg.sender === 'me' ? 'ME' : activeChat.name.substring(0, 2).toUpperCase() }}
+                            {{ msg.sender === 'me' ? 'ME' : chatDisplayName(activeChat.name).substring(0, 2).toUpperCase() }}
                         </div>
                         <div class="max-w-[70%]">
                             <div class="p-3 rounded-xl text-sm shadow-sm"
@@ -188,13 +245,13 @@
                         <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ activeTicket.title }}</h2>
                     </div>
                     <div class="flex gap-2 shrink-0">
-                        <button @click="resolveTicket('Approved')"
+                        <button @click="resolveTicket('Approved')" :disabled="ticketActionPending"
                             class="px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold text-sm transition-colors shadow-sm flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[20px]">check_circle</span> Approve
+                            <span class="material-symbols-outlined text-[20px]">check_circle</span> {{ ticketActionPending ? 'Working...' : 'Approve' }}
                         </button>
-                        <button @click="resolveTicket('Denied')"
+                        <button @click="resolveTicket('Denied')" :disabled="ticketActionPending"
                             class="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-colors shadow-sm flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[20px]">cancel</span> Deny
+                            <span class="material-symbols-outlined text-[20px]">cancel</span> {{ ticketActionPending ? 'Working...' : 'Deny' }}
                         </button>
                     </div>
                 </div>
@@ -246,9 +303,9 @@
                     class="w-full md:w-1/2 p-8 bg-slate-900/90 flex flex-col items-center justify-center text-center border-r border-white/10">
                     <div
                         class="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-3xl font-bold text-white mb-4 shadow-lg shadow-purple-500/30">
-                        {{ activeChat.name.substring(0, 2).toUpperCase() }}
+                        {{ chatDisplayName(activeChat.name).substring(0, 2).toUpperCase() }}
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">{{ activeChat.name }}</h3>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">{{ chatDisplayName(activeChat.name) }}</h3>
                     <p class="text-sm text-gray-500 mb-4">{{ activeChat.role || 'Logistic Partner' }}</p>
 
                     <div class="flex gap-2 mb-6">
@@ -335,7 +392,7 @@
                 </div>
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Delete Conversation?</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to delete the chat with
-                    <span class="font-bold text-gray-900 dark:text-white">{{ activeChat?.name }}</span>? This action
+                    <span class="font-bold text-gray-900 dark:text-white">{{ chatDisplayName(activeChat?.name) }}</span>? This action
                     cannot be
                     undone.
                 </p>
@@ -407,15 +464,23 @@
 <script setup>
 import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
+import { useAuthStore } from '@/stores/authStore'
+import { apiUrl } from '@/config/api'
 import { storeToRefs } from 'pinia'
 
 const store = useLogisticStore()
+const authStore = useAuthStore()
 const { filteredChats, filteredEscalations, escalations } = storeToRefs(store)
 
 onMounted(() => {
     store.refresh().catch(() => {})
 })
 
+// Strip legacy "LM Driver: " prefix (for any old threads still on the backend)
+function chatDisplayName(name) {
+    if (!name) return ''
+    return String(name).startsWith('LM Driver: ') ? String(name).slice('LM Driver: '.length) : String(name)
+}
 
 const activeTab = ref('chats')
 const activeChatId = ref(1)
@@ -423,6 +488,50 @@ const activeTicketId = ref(1)
 const searchQuery = ref('')
 const messageInput = ref('')
 const chatHistoryContainer = ref(null)
+const ticketActionPending = ref(false)
+
+// New Chat contact picker
+const isNewChatOpen = ref(false)
+const contactSearchQuery = ref('')
+const newChatLoading = ref(false)
+
+const filteredContactDrivers = computed(() => {
+    const q = contactSearchQuery.value.toLowerCase()
+    return store.drivers.filter((d) => !q || d.name?.toLowerCase().includes(q))
+})
+
+const filteredContactWMs = computed(() => {
+    const q = contactSearchQuery.value.toLowerCase()
+    return store.warehouseManagerUsers.filter((u) => !q || u.name?.toLowerCase().includes(q))
+})
+
+const startChatWith = async (contact, type) => {
+    isNewChatOpen.value = false
+    contactSearchQuery.value = ''
+    newChatLoading.value = true
+    try {
+        let thread
+        if (type === 'driver') {
+            thread = await store.ensureManagerDriverThread(contact)
+        } else {
+            // For WMs find or create a thread by name
+            const existing = store.chats.find((c) => c.name === contact.name)
+            if (existing) {
+                thread = existing
+            } else {
+                thread = await store.createChatThread(contact.name, contact.mobile || null, contact.hubId || null)
+            }
+        }
+        activeTab.value = 'chats'
+        activeChatId.value = thread.id
+        await nextTick()
+        scrollToBottom()
+    } catch (e) {
+        console.warn('[Communication] startChatWith failed:', e)
+    } finally {
+        newChatLoading.value = false
+    }
+}
 const isMenuOpen = ref(false)
 const isProfileModalOpen = ref(false)
 const isDeleteModalOpen = ref(false)
@@ -539,11 +648,94 @@ const confirmDeleteChat = async () => {
     isDeleteModalOpen.value = false
 }
 
-const resolveTicket = (ticketStatus) => {
-    // Remove the resolved ticket from the live escalations list
-    const remaining = (escalations.value || []).filter(t => t.id !== activeTicketId.value)
-    escalations.value = remaining
-    activeTicketId.value = remaining.length > 0 ? remaining[0].id : null
+import { resolveEscalationCenter } from '@/utils/aiApi'
+
+function extractRestockRequestId(ticket) {
+    const details = String(ticket?.actionDetails || '')
+    const match = details.match(/\[ref:([0-9a-fA-F-]{36})\]/)
+    return match?.[1] || null
+}
+
+function isRestockEscalation(ticket) {
+    return Boolean(extractRestockRequestId(ticket)) && /restock/i.test(String(ticket?.title || ''))
+}
+
+async function resolveRestockEscalation(ticket, ticketStatus) {
+    const requestId = extractRestockRequestId(ticket)
+    if (!requestId) throw new Error('Restock request reference not found')
+
+    const response = await fetch(apiUrl(`api/v1/inventory/restock-requests/${requestId}/status`), {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${authStore.authToken}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            status: ticketStatus === 'Approved' ? 'APPROVED' : 'REJECTED',
+            manager_notes: ticketStatus === 'Approved'
+                ? 'Approved by Logistics Manager via Communication Center'
+                : 'Rejected by Logistics Manager via Communication Center',
+            funding_source: 'APP_REVENUE',
+        }),
+    })
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        const detail = String(error.detail || '')
+        if (response.status === 400 && /already processed/i.test(detail)) {
+            await resolveGenericLogisticsEscalation(ticket, 'Resolved')
+            return
+        }
+        throw new Error(detail || 'Failed to update restock request')
+    }
+}
+
+async function resolveGenericLogisticsEscalation(ticket, ticketStatus) {
+    const response = await fetch(apiUrl(`api/v1/logistics/escalations/${ticket.id}`), {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${authStore.authToken}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            status: ticketStatus === 'Approved'
+                ? 'APPROVED'
+                : ticketStatus === 'Denied'
+                    ? 'REJECTED'
+                    : 'RESOLVED',
+        }),
+    })
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.detail || 'Failed to update escalation')
+    }
+}
+
+const resolveTicket = async (ticketStatus) => {
+    const ticketId = activeTicketId.value
+    const ticket = activeTicket.value
+    if (!ticketId || !ticket || ticketActionPending.value) return
+
+    ticketActionPending.value = true
+    try {
+        if (isRestockEscalation(ticket)) {
+            await resolveRestockEscalation(ticket, ticketStatus)
+        } else if (String(ticket.id).includes('-')) {
+            await resolveGenericLogisticsEscalation(ticket, ticketStatus)
+        } else {
+            await resolveEscalationCenter(ticketId)
+        }
+
+        const remaining = (escalations.value || []).filter(t => t.id !== ticketId)
+        escalations.value = remaining
+        activeTicketId.value = remaining.length > 0 ? remaining[0].id : null
+        store.refresh().catch(() => {})
+    } catch (e) {
+        console.error('Failed to resolve ticket:', e)
+    } finally {
+        ticketActionPending.value = false
+    }
 }
 
 const broadcastSuccess = ref(false)

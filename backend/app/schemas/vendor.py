@@ -55,6 +55,7 @@ class VendorShipmentSummary(BaseModel):
     amount: float = 0
     scheduled_at: datetime | None = None
     created_at: datetime
+    auto_debit_note: str | None = None
     eta_label: str
     progress: int = 0
     cost: VendorShipmentCost
@@ -240,6 +241,7 @@ class VendorSupportReplyResponse(BaseModel):
 
 class VendorSupportTicketResponse(BaseModel):
     id: str
+    backend_id: UUID
     subject: str
     description: str
     order_id: str | None = None

@@ -13,6 +13,9 @@ from app.schemas.orders import (
     CancelOrderRequest,
     ClusterResponse,
     DeliveryOtpSendResponse,
+    DriverSuggestionResponse,
+    OrderTripIntelligenceItem,
+    OrderEscalateRequest,
     OrderAssignmentPreview,
     OrderAssignRequest,
     OrderCreate,
@@ -21,7 +24,11 @@ from app.schemas.orders import (
     OrderListResponse,
     OrderResponse,
     OrderUpdate,
+    ReturnTripResponse,
+    TripCommandPushRequest,
+    TripDeviationReportRequest,
 )
+from app.schemas.logistics import LogisticsEscalationItem
 from app.schemas.wallet import WalletPaymentRequest, WalletPaymentResponse
 from app.services import orders_service
 from app.services import clustering_service
@@ -46,8 +53,15 @@ async def list_orders(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     status_filter: str | None = Query(default=None),
+    search: str | None = Query(default=None),
+    warehouse_substatus: str | None = Query(default=None, description="Filter by warehouse substatus (AWAITING_INBOUND, AWAITING_PICK, etc.)"),
+    order_type: str | None = Query(default=None, description="Filter by order type (VENDOR, INDIVIDUAL, SERVICE_MOVE)"),
+    pickup_type: str | None = Query(default=None, description="Filter by pickup type (hub, doorstep)"),
 ):
-    return await orders_service.list_orders(db, user, page, page_size, status_filter)
+    return await orders_service.list_orders(
+        db, user, page, page_size, status_filter, search,
+        warehouse_substatus=warehouse_substatus, order_type=order_type, pickup_type=pickup_type
+    )
 
 
 @router.get("/assignment-preview", response_model=OrderAssignmentPreview)
@@ -57,6 +71,36 @@ async def get_assignment_preview(
     warehouse_id: UUID | None = Query(default=None),
 ):
     return await orders_service.get_order_assignment_preview(db, warehouse_id)
+
+
+@router.get("/ai-driver-suggestions", response_model=DriverSuggestionResponse)
+async def get_ai_driver_suggestions(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    """
+    AI-powered (Gemini 2.5 Pro) driver suggestions for every unassigned CONFIRMED order.
+    Ranks available drivers by proximity, workload, and order priority.
+    Falls back to nearest-neighbour distance matching if Gemini is unavailable.
+    """
+    from app.services import dispatch_ai_service
+    suggestions = await dispatch_ai_service.suggest_drivers_for_orders(db)
+    return DriverSuggestionResponse(suggestions=suggestions, total=len(suggestions))
+
+
+@router.get("/return-suggestions", response_model=ReturnTripResponse)
+async def get_return_trip_suggestions(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    """
+    Return-trip opportunities: drivers who recently completed a delivery and are
+    within 8 km of a pending unassigned pickup.
+    Gemini 2.5 Pro writes dispatch-quality explanations and re-ranks by urgency.
+    """
+    from app.services import dispatch_ai_service
+    suggestions = await dispatch_ai_service.get_return_trip_suggestions(db)
+    return ReturnTripResponse(suggestions=suggestions, total=len(suggestions))
 
 
 @router.post("/cluster")
@@ -121,6 +165,19 @@ async def optimize_routes(
     return await orders_service.optimize_routes(db, optimize_for=optimize_for, prioritize_urgent=prioritize_urgent)
 
 
+@router.post("/auto-balance")
+async def auto_balance_drivers(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    """
+    Auto-balance workload across drivers by redistributing ASSIGNED orders
+    from overloaded drivers to underutilized ones.
+    Does NOT touch IN_TRANSIT orders (already being delivered).
+    """
+    return await orders_service.auto_balance_drivers(db)
+
+
 @router.post("/batch-assign")
 async def batch_assign_orders(
     data: BatchConfirmRequest,
@@ -136,6 +193,44 @@ async def batch_assign_orders(
         )
         results.append(result)
     return [r.model_dump(mode="json") for r in results]
+
+
+@router.get("/trip-intelligence", response_model=list[OrderTripIntelligenceItem])
+async def list_trip_intelligence(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+    statuses: str = Query(default="ASSIGNED,IN_TRANSIT"),
+):
+    return await orders_service.list_trip_intelligence(db, statuses=statuses)
+
+
+@router.get("/{order_id}/trip-intelligence", response_model=OrderTripIntelligenceItem)
+async def get_trip_intelligence(
+    order_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER", "DRIVER"))],
+):
+    return await orders_service.get_trip_intelligence(db, order_id, caller=user)
+
+
+@router.post("/{order_id}/trip-intelligence/push", response_model=dict)
+async def push_trip_command(
+    order_id: UUID,
+    data: TripCommandPushRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    return await orders_service.push_trip_command_update(db, order_id, data, caller=user)
+
+
+@router.post("/{order_id}/trip-intelligence/deviation", response_model=dict)
+async def report_trip_deviation(
+    order_id: UUID,
+    data: TripDeviationReportRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("DRIVER"))],
+):
+    return await orders_service.report_trip_deviation(db, order_id, data, caller=user)
 
 
 @router.get("/{order_id}", response_model=OrderResponse)
@@ -207,6 +302,18 @@ async def cancel_order(
     user: Annotated[User, Depends(get_current_user)],
 ):
     result = await orders_service.cancel_order(db, order_id, data, user)
+    await db.commit()
+    return result
+
+
+@router.post("/{order_id}/escalate", response_model=LogisticsEscalationItem)
+async def escalate_order(
+    order_id: UUID,
+    data: OrderEscalateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
+):
+    result = await orders_service.escalate_order(db, order_id, data, user)
     await db.commit()
     return result
 
@@ -341,8 +448,9 @@ async def get_proof_of_delivery_html(
     # Format delivery date/time
     delivery_date = "N/A"
     delivery_time = "N/A"
-    if order.delivered_at:
-        dt = datetime.fromisoformat(str(order.delivered_at)) if isinstance(order.delivered_at, str) else order.delivered_at
+    delivery_dt_source = order.delivered_at or order.service_otp_verified_at or order.scheduled_at or order.created_at
+    if delivery_dt_source:
+        dt = datetime.fromisoformat(str(delivery_dt_source)) if isinstance(delivery_dt_source, str) else delivery_dt_source
         delivery_date = dt.strftime("%B %d, %Y")
         delivery_time = dt.strftime("%I:%M %p").upper()
 
@@ -356,81 +464,53 @@ async def get_proof_of_delivery_html(
     delivery_city = delivery_address_parts[1].strip() if len(delivery_address_parts) > 1 else ""
     delivery_state_zip = delivery_address_parts[2].strip() if len(delivery_address_parts) > 2 else ""
 
-    # POD signature (base64)
-    signature_html = ""
-    if order.pod_signature and len(order.pod_signature.strip()) > 0:
-        # If signature already has data:image prefix, use as is; otherwise add it
-        sig_data = order.pod_signature if order.pod_signature.startswith('data:') else f'data:image/png;base64,{order.pod_signature}'
+    driver_display = f"{driver_name} ({driver_code})" if driver_code else driver_name
+
+    signature_source = order.poc_signature or order.pod_signature
+    signature_html = '<div class="text-center text-gray-400 text-xs flex items-center justify-center h-full">No signature captured</div>'
+    if signature_source and len(signature_source.strip()) > 0:
+        sig_data = signature_source if signature_source.startswith("data:") else f"data:image/png;base64,{signature_source}"
         signature_html = f'<img src="{sig_data}" alt="Customer Signature" class="w-full h-full object-contain"/>'
-    else:
-        # Empty placeholder for missing signature
-        signature_html = '<div class="text-center text-gray-400 text-xs flex items-center justify-center h-full">No signature captured</div>'
 
-    # POD photos (base64)
-    photos_html = ""
-    if order.pod_photos and len(order.pod_photos) > 0:
-        for idx, photo in enumerate(order.pod_photos[:3]):  # Max 3 photos
-            photo_data = photo if photo.startswith('data:') else f'data:image/jpeg;base64,{photo}'
-            timestamp = delivery_time if idx == 0 else f"{delivery_time}"
-            photos_html += f'''
-            <div class="border-2 border-gray-300 rounded p-3 text-center bg-gray-50">
-              <div class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2 overflow-hidden">
-                <img src="{photo_data}" alt="POD Photo {idx+1}" class="w-full h-full object-cover"/>
-              </div>
-              <p class="text-[10px] text-gray-700 font-semibold">Proof Photo {idx+1}</p>
-              <p class="text-[9px] text-gray-500">{timestamp}</p>
-            </div>
-            '''
-    else:
-        # Default placeholder
-        photos_html = '''
-            <div class="border-2 border-gray-300 rounded p-3 text-center bg-gray-50">
-              <div class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2">
-                <span class="text-[35px]">📷</span>
-              </div>
-              <p class="text-[10px] text-gray-700 font-semibold">No photos captured</p>
-            </div>
-        '''
+    signature_box_html = (
+        '<div id="pod-sig" class="border-2 border-gray-400 rounded h-[60px] bg-white mb-2 overflow-hidden flex items-center justify-center">'
+        f"{signature_html}"
+        "</div>"
+    )
 
-    # Replace placeholders in HTML
+    def _photo_slot_html(photo: str | None, slot_id: str, alt_text: str) -> str:
+        if photo:
+            photo_data = photo if photo.startswith("data:") else f"data:image/jpeg;base64,{photo}"
+            return (
+                f'<div id="{slot_id}" class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2 overflow-hidden">'
+                f'<img src="{photo_data}" alt="{alt_text}" class="w-full h-full object-cover"/>'
+                "</div>"
+            )
+        return (
+            f'<div id="{slot_id}" class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2">'
+            '<span class="text-[35px]">📷</span>'
+            "</div>"
+        )
+
     replacements = {
         "CC-12345": str(order.tracking_code) if order.tracking_code else str(order.id)[:8].upper(),
+        "December 20, 2024 - 01:45 PM": f"{delivery_date} - {delivery_time}" if delivery_date != "N/A" and delivery_time != "N/A" else delivery_date,
         "December 20, 2024": delivery_date,
         "01:45 PM": delivery_time,
+        "Sarah Khan | +91 98765 43210": f"{customer_name} | {customer_phone}",
         "Sarah Khan": customer_name,
         "+91 98765 43210": customer_phone,
-        "Prakash Reddy (DRV-8765)": f"{driver_name} ({driver_code})" if driver_code else driver_name,
+        "Prakash Reddy (DRV-8765)": driver_display,
         "456 Maple Avenue, Indiranagar": delivery_address,
         "Bangalore, Karnataka - 560038": f"{delivery_city}, {delivery_state_zip}".strip(" ,-") if delivery_city else delivery_state_zip,
-
-        # Replace signature box with actual signature
-        '<div class="border-2 border-gray-400 rounded h-[60px] bg-white mb-2"></div>':
-            f'<div class="border-2 border-gray-400 rounded h-[60px] bg-white mb-2 overflow-hidden flex items-center justify-center">{signature_html}</div>',
-
-        # Photos section - replace entire grid
-        '''<div class="grid grid-cols-3 gap-3">
-            <div class="border-2 border-gray-300 rounded p-3 text-center bg-gray-50">
-              <div class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2">
-                <span class="text-[35px]">📷</span>
-              </div>
-              <p class="text-[10px] text-gray-700 font-semibold">Before Unloading</p>
-              <p class="text-[9px] text-gray-500">12:05 PM</p>
-            </div>
-            <div class="border-2 border-gray-300 rounded p-3 text-center bg-gray-50">
-              <div class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2">
-                <span class="text-[35px]">📷</span>
-              </div>
-              <p class="text-[10px] text-gray-700 font-semibold">Items at Location</p>
-              <p class="text-[9px] text-gray-500">01:20 PM</p>
-            </div>
-            <div class="border-2 border-gray-300 rounded p-3 text-center bg-gray-50">
-              <div class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2">
-                <span class="text-[35px]">📷</span>
-              </div>
-              <p class="text-[10px] text-gray-700 font-semibold">After Placement</p>
-              <p class="text-[9px] text-gray-500">01:42 PM</p>
-            </div>
-          </div>''': f'<div class="grid grid-cols-3 gap-3">{photos_html}</div>',
+        "Name: Sarah Khan": f"Name: {customer_name}",
+        '<div id="pod-sig" class="border-2 border-gray-400 rounded h-[60px] bg-white mb-2"></div>': signature_box_html,
+        '<div id="pod-p1" class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2"><span class="text-[35px]">📷</span></div>':
+            _photo_slot_html(order.pod_photos[0] if order.pod_photos and len(order.pod_photos) > 0 else None, "pod-p1", "Before Unloading"),
+        '<div id="pod-p2" class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2"><span class="text-[35px]">📷</span></div>':
+            _photo_slot_html(order.pod_photos[1] if order.pod_photos and len(order.pod_photos) > 1 else None, "pod-p2", "Items at Location"),
+        '<div id="pod-p3" class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2"><span class="text-[35px]">📷</span></div>':
+            _photo_slot_html(order.pod_photos[2] if order.pod_photos and len(order.pod_photos) > 2 else None, "pod-p3", "After Placement"),
     }
 
     for old, new in replacements.items():
@@ -534,3 +614,209 @@ async def submit_job_rating(
         rating=data.rating,
         feedback=data.feedback,
     )
+
+
+class PackingReturnItem(BaseModel):
+    name: str
+    sku: str | None = None
+    count: int = 0
+
+
+class PackingReturnRequest(BaseModel):
+    items: list[PackingReturnItem]
+    notes: str | None = None
+    submitted_at: str | None = None
+    skipped: bool = False
+
+
+@router.post("/{order_id}/packing-return", response_model=OrderResponse)
+async def submit_packing_return(
+    order_id: UUID,
+    data: PackingReturnRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("DRIVER"))],
+):
+    """Driver submits how many packing assets they are returning to warehouse."""
+    from app.models.order import Order as _Order
+    from sqlalchemy import select as _select
+
+    order = (await db.execute(_select(_Order).where(_Order.id == order_id))).scalar_one_or_none()
+    if order is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    order.packing_return_data = {
+        "items": [{"name": i.name, "sku": i.sku, "count": i.count} for i in data.items],
+        "notes": data.notes or "",
+        "submitted_at": data.submitted_at,
+        "submitted_by": str(user.id),
+        "skipped": data.skipped,
+    }
+    await db.commit()
+    await db.refresh(order)
+    return await orders_service.get_order_detail(db, order_id, user)
+
+
+class AssetLogItem(BaseModel):
+    name: str
+    sku: str | None = None
+    sent_out: int = 0
+    returned: int = 0
+
+
+class AssetLogRequest(BaseModel):
+    items: list[AssetLogItem]
+    notes: str | None = None
+
+
+@router.post("/{order_id}/asset-log")
+async def save_asset_log(
+    order_id: UUID,
+    data: AssetLogRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    """
+    Dispatcher saves the packing asset return log for an order.
+    For each item with returned > 0, creates an RETURN inventory movement
+    to add the items back into warehouse stock.
+    """
+    from app.models.order import Order as _Order
+    from app.models.inventory import InventoryItem, InventoryMovement
+    from sqlalchemy import select as _select, or_
+    from fastapi import HTTPException
+
+    order = (await db.execute(_select(_Order).where(_Order.id == order_id))).scalar_one_or_none()
+    if order is None:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    warehouse_id = order.warehouse_id
+    restored_count = 0
+
+    for item in data.items:
+        if item.returned <= 0:
+            continue
+
+        inv_item = None
+
+        # 1. Try exact SKU match first
+        if item.sku:
+            inv_item = (await db.execute(
+                _select(InventoryItem).where(
+                    InventoryItem.warehouse_id == warehouse_id,
+                    InventoryItem.sku == item.sku,
+                )
+            )).scalar_one_or_none()
+
+        # 2. Fall back to name-based match
+        if inv_item is None and item.name:
+            name_lower = item.name.lower()
+            all_inv = (await db.execute(
+                _select(InventoryItem).where(InventoryItem.warehouse_id == warehouse_id)
+            )).scalars().all()
+            for candidate in all_inv:
+                candidate_text = ((candidate.name or "") + " " + (candidate.category or "")).lower()
+                if any(word in candidate_text for word in name_lower.split() if len(word) > 3):
+                    inv_item = candidate
+                    break
+
+        if inv_item is None:
+            continue
+
+        # Idempotency: skip if a RETURN movement already exists for this item + order
+        existing = (await db.execute(
+            _select(InventoryMovement).where(
+                InventoryMovement.item_id == inv_item.id,
+                InventoryMovement.reference_order_id == order_id,
+                InventoryMovement.movement_type == "RETURN",
+            ).limit(1)
+        )).scalar_one_or_none()
+
+        if existing:
+            # Update quantity if the log is being revised
+            existing.quantity = item.returned
+            inv_item.quantity_on_hand = max(0, inv_item.quantity_on_hand - existing.quantity + item.returned)
+        else:
+            movement = InventoryMovement(
+                item_id=inv_item.id,
+                movement_type="RETURN",
+                quantity=item.returned,
+                reference_order_id=order_id,
+                performed_by=user.id,
+            )
+            db.add(movement)
+            inv_item.quantity_on_hand += item.returned
+
+        restored_count += 1
+
+    await db.commit()
+    return {
+        "order_id": str(order_id),
+        "items_restored": restored_count,
+        "message": f"Asset log saved. {restored_count} item type(s) restored to inventory.",
+    }
+
+
+@router.post("/{order_id}/simulate-arrival", response_model=dict)
+async def simulate_driver_arrival(
+    order_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    """
+    Dev/demo endpoint: simulate the assigned driver arriving within 50 m of the
+    pickup address.  Updates the driver's current_location so the live tracking
+    map shows the truck near the pickup pin and the geofence alert fires on the
+    customer's screen.
+    """
+    import math
+    import random
+    from fastapi import HTTPException
+    from sqlalchemy import select as _select
+    from app.models.order import Order as _Order
+    from app.models.logistics import LogisticsDriverProfile
+
+    order = (await db.execute(_select(_Order).where(_Order.id == order_id))).scalar_one_or_none()
+    if order is None:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Only the customer who owns the order (or staff) may call this
+    if str(order.customer_id) != str(user.id) and user.role not in {
+        "LOGISTIC_MANAGER", "DISPATCHER", "WAREHOUSE_MANAGER", "ADMIN"
+    }:
+        raise HTTPException(status_code=403, detail="Not authorised")
+
+    if not order.assigned_driver_id:
+        raise HTTPException(status_code=400, detail="No driver assigned to this order yet")
+
+    lat = order.pickup_lat
+    lng = order.pickup_lng
+    if lat is None or lng is None:
+        raise HTTPException(status_code=400, detail="Pickup coordinates not available for this order")
+
+    # Offset by ~30–50 m (≈0.00027°–0.00045°) so it looks natural
+    offset_deg = 0.0003
+    sim_lat = round(lat + random.uniform(-offset_deg, offset_deg), 6)
+    sim_lng = round(lng + random.uniform(-offset_deg, offset_deg), 6)
+
+    profile = (
+        await db.execute(
+            _select(LogisticsDriverProfile).where(
+                LogisticsDriverProfile.user_id == order.assigned_driver_id
+            )
+        )
+    ).scalar_one_or_none()
+
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Driver profile not found")
+
+    profile.current_location = f"{sim_lat},{sim_lng}"
+    await db.commit()
+
+    return {
+        "order_id": str(order_id),
+        "driver_id": str(order.assigned_driver_id),
+        "simulated_lat": sim_lat,
+        "simulated_lng": sim_lng,
+        "message": "Driver location updated to within 50 m of pickup. Geofence alert will fire.",
+    }

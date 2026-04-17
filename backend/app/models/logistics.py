@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -115,6 +115,7 @@ class LogisticsNotification(Base):
     message: Mapped[str] = mapped_column(Text, nullable=False)
     type: Mapped[str] = mapped_column(String(30), nullable=False, default="info")
     audience_roles: Mapped[str | None] = mapped_column(Text, nullable=True)
+    target_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -130,6 +131,29 @@ class LogisticsTask(Base):
     silenced: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_alert_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class LogisticsMeeting(Base):
+    __tablename__ = "logistics_meetings"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    topic: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    meeting_type: Mapped[str] = mapped_column(String(30), nullable=False, default="other")
+    meeting_link: Mapped[str] = mapped_column(Text, nullable=False)
+    meeting_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    start_time: Mapped[str] = mapped_column(String(5), nullable=False)
+    end_time: Mapped[str] = mapped_column(String(5), nullable=False)
+    participant_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    created_by_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    warehouse_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
 
 class LogisticsChatThread(Base):
@@ -189,11 +213,21 @@ class LogisticsReturnCase(Base):
     reference_code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
     customer_name: Mapped[str] = mapped_column(String(255), nullable=False)
     reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    flow_type: Mapped[str] = mapped_column(String(30), nullable=False, default="photo_review")
     condition: Mapped[str] = mapped_column(String(100), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="Pending")
     original_price: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     refund_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    transport_charge_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    transport_charge_wallet_collected: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    transport_charge_pending_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    transport_charge_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    transport_charge_order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=True)
+    transport_charge_applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     images: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
+    is_urgent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    urgent_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    support_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -240,6 +274,38 @@ class LogisticsEquipmentLedger(Base):
     reference_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="Pending")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class LogisticsManifest(Base):
+    __tablename__ = "logistics_manifests"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    route_id: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    driver_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    driver_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    vehicle_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    hub_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    crew_config: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="Draft")
+    orders_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_weight: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    total_distance: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    stop_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_volume: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    est_duration: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    fragile_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cod_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    crew_list: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    pushed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    pushed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

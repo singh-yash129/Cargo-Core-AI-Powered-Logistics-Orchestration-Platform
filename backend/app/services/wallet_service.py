@@ -34,11 +34,13 @@ async def get_wallet_balance(db: AsyncSession, user_id: UUID) -> float:
             )
         ).where(WalletTransaction.user_id == user_id)
     )
-    return max(float(result.scalar_one() or 0.0), 0.0)
+    return float(result.scalar_one() or 0.0)
 
 
 async def get_wallet_summary(db: AsyncSession, user: User):
     balance = await get_wallet_balance(db, user.id)
+    from app.services.return_charge_service import get_unattached_pending_transport_charge_total
+    pending_transport_charge = await get_unattached_pending_transport_charge_total(db, user.id)
 
     totals = await db.execute(
         select(
@@ -70,6 +72,7 @@ async def get_wallet_summary(db: AsyncSession, user: User):
         balance=round(balance, 2),
         total_credits=round(float(total_credits or 0.0), 2),
         total_debits=round(float(total_debits or 0.0), 2),
+        pending_transport_charge=round(pending_transport_charge, 2),
         transactions=[
             WalletTransactionRecord(
                 id=tx.id,
@@ -109,12 +112,41 @@ async def _record_wallet_transaction(
     return tx
 
 
+async def top_up_wallet(
+    db: AsyncSession,
+    *,
+    user: User,
+    amount: float,
+):
+    amount = round(float(amount or 0), 2)
+    if amount <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Top-up amount must be greater than zero")
+
+    await _record_wallet_transaction(
+        db,
+        user_id=user.id,
+        order_id=None,
+        transaction_kind="CREDIT",
+        reason="WALLET_TOPUP",
+        amount=amount,
+        description="Wallet top-up",
+    )
+
+    from app.schemas.wallet import WalletTopUpResponse
+
+    return WalletTopUpResponse(
+        added_amount=amount,
+        balance=round(await get_wallet_balance(db, user.id), 2),
+    )
+
+
 async def apply_wallet_payment(
     db: AsyncSession,
     *,
     order: Order,
     user: User,
     amount: float | None = None,
+    allow_negative: bool = False,
 ):
     if order.customer_id != user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
@@ -123,9 +155,12 @@ async def apply_wallet_payment(
     if outstanding <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Order is already fully paid")
 
-    available = await get_wallet_balance(db, user.id)
+    available = float(await get_wallet_balance(db, user.id) or 0.0)
     requested = float(amount) if amount else outstanding
-    applied = min(requested, outstanding, available)
+    applied = min(requested, outstanding)
+
+    if not allow_negative:
+        applied = min(applied, available)
 
     if applied <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient wallet balance")
@@ -155,6 +190,14 @@ async def apply_wallet_payment(
     order.paid_amount = float(order.paid_amount or 0.0) + applied
     order.payment_status = "paid" if order.paid_amount >= order.total_amount else "partial"
     db.add(order)
+
+    from app.services.return_charge_service import settle_transport_charges_from_order_payment
+    await settle_transport_charges_from_order_payment(
+        db,
+        order=order,
+        payment_amount=applied,
+        collection_source="ORDER_WALLET",
+    )
     await db.flush()
 
     from app.schemas.wallet import WalletPaymentResponse
@@ -167,6 +210,61 @@ async def apply_wallet_payment(
         paid_amount=round(float(order.paid_amount or 0.0), 2),
         payment_status=order.payment_status,
     )
+
+
+async def backfill_wallet_debits(db: AsyncSession, user: User) -> int:
+    """
+    For legacy wallet payments that went through /pay (ONLINE mode) instead of /wallet-pay,
+    create missing DEBIT WalletTransaction rows so they appear in the wallet history.
+    Returns the number of rows created.
+    """
+    from sqlalchemy import func as _func
+    from app.models.order import Order
+    from app.models.payment import OrderPayment
+
+    # Find OrderPayment rows for this user's orders where the payment method was
+    # a wallet (e.g. 'Cargo Core Wallet') but payment_mode was NOT 'WALLET'
+    # (those would already have been handled by apply_wallet_payment).
+    subq = (
+        select(WalletTransaction.order_id)
+        .where(
+            WalletTransaction.user_id == user.id,
+            WalletTransaction.transaction_kind == "DEBIT",
+            WalletTransaction.reason == "ORDER_PAYMENT",
+        )
+    )
+
+    rows = (
+        await db.execute(
+            select(OrderPayment, Order.tracking_code)
+            .join(Order, Order.id == OrderPayment.order_id)
+            .where(
+                Order.customer_id == user.id,
+                OrderPayment.status == "completed",
+                OrderPayment.amount > 0,
+                OrderPayment.payment_mode != "WALLET",
+                _func.lower(OrderPayment.payment_method).contains("wallet"),
+                OrderPayment.order_id.notin_(subq),
+            )
+        )
+    ).all()
+
+    created = 0
+    for pmt, tracking_code in rows:
+        await _record_wallet_transaction(
+            db,
+            user_id=user.id,
+            order_id=pmt.order_id,
+            transaction_kind="DEBIT",
+            reason="ORDER_PAYMENT",
+            amount=float(pmt.amount),
+            description=f"Wallet payment applied to {tracking_code or pmt.order_id}",
+        )
+        created += 1
+
+    if created:
+        await db.flush()
+    return created
 
 
 async def credit_cancellation_refund(

@@ -226,6 +226,9 @@ class ReturnGradingResponse(BaseModel):
     item_condition: str
     condition_notes: str | None
     disposition: str
+    is_genuine: bool | None = None
+    recommended_outcome: str | None = None
+    inspection_remarks: str | None = None
     damage_photo_url: str | None
     graded_by: UUID | None
     grader_name: str | None = None
@@ -242,12 +245,18 @@ class ReturnGradingCreate(BaseModel):
     item_condition: str = Field(default="Pending Inspection", min_length=1, max_length=50)
     condition_notes: str | None = None
     disposition: str = Field(default="pending", min_length=1, max_length=30)
+    is_genuine: bool | None = None
+    recommended_outcome: str | None = Field(default=None, max_length=100)
+    inspection_remarks: str | None = None
 
 
 class ReturnGradingUpdate(BaseModel):
     item_condition: str | None = None
     condition_notes: str | None = None
     disposition: str | None = None
+    is_genuine: bool | None = None
+    recommended_outcome: str | None = Field(default=None, max_length=100)
+    inspection_remarks: str | None = None
 
 
 class ReturnGradingListResponse(BaseModel):
@@ -311,3 +320,117 @@ class PerformanceResponse(BaseModel):
     warehouse_id: UUID
     time_range: str
     metrics: PerformanceMetrics
+
+
+# ======================
+# Inbound Shipments
+# ======================
+
+class InboundShipmentItem(BaseModel):
+    """A single inbound shipment (vendor order awaiting receipt)."""
+    id: UUID
+    tracking_code: str | None
+    supplier_name: str
+    supplier_id: UUID | None = None
+    expected_qty: int
+    received_qty: int
+    eta: datetime | None
+    scheduled_at: datetime | None
+    status: str  # Scheduled, InTransit, Arrived, Receiving, Completed
+    has_mismatch: bool = False
+    has_damage: bool = False
+    mismatch_type: str | None = None
+    mismatch_details: str | None = None
+    damage_count: int = 0
+    damage_description: str | None = None
+    issue_type: str | None = None
+    issue_resolution_action: str | None = None
+    issue_resolution_label: str | None = None
+    issue_status: str | None = None
+    issue_ticket_id: UUID | None = None
+    issue_ticket_reference: str | None = None
+    issue_blocking_reason: str | None = None
+    can_move_to_picking: bool = True
+    can_generate_take_back: bool = False
+    warehouse_substatus: str | None = None
+    order_id: UUID
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class DockSlot(BaseModel):
+    """A dock schedule slot for inbound delivery."""
+    id: int
+    time: str
+    supplier: str
+    dock: str
+    pallets: int
+    status: str  # Scheduled, Active, Completed
+    order_id: UUID | None = None
+
+
+class InboundStats(BaseModel):
+    """Summary statistics for inbound shipments."""
+    arrived_today: int
+    in_transit: int
+    mismatches_found: int
+    damage_reports: int
+
+
+class InboundResponse(BaseModel):
+    """Full response for inbound shipments view."""
+    stats: InboundStats
+    shipments: list[InboundShipmentItem]
+    dock_schedule: list[DockSlot]
+
+
+class InboundReceivePlanShipment(BaseModel):
+    id: str
+    supplier: str
+    status: str
+    shipment_type: str
+    material_profile: str
+    expected_units: int
+    recurring: bool = False
+
+
+class InboundReceivePlanResponse(BaseModel):
+    order_id: UUID
+    asn: InboundReceivePlanShipment
+    confidence: int = Field(..., ge=0, le=100)
+    suggested_dock: str
+    workers: int = Field(..., ge=1, le=12)
+    total_minutes: int = Field(..., ge=1)
+    risk_level: str
+    pallet_load: int = Field(..., ge=1)
+    queue_minutes: int = Field(..., ge=0)
+    active_dock_count: int = Field(..., ge=0)
+    staging_zone: str
+    next_action: str
+    reason: str
+    watchouts: list[str] = Field(default_factory=list)
+    summary: str
+    generated_by: str = "gemini"
+
+
+class InboundMismatchReport(BaseModel):
+    """Report a mismatch on an inbound shipment."""
+    mismatch_type: str = Field(..., description="Type: Quantity difference, Wrong SKU received, Missing items, Extra items")
+    details: str | None = Field(default=None, max_length=500)
+
+
+class InboundDamageReport(BaseModel):
+    """Report damage on an inbound shipment."""
+    damaged_count: int = Field(..., ge=1)
+    description: str = Field(..., min_length=1, max_length=500)
+    photo_url: str | None = None
+
+
+class ScheduleInboundRequest(BaseModel):
+    """Schedule a new inbound delivery from a vendor."""
+    supplier_name: str = Field(..., min_length=1, max_length=200)
+    expected_qty: int = Field(..., ge=1)
+    scheduled_at: datetime
+    dock_preference: str | None = Field(default=None, max_length=20)
+    notes: str | None = Field(default=None, max_length=500)

@@ -1,6 +1,6 @@
 <template>
     <div
-        class="min-h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased flex">
+        class="dispatcher-theme min-h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased flex">
 
         <!-- Mobile Overlay -->
         <div v-if="sidebarOpen" class="fixed inset-0 bg-black/50 z-40 lg:hidden" @click="sidebarOpen = false"></div>
@@ -50,9 +50,14 @@
                     </div>
 
                     <div class="flex items-center gap-1 sm:gap-3">
+                        <div class="hidden sm:block">
+                            <HeaderWeather hub-id="1" />
+                        </div>
+
                         <!-- Notifications -->
                         <NotificationPopover :notifications="store.notifications"
-                            :unread-count="store.unreadNotificationsCount" @mark-read="store.markNotificationRead"
+                            :unread-count="store.unreadNotificationsCount" @open="store.fetchNotifications()"
+                            @mark-read="store.markNotificationRead"
                             @mark-all-read="store.markAllNotificationsRead" @clear-all="store.clearNotifications" />
 
                         <!-- Meeting Scheduler -->
@@ -65,13 +70,10 @@
                             <HeaderTodo />
                         </div>
 
-                        <!-- Theme Toggle -->
-                        <ThemeToggle />
-
                         <div class="hidden sm:block h-6 w-px bg-gray-200 dark:bg-white/10 mx-2"></div>
 
                         <!-- New Service Button -->
-                        <button @click="showNewMove = true"
+                        <button @click="openNewServiceMove"
                             class="hidden sm:flex h-10 rounded-lg items-center justify-center gap-2 bg-primary text-black hover:bg-primary/90 transition-colors shadow-md px-4 text-xs font-bold">
                             <span class="material-symbols-outlined text-[16px]">add</span>
                             New Service
@@ -85,47 +87,17 @@
                 <RouterView />
             </div>
         </main>
-
-        <!-- New Service Move Modal -->
-        <Teleport to="body">
-        <div v-if="showNewMove" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showNewMove = false">
-            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-lg m-4">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Create New Service Move</h3>
-                <div class="space-y-3">
-                    <input v-model="newMove.title" type="text" placeholder="Move Title (e.g., Johnson Family House Shift)"
-                        class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                    <select v-model="newMove.type" class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                        <option class="bg-white dark:bg-gray-800">House Shift</option><option class="bg-white dark:bg-gray-800">Office Shift</option><option class="bg-white dark:bg-gray-800">Warehouse Transfer</option>
-                    </select>
-                    <div class="grid grid-cols-2 gap-3">
-                        <input v-model="newMove.pickup" type="text" placeholder="Pickup Address" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                        <input v-model="newMove.delivery" type="text" placeholder="Delivery Address" class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                    </div>
-                    <select v-model="newMove.vehicle" class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
-                        <option class="bg-white dark:bg-gray-800">Van T-15</option><option class="bg-white dark:bg-gray-800">Van T-20</option><option class="bg-white dark:bg-gray-800">Truck XL</option>
-                    </select>
-                    <textarea v-model="newMove.notes" rows="2" placeholder="Special notes..."
-                        class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none"></textarea>
-                </div>
-                <div class="flex gap-2 mt-4">
-                    <button @click="createServiceMove" :disabled="!newMove.title || !newMove.pickup"
-                        class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm disabled:opacity-40 disabled:cursor-not-allowed">Create Move</button>
-                    <button @click="showNewMove = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
-                </div>
-            </div>
-        </div>
-        </Teleport>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
-import { RouterView, useRoute } from 'vue-router'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 import DispatcherSidebar from '../LWD-components/DispatcherSidebar.vue'
+import HeaderWeather from '@/components/HeaderWeather.vue'
 import HeaderTodo from '@/components/HeaderTodo.vue'
 import HeaderMeetingScheduler from '@/components/HeaderMeetingScheduler.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'
-import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { useDispatcherStore } from '@/stores/dispatcherStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -133,6 +105,21 @@ import { useAuthStore } from '@/stores/authStore'
 const store = useLogisticStore()
 const dispatchStore = useDispatcherStore()
 const authStore = useAuthStore()
+const router = useRouter()
+let notificationPoll = null
+
+onMounted(() => {
+    document.body.classList.add('dispatcher-theme-portal')
+    store.fetchNotifications().catch(() => {})
+    notificationPoll = window.setInterval(() => {
+        store.fetchNotifications().catch(() => {})
+    }, 30000)
+})
+
+onBeforeUnmount(() => {
+    if (notificationPoll) window.clearInterval(notificationPoll)
+    document.body.classList.remove('dispatcher-theme-portal')
+})
 
 // Resolve hub name from user profile → hubs list
 const dispatcherHub = computed(() => {
@@ -143,19 +130,21 @@ const dispatcherHub = computed(() => {
 const hubLabel = computed(() => dispatcherHub.value?.name || 'All Hubs')
 const route = useRoute()
 const sidebarOpen = ref(false)
-const showNewMove = ref(false)
-const newMove = reactive({ title: '', type: 'House Shift', pickup: '', delivery: '', vehicle: 'Van T-20', notes: '' })
 
-const createServiceMove = () => {
-    // Here you would typically save to backend or store
-    console.log('Creating service move:', newMove)
-    showNewMove.value = false
-    // Reset form
-    newMove.title = ''
-    newMove.type = 'House Shift'
-    newMove.pickup = ''
-    newMove.delivery = ''
-    newMove.vehicle = 'Van T-20'
-    newMove.notes = ''
+function openNewServiceMove() {
+    router.push({
+        name: 'DispatcherServiceMoves',
+        query: {
+            ...route.query,
+            createMove: '1',
+        },
+    })
 }
 </script>
+
+<style>
+:is(.dispatcher-theme, body.dispatcher-theme-portal) {
+    --primary: #1ce783;
+    --primary-dark: #17c06d;
+}
+</style>

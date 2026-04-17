@@ -4,9 +4,9 @@
         <div class="flex justify-between items-center">
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Service Move & Time Blocking</h2>
-                <p class="text-sm text-gray-400 mt-1">Manage house shifts, office relocations — crew manifest, extended time blocks, dwell time</p>
+                <p class="text-sm text-gray-400 mt-1">Manage house shifts, warehouse pickups, manual service runs, crew manifest, and time blocks</p>
             </div>
-            <button @click="showNewMove = true" class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm">
+            <button @click="openNewMoveModal" class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm">
                 <span class="material-symbols-outlined text-[18px]">add</span> New Service Move
             </button>
         </div>
@@ -180,16 +180,22 @@
 
         <!-- New Service Move Modal -->
         <Teleport to="body">
-        <div v-if="showNewMove" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4" @click.self="showNewMove = false">
+        <div v-if="showNewMove" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4" @click.self="closeNewMoveModal">
             <div class="bg-gradient-to-br from-gray-900 to-gray-800 shadow-2xl border border-primary/20 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent">
                 <div class="flex items-center justify-between mb-5">
                     <h3 class="text-xl font-bold text-white flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary">add_circle</span>
                         Create New Service Move
                     </h3>
-                    <button @click="showNewMove = false" class="text-gray-400 hover:text-white transition-colors">
+                    <button @click="closeNewMoveModal" class="text-gray-400 hover:text-white transition-colors">
                         <span class="material-symbols-outlined">close</span>
                     </button>
+                </div>
+                <div v-if="formError" class="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    {{ formError }}
+                </div>
+                <div v-else-if="formSuccess" class="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                    {{ formSuccess }}
                 </div>
                 <div class="space-y-4">
                     <div>
@@ -204,19 +210,54 @@
                             <option value="House Shift" class="bg-gray-900">🏠 House Shift</option>
                             <option value="Office Shift" class="bg-gray-900">🏢 Office Shift</option>
                             <option value="Warehouse Transfer" class="bg-gray-900">🏭 Warehouse Transfer</option>
+                            <option value="Warehouse Supply Pickup" class="bg-gray-900">📦 Warehouse Supply Pickup</option>
+                            <option value="Equipment Transfer" class="bg-gray-900">🛠️ Equipment Transfer</option>
+                            <option value="Manual Service" class="bg-gray-900">🧰 Manual Service</option>
                         </select>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-medium text-primary mb-1.5">Pickup Address *</label>
-                            <input v-model="newMove.pickup" type="text" placeholder="Pickup location"
-                                class="w-full bg-black/40 border border-gray-700 hover:border-primary/50 focus:border-primary rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors">
+                            <label class="block text-xs font-medium text-primary mb-1.5">Pickup Location *</label>
+                            <div class="relative">
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-green-400 text-[18px]">trip_origin</span>
+                                <button type="button" @click="openMapPicker('pickup')"
+                                    class="w-full pl-10 pr-3 py-2.5 rounded-lg border border-gray-700 hover:border-primary/50 focus:border-primary bg-black/40 text-left text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors flex items-center justify-between">
+                                    <span :class="newMove.pickup ? '' : 'text-gray-500'">{{ newMove.pickup || 'Select pickup on map' }}</span>
+                                    <span class="material-symbols-outlined text-[18px] text-gray-400">map</span>
+                                </button>
+                            </div>
+                            <div class="mt-1 flex items-center justify-between gap-2 text-[11px] text-gray-400">
+                                <span class="truncate">
+                                    {{ newMove.pickupLat !== null && newMove.pickupLng !== null
+                                        ? `${Number(newMove.pickupLat).toFixed(5)}, ${Number(newMove.pickupLng).toFixed(5)}`
+                                        : 'Search or click on the map' }}
+                                </span>
+                                <button v-if="assignedHub?.address" type="button" @click="useAssignedHub('pickup')" class="shrink-0 text-primary hover:text-yellow-300 transition-colors">
+                                    Use assigned hub
+                                </button>
+                            </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-primary mb-1.5">Delivery Address *</label>
-                            <input v-model="newMove.delivery" type="text" placeholder="Delivery location"
-                                class="w-full bg-black/40 border border-gray-700 hover:border-primary/50 focus:border-primary rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors">
+                            <label class="block text-xs font-medium text-primary mb-1.5">Delivery Location *</label>
+                            <div class="relative">
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-red-400 text-[18px]">location_on</span>
+                                <button type="button" @click="openMapPicker('delivery')"
+                                    class="w-full pl-10 pr-3 py-2.5 rounded-lg border border-gray-700 hover:border-primary/50 focus:border-primary bg-black/40 text-left text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors flex items-center justify-between">
+                                    <span :class="newMove.delivery ? '' : 'text-gray-500'">{{ newMove.delivery || 'Select delivery on map' }}</span>
+                                    <span class="material-symbols-outlined text-[18px] text-gray-400">map</span>
+                                </button>
+                            </div>
+                            <div class="mt-1 flex items-center justify-between gap-2 text-[11px] text-gray-400">
+                                <span class="truncate">
+                                    {{ newMove.deliveryLat !== null && newMove.deliveryLng !== null
+                                        ? `${Number(newMove.deliveryLat).toFixed(5)}, ${Number(newMove.deliveryLng).toFixed(5)}`
+                                        : 'Search or click on the map' }}
+                                </span>
+                                <button v-if="assignedHub?.address" type="button" @click="useAssignedHub('delivery')" class="shrink-0 text-primary hover:text-yellow-300 transition-colors">
+                                    Use assigned hub
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -242,7 +283,7 @@
                             </option>
                         </select>
                         <div v-if="realVehicleOptions.length === 0" class="mt-1 text-xs text-yellow-400">
-                            ⚠️ No vehicles loaded. Check store connection.
+                            ⚠️ No direct-dispatch vehicles available right now.
                         </div>
                     </div>
 
@@ -251,11 +292,11 @@
                         <select v-model="newMove.driverId" class="w-full bg-black/40 border border-gray-700 hover:border-primary/50 focus:border-primary rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors appearance-none cursor-pointer">
                             <option value="" class="bg-gray-900">-- Select Driver --</option>
                             <option v-for="driver in availableDrivers" :key="driver.id" :value="driver.id" class="bg-gray-900">
-                                {{ driver.name }} ({{ driver.status }})
+                                {{ driver.name }} ({{ driver.status }}){{ driver.vehicle ? ' · ' + driver.vehicle : '' }}
                             </option>
                         </select>
                         <div v-if="availableDrivers.length === 0" class="mt-1 text-xs text-yellow-400">
-                            ⚠️ No active drivers available
+                            ⚠️ No available drivers ready for direct dispatch
                         </div>
                     </div>
 
@@ -283,13 +324,22 @@
                             Create Move
                         </span>
                     </button>
-                    <button @click="showNewMove = false" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 rounded-lg text-sm transition-colors">
+                    <button @click="closeNewMoveModal" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 rounded-lg text-sm transition-colors">
                         Cancel
                     </button>
                 </div>
             </div>
         </div>
         </Teleport>
+
+        <MapPicker
+            :isOpen="showMapPicker"
+            :title="mapPickerTitle"
+            :initialLat="mapPickerInitialLat"
+            :initialLon="mapPickerInitialLon"
+            @close="showMapPicker = false"
+            @select="handleMapSelect"
+        />
 
         <!-- Contact Crew Modal -->
         <Teleport to="body">
@@ -447,13 +497,21 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useDispatcherStore } from '@/stores/dispatcherStore'
+import { useAuthStore } from '@/stores/authStore'
 import { API_BASE_URL, getStoredAccessToken } from '@/config/api'
+import { useToast } from '@/composables/useToast'
+import MapPicker from '@/components/MapPicker.vue'
 import { LMap, LTileLayer, LMarker, LCircleMarker, LTooltip } from '@vue-leaflet/vue-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 
 const store = useDispatcherStore()
+const authStore = useAuthStore()
+const route = useRoute()
+const router = useRouter()
+const toast = useToast()
 onMounted(async () => {
     await store.initialize().catch(() => {})
     await fetchServiceMoves()
@@ -467,16 +525,172 @@ function authHeaders() {
         : { 'Content-Type': 'application/json' }
 }
 
-const vehicleOptions = computed(() =>
-    store.filteredVehicles.map(v => ({ id: v.id, label: v.code || v.model || v.licensePlate || `Vehicle ${v.id}` }))
-)
+function formatVehicleLabel(vehicle) {
+    const parts = [vehicle.code, vehicle.type, vehicle.licensePlate].filter(Boolean)
+    return parts.length > 0 ? parts.join(' · ') : `Vehicle ${vehicle.id}`
+}
+
+function normalizeAvailabilityStatus(status) {
+    return String(status || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[_\s]+/g, '-')
+}
+
+function isDriverAssignableStatus(status) {
+    const normalized = normalizeAvailabilityStatus(status)
+    return ['active', 'idle', 'available', 'on-duty', 'online', 'on-route', 'standby', 'stand-by'].includes(normalized)
+}
+
+function isVehicleAssignableStatus(status) {
+    const normalized = normalizeAvailabilityStatus(status)
+    return !['in-use', 'maintenance', 'in-shop', 'out-of-service', 'offline'].includes(normalized)
+}
+
+function hasOpenAssignments(driver) {
+    return (driver.activeOrders || []).some((order) => {
+        const status = String(order?.status || '').toUpperCase()
+        return !['DELIVERED', 'COMPLETED', 'CANCELLED', 'CLOSED'].includes(status)
+    })
+}
+
+function parseApiError(payload, fallback) {
+    if (Array.isArray(payload?.detail)) return payload.detail[0]?.msg || fallback
+    return payload?.detail || fallback
+}
+
+function parseServiceMoveMeta(raw) {
+    if (!raw) return { title: '', notes: '' }
+    if (!raw.startsWith('SERVICE_MOVE_META::')) return { title: '', notes: raw }
+
+    try {
+        const parsed = JSON.parse(raw.slice('SERVICE_MOVE_META::'.length))
+        return {
+            title: parsed?.title || '',
+            notes: parsed?.notes || '',
+        }
+    } catch (_) {
+        return { title: '', notes: raw }
+    }
+}
+
+function buildServiceMoveMeta() {
+    return `SERVICE_MOVE_META::${JSON.stringify({
+        title: newMove.title.trim(),
+        notes: newMove.notes.trim(),
+    })}`
+}
+
+function buildServiceTimeBlock() {
+    const durationHours = Number(newMove.estimatedDuration || 0)
+    const startText = newMove.scheduledTime || 'TBD'
+    if (!durationHours) return `${startText} start`
+    return `${startText} start · ${durationHours}h block`
+}
+
+function deriveDurationLabel(serviceTimeBlock) {
+    const match = String(serviceTimeBlock || '').match(/(\d+(?:\.\d+)?)h block/i)
+    if (match) return `${match[1]} hours`
+    return '4 hours'
+}
+
+function resetNewMoveForm() {
+    newMove.title = ''
+    newMove.type = 'House Shift'
+    newMove.pickup = ''
+    newMove.delivery = ''
+    newMove.pickupLat = null
+    newMove.pickupLng = null
+    newMove.deliveryLat = null
+    newMove.deliveryLng = null
+    newMove.vehicleId = ''
+    newMove.driverId = ''
+    newMove.laborerIds = []
+    newMove.scheduledDate = ''
+    newMove.scheduledTime = ''
+    newMove.estimatedDuration = '4'
+    newMove.notes = ''
+}
+
+function primeNewMoveDefaults() {
+    if (!newMove.vehicleId && vehicleOptions.value.length > 0) {
+        newMove.vehicleId = vehicleOptions.value[0].id
+    }
+    if (!newMove.driverId && availableDrivers.value.length > 0) {
+        newMove.driverId = availableDrivers.value[0].id
+    }
+    if (!newMove.scheduledDate) {
+        newMove.scheduledDate = new Date().toISOString().split('T')[0]
+    }
+    if (!newMove.scheduledTime) {
+        newMove.scheduledTime = '10:00'
+    }
+}
+
+async function closeNewMoveModal() {
+    showNewMove.value = false
+    formError.value = ''
+    formSuccess.value = ''
+
+    if (route.query.createMove === '1') {
+        const nextQuery = { ...route.query }
+        delete nextQuery.createMove
+        await router.replace({ query: nextQuery })
+    }
+}
+
+async function openNewMoveModal() {
+    formError.value = ''
+    formSuccess.value = ''
+    showNewMove.value = true
+    await Promise.allSettled([
+        store.fetchVehicles(),
+        store.fetchDrivers(),
+    ])
+    primeNewMoveDefaults()
+}
+
+function resolveDriverVehicleId(driver) {
+    if (!driver?.vehicle) return null
+    const driverVehicleCode = String(driver.vehicle).trim().toLowerCase()
+    const matchedVehicle = store.filteredVehicles.find((vehicle) =>
+        String(vehicle.code || '').trim().toLowerCase() === driverVehicleCode
+    )
+    return matchedVehicle ? matchedVehicle.id : null
+}
+
+const availableDrivers = computed(() => {
+    return store.dispatcherDrivers
+        .filter((driver) =>
+            isDriverAssignableStatus(driver.status) &&
+            !driver.suspended &&
+            !hasOpenAssignments(driver)
+        )
+        .map((driver) => ({
+            ...driver,
+            assignedVehicleId: resolveDriverVehicleId(driver),
+        }))
+})
+
+const vehicleOptions = computed(() => {
+    const selectedDriver = availableDrivers.value.find((driver) => driver.id === newMove.driverId)
+    const selectedDriverVehicleId = selectedDriver?.assignedVehicleId || null
+
+    return store.filteredVehicles
+        .filter((vehicle) =>
+            isVehicleAssignableStatus(vehicle.status) ||
+            (selectedDriverVehicleId && vehicle.id === selectedDriverVehicleId)
+        )
+        .map(v => ({
+            id: v.id,
+            label: formatVehicleLabel(v),
+            code: v.code || '',
+            type: v.type || '',
+            seatCapacity: v.seatCapacity ?? null,
+        }))
+})
 // Alias used in template
 const realVehicleOptions = vehicleOptions
-
-// Available drivers for crew assignment
-const availableDrivers = computed(() => {
-    return store.dispatcherDrivers.filter(d => d.status === 'Active' || d.status === 'Idle')
-})
 
 // Available laborers (from store if you have labor data)
 const availableLaborers = computed(() => {
@@ -493,11 +707,36 @@ const crewMsg = ref('')
 const crewMessages = ref([])
 const moveMenu = ref(null)
 const loading = ref(false)
+const formError = ref('')
+const formSuccess = ref('')
 const showTrackingModal = ref(false)
 const trackingMove = ref(null)
 const trackedDriver = ref(null)
 const trackingLoading = ref(false)
 const crewThreadId = ref(null)
+const showMapPicker = ref(false)
+const mapPickerType = ref('pickup')
+const selectedVehicleOption = computed(() =>
+    vehicleOptions.value.find(vehicle => vehicle.id === newMove.vehicleId) || null
+)
+const assignedHub = computed(() => {
+    const warehouseId = authStore.currentUser?.warehouse_id
+    if (!warehouseId) return null
+    return store.hubs.find((hub) => String(hub.id) === String(warehouseId)) || null
+})
+const mapPickerTitle = computed(() =>
+    mapPickerType.value === 'pickup' ? 'Select Pickup Location' : 'Select Delivery Location'
+)
+const mapPickerInitialLat = computed(() => {
+    if (mapPickerType.value === 'pickup' && newMove.pickupLat !== null) return Number(newMove.pickupLat)
+    if (mapPickerType.value === 'delivery' && newMove.deliveryLat !== null) return Number(newMove.deliveryLat)
+    return Number(assignedHub.value?.lat ?? 12.9716)
+})
+const mapPickerInitialLon = computed(() => {
+    if (mapPickerType.value === 'pickup' && newMove.pickupLng !== null) return Number(newMove.pickupLng)
+    if (mapPickerType.value === 'delivery' && newMove.deliveryLng !== null) return Number(newMove.deliveryLng)
+    return Number(assignedHub.value?.lng ?? 77.5946)
+})
 
 const driverMapIcon = computed(() =>
     L.divIcon({
@@ -522,6 +761,10 @@ const newMove = reactive({
     type: 'House Shift',
     pickup: '',
     delivery: '',
+    pickupLat: null,
+    pickupLng: null,
+    deliveryLat: null,
+    deliveryLng: null,
     vehicleId: '',
     driverId: '',
     laborerIds: [],
@@ -537,19 +780,38 @@ const totalCrewCount = computed(() => serviceMoves.value.reduce((sum, m) => sum 
 const blockedHours = computed(() => serviceMoves.value.reduce((sum, m) => sum + parseInt(m.duration), 0))
 const vehiclesReserved = computed(() => serviceMoves.value.length)
 
-// Set default vehicle and driver when modal opens
 watch(showNewMove, (isOpen) => {
-    if (isOpen && vehicleOptions.value.length > 0) {
-        newMove.vehicleId = vehicleOptions.value[0].id
-    }
-    if (isOpen && availableDrivers.value.length > 0) {
-        newMove.driverId = availableDrivers.value[0].id
-    }
-    // Set default date to today
     if (isOpen) {
-        const today = new Date().toISOString().split('T')[0]
-        newMove.scheduledDate = today
-        newMove.scheduledTime = '10:00'
+        formError.value = ''
+        formSuccess.value = ''
+        primeNewMoveDefaults()
+    }
+})
+
+watch(() => route.query.createMove, (value) => {
+    if (value === '1') {
+        openNewMoveModal()
+        return
+    }
+
+    if (showNewMove.value) {
+        showNewMove.value = false
+        formError.value = ''
+        formSuccess.value = ''
+    }
+}, { immediate: true })
+
+watch(() => newMove.driverId, (driverId) => {
+    if (!driverId) return
+    const selectedDriver = availableDrivers.value.find((driver) => driver.id === driverId)
+    if (selectedDriver?.assignedVehicleId) {
+        newMove.vehicleId = selectedDriver.assignedVehicleId
+    }
+})
+
+watch([availableDrivers, vehicleOptions], () => {
+    if (showNewMove.value) {
+        primeNewMoveDefaults()
     }
 })
 
@@ -558,8 +820,6 @@ watch(showNewMove, (isOpen) => {
 async function fetchServiceMoves() {
     loading.value = true
     try {
-        const SERVICE_CARGO = ['House Shift', 'Office Shift', 'Warehouse Transfer', 'house_shift', 'office_shift', 'warehouse_transfer']
-
         const [r1, r2, r3, r4] = await Promise.all([
             fetch(`${API_BASE_URL}/api/v1/orders?status_filter=ASSIGNED&page_size=100`, { headers: authHeaders() }),
             fetch(`${API_BASE_URL}/api/v1/orders?status_filter=IN_TRANSIT&page_size=100`, { headers: authHeaders() }),
@@ -573,19 +833,27 @@ async function fetchServiceMoves() {
         const inTransit   = Array.isArray(d2) ? d2 : (d2.items || [])
         const confirmed   = Array.isArray(d3) ? d3 : (d3.items || [])
         const delivered   = Array.isArray(d4) ? d4 : (d4.items || [])
+        const isServiceMoveOrder = (order) => {
+            const legacyTypes = ['House Shift', 'Office Shift', 'Warehouse Transfer']
+            return String(order?.order_type || '').toUpperCase() === 'SERVICE_MOVE'
+                || legacyTypes.includes(order?.cargo_type)
+        }
 
-        // ASSIGNED + IN_TRANSIT always show (they were dispatched as service moves)
-        // CONFIRMED only show if cargo_type marks them as a service move type
         const activeMoves = [
-            ...assigned,
+            // All assigned orders that have a driver — regardless of type
+            ...assigned.filter(o => o.assigned_driver_id),
+            // All in-transit orders — they're on the road and need dispatcher visibility
             ...inTransit,
-            ...confirmed.filter(o => SERVICE_CARGO.includes(o.cargo_type)),
+            // Only confirmed orders explicitly created as service moves
+            ...confirmed.filter(isServiceMoveOrder),
         ]
         serviceMoves.value = activeMoves.map(mapServiceMove)
 
         // Count completed today
         const today = new Date().toISOString().split('T')[0]
-        completedToday.value = delivered.filter(o => o.delivered_at?.startsWith(today)).length
+        completedToday.value = delivered.filter(o =>
+            o.delivered_at?.startsWith(today) && isServiceMoveOrder(o)
+        ).length
     } catch (err) {
         console.error('Failed to fetch service moves:', err)
     }
@@ -593,11 +861,28 @@ async function fetchServiceMoves() {
 }
 
 function mapServiceMove(order) {
-    const iconMap = { 'House Shift': 'home', 'Office Shift': 'domain', 'Warehouse Transfer': 'warehouse', 'service_move': 'local_shipping' }
-    const colorMap = { 'House Shift': 'blue', 'Office Shift': 'purple', 'Warehouse Transfer': 'green', 'service_move': 'blue' }
+    const iconMap = {
+        'House Shift': 'home',
+        'Office Shift': 'domain',
+        'Warehouse Transfer': 'warehouse',
+        'Warehouse Supply Pickup': 'inventory_2',
+        'Equipment Transfer': 'construction',
+        'Manual Service': 'handyman',
+        'service_move': 'local_shipping',
+    }
+    const colorMap = {
+        'House Shift': 'blue',
+        'Office Shift': 'purple',
+        'Warehouse Transfer': 'green',
+        'Warehouse Supply Pickup': 'amber',
+        'Equipment Transfer': 'cyan',
+        'Manual Service': 'rose',
+        'service_move': 'blue',
+    }
 
     const moveType = order.cargo_type || order.order_type || 'service_move'
     const c = colorMap[moveType] || 'blue'
+    const moveMeta = parseServiceMoveMeta(order.delivery_notes)
 
     // Get driver and crew info
     const driver = store.dispatcherDrivers.find(d => d.id === String(order.assigned_driver_id))
@@ -605,7 +890,7 @@ function mapServiceMove(order) {
 
     // Get vehicle info
     const vehicle = store.filteredVehicles.find(v => v.id === String(order.assigned_vehicle_id))
-    const vehicleCode = vehicle?.code || vehicle?.model || 'Vehicle'
+    const vehicleCode = order.assigned_vehicle_code || vehicle?.code || order.vehicle_type || 'Vehicle pending'
 
     // Calculate progress based on status
     let progress = 0
@@ -625,7 +910,7 @@ function mapServiceMove(order) {
     return {
         id: order.tracking_code || order.id,
         orderId: order.id,
-        title: order.special_instructions || `${moveType} - ${order.id}`,
+        title: moveMeta.title || `${moveType} · ${order.tracking_code || String(order.id).slice(0, 8)}`,
         type: moveType,
         icon: iconMap[moveType] || 'local_shipping',
         iconClass: `text-${c}-400`,
@@ -633,23 +918,67 @@ function mapServiceMove(order) {
         status: statusInfo.label,
         statusClass: statusInfo.class,
         pickup: order.pickup_addr || 'Not specified',
+        pickupLat: order.pickup_lat ?? null,
+        pickupLng: order.pickup_lng ?? null,
         delivery: order.delivery_addr || 'Not specified',
         deliveryLat: order.delivery_lat ?? null,
         deliveryLng: order.delivery_lng ?? null,
-        timeBlock: order.scheduled_at
-            ? new Date(order.scheduled_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-            : 'Not scheduled',
-        duration: '4 hours', // Could be calculated from order data
+        timeBlock: order.service_time_block || (
+            order.scheduled_at
+                ? new Date(order.scheduled_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+                : 'Not scheduled'
+        ),
+        duration: deriveDurationLabel(order.service_time_block),
         packingTime: '1h',
         dwellTime: '0.5h',
         transitTime: '2.5h',
         progress,
         vehicle: vehicleCode,
-        seatsAvailable: vehicle?.seats || 4,
-        notes: order.notes || order.special_instructions || '',
+        seatsAvailable: vehicle?.seatCapacity || 4,
+        notes: moveMeta.notes || '',
         tracking: false,
         crew
     }
+}
+
+function openMapPicker(type) {
+    mapPickerType.value = type
+    showMapPicker.value = true
+}
+
+function handleMapSelect(data) {
+    if (mapPickerType.value === 'pickup') {
+        newMove.pickup = data.address
+        newMove.pickupLat = data.lat
+        newMove.pickupLng = data.lon
+    } else {
+        newMove.delivery = data.address
+        newMove.deliveryLat = data.lat
+        newMove.deliveryLng = data.lon
+    }
+    showMapPicker.value = false
+}
+
+function useAssignedHub(type) {
+    if (!assignedHub.value?.address) return
+
+    const hubLat = assignedHub.value.lat !== null && assignedHub.value.lat !== undefined
+        ? Number(assignedHub.value.lat)
+        : null
+    const hubLng = assignedHub.value.lng !== null && assignedHub.value.lng !== undefined
+        ? Number(assignedHub.value.lng)
+        : null
+
+    if (type === 'pickup') {
+        newMove.pickup = assignedHub.value.address
+        newMove.pickupLat = hubLat
+        newMove.pickupLng = hubLng
+        return
+    }
+
+    newMove.delivery = assignedHub.value.address
+    newMove.deliveryLat = hubLat
+    newMove.deliveryLng = hubLng
 }
 
 async function trackMove(move) {
@@ -764,6 +1093,8 @@ async function createServiceMove() {
     if (!newMove.title || !newMove.pickup || !newMove.delivery) return
 
     loading.value = true
+    formError.value = ''
+    formSuccess.value = ''
     try {
         // Build scheduled timestamp
         const scheduledAt = newMove.scheduledDate && newMove.scheduledTime
@@ -773,15 +1104,17 @@ async function createServiceMove() {
         // Create order payload
         const payload = {
             cargo_type: newMove.type,
-            order_type: 'service_move',
+            order_type: 'SERVICE_MOVE',
             pickup_addr: newMove.pickup,
+            pickup_lat: newMove.pickupLat,
+            pickup_lng: newMove.pickupLng,
             delivery_addr: newMove.delivery,
-            special_instructions: newMove.title,
-            notes: newMove.notes,
+            delivery_lat: newMove.deliveryLat,
+            delivery_lng: newMove.deliveryLng,
+            vehicle_type: selectedVehicleOption.value?.code || selectedVehicleOption.value?.type || null,
+            delivery_notes: buildServiceMoveMeta(),
+            service_time_block: buildServiceTimeBlock(),
             scheduled_at: scheduledAt,
-            assigned_vehicle_id: newMove.vehicleId || null,
-            assigned_driver_id: newMove.driverId || null,
-            status: 'CONFIRMED'
         }
 
         const res = await fetch(`${API_BASE_URL}/api/v1/orders`, {
@@ -790,33 +1123,43 @@ async function createServiceMove() {
             body: JSON.stringify(payload)
         })
 
-        if (res.ok) {
-            const createdOrder = await res.json()
-
-            // Optionally assign driver if selected
-            if (newMove.driverId && createdOrder.id) {
-                await fetch(`${API_BASE_URL}/api/v1/orders/${createdOrder.id}/assign`, {
-                    method: 'POST',
-                    headers: authHeaders(),
-                    body: JSON.stringify({
-                        driver_id: newMove.driverId,
-                        vehicle_id: newMove.vehicleId || null
-                    })
-                })
-            }
-
-            // Refresh list
-            await fetchServiceMoves()
-
-            // Reset form
-            showNewMove.value = false
-            newMove.title = ''
-            newMove.pickup = ''
-            newMove.delivery = ''
-            newMove.notes = ''
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}))
+            throw new Error(parseApiError(error, 'Failed to create service move'))
         }
+
+        const createdOrder = await res.json()
+
+        if (newMove.driverId && createdOrder.id) {
+            const assignRes = await fetch(`${API_BASE_URL}/api/v1/orders/${createdOrder.id}/assign`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({
+                    driver_id: newMove.driverId,
+                    vehicle_id: newMove.vehicleId || null,
+                }),
+            })
+
+            if (!assignRes.ok) {
+                const assignError = await assignRes.json().catch(() => ({}))
+                await fetchServiceMoves()
+                const partialMessage = parseApiError(assignError, 'Service move created, but assignment failed')
+                toast.warning(partialMessage)
+                resetNewMoveForm()
+                await closeNewMoveModal()
+                return
+            }
+        }
+
+        await fetchServiceMoves()
+        formSuccess.value = 'Service move created successfully.'
+        toast.success('Service move created successfully.')
+        resetNewMoveForm()
+        await closeNewMoveModal()
     } catch (err) {
         console.error('Failed to create service move:', err)
+        formError.value = err instanceof Error ? err.message : 'Failed to create service move'
+        toast.error(formError.value)
     }
     loading.value = false
 }
