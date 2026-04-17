@@ -130,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useVendorStore } from '@/stores/vendorStore'
 import apiClient from '@/config/api'
 
@@ -146,11 +146,19 @@ const walletData = ref({
 async function fetchWallet() {
     try {
         const response = await apiClient.get('/api/v1/vendor/wallet')
-        walletData.value = response.data
+        walletData.value = {
+            ...response.data,
+            balance: Number(response.data?.balance ?? 0),
+        }
+        store.walletBalance = walletData.value.balance
     } catch (error) {
         console.error('Failed to fetch wallet:', error)
     }
 }
+
+watch(() => store.walletBalance, (nextBalance) => {
+    walletData.value.balance = Number(nextBalance ?? 0)
+})
 
 function formatDate(dateString) {
     const date = new Date(dateString)

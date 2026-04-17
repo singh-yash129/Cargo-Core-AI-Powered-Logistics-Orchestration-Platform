@@ -219,165 +219,52 @@ const timeRange = ref('today')
 const toastMsg = ref('')
 const loading = ref(false)
 
-// Live data
-const allOrders = ref([])
-const labourers = ref([])
+// Raw performance response from the dedicated backend endpoint
+const perfMetrics = ref(null)
 
-// Time range filter - returns date string for API
-function getTimeRangeFilter() {
-    const now = new Date()
-    let startDate
-
-    switch (timeRange.value) {
-        case 'today':
-            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-            break
-        case 'week':
-            const dayOfWeek = now.getDay()
-            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek)
-            break
-        case 'month':
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-            break
-        default:
-            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    }
-
-    return startDate.toISOString()
+// Helper to read substatus counts from the server's status_breakdown dict
+function sub(key) {
+    return perfMetrics.value?.status_breakdown?.[key] ?? 0
 }
 
-// Filter orders by time range (client-side since API may not support date filtering)
-const filteredOrders = computed(() => {
-    const cutoff = new Date(getTimeRangeFilter())
-    return allOrders.value.filter(o => {
-        const orderDate = new Date(o.created_at || o.updated_at)
-        return orderDate >= cutoff
-    })
-})
-
-const totalOrders = computed(() => filteredOrders.value.length)
-
-// Use warehouse_substatus for warehouse-specific metrics
-// Use warehouse_substatus for warehouse-specific metrics; fall back to order.status
-function getSubstatus(o) {
-    return o.warehouse_substatus || null
-}
-function matchesStage(o, ...substatuses) {
-    const sub = getSubstatus(o)
-    return substatuses.some(s => o.warehouse_substatus === s)
-}
-
-const packedOrders = computed(() => filteredOrders.value.filter(o =>
-    o.warehouse_substatus === 'PACKED' ||
-    o.warehouse_substatus === 'DISPATCHED' ||
-    o.status === 'DELIVERED' ||
-    o.status === 'CLOSED' ||
-    // Fall back: treat IN_TRANSIT as dispatched when no substatus set
-    (!o.warehouse_substatus && (o.status === 'IN_TRANSIT' || o.status === 'DISPATCHED'))
-).length)
-
-const pendingOrders = computed(() => filteredOrders.value.filter(o =>
-    o.warehouse_substatus === 'AWAITING_PICK' ||
-    o.status === 'PENDING' ||
-    o.status === 'CONFIRMED' ||
-    // Fall back: orders confirmed but not yet in flow
-    (!o.warehouse_substatus && o.status === 'CONFIRMED')
-).length)
-
-const onHoldOrders = computed(() => filteredOrders.value.filter(o =>
-    o.warehouse_substatus === 'ON_HOLD' ||
-    o.status === 'ON_HOLD'
-).length)
-
-const pickingOrders = computed(() => filteredOrders.value.filter(o =>
-    o.warehouse_substatus === 'PICKING' ||
-    o.warehouse_substatus === 'PICKED'
-).length)
-
-const packingOrders = computed(() => filteredOrders.value.filter(o =>
-    o.warehouse_substatus === 'PACKING'
-).length)
-
-const qcPassedOrders = computed(() => filteredOrders.value.filter(o =>
-    o.warehouse_substatus === 'QC_PASSED' ||
-    o.warehouse_substatus === 'READY_FOR_DISPATCH'
-).length)
-
-const onDockOrders = computed(() => filteredOrders.value.filter(o =>
-    o.warehouse_substatus === 'ON_DOCK'
-).length)
-
+const totalOrders = computed(() => perfMetrics.value?.total_orders ?? 0)
+const completionRate = computed(() => Math.round(perfMetrics.value?.completion_rate ?? 0))
+const onHoldOrders = computed(() => perfMetrics.value?.on_hold_count ?? 0)
+const qcPassedOrders = computed(() => perfMetrics.value?.ready_for_dispatch ?? 0)
+const onDockOrders = computed(() => sub('ON_DOCK'))
+const packedOrders = computed(() => perfMetrics.value?.dispatched_today ?? 0)
+const pendingOrders = computed(() => sub('AWAITING_PICK'))
+const packingOrders = computed(() => perfMetrics.value?.packing_active ?? 0)
 const demandLoad = computed(() => totalOrders.value)
 
-const completionRate = computed(() => {
-    if (totalOrders.value === 0) return 0
-    return Math.round((packedOrders.value / totalOrders.value) * 100)
-})
-
 const laborStats = computed(() => {
-    const total = labourers.value.length
-    const available = labourers.value.filter(l =>
-        l.status === 'AVAILABLE' || l.status === 'IN_WAREHOUSE' || l.status === 'In Warehouse'
-    ).length
-    const busy = labourers.value.filter(l =>
-        l.status === 'ON_DUTY' || l.status === 'ASSIGNED' || l.status === 'assigned'
-    ).length
-    const offDuty = total - available - busy
-    return { total, available, busy, offDuty }
+    const lb = perfMetrics.value?.labor_breakdown ?? {}
+    const active = lb.active ?? 0   // assigned to an order
+    const idle = lb.idle ?? 0       // in warehouse, no order
+    const off = lb.off ?? 0         // not active
+    const total = active + idle + off
+    return { total, available: idle, busy: active, offDuty: off }
 })
 
-const laborBreakdown = computed(() => [
-    { name: 'Available', count: laborStats.value.available, percent: laborStats.value.total > 0 ? Math.round((laborStats.value.available / laborStats.value.total) * 100) : 0 },
-    { name: 'On Duty / Assigned', count: laborStats.value.busy, percent: laborStats.value.total > 0 ? Math.round((laborStats.value.busy / laborStats.value.total) * 100) : 0 },
-    { name: 'Off Duty', count: laborStats.value.offDuty, percent: laborStats.value.total > 0 ? Math.round((laborStats.value.offDuty / laborStats.value.total) * 100) : 0 },
-])
+const laborBreakdown = computed(() => {
+    const t = laborStats.value.total
+    return [
+        { name: 'Available', count: laborStats.value.available, percent: t > 0 ? Math.round((laborStats.value.available / t) * 100) : 0 },
+        { name: 'On Duty / Assigned', count: laborStats.value.busy, percent: t > 0 ? Math.round((laborStats.value.busy / t) * 100) : 0 },
+        { name: 'Off Duty', count: laborStats.value.offDuty, percent: t > 0 ? Math.round((laborStats.value.offDuty / t) * 100) : 0 },
+    ]
+})
 
 const orderPipeline = computed(() => [
-    {
-        label: 'Awaiting Pick',
-        count: filteredOrders.value.filter(o => o.warehouse_substatus === 'AWAITING_PICK' || (!o.warehouse_substatus && o.status === 'CONFIRMED')).length,
-        color: 'text-yellow-600 dark:text-yellow-400', barColor: 'bg-yellow-500'
-    },
-    {
-        label: 'Picking',
-        count: filteredOrders.value.filter(o => o.warehouse_substatus === 'PICKING' || (!o.warehouse_substatus && o.status === 'ASSIGNED')).length,
-        color: 'text-blue-600 dark:text-blue-400', barColor: 'bg-blue-500'
-    },
-    {
-        label: 'Picked',
-        count: filteredOrders.value.filter(o => o.warehouse_substatus === 'PICKED').length,
-        color: 'text-cyan-600 dark:text-cyan-400', barColor: 'bg-cyan-500'
-    },
-    {
-        label: 'Packing',
-        count: packingOrders.value,
-        color: 'text-purple-600 dark:text-purple-400', barColor: 'bg-purple-500'
-    },
-    {
-        label: 'Packed',
-        count: filteredOrders.value.filter(o => o.warehouse_substatus === 'PACKED').length,
-        color: 'text-indigo-600 dark:text-indigo-400', barColor: 'bg-indigo-500'
-    },
-    {
-        label: 'QC Passed',
-        count: qcPassedOrders.value,
-        color: 'text-teal-600 dark:text-teal-400', barColor: 'bg-teal-500'
-    },
-    {
-        label: 'On Dock',
-        count: onDockOrders.value,
-        color: 'text-pink-600 dark:text-pink-400', barColor: 'bg-pink-500'
-    },
-    {
-        label: 'Dispatched',
-        count: filteredOrders.value.filter(o => o.warehouse_substatus === 'DISPATCHED' || (!o.warehouse_substatus && (o.status === 'IN_TRANSIT' || o.status === 'DELIVERED' || o.status === 'CLOSED'))).length,
-        color: 'text-green-600 dark:text-green-400', barColor: 'bg-green-500'
-    },
-    {
-        label: 'On Hold',
-        count: onHoldOrders.value,
-        color: 'text-orange-600 dark:text-orange-400', barColor: 'bg-orange-500'
-    },
+    { label: 'Awaiting Pick', count: sub('AWAITING_PICK'), color: 'text-yellow-600 dark:text-yellow-400', barColor: 'bg-yellow-500' },
+    { label: 'Picking', count: sub('PICKING'), color: 'text-blue-600 dark:text-blue-400', barColor: 'bg-blue-500' },
+    { label: 'Picked', count: sub('PICKED'), color: 'text-cyan-600 dark:text-cyan-400', barColor: 'bg-cyan-500' },
+    { label: 'Packing', count: sub('PACKING'), color: 'text-purple-600 dark:text-purple-400', barColor: 'bg-purple-500' },
+    { label: 'Packed', count: sub('PACKED'), color: 'text-indigo-600 dark:text-indigo-400', barColor: 'bg-indigo-500' },
+    { label: 'QC Passed', count: sub('QC_PASSED') + sub('READY_FOR_DISPATCH'), color: 'text-teal-600 dark:text-teal-400', barColor: 'bg-teal-500' },
+    { label: 'On Dock', count: sub('ON_DOCK'), color: 'text-pink-600 dark:text-pink-400', barColor: 'bg-pink-500' },
+    { label: 'Dispatched', count: sub('DISPATCHED'), color: 'text-green-600 dark:text-green-400', barColor: 'bg-green-500' },
+    { label: 'On Hold', count: sub('ON_HOLD'), color: 'text-orange-600 dark:text-orange-400', barColor: 'bg-orange-500' },
 ])
 
 const primaryKPIs = computed(() => [
@@ -412,28 +299,24 @@ const primaryKPIs = computed(() => [
 async function fetchPerformance() {
     loading.value = true
     try {
+        const warehouseId = authStore.currentWarehouse?.id || authStore.currentUser?.warehouse_id
+        if (!warehouseId) {
+            console.warn('No warehouse_id — cannot fetch performance metrics')
+            return
+        }
         const headers = {
             'Authorization': `Bearer ${authStore.authToken}`,
             'Content-Type': 'application/json'
         }
-        const warehouseId = authStore.currentUser?.warehouse_id
-        const labourUrl = warehouseId
-            ? `${API_BASE_URL}/api/v1/labourers?page=1&page_size=100&warehouse_id=${warehouseId}`
-            : `${API_BASE_URL}/api/v1/labourers?page=1&page_size=100`
-
-        const [ordersRes, labourRes] = await Promise.allSettled([
-            fetch(`${API_BASE_URL}/api/v1/orders?page=1&page_size=500`, { headers }),
-            fetch(labourUrl, { headers })
-        ])
-
-        if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
-            const data = await ordersRes.value.json()
-            allOrders.value = data.items || []
-        }
-
-        if (labourRes.status === 'fulfilled' && labourRes.value.ok) {
-            const data = await labourRes.value.json()
-            labourers.value = data.items || []
+        const res = await fetch(
+            `${API_BASE_URL}/api/v1/warehouses/${warehouseId}/operations/performance?time_range=${timeRange.value}`,
+            { headers }
+        )
+        if (res.ok) {
+            const data = await res.json()
+            perfMetrics.value = data.metrics
+        } else {
+            console.error('Performance fetch failed:', res.status, await res.text())
         }
     } catch (error) {
         console.error('Error fetching performance data:', error)
@@ -480,14 +363,14 @@ const processingChartData = computed(() => ({
     datasets: [{
         label: 'Orders',
         data: [
-            filteredOrders.value.filter(o => o.warehouse_substatus === 'AWAITING_PICK').length,
-            filteredOrders.value.filter(o => o.warehouse_substatus === 'PICKING').length,
-            filteredOrders.value.filter(o => o.warehouse_substatus === 'PICKED').length,
+            sub('AWAITING_PICK'),
+            sub('PICKING'),
+            sub('PICKED'),
             packingOrders.value,
-            filteredOrders.value.filter(o => o.warehouse_substatus === 'PACKED').length,
+            sub('PACKED'),
             qcPassedOrders.value,
             onDockOrders.value,
-            filteredOrders.value.filter(o => o.warehouse_substatus === 'DISPATCHED').length,
+            sub('DISPATCHED'),
         ],
         backgroundColor: [
             'rgba(245, 158, 11, 0.7)',
@@ -562,6 +445,7 @@ const demandChartOptions = {
 }
 
 onMounted(async () => {
+    await authStore.ensureWarehouseContext()
     await fetchPerformance()
 })
 </script>

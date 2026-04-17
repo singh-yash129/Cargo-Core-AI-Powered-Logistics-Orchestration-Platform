@@ -99,9 +99,16 @@ const routes = [
           INDIVIDUAL: '/individual/dashboard',
           VENDOR: '/vendor/dashboard',
           LOGISTIC_MANAGER: '/logistic/dashboard',
+          LOGISTIC_MANAGER: '/logistic/dashboard',
           WAREHOUSE_MANAGER: '/warehouse/dashboard',
           DISPATCHER: '/dispatcher/dashboard',
           DRIVER: '/driver/dashboard',
+          AI_AGENT: '/ai/dashboard',
+          AI_SUPPORT: '/ai/dashboard',
+          CUSTOMER_SUPPORT: '/ai/dashboard',
+          ai_agent: '/ai/dashboard',
+          ai_support: '/ai/dashboard',
+          customer_support: '/ai/dashboard',
         }
         return map[user?.role] || '/login'
       } catch {
@@ -171,6 +178,7 @@ const routes = [
       { path: 'reverse-logistics', name: 'LogisticReverseLogistics', component: () => import('../LWD-views/LogisticManager/ReverseLogistics.vue') },
       { path: 'reports', name: 'LogisticReports', component: () => import('../LWD-views/LogisticManager/Reports.vue') },
       { path: 'ai', name: 'LogisticAIIntelligence', component: () => import('../LWD-views/LogisticManager/AIIntelligence.vue') },
+      { path: 'recovery-tickets', name: 'LogisticRecoveryTickets', component: () => import('../LWD-views/LogisticManager/RecoveryTickets.vue') },
       { path: 'communication', name: 'LogisticCommunication', component: () => import('../LWD-views/LogisticManager/Communication.vue') },
       { path: 'comparative-viewers', name: 'LogisticComparativeViewers', component: () => import('../LWD-views/LogisticManager/ComparativeViewers.vue') },
     ],
@@ -222,6 +230,26 @@ const routes = [
     ],
   },
 
+  // ── AI Support Routes ──────────────────────────────────────────
+  {
+    path: '/ai',
+    component: () => import('../layouts/AILayout.vue'),
+    redirect: '/ai/dashboard',
+    children: [
+      { path: 'dashboard', name: 'AIDashboard', component: () => import('../Ai-views/Dashboard.vue') },
+      { path: 'contact-forms', name: 'AIContactForms', component: () => import('../Ai-views/ContactForms.vue') },
+      { path: 'live-conversations', name: 'AILiveConversations', component: () => import('../Ai-views/LiveConversations.vue') },
+      { path: 'escalations', name: 'AIEscalations', component: () => import('../Ai-views/EscalationCenter.vue') },
+      { path: 'tickets', name: 'AITickets', component: () => import('../Ai-views/Tickets.vue') },
+      { path: 'reverse-logistics', name: 'AIReverseLogistics', component: () => import('../Ai-views/ReverseLogistics.vue') },
+      { path: 'refund-center', name: 'AIRefundCenter', component: () => import('../Ai-views/RefundCenter.vue') },
+      { path: 'analytics', name: 'AIAnalytics', component: () => import('../Ai-views/AIAnalytics.vue') },
+      { path: 'knowledge-base', name: 'AIKnowledgeBase', component: () => import('../Ai-views/KnowledgeBase.vue') },
+      { path: 'legal', name: 'AILegalCompliance', component: () => import('../Ai-views/LegalCompliance.vue') },
+      { path: 'settings', name: 'AISettings', component: () => import('../Ai-views/Settings.vue') },
+    ],
+  },
+
   // ── Meeting Room (shared) ───────────────────────────────────────
   {
     path: '/logistic/meeting-room',
@@ -246,6 +274,11 @@ const routes = [
     component: () => import('../views/NoInternet.vue'),
   },
   {
+    path: '/slip-preview',
+    name: 'SlipPreview',
+    component: () => import('../pages/SlipPreview.vue'),
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../pages/NotFound.vue'),
@@ -266,6 +299,12 @@ const ROLE_DASHBOARD_MAP = {
   WAREHOUSE_MANAGER: '/warehouse/dashboard',
   DISPATCHER: '/dispatcher/dashboard',
   DRIVER: '/driver/dashboard',
+  AI_AGENT: '/ai/dashboard',
+  AI_SUPPORT: '/ai/dashboard',
+  CUSTOMER_SUPPORT: '/ai/dashboard',
+  ai_agent: '/ai/dashboard',
+  ai_support: '/ai/dashboard',
+  customer_support: '/ai/dashboard',
   manager: '/logistic/dashboard',
   warehouse: '/warehouse/dashboard',
   dispatcher: '/dispatcher/dashboard',
@@ -279,6 +318,7 @@ const PROTECTED_PREFIXES = {
   '/warehouse':  ['WAREHOUSE_MANAGER', 'warehouse'],
   '/dispatcher': ['DISPATCHER', 'dispatcher'],
   '/driver':     ['DRIVER', 'driver'],
+  '/ai':         ['AI_AGENT', 'ai_agent', 'AI_SUPPORT', 'ai_support', 'CUSTOMER_SUPPORT', 'customer_support'],
 }
 
 function isTokenExpired(token) {

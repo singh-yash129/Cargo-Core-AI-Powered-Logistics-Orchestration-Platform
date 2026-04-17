@@ -1,313 +1,198 @@
 <template>
     <div class="space-y-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Route Optimization</h2>
-            <div class="flex gap-2">
-                <button @click="showManualOverride = !showManualOverride"
-                    class="bg-yellow-100 dark:bg-yellow-500/10 hover:bg-yellow-200 dark:hover:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-500/20 py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold">
-                    <span class="material-symbols-outlined text-[18px]">pan_tool</span>
-                    Manual Override
-                </button>
-                <button @click="runOptimizer" :disabled="optimizing"
-                    class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                    <span v-if="optimizing" class="material-symbols-outlined animate-spin">progress_activity</span>
-                    <span v-else class="material-symbols-outlined">auto_fix_high</span>
-                    {{ optimizing ? 'Optimizing...' : 'Run Optimizer' }}
-                </button>
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+                <div class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+                    AI Trip Command
+                </div>
+                <h2 class="mt-3 text-2xl font-bold text-gray-900 dark:text-white">Route Optimization</h2>
+                <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">
+                    Single-trip intelligence for one-order-one-driver dispatch. Predict delay, detect route risk, and push route updates to drivers.
+                </p>
+            </div>
+            <button @click="loadTripIntelligence" :disabled="loading"
+                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">
+                <span class="material-symbols-outlined text-[18px]" :class="loading ? 'animate-spin' : ''">refresh</span>
+                {{ loading ? 'Refreshing...' : 'Refresh Intelligence' }}
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div v-for="stat in summaryCards" :key="stat.label" class="rounded-2xl border p-4" :class="stat.panelClass">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <div class="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-500 dark:text-gray-400">{{ stat.label }}</div>
+                        <div class="mt-2 text-3xl font-black text-gray-900 dark:text-white">{{ stat.value }}</div>
+                        <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ stat.detail }}</div>
+                    </div>
+                    <div class="flex h-11 w-11 items-center justify-center rounded-2xl" :class="stat.iconWrap">
+                        <span class="material-symbols-outlined" :class="stat.iconClass">{{ stat.icon }}</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
-            <!-- Configuration Panel -->
-            <div class="glass-panel p-6 rounded-xl overflow-y-auto no-scrollbar">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Optimization Settings</h3>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Optimization Goal</label>
-                        <select v-model="optimizationGoal" class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-gray-900 dark:text-white text-sm">
-                            <option class="bg-white dark:bg-gray-800">Minimize Distance</option>
-                            <option class="bg-white dark:bg-gray-800">Minimize Time</option>
-                            <option class="bg-white dark:bg-gray-800">Balance Workload</option>
-                            <option class="bg-white dark:bg-gray-800">Minimize Empty Miles</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Constraints</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                <input type="checkbox" v-model="constraints.avoidTolls"
-                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
-                                <span>Avoid Toll Roads</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                <input type="checkbox" v-model="constraints.prioritizeVIP"
-                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
-                                <span>Prioritize VIP Orders</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                <input type="checkbox" v-model="constraints.evRouting"
-                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
-                                <span>Electric Vehicle Routing</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                <input type="checkbox" v-model="constraints.respectNoGo"
-                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
-                                <span>Respect No-Go Zones</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                <input type="checkbox" v-model="constraints.hosCompliance"
-                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
-                                <span>HOS Compliance Check</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                <input type="checkbox" v-model="constraints.vehicleSize"
-                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
-                                <span>Vehicle Size Restrictions</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Data Sources -->
-                    <div class="pt-2 border-t border-gray-200 dark:border-white/5">
-                        <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-2">Routing Intelligence Sources</div>
-                        <div class="space-y-1 text-xs">
-                            <div class="flex items-center gap-2 text-green-700 dark:text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Traffic data (live)</div>
-                            <div class="flex items-center gap-2 text-green-700 dark:text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Road restrictions</div>
-                            <div class="flex items-center gap-2 text-green-700 dark:text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> No-go zones (from Manager)</div>
-                            <div class="flex items-center gap-2 text-yellow-700 dark:text-yellow-400"><span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span> Weather warnings (partial)</div>
-                            <div class="flex items-center gap-2 text-green-700 dark:text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Delivery time windows</div>
-                        </div>
-                    </div>
-
-                    <div class="pt-4 border-t border-gray-200 dark:border-white/5">
-                        <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-2">Unassigned Orders ({{ overrideOrders.length }})</h4>
-                        <div class="bg-gray-100 dark:bg-black/20 rounded p-2 text-xs text-gray-600 dark:text-gray-400 h-32 overflow-y-auto no-scrollbar">
-                            <div v-if="overrideOrders.length === 0" class="text-center py-4 text-gray-500">No pending orders</div>
-                            <div v-for="order in overrideOrders" :key="order.id" class="flex justify-between py-1 border-b border-gray-200 dark:border-white/5">
-                                <span>{{ order.id }}</span>
-                                <span :class="order.priority === 'URGENT' ? 'text-red-400' : order.priority === 'HIGH' ? 'text-yellow-400' : 'text-gray-500'">{{ order.priority || 'Normal' }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Route legend (shown after optimization) -->
-                    <div v-if="optimizedRoutes.length > 0" class="pt-4 border-t border-gray-200 dark:border-white/5">
-                        <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-2">Driver Routes</div>
-                        <div class="space-y-1.5">
-                            <div v-for="route in optimizedRoutes" :key="route.driver_id" class="space-y-0.5">
-                                <div class="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                                    <span class="w-3 h-3 rounded-full flex-shrink-0" :style="{ backgroundColor: route.color }"></span>
-                                    <span class="font-medium truncate">{{ route.driver_name }}</span>
-                                    <span class="ml-auto text-gray-500 flex-shrink-0">{{ route.stops.length }} stops</span>
-                                </div>
-                                <div v-for="(stop, si) in route.stops" :key="stop.order_id" class="flex items-center gap-1.5 pl-5 text-[10px] text-gray-500">
-                                    <span class="font-mono">{{ si + 1 }}.</span>
-                                    <span class="truncate flex-1">{{ stop.tracking_code }}</span>
-                                    <span v-if="stop.priority === 'URGENT'" class="text-red-400 font-bold">URGENT</span>
-                                    <span v-else-if="stop.priority === 'HIGH'" class="text-yellow-500 font-bold">EXPRESS</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div v-if="loading" class="flex min-h-[18rem] items-center justify-center rounded-3xl border border-gray-200 bg-white dark:border-white/10 dark:bg-white/5">
+            <div class="flex flex-col items-center gap-3">
+                <span class="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Building trip intelligence...</p>
             </div>
+        </div>
 
-            <!-- Map Result Visualization -->
-            <div class="lg:col-span-2 glass-panel rounded-xl relative overflow-hidden flex flex-col">
+        <div v-else-if="filteredTrips.length === 0" class="rounded-3xl border border-dashed border-gray-300 bg-white p-10 text-center dark:border-white/10 dark:bg-white/5">
+            <span class="material-symbols-outlined text-5xl text-gray-300 dark:text-gray-600">alt_route</span>
+            <h3 class="mt-4 text-lg font-bold text-gray-900 dark:text-white">No assigned trips yet</h3>
+            <p class="mx-auto mt-2 max-w-xl text-sm text-gray-500 dark:text-gray-400">
+                After dispatch assigns a driver, the trip will appear here for ETA intelligence, reroute recommendations, and push-to-driver actions.
+            </p>
+        </div>
 
-                <!-- Loading overlay -->
-                <div v-if="optimizing" class="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                    <div class="flex flex-col items-center gap-3">
-                        <span class="material-symbols-outlined animate-spin text-primary text-4xl">progress_activity</span>
-                        <span class="text-white font-bold text-sm">Calculating optimal routes…</span>
-                    </div>
-                </div>
-
-                <!-- Leaflet Map Container -->
-                <div ref="mapContainer" style="width:100%;height:100%;min-height:400px;z-index:0;"></div>
-
-                <!-- ETA Generation Panel -->
-                <div class="absolute top-4 left-4 z-10 bg-white/90 dark:bg-black/80 backdrop-blur border border-gray-200 dark:border-white/10 rounded-xl p-4 w-64">
-                    <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-2">ETA Generation</div>
-                    <div v-if="routesApplied" class="space-y-2 text-xs">
-                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Routes</span><span class="text-gray-900 dark:text-white font-mono">{{ routeStats.routes }} active</span></div>
-                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Total Distance</span><span class="text-gray-900 dark:text-white font-mono">{{ routeStats.distance }} km</span></div>
-                        <div class="pt-1 border-t border-gray-200 dark:border-white/10 flex justify-between">
-                            <span class="text-gray-500 dark:text-gray-400">Efficiency</span>
-                            <span class="text-primary font-bold font-mono">{{ routeStats.efficiency }}%</span>
-                        </div>
-                    </div>
-                    <div v-else class="text-xs text-gray-500 text-center py-2">Run optimizer to generate ETAs</div>
-                    <div class="mt-2 text-[9px] text-gray-500">Shared with: Driver, AI Customer Support</div>
-                </div>
-
-                <!-- Results Summary Overlay -->
-                <div
-                    class="absolute bottom-6 left-6 right-6 bg-white/90 dark:bg-black/80 backdrop-blur-md rounded-lg p-4 border border-gray-200 dark:border-white/10 flex justify-between items-center z-10">
+        <div v-else class="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr,0.9fr]">
+            <div class="rounded-3xl border border-gray-200 bg-white dark:border-white/10 dark:bg-white/5">
+                <div class="flex flex-col gap-4 border-b border-gray-200 p-5 dark:border-white/10 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Proposed Solution</div>
-                        <div class="text-gray-900 dark:text-white font-bold">{{ routeStats.routes }} Routes • {{ routeStats.distance }} km Total • {{ routeStats.efficiency }}% Efficiency</div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Exception Queue</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">System monitors every trip. Dispatcher steps in only on exceptions.</p>
                     </div>
-                    <div class="flex gap-2">
-                        <button @click="showAdjustModal = true"
-                            class="px-4 py-2 rounded bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white text-sm transition-colors">Adjust</button>
-                        <button @click="applyRoutes" :disabled="routesApplied"
-                            class="px-4 py-2 rounded bg-primary text-black font-bold text-sm hover:bg-primary-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                            {{ routesApplied ? '✓ Applied' : 'Apply Routes' }}
+                    <div class="flex flex-wrap gap-2">
+                        <button v-for="option in filterOptions" :key="option.value" @click="statusFilter = option.value"
+                            class="rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] transition-colors"
+                            :class="statusFilter === option.value ? 'bg-primary text-black' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10'">
+                            {{ option.label }}
                         </button>
                     </div>
                 </div>
+
+                <div class="max-h-[calc(100vh-18rem)] space-y-3 overflow-y-auto p-5">
+                    <button v-for="trip in filteredTrips" :key="trip.order_id" @click="selectedOrderId = String(trip.order_id)"
+                        class="w-full rounded-2xl border p-4 text-left transition-all"
+                        :class="selectedTrip && String(selectedTrip.order_id) === String(trip.order_id) ? 'border-primary bg-primary/5 shadow-lg shadow-primary/5' : 'border-gray-200 bg-white hover:border-primary/30 dark:border-white/10 dark:bg-black/10 dark:hover:border-primary/30'">
+                        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-base font-black text-gray-900 dark:text-white">{{ trip.tracking_code }}</span>
+                                    <span class="rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em]" :class="riskChipClass(trip.risk_level)">
+                                        {{ trip.risk_level }}
+                                    </span>
+                                    <span class="rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em]" :class="statusChipClass(trip.route_status)">
+                                        {{ trip.route_status }}
+                                    </span>
+                                </div>
+                                <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                    <span class="font-semibold">{{ trip.driver_name || 'Driver pending' }}</span>
+                                    <span class="mx-2 text-gray-300 dark:text-gray-600">•</span>
+                                    <span>{{ trip.vehicle_code || 'Vehicle not linked' }}</span>
+                                </div>
+                                <div class="mt-3 grid grid-cols-2 gap-3 text-sm lg:grid-cols-4">
+                                    <div><div class="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">ETA</div><div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ trip.eta_label }}</div></div>
+                                    <div><div class="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Delay Risk</div><div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ trip.delay_probability_pct }}%</div></div>
+                                    <div><div class="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Confidence</div><div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ trip.eta_confidence }}</div></div>
+                                    <div><div class="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Alt Recovery</div><div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ alternateRecoveryMinutes(trip) }} min</div></div>
+                                </div>
+                            </div>
+                            <div class="min-w-[13rem] rounded-2xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-300">
+                                <div class="font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Recommendation</div>
+                                <div class="mt-2 leading-relaxed">{{ trip.dispatcher_recommendation }}</div>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div v-if="selectedTrip" class="space-y-4">
+                <div class="rounded-3xl border border-gray-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <div class="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">Trip Brief</div>
+                            <h3 class="mt-2 text-xl font-black text-gray-900 dark:text-white">{{ selectedTrip.tracking_code }}</h3>
+                            <p class="mt-2 max-w-xl text-sm text-gray-600 dark:text-gray-300">{{ selectedTrip.dispatcher_recommendation }}</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em]" :class="riskChipClass(selectedTrip.risk_level)">{{ selectedTrip.risk_level }}</span>
+                            <span class="rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em]" :class="selectedTrip.no_go_zone_hit ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400' : 'border-green-200 bg-green-50 text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400'">
+                                {{ selectedTrip.no_go_zone_hit ? 'No-Go Flag' : 'Clear Corridor' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
+                        <div v-for="item in detailStats" :key="item.label" class="rounded-2xl border p-3" :class="item.panelClass">
+                            <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">{{ item.label }}</div>
+                            <div class="mt-2 text-xl font-black text-gray-900 dark:text-white">{{ item.value }}</div>
+                            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ item.detail }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-hidden rounded-3xl border border-gray-200 bg-white dark:border-white/10 dark:bg-white/5">
+                    <div class="border-b border-gray-200 p-4 dark:border-white/10">
+                        <h3 class="font-bold text-gray-900 dark:text-white">Trip Corridor View</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Pickup-to-destination operational corridor.</p>
+                    </div>
+                    <div ref="mapContainer" class="h-72 w-full"></div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <div v-for="route in routeCards" :key="route.route_id" class="rounded-3xl border p-5" :class="route.recommended ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white dark:border-white/10 dark:bg-white/5'">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">{{ route.label }}</div>
+                                <div class="mt-2 text-2xl font-black text-gray-900 dark:text-white">{{ route.eta_label }}</div>
+                                <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ route.summary }}</div>
+                            </div>
+                            <span v-if="route.recommended" class="rounded-full bg-primary px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-black">Recommended</span>
+                        </div>
+                        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                            <div class="rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-black/10"><div class="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Distance</div><div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ route.distance_km }} km</div></div>
+                            <div class="rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-black/10"><div class="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">ETA Delta</div><div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ route.delta_minutes < 0 ? `${Math.abs(route.delta_minutes)} min faster` : route.delta_minutes > 0 ? `${route.delta_minutes} min slower` : 'Current baseline' }}</div></div>
+                        </div>
+                        <button @click="pushTripCommand(route.route_id)" :disabled="pushingRoute === route.route_id"
+                            class="mt-4 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors"
+                            :class="route.recommended ? 'bg-primary text-black hover:bg-primary-dark' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20'">
+                            <span class="material-symbols-outlined text-[18px]">{{ pushingRoute === route.route_id ? 'progress_activity' : 'send' }}</span>
+                            {{ pushingRoute === route.route_id ? 'Pushing...' : `Push ${route.label}` }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="rounded-3xl border border-gray-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+                    <h3 class="font-bold text-gray-900 dark:text-white">Risk Signals</h3>
+                    <div class="mt-4 space-y-3">
+                        <div v-for="signal in selectedTrip.signals" :key="signal.key" class="rounded-2xl border px-4 py-3" :class="signalClass(signal.severity)">
+                            <div class="text-[11px] font-black uppercase tracking-[0.18em]">{{ signal.key.replaceAll('_', ' ') }}</div>
+                            <div class="mt-1 text-sm">{{ signal.label }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-3xl border border-gray-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+                    <h3 class="font-bold text-gray-900 dark:text-white">Push to Driver</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Driver gets the route note in the assignment and navigation flow, then opens Google Maps with the updated guidance.</p>
+                    <textarea v-model="dispatcherNote" rows="3"
+                        class="mt-4 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-black/10 dark:text-white"
+                        placeholder="Optional custom note for the driver"></textarea>
+                    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <button @click="pushTripCommand('recommended')" :disabled="pushingRoute === 'recommended'" class="rounded-2xl bg-primary px-4 py-3 text-sm font-black text-black transition hover:bg-primary-dark disabled:opacity-60">{{ pushingRoute === 'recommended' ? 'Pushing...' : 'Push Recommended' }}</button>
+                        <button @click="pushTripCommand('primary')" :disabled="pushingRoute === 'primary'" class="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">{{ pushingRoute === 'primary' ? 'Pushing...' : 'Keep Primary Route' }}</button>
+                        <button @click="pushTripCommand('alternate')" :disabled="pushingRoute === 'alternate'" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800 transition hover:bg-amber-100 disabled:opacity-60 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20">{{ pushingRoute === 'alternate' ? 'Pushing...' : 'Push Alternate Route' }}</button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Reassignment Toast -->
         <Transition enter-active-class="transition ease-out duration-300" enter-from-class="translate-y-4 opacity-0" enter-to-class="translate-y-0 opacity-100" leave-active-class="transition ease-in duration-200" leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-4 opacity-0">
-            <div v-if="reassignToast" class="fixed bottom-6 right-6 z-50 bg-primary text-black font-bold px-5 py-3 rounded-lg shadow-lg text-sm flex items-center gap-2">
-                <span class="material-symbols-outlined text-[18px]">check_circle</span>
-                {{ reassignToast }}
-            </div>
+            <div v-if="toastMessage" class="fixed bottom-6 right-6 z-50 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-black shadow-2xl">{{ toastMessage }}</div>
         </Transition>
-
-        <!-- Adjust Routes Modal -->
-        <Teleport to="body">
-            <Transition enter-active-class="transition ease-out duration-200" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100" leave-to-class="opacity-0">
-                <div v-if="showAdjustModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="showAdjustModal = false">
-                    <div class="bg-white dark:bg-card-dark border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl p-6 w-full max-w-md mx-4">
-                        <div class="flex items-center justify-between mb-5">
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Adjust Routes</h3>
-                            <button @click="showAdjustModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
-                                <span class="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Number of Routes</label>
-                                <input type="number" v-model.number="adjustForm.routes" min="1" max="50"
-                                    class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white text-sm focus:ring-primary focus:border-primary" />
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Max Distance (km)</label>
-                                <input type="number" v-model.number="adjustForm.distance" min="100" max="5000" step="10"
-                                    class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white text-sm focus:ring-primary focus:border-primary" />
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Target Efficiency (%)</label>
-                                <input type="range" v-model.number="adjustForm.efficiency" min="50" max="100"
-                                    class="w-full accent-primary" />
-                                <div class="flex justify-between text-[10px] text-gray-400"><span>50%</span><span class="text-primary font-bold">{{ adjustForm.efficiency }}%</span><span>100%</span></div>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Priority</label>
-                                <select v-model="adjustForm.priority" class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white text-sm">
-                                    <option class="bg-white dark:bg-gray-800">Distance First</option>
-                                    <option class="bg-white dark:bg-gray-800">Time First</option>
-                                    <option class="bg-white dark:bg-gray-800">Balanced</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-3 mt-6">
-                            <button @click="showAdjustModal = false"
-                                class="flex-1 py-2.5 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white text-sm font-medium transition-colors">Cancel</button>
-                            <button @click="confirmAdjust"
-                                class="flex-1 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-black font-bold text-sm transition-colors">Apply Adjustments</button>
-                        </div>
-                    </div>
-                </div>
-            </Transition>
-        </Teleport>
-
-        <!-- Manual Override Modal -->
-        <Teleport to="body">
-            <Transition enter-active-class="transition ease-out duration-200" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100" leave-to-class="opacity-0">
-                <div v-if="showManualOverride" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="showManualOverride = false">
-                    <div class="bg-white dark:bg-card-dark border border-yellow-500/30 shadow-2xl rounded-2xl p-6 w-full max-w-xl mx-4 max-h-[85vh] overflow-y-auto no-scrollbar">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-yellow-400 text-[18px]">pan_tool</span>
-                                <h3 class="font-bold text-yellow-600 dark:text-yellow-400 text-base">Manual Override Mode</h3>
-                            </div>
-                            <button @click="showManualOverride = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
-                                <span class="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-                        <div class="text-[11px] text-gray-500 dark:text-gray-400 mb-4">Drag orders from the right and drop them on a driver on the left. All overrides are logged in audit trail.</div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- Drivers (Left) -->
-                            <div>
-                                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider mb-2">Drop on Driver</div>
-                                <div class="space-y-1.5 max-h-52 overflow-y-auto no-scrollbar pr-1">
-                                    <div v-for="driver in availableDrivers" :key="driver.id"
-                                        @dragover.prevent
-                                        @dragenter.prevent="dragOverDriver = driver.id"
-                                        @dragleave="dragOverDriver = null"
-                                        @drop="onDropOnDriver($event, driver)"
-                                        class="p-2.5 rounded-lg text-xs border transition-all"
-                                        :class="dragOverDriver === driver.id
-                                            ? 'bg-primary/20 border-primary text-primary scale-[1.02]'
-                                            : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:border-primary/40'">
-                                        <div class="flex justify-between items-center">
-                                            <span class="font-medium">{{ driver.name }}</span>
-                                            <span class="text-[10px] font-bold" :class="driver.load < 70 ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'">{{ driver.load }}%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Orders (Right) -->
-                            <div>
-                                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider mb-2">Orders</div>
-                                <div class="space-y-1.5 max-h-52 overflow-y-auto no-scrollbar pr-1">
-                                    <div v-for="order in overrideOrders" :key="order.id"
-                                        draggable="true"
-                                        @dragstart="onDragStart($event, order)"
-                                        @dragend="onDragEnd"
-                                        class="p-2.5 bg-white dark:bg-white/10 rounded-lg text-xs text-gray-900 dark:text-gray-200 cursor-grab active:cursor-grabbing border shadow-sm transition-all"
-                                        :class="draggedOrder?.id === order.id
-                                            ? 'opacity-60 border-yellow-400 bg-yellow-50 dark:bg-yellow-500/10'
-                                            : order.reassigned
-                                                ? 'border-l-[3px] border-primary bg-primary/5 dark:bg-primary/10'
-                                                : 'border-gray-200 dark:border-white/10 hover:border-yellow-500/40'">
-                                        <div class="flex justify-between items-center">
-                                            <span class="font-semibold">{{ order.id }}</span>
-                                            <span v-if="order.reassigned" class="text-primary font-bold text-[10px]">✓ {{ order.assignedTo }}</span>
-                                            <span v-else class="text-yellow-600 dark:text-yellow-400 text-[10px] font-medium">Drag →</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="pt-3 mt-4 border-t border-gray-200 dark:border-white/10 grid grid-cols-2 gap-3">
-                            <button @click="setEmergencyPriority" class="w-full text-xs py-2 rounded-lg font-bold transition-colors"
-                                :class="emergencySet ? 'bg-red-200 dark:bg-red-500/30 text-red-700 dark:text-red-300' : 'bg-red-100 dark:bg-red-500/20 hover:bg-red-200 dark:hover:bg-red-500/30 text-red-700 dark:text-red-400'">
-                                {{ emergencySet ? '✓ Emergency Priority Set' : 'Set Emergency Priority' }}
-                            </button>
-                            <button @click="reorderStops" class="w-full text-xs py-2 rounded-lg font-bold transition-colors"
-                                :class="stopsReordered ? 'bg-blue-200 dark:bg-blue-500/30 text-blue-700 dark:text-blue-300' : 'bg-blue-100 dark:bg-blue-500/20 hover:bg-blue-200 dark:hover:bg-blue-500/30 text-blue-700 dark:text-blue-400'">
-                                {{ stopsReordered ? '✓ Stops Reordered' : 'Reorder Stops' }}
-                            </button>
-                        </div>
-                        <div class="text-[9px] text-gray-500 dark:text-gray-600 italic mt-2 text-center">All overrides logged in audit trail</div>
-                    </div>
-                </div>
-            </Transition>
-        </Teleport>
     </div>
 </template>
 
 <script setup>
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useDispatcherStore } from '@/stores/dispatcherStore'
 import { useLogisticStore } from '@/stores/logisticStore'
-import { API_BASE_URL, getStoredAccessToken } from '@/config/api'
+import { authenticatedJsonRequest } from '@/config/api'
 
-// Fix Leaflet default marker icon paths broken by Vite
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
@@ -317,66 +202,207 @@ L.Icon.Default.mergeOptions({
 
 const store = useDispatcherStore()
 const logisticStore = useLogisticStore()
+const loading = ref(true)
+const statusFilter = ref('all')
+const tripIntelligence = ref([])
+const selectedOrderId = ref('')
+const dispatcherNote = ref('')
+const toastMessage = ref('')
+const pushingRoute = ref('')
+const filterOptions = [
+    { label: 'All Trips', value: 'all' },
+    { label: 'Needs Action', value: 'attention' },
+    { label: 'On Track', value: 'on_track' },
+]
 
-// ── Map ────────────────────────────────────────────────────────────────────
-const mapContainer = ref(null)
-let mapInstance = null
-let routePolylines = []
-let stopMarkers = []
-let hubMarker = null
-
-// Get hub location dynamically from active warehouse
-const hubLocation = computed(() => {
-    const activeWarehouse = logisticStore.activeWarehouse
-    const activeHub = store.hubs.find(h => h.id === activeWarehouse) || store.hubs[0]
-    if (activeHub?.coordinates) {
-        // Parse coordinates if stored as string "lat,lng"
-        if (typeof activeHub.coordinates === 'string') {
-            const [lat, lng] = activeHub.coordinates.split(',').map(Number)
-            return [lat, lng]
-        }
-        // If stored as array [lat, lng]
-        if (Array.isArray(activeHub.coordinates)) {
-            return activeHub.coordinates
-        }
-        // If stored as object {lat, lng}
-        if (activeHub.coordinates.lat && activeHub.coordinates.lng) {
-            return [activeHub.coordinates.lat, activeHub.coordinates.lng]
-        }
-    }
-    // Fallback to Bangalore if no hub coordinates found
-    return [12.9716, 77.5946]
+const summaryCards = computed(() => {
+    const trips = tripIntelligence.value
+    const atRisk = trips.filter((trip) => trip.route_status !== 'On Track').length
+    const alternateReady = trips.filter((trip) => trip.recommended_route === 'alternate').length
+    const avgConfidence = trips.length
+        ? Math.round((trips.filter((trip) => trip.eta_confidence === 'High').length / trips.length) * 100)
+        : 0
+    return [
+        { label: 'Active Trips', value: trips.length, detail: 'Assigned or in-transit', icon: 'local_shipping', iconWrap: 'bg-blue-50 dark:bg-blue-500/10', iconClass: 'text-blue-600 dark:text-blue-400', panelClass: 'border-gray-200 bg-white dark:border-white/10 dark:bg-white/5' },
+        { label: 'Needs Action', value: atRisk, detail: 'Delay risk, blocked, delayed', icon: 'error', iconWrap: 'bg-red-50 dark:bg-red-500/10', iconClass: 'text-red-600 dark:text-red-400', panelClass: 'border-gray-200 bg-white dark:border-white/10 dark:bg-white/5' },
+        { label: 'Reroute Ready', value: alternateReady, detail: 'Alternate route recommended', icon: 'alt_route', iconWrap: 'bg-amber-50 dark:bg-amber-500/10', iconClass: 'text-amber-600 dark:text-amber-400', panelClass: 'border-gray-200 bg-white dark:border-white/10 dark:bg-white/5' },
+        { label: 'High Confidence', value: `${avgConfidence}%`, detail: 'Trips with high ETA confidence', icon: 'verified', iconWrap: 'bg-green-50 dark:bg-green-500/10', iconClass: 'text-green-600 dark:text-green-400', panelClass: 'border-gray-200 bg-white dark:border-white/10 dark:bg-white/5' },
+    ]
 })
 
-const hubName = computed(() => {
-    const activeWarehouse = logisticStore.activeWarehouse
-    const activeHub = store.hubs.find(h => h.id === activeWarehouse) || store.hubs[0]
-    return activeHub?.name || 'Warehouse Hub'
+const filteredTrips = computed(() => {
+    if (statusFilter.value === 'attention') return tripIntelligence.value.filter((trip) => trip.route_status !== 'On Track')
+    if (statusFilter.value === 'on_track') return tripIntelligence.value.filter((trip) => trip.route_status === 'On Track')
+    return tripIntelligence.value
+})
+
+const selectedTrip = computed(() =>
+    filteredTrips.value.find((trip) => String(trip.order_id) === String(selectedOrderId.value))
+    || filteredTrips.value[0]
+    || null
+)
+
+const selectedOrder = computed(() =>
+    store.activeOrders.find((order) => String(order.id) === String(selectedTrip.value?.order_id))
+    || null
+)
+
+const detailStats = computed(() => {
+    if (!selectedTrip.value) return []
+    return [
+        { label: 'Trip ETA', value: selectedTrip.value.eta_label, detail: `${selectedTrip.value.eta_minutes} min projected`, panelClass: 'border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-black/10' },
+        { label: 'Delay Probability', value: `${selectedTrip.value.delay_probability_pct}%`, detail: 'Risk engine output', panelClass: 'border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-black/10' },
+        { label: 'ETA Confidence', value: selectedTrip.value.eta_confidence, detail: 'Estimate quality', panelClass: 'border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-black/10' },
+        { label: 'Distance', value: `${selectedTrip.value.planned_distance_km} km`, detail: 'Operational trip distance', panelClass: 'border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-black/10' },
+    ]
+})
+
+const routeCards = computed(() => selectedTrip.value ? [selectedTrip.value.primary_route, selectedTrip.value.alternate_route] : [])
+
+function alternateRecoveryMinutes(trip) {
+    return Math.max(0, -(trip?.alternate_route?.delta_minutes || 0))
+}
+
+function riskChipClass(level) {
+    if (level === 'CRITICAL' || level === 'HIGH') return 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400'
+    if (level === 'MEDIUM') return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400'
+    return 'border-green-200 bg-green-50 text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400'
+}
+
+function statusChipClass(status) {
+    if (status === 'On Track') return 'border-green-200 bg-green-50 text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400'
+    if (status === 'Delay Risk') return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400'
+    return 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400'
+}
+
+function signalClass(severity) {
+    if (severity === 'high') return 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300'
+    if (severity === 'medium') return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300'
+    return 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300'
+}
+
+function showToast(message) {
+    toastMessage.value = message
+    window.clearTimeout(showToast._timer)
+    showToast._timer = window.setTimeout(() => { toastMessage.value = '' }, 3200)
+}
+
+async function loadTripIntelligence() {
+    loading.value = true
+    try {
+        await store.initialize().catch(() => {})
+        await store.fetchActiveOrders().catch(() => {})
+        const data = await authenticatedJsonRequest('api/v1/orders/trip-intelligence?statuses=ASSIGNED,IN_TRANSIT')
+        tripIntelligence.value = Array.isArray(data) ? data : []
+        if (!selectedOrderId.value && tripIntelligence.value[0]) selectedOrderId.value = String(tripIntelligence.value[0].order_id)
+    } catch (error) {
+        console.error('Failed to load trip intelligence', error)
+        showToast('Could not load trip intelligence')
+    } finally {
+        loading.value = false
+    }
+}
+
+async function pushTripCommand(route) {
+    if (!selectedTrip.value) return
+    pushingRoute.value = route
+    try {
+        const response = await authenticatedJsonRequest(`api/v1/orders/${selectedTrip.value.order_id}/trip-intelligence/push`, {
+            method: 'POST',
+            body: JSON.stringify({
+                selected_route: route,
+                dispatcher_note: dispatcherNote.value?.trim() || undefined,
+            }),
+        })
+        showToast(response?.message || 'Trip command pushed to driver')
+        await loadTripIntelligence()
+    } catch (error) {
+        console.error('Failed to push trip command', error)
+        showToast('Could not push route update')
+    } finally {
+        pushingRoute.value = ''
+    }
+}
+
+const mapContainer = ref(null)
+let mapInstance = null
+let mapLayers = []
+
+function clearMap() {
+    mapLayers.forEach((layer) => layer.remove())
+    mapLayers = []
+}
+
+function ensureMap() {
+    if (mapInstance || !mapContainer.value) return
+    mapInstance = L.map(mapContainer.value, { zoomControl: true }).setView([12.9716, 77.5946], 11)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 18,
+    }).addTo(mapInstance)
+}
+
+function drawSelectedTrip() {
+    if (!mapInstance) return
+    clearMap()
+
+    const pickup = selectedOrder.value?.pickupLat != null && selectedOrder.value?.pickupLng != null
+        ? [selectedOrder.value.pickupLat, selectedOrder.value.pickupLng]
+        : null
+    const delivery = selectedOrder.value?.deliveryLat != null && selectedOrder.value?.deliveryLng != null
+        ? [selectedOrder.value.deliveryLat, selectedOrder.value.deliveryLng]
+        : null
+
+    if (!pickup && !delivery) {
+        const hub = logisticStore.activeWarehouse && store.hubs.find((item) => item.id === logisticStore.activeWarehouse)
+        const coords = Array.isArray(hub?.coordinates)
+            ? hub.coordinates
+            : typeof hub?.coordinates === 'string'
+                ? hub.coordinates.split(',').map(Number)
+                : [12.9716, 77.5946]
+        mapInstance.setView(coords, 11)
+        return
+    }
+
+    const bounds = []
+    if (pickup) {
+        mapLayers.push(L.marker(pickup).bindPopup(`<b>Pickup</b><br>${selectedTrip.value?.pickup_addr || 'Pickup location'}`).addTo(mapInstance))
+        bounds.push(pickup)
+    }
+    if (delivery) {
+        mapLayers.push(L.marker(delivery).bindPopup(`<b>Destination</b><br>${selectedTrip.value?.delivery_addr || 'Destination'}`).addTo(mapInstance))
+        bounds.push(delivery)
+    }
+    if (pickup && delivery) {
+        mapLayers.push(L.polyline([pickup, delivery], {
+            color: selectedTrip.value?.recommended_route === 'alternate' ? '#f59e0b' : '#1CE783',
+            weight: 4,
+            opacity: 0.85,
+            dashArray: selectedTrip.value?.no_go_zone_hit ? '12 10' : undefined,
+        }).addTo(mapInstance))
+    }
+
+    if (bounds.length === 1) mapInstance.setView(bounds[0], 12)
+    if (bounds.length > 1) mapInstance.fitBounds(L.latLngBounds(bounds).pad(0.2))
+}
+
+watch(selectedTrip, async (trip) => {
+    if (!trip) return
+    dispatcherNote.value = trip.driver_message || ''
+    await nextTick()
+    ensureMap()
+    drawSelectedTrip()
+}, { immediate: true })
+
+watch(selectedOrder, () => {
+    drawSelectedTrip()
 })
 
 onMounted(async () => {
-    await store.initialize().catch(() => {})
+    await loadTripIntelligence()
     await nextTick()
-    if (mapContainer.value) {
-        mapInstance = L.map(mapContainer.value, { zoomControl: true }).setView(hubLocation.value, 11)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            maxZoom: 18,
-        }).addTo(mapInstance)
-        // Hub marker
-        hubMarker = L.marker(hubLocation.value)
-            .bindPopup(`<b>${hubName.value}</b><br><span style="color:#6b7280">Distribution Center</span>`)
-            .addTo(mapInstance)
-    }
-})
-
-// Update hub marker when warehouse changes
-watch(hubLocation, (newLoc) => {
-    if (mapInstance && hubMarker) {
-        hubMarker.setLatLng(newLoc)
-        hubMarker.setPopupContent(`<b>${hubName.value}</b><br><span style="color:#6b7280">Distribution Center</span>`)
-        mapInstance.setView(newLoc, 11)
-    }
+    ensureMap()
+    drawSelectedTrip()
 })
 
 onBeforeUnmount(() => {
@@ -385,265 +411,4 @@ onBeforeUnmount(() => {
         mapInstance = null
     }
 })
-
-function clearMapLayers() {
-    routePolylines.forEach(l => l.remove())
-    stopMarkers.forEach(m => m.remove())
-    routePolylines = []
-    stopMarkers = []
-}
-
-function drawRoutes(routes) {
-    if (!mapInstance) return
-    clearMapLayers()
-    const hub = hubLocation.value
-    const allCoords = [hub]
-    routes.forEach(route => {
-        const stopCoords = route.stops.map(s => [s.lat, s.lng])
-        const coords = [hub, ...stopCoords, hub]
-        const line = L.polyline(coords, { color: route.color, weight: 3, opacity: 0.85 }).addTo(mapInstance)
-        routePolylines.push(line)
-        route.stops.forEach((stop, si) => {
-            const marker = L.marker([stop.lat, stop.lng])
-                .bindPopup(
-                    `<div style="min-width:160px">` +
-                    `<b style="color:${route.color}">Stop ${si + 1} — ${route.driver_name}</b><br>` +
-                    `<code>${stop.tracking_code}</code><br>` +
-                    `<span style="color:#6b7280">${stop.address}</span>` +
-                    `</div>`
-                )
-                .addTo(mapInstance)
-            stopMarkers.push(marker)
-            allCoords.push([stop.lat, stop.lng])
-        })
-    })
-    if (allCoords.length > 1) {
-        mapInstance.fitBounds(L.latLngBounds(allCoords).pad(0.15))
-    }
-}
-
-// ── UI state ───────────────────────────────────────────────────────────────
-const showManualOverride = ref(false)
-const optimizing = ref(false)
-const routesApplied = ref(false)
-const emergencySet = ref(false)
-const stopsReordered = ref(false)
-const showAdjustModal = ref(false)
-const reassignToast = ref('')
-const draggedOrder = ref(null)
-const dragOverDriver = ref(null)
-const optimizationGoal = ref('Minimize Distance')
-
-const constraints = reactive({
-    avoidTolls: true,
-    prioritizeVIP: true,
-    evRouting: false,
-    respectNoGo: true,
-    hosCompliance: true,
-    vehicleSize: true,
-})
-
-const routeStats = reactive({ routes: 0, distance: 0, efficiency: 0 })
-
-const adjustForm = reactive({
-    routes: 0,
-    distance: 0,
-    efficiency: 0,
-    priority: 'Balanced',
-})
-
-// ── Optimized routes from backend ─────────────────────────────────────────
-const optimizedRoutes = ref([])
-
-watch(optimizedRoutes, (routes) => {
-    nextTick(() => drawRoutes(routes))
-})
-
-// ── Orders list for override panel ────────────────────────────────────────
-const overrideOrders = ref([])
-
-watch(() => store.pendingOrders, (list) => {
-    overrideOrders.value = list.map(o => ({ id: o.id, priority: o.priority, reassigned: false, assignedTo: '' }))
-}, { immediate: true })
-
-const availableDrivers = computed(() =>
-    store.dispatcherDrivers.map(d => ({ id: d.id, name: d.name, load: d.load || 0 }))
-)
-
-// ── Auth headers ──────────────────────────────────────────────────────────
-function authHeaders() {
-    const token = getStoredAccessToken()
-    return token
-        ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-        : { 'Content-Type': 'application/json' }
-}
-
-// ── Run optimizer ─────────────────────────────────────────────────────────
-async function runOptimizer() {
-    if (store.pendingOrders.length === 0) {
-        showToast('⚠️ No pending orders to optimize')
-        return
-    }
-
-    optimizing.value = true
-    routesApplied.value = false
-    try {
-        // Build query parameters from optimization settings
-        const params = new URLSearchParams()
-
-        // Map optimization goal to backend parameter
-        if (optimizationGoal.value === 'Minimize Time') {
-            params.append('optimize_for', 'time')
-        } else if (optimizationGoal.value === 'Balance Workload') {
-            params.append('optimize_for', 'balance')
-        } else if (optimizationGoal.value === 'Minimize Empty Miles') {
-            params.append('optimize_for', 'empty_miles')
-        } else {
-            params.append('optimize_for', 'distance')
-        }
-
-        // Add constraints
-        if (constraints.avoidTolls) params.append('avoid_tolls', 'true')
-        if (constraints.prioritizeVIP) params.append('prioritize_vip', 'true')
-        if (constraints.evRouting) params.append('ev_routing', 'true')
-        if (constraints.respectNoGo) params.append('respect_no_go', 'true')
-        if (constraints.hosCompliance) params.append('hos_compliance', 'true')
-        if (constraints.vehicleSize) params.append('vehicle_size_check', 'true')
-
-        const res = await fetch(`${API_BASE_URL}/api/v1/orders/optimize-routes?${params.toString()}`, {
-            method: 'POST',
-            headers: authHeaders(),
-        })
-        if (res.ok) {
-            const data = await res.json()
-            if (!data || data.length === 0) {
-                showToast('⚠️ No optimal routes found')
-                optimizing.value = false
-                return
-            }
-            optimizedRoutes.value = data
-            routeStats.routes = data.length
-            routeStats.distance = parseFloat(
-                data.reduce((s, r) => s + (r.total_distance_km || 0), 0).toFixed(1)
-            )
-            routeStats.efficiency = data.length > 0
-                ? Math.round(data.reduce((s, r) => s + (r.efficiency || 0), 0) / data.length)
-                : 0
-            adjustForm.routes = routeStats.routes
-            adjustForm.distance = routeStats.distance
-            adjustForm.efficiency = routeStats.efficiency
-            showToast(`✓ ${data.length} optimal route(s) generated`)
-        } else {
-            const err = await res.json().catch(() => ({}))
-            showToast('✗ ' + (err.detail || 'Optimization failed. Please try again.'))
-        }
-    } catch (err) {
-        console.error('Optimization error:', err)
-        showToast('✗ Cannot reach server. Is the backend running?')
-    }
-    optimizing.value = false
-}
-
-function applyRoutes() {
-    if (optimizedRoutes.value.length === 0) {
-        showToast('⚠️ No routes to apply')
-        return
-    }
-    routesApplied.value = true
-    showToast('✓ Routes applied and ETAs generated')
-}
-
-async function confirmAdjust() {
-    showAdjustModal.value = false
-    // Re-run optimizer with adjusted parameters
-    routeStats.routes = adjustForm.routes
-    routeStats.distance = adjustForm.distance
-    routeStats.efficiency = adjustForm.efficiency
-    routesApplied.value = false
-
-    // Re-run optimization with new constraints
-    await runOptimizer()
-}
-
-function setEmergencyPriority() {
-    emergencySet.value = true
-    // Set all unassigned orders to high priority
-    overrideOrders.value.forEach(order => {
-        if (!order.reassigned) {
-            order.priority = 'URGENT'
-        }
-    })
-    showToast('Emergency priority set for all unassigned orders')
-}
-
-function reorderStops() {
-    stopsReordered.value = true
-    // Re-optimize current routes to reorder stops efficiently
-    if (optimizedRoutes.value.length > 0) {
-        runOptimizer().then(() => {
-            showToast('Stops reordered for optimal sequence')
-        })
-    } else {
-        showToast('No active routes to reorder')
-    }
-}
-
-// ── Drag & Drop ───────────────────────────────────────────────────────────
-function onDragStart(event, order) {
-    draggedOrder.value = order
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('text/plain', order.id)
-}
-
-function onDragEnd() {
-    draggedOrder.value = null
-    dragOverDriver.value = null
-}
-
-function onDropOnDriver(event, driver) {
-    event.preventDefault()
-    dragOverDriver.value = null
-    if (!draggedOrder.value) return
-    const order = overrideOrders.value.find(o => o.id === draggedOrder.value.id)
-    if (order && !order.reassigned) {
-        // Call backend API to assign order to driver
-        assignOrderToDriver(order.id, driver.id, driver.name)
-            .then(success => {
-                if (success) {
-                    order.reassigned = true
-                    order.assignedTo = driver.name
-                    driver.load = Math.min(100, driver.load + 10)
-                    showToast(`✓ ${order.id} reassigned to ${driver.name}`)
-                } else {
-                    showToast(`✗ Failed to assign ${order.id}`)
-                }
-            })
-    }
-    draggedOrder.value = null
-}
-
-async function assignOrderToDriver(orderId, driverId, driverName) {
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/orders/${orderId}/assign`, {
-            method: 'POST',
-            headers: authHeaders(),
-            body: JSON.stringify({ driver_id: driverId })
-        })
-        if (res.ok) {
-            // Refresh orders after assignment
-            await store.fetchOrders()
-            await store.fetchActiveOrders()
-            return true
-        }
-        return false
-    } catch (err) {
-        console.error('Failed to assign order:', err)
-        return false
-    }
-}
-
-function showToast(msg) {
-    reassignToast.value = msg
-    setTimeout(() => { reassignToast.value = '' }, 3000)
-}
 </script>

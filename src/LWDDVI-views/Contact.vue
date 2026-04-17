@@ -92,6 +92,10 @@
                             </svg>
                             Message sent! Your ticket is <strong>{{ submittedId }}</strong>. We'll be in touch soon.
                         </div>
+
+                        <div v-if="submitError" class="error-msg">
+                            {{ submitError }}
+                        </div>
                     </form>
                 </div>
 
@@ -142,6 +146,7 @@ const contactStore = useContactStore()
 const sending = ref(false)
 const sent = ref(false)
 const submittedId = ref('')
+const submitError = ref('')
 const form = reactive({ name: '', email: '', subject: '', message: '' })
 
 // Map Contact.vue subject values → store categories
@@ -155,23 +160,28 @@ const categoryMap = {
 
 async function sendMessage() {
     sending.value = true
-    await new Promise(r => setTimeout(r, 1400))
-    const id = contactStore.submit({
-        name: form.name,
-        email: form.email,
-        phone: '',
-        category: categoryMap[form.subject] || 'general',
-        subject: form.subject
-            ? form.subject.charAt(0).toUpperCase() + form.subject.slice(1)
-            : 'General Inquiry',
-        priority: 'medium',
-        message: form.message,
-    })
-    submittedId.value = id
-    sending.value = false
-    sent.value = true
-    Object.assign(form, { name: '', email: '', subject: '', message: '' })
-    setTimeout(() => sent.value = false, 5000)
+    submitError.value = ''
+    try {
+        const id = await contactStore.submit({
+            name: form.name,
+            email: form.email,
+            phone: '',
+            category: categoryMap[form.subject] || 'general',
+            subject: form.subject
+                ? form.subject.charAt(0).toUpperCase() + form.subject.slice(1)
+                : 'General Inquiry',
+            priority: 'medium',
+            message: form.message,
+        })
+        submittedId.value = id
+        sent.value = true
+        Object.assign(form, { name: '', email: '', subject: '', message: '' })
+        setTimeout(() => sent.value = false, 5000)
+    } catch (error) {
+        submitError.value = error.message || 'Unable to send message right now.'
+    } finally {
+        sending.value = false
+    }
 }
 
 const contactInfo = [
@@ -427,6 +437,16 @@ const hours = [
 }
 
 .success-msg svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.error-msg {
+    padding: 0.75rem 1rem;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 0.65rem;
+    color: #fca5a5;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
 
 /* ── Info Column ────────────────────────────── */
 .info-column { display: flex; flex-direction: column; gap: 1rem; }

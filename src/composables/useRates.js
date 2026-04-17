@@ -19,7 +19,11 @@ const DEFAULTS = {
     customerLaborRate: 250,
     customerPackingFee: 200,
     insurancePct: 3,
-    materials: { box: 50, bubbleWrap: 20, crate: 200 },
+    materials: [
+        { id: 'box', name: 'Box', rate: 50, unit: 'pcs' },
+        { id: 'bubbleWrap', name: 'Bubble Wrap', rate: 20, unit: 'm' },
+        { id: 'crate', name: 'Crate Rental', rate: 200, unit: 'pcs' },
+    ],
     individualBookingFee: 300,
     individualLaborRate: 800,
     individualPackingPct: 20,
@@ -33,6 +37,21 @@ const DEFAULTS = {
     dynamic: { peak: 1.2, emergency: 2.5 },
 }
 
+// Helper to normalize old object format to new array format
+function normalizeMaterials(data) {
+    if (!data || !data.materials) return data
+    // If it's already an array, return as-is
+    if (Array.isArray(data.materials)) return data
+    // Convert old object format to array
+    const oldMaterials = data.materials
+    data.materials = [
+        { id: 'box', name: 'Box', rate: oldMaterials.box ?? 50, unit: 'pcs' },
+        { id: 'bubbleWrap', name: 'Bubble Wrap', rate: oldMaterials.bubbleWrap ?? 20, unit: 'm' },
+        { id: 'crate', name: 'Crate Rental', rate: oldMaterials.crate ?? 200, unit: 'pcs' },
+    ]
+    return data
+}
+
 // Module-level cache so all consumers stay in sync after governance updates.
 let _cached = null
 let _fetchPromise = null
@@ -41,7 +60,7 @@ const sharedRatesReady = ref(false)
 
 function ensureRatesLoaded() {
     if (_cached) {
-        sharedRates.value = { ..._cached }
+        sharedRates.value = { ...normalizeMaterials(_cached) }
         sharedRatesReady.value = true
     }
 
@@ -54,8 +73,8 @@ function ensureRatesLoaded() {
             .then(r => r.ok ? r.json() : null)
             .then(data => {
                 if (data) {
-                    _cached = data
-                    sharedRates.value = { ...data }
+                    _cached = normalizeMaterials(data)
+                    sharedRates.value = { ..._cached }
                     sharedRatesReady.value = true
                 }
             })
@@ -75,12 +94,34 @@ export function useRates() {
         })
         if (!res.ok) throw new Error('Failed to save rates')
         const saved = await res.json()
-        _cached = saved
-        _fetchPromise = Promise.resolve(saved)
-        sharedRates.value = { ...saved }
+        _cached = normalizeMaterials(saved)
+        _fetchPromise = null  // Reset so next call refetches
+        sharedRates.value = { ..._cached }
         sharedRatesReady.value = true
         return saved
     }
 
-    return { rates: sharedRates, ratesReady: sharedRatesReady, saveRates }
+    async function refreshRates() {
+        _cached = null
+        _fetchPromise = null
+        sharedRatesReady.value = false
+        
+        const headers = { 'Content-Type': 'application/json' }
+        const token = getStoredAccessToken()
+        if (token) headers['Authorization'] = `Bearer ${token}`
+
+        try {
+            const res = await fetch(`${API_BASE}/api/v1/rates`, { headers })
+            if (res.ok) {
+                const data = await res.json()
+                _cached = normalizeMaterials(data)
+                sharedRates.value = { ..._cached }
+                sharedRatesReady.value = true
+            }
+        } catch (e) {
+            console.error('Failed to refresh rates:', e)
+        }
+    }
+
+    return { rates: sharedRates, ratesReady: sharedRatesReady, saveRates, refreshRates }
 }

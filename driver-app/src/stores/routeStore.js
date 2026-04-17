@@ -11,6 +11,9 @@ export const useRouteStore = defineStore('route', () => {
     const dwellTimes = ref({})
     const deviations = ref([])
     const exceptions = ref([])
+    const tripBrief = ref(null)
+    const routeUpdates = ref([])
+    const lastRouteUpdate = ref(null)
 
     const currentStop = computed(() => stops.value[currentStopIndex.value] || null)
     const totalStops = computed(() => stops.value.length)
@@ -29,6 +32,26 @@ export const useRouteStore = defineStore('route', () => {
         stops.value = data.stops || []
         currentStopIndex.value = 0
         isRouteActive.value = false
+    }
+
+    function setTripBrief(data) {
+        tripBrief.value = data || null
+    }
+
+    function applyRouteUpdate(update) {
+        if (!update) return
+        lastRouteUpdate.value = update
+        routeUpdates.value.unshift({
+            ...update,
+            receivedAt: update.receivedAt || new Date().toISOString(),
+        })
+        if (update.trip_intelligence) {
+            tripBrief.value = update.trip_intelligence
+        }
+    }
+
+    function clearRouteUpdate() {
+        lastRouteUpdate.value = null
     }
 
     function startRoute() {
@@ -85,14 +108,19 @@ export const useRouteStore = defineStore('route', () => {
         dwellTimes.value = {}
         deviations.value = []
         exceptions.value = []
+        tripBrief.value = null
+        routeUpdates.value = []
+        lastRouteUpdate.value = null
     }
 
     return {
         manifest, stops, currentStopIndex, isRouteActive,
         codPayments, completedStops, dwellTimes, deviations, exceptions,
+        tripBrief, routeUpdates, lastRouteUpdate,
         currentStop, totalStops, completedCount, isLastStop, progressPercent,
         getStopIndex, setCurrentStopById,
         loadManifest, startRoute, completeDelivery,
-        logCODPayment, logDeviation, logException, startDwell, endDwell, reset
+        logCODPayment, logDeviation, logException, startDwell, endDwell,
+        setTripBrief, applyRouteUpdate, clearRouteUpdate, reset
     }
 })

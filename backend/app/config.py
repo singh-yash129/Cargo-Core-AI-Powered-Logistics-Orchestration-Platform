@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # ── Application ──────────────────────────────────────────────────────────
     app_env: str = "development"
     secret_key: str = "change-me"
-    access_token_expire_minutes: int = 15
+    access_token_expire_minutes: int = 1440  # 24 hours — suits long driver shifts
     refresh_token_expire_days: int = 7
 
     # ── Database ─────────────────────────────────────────────────────────────

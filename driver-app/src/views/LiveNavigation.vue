@@ -71,6 +71,52 @@
                     Open in Maps
                 </button>
             </div>
+
+            <div v-if="lastRouteUpdate" class="mt-4 rounded-3xl p-4 border"
+                :class="isDark ? 'bg-signal-amber/10 border-signal-amber/20' : 'bg-amber-50 border-amber-200'">
+                <div class="flex items-start gap-3">
+                    <span class="material-icons text-signal-amber text-2xl">alt_route</span>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-black uppercase tracking-[0.22em] text-signal-amber">Route Update</p>
+                        <p class="text-sm font-semibold mt-1">{{ lastRouteUpdate.message }}</p>
+                        <p v-if="lastRouteUpdate.saved_minutes > 0" class="text-xs mt-1"
+                            :class="isDark ? 'text-amber-300' : 'text-amber-700'">
+                            Estimated recovery: {{ lastRouteUpdate.saved_minutes }} min
+                        </p>
+                    </div>
+                    <button @click="routeStore.clearRouteUpdate()"
+                        class="text-xs font-bold underline"
+                        :class="isDark ? 'text-amber-300' : 'text-amber-700'">
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+
+            <div v-if="tripBrief" class="mt-4 rounded-3xl p-4 border"
+                :class="isDark ? 'bg-black/25 border-white/10' : 'bg-white/85 border-gray-200 shadow-sm'">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-[0.22em] text-primary">Trip Command</p>
+                        <p class="text-sm mt-1" :class="isDark ? 'text-white/70' : 'text-gray-600'">
+                            {{ tripBrief.driver_message }}
+                        </p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border"
+                        :class="tripStatusClass">
+                        {{ tripBrief.route_status }}
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3 mt-4">
+                    <div v-for="item in tripCommandStats" :key="item.label"
+                        class="rounded-2xl p-3 text-center border"
+                        :class="isDark ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'">
+                        <p class="text-lg font-black" :class="item.emphasis || ''">{{ item.value }}</p>
+                        <p class="text-[10px] uppercase tracking-wider"
+                            :class="isDark ? 'text-white/40' : 'text-gray-500'">{{ item.label }}</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="absolute bottom-0 left-0 right-0 z-30">
@@ -102,6 +148,7 @@ import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
 import { useJobStore } from '../stores/jobStore.js'
 import { openExternalNavigation } from '../utils/navigation.js'
+import { getTripIntelligence } from '../services/api.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -116,9 +163,33 @@ const currentStop = computed(() =>
     || null
 )
 const currentStopId = computed(() => currentStop.value?.id || 'STOP-001')
+const activeOrderId = computed(() => currentStop.value?.orderId || jobStore.currentStop?.orderId || jobStore.jobData?.id || null)
 const stopTitle = computed(() => currentStop.value?.customerName || currentStop.value?.trackingCode || 'Next stop')
 const stopAddress = computed(() => currentStop.value?.address || 'Destination details are not available yet.')
 const stopDistance = computed(() => currentStop.value?.distance || (jobStore.jobData?.routeDistance ? `${jobStore.jobData.routeDistance} km` : '--'))
+const tripBrief = computed(() => {
+    if (!routeStore.tripBrief || !activeOrderId.value) return routeStore.tripBrief
+    return String(routeStore.tripBrief.order_id) === String(activeOrderId.value) ? routeStore.tripBrief : null
+})
+const lastRouteUpdate = computed(() => routeStore.lastRouteUpdate)
+const tripStatusClass = computed(() => {
+    const status = tripBrief.value?.route_status
+    if (status === 'Blocked' || status === 'Delayed') return 'bg-red-500/10 text-red-400 border-red-500/20'
+    if (status === 'Delay Risk') return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+    return 'bg-green-500/10 text-green-400 border-green-500/20'
+})
+const tripCommandStats = computed(() => [
+    { label: 'ETA', value: tripBrief.value?.eta_label || '--:--' },
+    {
+        label: 'Risk',
+        value: tripBrief.value?.risk_level || '--',
+        emphasis: tripBrief.value?.risk_level === 'HIGH' || tripBrief.value?.risk_level === 'CRITICAL' ? 'text-red-400' : tripBrief.value?.risk_level === 'MEDIUM' ? 'text-signal-amber' : 'text-primary',
+    },
+    {
+        label: 'Alt Save',
+        value: `${Math.max(0, -(tripBrief.value?.alternate_route?.delta_minutes || 0))} min`,
+    },
+])
 const etaLabel = computed(() => {
     const timeWindow = currentStop.value?.timeWindow
     if (typeof timeWindow === 'string') return timeWindow
@@ -187,6 +258,12 @@ let hasAutoOpened = false
 
 onMounted(() => {
     ensureRouteContext()
+
+    if (activeOrderId.value && (!tripBrief.value || String(tripBrief.value.order_id) !== String(activeOrderId.value))) {
+        getTripIntelligence(activeOrderId.value)
+            .then((data) => routeStore.setTripBrief(data))
+            .catch((error) => console.warn('Unable to load trip intelligence for navigation view', error))
+    }
 
     if (!hasAutoOpened && currentStop.value) {
         hasAutoOpened = true

@@ -59,11 +59,15 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
+import { useJobStore } from '../stores/jobStore.js'
+import { reportTripDeviation } from '../services/api.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
 const routeStore = useRouteStore()
+const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+const activeOrderId = computed(() => jobStore.currentStop?.orderId || jobStore.jobData?.id || null)
 
 const selectedReason = ref('')
 const reasons = [
@@ -76,9 +80,20 @@ const reasons = [
     '⚠️ Emergency / Safety concern',
 ]
 
-function submit() {
+async function submit() {
     routeStore.logDeviation(selectedReason.value)
-    uiStore.showToast('Deviation reported to dispatcher ✓', 'warning')
-    router.back()
+    try {
+        if (activeOrderId.value) {
+            await reportTripDeviation(activeOrderId.value, {
+                reason: selectedReason.value,
+                latitude: jobStore.currentLocation?.lat ?? null,
+                longitude: jobStore.currentLocation?.lng ?? null,
+            })
+        }
+        uiStore.showToast('Deviation reported to dispatcher ✓', 'warning')
+        router.back()
+    } catch (error) {
+        uiStore.showToast(error.message || 'Could not report deviation', 'error')
+    }
 }
 </script>

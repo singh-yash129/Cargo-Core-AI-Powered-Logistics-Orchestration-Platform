@@ -24,7 +24,7 @@ from loguru import logger
 # (ai_conversations and escalations are internal; intentionally not exposed to AI.)
 ALLOWED_TABLES: set[str] = {
     "users", "roles",
-    "warehouses", "loading_docks", "packing_stations", "quality_checks", "return_gradings", "warehouse_zone_metrics",
+    "warehouses", "labourers", "loading_docks", "packing_stations", "quality_checks", "return_gradings", "warehouse_zone_metrics",
     "inventory_items", "inventory_movements", "restock_requests",
     "logistics_driver_profiles", "logistics_vehicles", "logistics_transactions", "logistics_zones",
     "logistics_alerts", "logistics_notifications", "logistics_tasks", "logistics_chat_threads",

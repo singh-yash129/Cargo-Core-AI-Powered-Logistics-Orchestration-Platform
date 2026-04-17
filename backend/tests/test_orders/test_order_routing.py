@@ -2,10 +2,13 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
+from app.models.logistics import LogisticsEscalation
 from app.models.order import Order
 from app.models.user import Role, User
 from app.models.warehouse import Warehouse
+from app.utils.hashing import hash_password
 from tests.conftest import REGISTER_PAYLOAD
 
 pytestmark = pytest.mark.asyncio
@@ -27,6 +30,39 @@ async def _get_role_id(db_session: AsyncSession, role_name: str) -> int:
 
 def _auth_headers(tokens: dict) -> dict:
     return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+async def _create_operational_user_and_login(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    *,
+    role_name: str,
+    warehouse_id,
+    name: str,
+    username: str,
+    email: str,
+    password: str = "StrongPass123",
+) -> dict:
+    role_id = await _get_role_id(db_session, role_name)
+    user = User(
+        name=name,
+        username=username,
+        email=email,
+        phone="9000000000",
+        password_hash=hash_password(password),
+        role_id=role_id,
+        warehouse_id=warehouse_id,
+        is_active=True,
+    )
+    db_session.add(user)
+    await db_session.flush()
+
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password},
+    )
+    assert login_response.status_code == 200
+    return login_response.json()
 
 
 async def test_create_order_auto_assigns_single_active_warehouse(
@@ -297,3 +333,132 @@ async def test_cancel_order_refunds_half_for_legacy_partial_booking_without_reco
     assert wallet_response.status_code == 200
     wallet = wallet_response.json()
     assert wallet["balance"] == 1500
+
+
+async def test_dispatcher_can_escalate_order_into_logistics_queue(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    registered_user_tokens: dict,
+):
+    warehouse = Warehouse(name="Escalation Hub", address="15 Escalation Road, Delhi", is_active=True)
+    db_session.add(warehouse)
+    await db_session.flush()
+
+    dispatcher_tokens = await _create_operational_user_and_login(
+        client,
+        db_session,
+        role_name="DISPATCHER",
+        warehouse_id=warehouse.id,
+        name="Dispatch Lead",
+        username="dispatch_lead",
+        email="dispatch.lead@example.com",
+    )
+
+    create_response = await client.post(
+        "/api/v1/orders",
+        headers=_auth_headers(registered_user_tokens),
+        json={
+            "order_type": "INDIVIDUAL",
+            "pickup_addr": "10 Pickup Street, Delhi",
+            "delivery_addr": "50 Delivery Street, Noida",
+            "total_amount": 3200,
+            "warehouse_id": str(warehouse.id),
+        },
+    )
+    assert create_response.status_code == 201
+    created = create_response.json()
+
+    confirm_response = await client.post(
+        f"/api/v1/orders/{created['id']}/confirm",
+        headers=_auth_headers(dispatcher_tokens),
+    )
+    assert confirm_response.status_code == 403
+
+    user = await _get_registered_user(db_session)
+    order = (
+        await db_session.execute(select(Order).where(Order.id == UUID(created["id"])))
+    ).scalar_one()
+    order.status = "ASSIGNED"
+    order.warehouse_id = warehouse.id
+    order.customer_id = user.id
+    db_session.add(order)
+    await db_session.flush()
+
+    escalate_response = await client.post(
+        f"/api/v1/orders/{created['id']}/escalate",
+        headers=_auth_headers(dispatcher_tokens),
+        json={"reason": "Driver no-show, manager intervention required"},
+    )
+
+    assert escalate_response.status_code == 200
+    escalation_body = escalate_response.json()
+    assert escalation_body["status"] == "OPEN"
+    assert created["tracking_code"] in escalation_body["title"]
+
+    stored = (
+        await db_session.execute(
+            select(LogisticsEscalation).where(LogisticsEscalation.id == UUID(escalation_body["id"]))
+        )
+    ).scalar_one()
+    assert f"[order:{created['id']}]" in (stored.action_details or "")
+
+    list_response = await client.get(
+        f"/api/v1/orders?status_filter=ASSIGNED&page_size=20",
+        headers=_auth_headers(dispatcher_tokens),
+    )
+    assert list_response.status_code == 200
+    listed = list_response.json()["items"]
+    listed_order = next(item for item in listed if item["id"] == created["id"])
+    assert listed_order["escalated"] is True
+    assert listed_order["escalation_status"] == "OPEN"
+
+
+async def test_dispatcher_cannot_cancel_in_transit_order(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    registered_user_tokens: dict,
+):
+    warehouse = Warehouse(name="Transit Hub", address="99 Transit Road, Delhi", is_active=True)
+    db_session.add(warehouse)
+    await db_session.flush()
+
+    dispatcher_tokens = await _create_operational_user_and_login(
+        client,
+        db_session,
+        role_name="DISPATCHER",
+        warehouse_id=warehouse.id,
+        name="Transit Dispatcher",
+        username="transit_dispatcher",
+        email="transit.dispatcher@example.com",
+    )
+
+    create_response = await client.post(
+        "/api/v1/orders",
+        headers=_auth_headers(registered_user_tokens),
+        json={
+            "order_type": "INDIVIDUAL",
+            "pickup_addr": "1 Warehouse Gate, Delhi",
+            "delivery_addr": "2 Customer Lane, Gurugram",
+            "total_amount": 4100,
+            "warehouse_id": str(warehouse.id),
+        },
+    )
+    assert create_response.status_code == 201
+    created = create_response.json()
+
+    order = (
+        await db_session.execute(select(Order).where(Order.id == UUID(created["id"])))
+    ).scalar_one()
+    order.status = "IN_TRANSIT"
+    order.warehouse_id = warehouse.id
+    db_session.add(order)
+    await db_session.flush()
+
+    cancel_response = await client.post(
+        f"/api/v1/orders/{created['id']}/cancel",
+        headers=_auth_headers(dispatcher_tokens),
+        json={"reason": "Need to stop this"},
+    )
+
+    assert cancel_response.status_code == 409
+    assert "Escalate it instead" in cancel_response.json()["detail"]

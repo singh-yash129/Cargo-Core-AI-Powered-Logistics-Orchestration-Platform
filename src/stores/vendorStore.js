@@ -1,8 +1,15 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useRates } from '@/composables/useRates'
+import { buildPodData } from '@/utils/pod'
 
 const API_BASE = 'http://localhost:8000/api/v1'
+const VENDOR_WALLET_TOPUP_OFFSET_KEY = 'vendor_wallet_topup_offset'
+
+function clearLegacyWalletTopupOffset() {
+    if (typeof window === 'undefined') return
+    localStorage.removeItem(VENDOR_WALLET_TOPUP_OFFSET_KEY)
+}
 
 function getAuthHeaders(json = false) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
@@ -115,7 +122,10 @@ export const useVendorStore = defineStore('vendor', () => {
             })
             if (res.ok) {
                 const data = await res.json()
-                walletBalance.value = data.balance ?? 0
+                walletBalance.value = Number(data.balance ?? 0)
+                if (dashboard.value?.stats) {
+                    dashboard.value.stats.credit_balance = walletBalance.value
+                }
             }
         } catch (e) { /* silent */ }
     }
@@ -135,7 +145,7 @@ export const useVendorStore = defineStore('vendor', () => {
     const totalOverdue = computed(() => overdueInvoices.value.reduce((sum, invoice) => sum + (invoice.amount - invoice.paid), 0))
     const totalUnpaid = computed(() => invoices.value.filter((invoice) => invoice.status !== 'Paid').length)
     const totalPaidThisMonth = computed(() => invoices.value.filter((invoice) => invoice.status === 'Paid').reduce((sum, invoice) => sum + invoice.paid, 0))
-    const creditBalance = computed(() => Number(dashboard.value?.stats?.credit_balance || walletBalance.value || 0))
+    const creditBalance = computed(() => Number(walletBalance.value ?? dashboard.value?.stats?.credit_balance ?? 0))
     const shipmentsWithPod = computed(() => shipments.value.filter((shipment) => shipment.pod?.confirmed))
     const unreadNotificationsCount = computed(() => notifications.value.filter((item) => !item.read).length)
 
@@ -162,23 +172,23 @@ export const useVendorStore = defineStore('vendor', () => {
             eta: raw.eta_label || safeDateLabel(raw.scheduled_at, safeDateLabel(raw.created_at)),
             amount,
             pallets: 0,
-            weight: 0,
+            weight: Number(raw.cargo_weight_kg ?? raw.weight ?? raw.total_weight ?? 0),
+            volume: Number(raw.cargo_volume_m3 ?? raw.volume ?? raw.total_volume ?? 0),
             category: raw.cargo_type || 'Commercial',
             paymentMode: raw.payment_mode || 'Invoice',
             paymentStatus: raw.payment_status || 'pending',
             driver: driverName,
             driverPhone,
+            customerName: raw.customer_name || null,
+            customerPhone: raw.customer_phone || null,
             vehicle: assignedVehicleCode || raw.vehicle_type || null,
             progress: Number(raw.progress ?? statusProgress(statusKey)),
-            pod: delivered ? {
-                photo: Array.isArray(raw.pod_photos) && raw.pod_photos.length > 0 ? raw.pod_photos[0] : null,
-                photos: Array.isArray(raw.pod_photos) ? raw.pod_photos : [],
-                signature: raw.poc_signature || raw.pod_signature || null,
-                timestamp: safeDateTimeLabel(raw.scheduled_at || raw.created_at),
+            deliveredAt: raw.delivered_at || null,
+            pod: delivered ? buildPodData(raw, {
+                timestamp: safeDateTimeLabel(raw.delivered_at || raw.scheduled_at || raw.created_at),
                 location: delivery,
-                signedBy: 'Receiver',
-                confirmed: true,
-            } : null,
+                signedByFallback: 'Receiver',
+            }) : null,
             originAddress: pickup,
             destinationAddress: delivery,
             driverLat: raw.driver_lat || raw.driverLat || null,
@@ -192,6 +202,7 @@ export const useVendorStore = defineStore('vendor', () => {
                 status: item.status,
                 time: item.time,
             })),
+            autoDebitNote: raw.auto_debit_note || null,
             paidAmount: Number(raw.paid_amount || 0),
             declaredValue: Number(raw.declared_value || 0),
             cost: {
@@ -221,6 +232,24 @@ export const useVendorStore = defineStore('vendor', () => {
     }
 
     function rebuildNotifications() {
+        const autoDebitNotifications = shipments.value
+            .filter((shipment) => shipment.autoDebitNote)
+            .slice(0, 4)
+            .map((shipment) => {
+                const message = String(shipment.autoDebitNote || '')
+                const lowered = message.toLowerCase()
+                const isSkipped = lowered.includes('skipped')
+                const isDebt = lowered.includes('negative') || lowered.includes('debt')
+                return {
+                    id: `autodebit-${shipment.id}`,
+                    title: isSkipped ? 'Auto-debit skipped' : (isDebt ? 'Wallet went negative' : 'Auto-debit update'),
+                    message: `${shipment.id}: ${message}`,
+                    time: shipment.createdAt || shipment.eta,
+                    read: false,
+                    type: isSkipped ? 'warning' : (isDebt ? 'alert' : 'info'),
+                }
+            })
+
         const shipmentNotifications = shipments.value.slice(0, 4).map((shipment, index) => ({
             id: `shipment-${shipment.id}`,
             title: `Shipment ${shipment.status}`,
@@ -239,7 +268,7 @@ export const useVendorStore = defineStore('vendor', () => {
             type: invoice.status === 'Overdue' ? 'alert' : 'warning',
         }))
 
-        notifications.value = [...invoiceNotifications, ...shipmentNotifications]
+        notifications.value = [...autoDebitNotifications, ...invoiceNotifications, ...shipmentNotifications]
     }
 
     async function fetchWarehouses() {
@@ -275,7 +304,7 @@ export const useVendorStore = defineStore('vendor', () => {
 
         const data = await response.json()
         dashboard.value = data
-        walletBalance.value = Number(data.stats?.credit_balance || 0)
+        walletBalance.value = Number(data.stats?.credit_balance ?? 0)
         invoices.value = (data.invoices?.invoices || []).map(normalizeInvoice)
         rebuildNotifications()
         return data
@@ -431,7 +460,7 @@ export const useVendorStore = defineStore('vendor', () => {
         const data = await response.json()
         tickets.value = data.map((ticket) => ({
             id: ticket.id,
-            backendId: ticket.id.replace(/^TK-/, '').toLowerCase(),
+            backendId: ticket.backend_id || ticket.id.replace(/^TK-/, '').toLowerCase(),
             subject: ticket.subject,
             description: ticket.description,
             orderId: ticket.order_id,
@@ -451,6 +480,7 @@ export const useVendorStore = defineStore('vendor', () => {
         if (initialized.value && !force) return
         loading.value = true
         error.value = ''
+        clearLegacyWalletTopupOffset()
 
         try {
             await Promise.all([
@@ -465,6 +495,7 @@ export const useVendorStore = defineStore('vendor', () => {
                 fetchTickets(),
                 fetchWarehouses(),
                 fetchWalletBalance(),
+                fetchNotifications(),
             ])
             initialized.value = true
         } catch (err) {
@@ -510,11 +541,14 @@ export const useVendorStore = defineStore('vendor', () => {
                 order_type: 'VENDOR',
                 warehouse_id: selectedWarehouse?.id || null,
                 pickup_addr: pickupAddr,
+                pickup_type: data.pickupType || 'hub',
                 delivery_addr: deliveryAddr,
                 cargo_type: data.description || data.category || 'Commercial Shipment',
                 vehicle_type: data.category || 'commercial',
                 priority: priorityMap[data.priority] || 'NORMAL',
                 labor_count: Number(data.laborCount || 0),
+                cargo_weight_kg: Number(data.weight || 0) || null,
+                cargo_volume_m3: Number(data.volume || 0) || null,
                 base_amount: baseAmount,
                 vehicle_amount: 0,
                 labor_amount: laborAmount,
@@ -966,21 +1000,83 @@ export const useVendorStore = defineStore('vendor', () => {
         await fetchTickets()
     }
 
-    function addFunds(amount) {
-        if (amount > 0) walletBalance.value += amount
+    async function addFunds(amount) {
+        if (amount <= 0) return false
+        try {
+            const res = await fetch(`${API_BASE}/vendor/wallet/top-up`, {
+                method: 'POST',
+                headers: getAuthHeaders(true),
+                body: JSON.stringify({ amount }),
+            })
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}))
+                error.value = errData.detail || 'Failed to add funds.'
+                return false
+            }
+
+            clearLegacyWalletTopupOffset()
+            await fetchWalletBalance()
+            if (dashboard.value?.stats) {
+                dashboard.value.stats.credit_balance = walletBalance.value
+            }
+            return true
+        } catch (err) {
+            error.value = err?.message || 'Failed to add funds.'
+            return false
+        }
     }
 
-    function markNotificationRead(id) {
+    async function fetchNotifications() {
+        try {
+            const res = await fetch(`${API_BASE}/vendor/notifications`, {
+                headers: getAuthHeaders(),
+            })
+            if (!res.ok) return
+            const data = await res.json()
+            notifications.value = (Array.isArray(data) ? data : []).map((item) => ({
+                id: item.id,
+                title: item.title,
+                message: item.message,
+                time: item.time,
+                read: item.read,
+                type: item.type,
+            }))
+        } catch (e) {
+            console.warn('[vendorStore] fetchNotifications error:', e)
+        }
+    }
+
+    async function markNotificationRead(id) {
         const notification = notifications.value.find((item) => item.id === id)
         if (notification) notification.read = true
+        try {
+            await fetch(`${API_BASE}/vendor/notifications/${id}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(true),
+                body: JSON.stringify({ read: true }),
+            })
+        } catch (e) { /* best-effort */ }
     }
 
-    function markAllNotificationsRead() {
+    async function markAllNotificationsRead() {
         notifications.value.forEach((item) => { item.read = true })
+        try {
+            await fetch(`${API_BASE}/vendor/notifications/mark-all-read`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+            })
+        } catch (e) { /* best-effort */ }
     }
 
-    function clearNotifications() {
+    async function clearNotifications() {
         notifications.value = []
+        try {
+            await fetch(`${API_BASE}/vendor/notifications`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            })
+        } catch (e) { /* best-effort */ }
     }
 
     return {
@@ -1046,6 +1142,7 @@ export const useVendorStore = defineStore('vendor', () => {
         generateApiKey,
         revokeApiKey,
         addFunds,
+        fetchNotifications,
         markNotificationRead,
         markAllNotificationsRead,
         clearNotifications,

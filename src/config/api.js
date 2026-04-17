@@ -158,6 +158,9 @@ function getRoleLoginPath() {
       WAREHOUSE_MANAGER: '/login/warehouse',
       DISPATCHER: '/login/dispatcher',
       DRIVER: '/login/driver',
+      AI_AGENT: '/login',
+      AI_SUPPORT: '/login',
+      CUSTOMER_SUPPORT: '/login',
     };
     return roleMap[user?.role] || '/login/customer';
   } catch {

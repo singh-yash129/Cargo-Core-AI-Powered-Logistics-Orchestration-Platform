@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date as date_type, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -90,11 +90,14 @@ class LogisticsMaintenanceItem(BaseModel):
 class LogisticsTransactionItem(BaseModel):
     id: UUID
     hub_id: UUID | None
+    transaction_code: str | None = None
     date: str
     desc: str
     type: str
     amount: float
     status: str
+    metadata_json: dict = Field(default_factory=dict)
+    related_order: dict | None = None
 
 
 class LogisticsUserItem(BaseModel):
@@ -147,6 +150,8 @@ class LogisticsReturnCaseItem(BaseModel):
     transport_charge_pending_amount: float = 0
     transport_charge_status: str | None = None
     transport_charge_applied_at: datetime | None = None
+    is_urgent: bool = False
+    urgent_reason: str | None = None
 
 
 class LogisticsZoneItem(BaseModel):
@@ -205,6 +210,10 @@ class LogisticsEscalationItem(BaseModel):
     status: str
 
 
+class LogisticsEscalationStatusUpdate(BaseModel):
+    status: str = Field(..., min_length=2, max_length=30)
+
+
 class LogisticsAlertItem(BaseModel):
     id: UUID
     type: str
@@ -237,6 +246,29 @@ class LogisticsTaskItem(BaseModel):
     last_alert_time: datetime | None = None
     silenced: bool = False
     remaining: str = ""
+
+
+class LogisticsMeetingItem(BaseModel):
+    id: UUID
+    topic: str
+    description: str = ""
+    meeting_type: str
+    link: str
+    date: date_type
+    start_time: str
+    end_time: str
+    participants: list[UUID] = Field(default_factory=list)
+    created_by_id: UUID
+    warehouse_id: UUID | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class LogisticsMeetingParticipantItem(BaseModel):
+    id: UUID
+    name: str
+    role: str
+    hub_id: UUID | None = None
 
 
 class LogisticsEquipmentItem(BaseModel):
@@ -414,6 +446,28 @@ class LogisticsTaskCreate(BaseModel):
     repeat: str | None = None
 
 
+class LogisticsMeetingCreate(BaseModel):
+    topic: str = Field(..., min_length=1, max_length=255)
+    description: str = Field(default="", max_length=2000)
+    meeting_type: str = Field(default="other", max_length=30)
+    link: str = Field(..., min_length=5, max_length=2000)
+    date: date_type
+    start_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
+    end_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
+    participants: list[UUID] = Field(default_factory=list)
+
+
+class LogisticsMeetingUpdate(BaseModel):
+    topic: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=2000)
+    meeting_type: str | None = Field(default=None, max_length=30)
+    link: str | None = Field(default=None, min_length=5, max_length=2000)
+    date: date_type | None = None
+    start_time: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
+    end_time: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
+    participants: list[UUID] | None = None
+
+
 class LogisticsNotificationUpdate(BaseModel):
     read: bool
 
@@ -516,6 +570,62 @@ class DriverTelemetryResponse(BaseModel):
     vehicle_code: str | None = None
     telemetry_status: str | None = None
     last_updated: datetime | None = None
+
+
+# ── Dispatcher Manifest schemas ───────────────────────────────────────────────
+
+class ManifestCrewMember(BaseModel):
+    name: str
+    role: str
+
+
+class LogisticsManifestCreate(BaseModel):
+    route_id: str
+    driver_name: str
+    driver_id: UUID | None = None
+    vehicle_code: str | None = None
+    hub_name: str | None = None
+    crew_config: str | None = None
+    orders_count: int = 0
+    total_weight: float = 0
+    total_distance: float = 0
+    stop_count: int = 0
+    total_volume: float = 0
+    est_duration: str | None = None
+    fragile_count: int = 0
+    cod_count: int = 0
+    crew_list: list[ManifestCrewMember] | None = None
+
+
+class LogisticsManifestItem(BaseModel):
+    id: UUID
+    route_id: str
+    driver_name: str
+    driver_id: UUID | None = None
+    vehicle_code: str | None = None
+    hub_name: str | None = None
+    crew_config: str | None = None
+    status: str
+    orders_count: int
+    total_weight: float
+    total_distance: float
+    stop_count: int
+    total_volume: float
+    est_duration: str | None = None
+    fragile_count: int
+    cod_count: int
+    crew_list: list[ManifestCrewMember] | None = None
+    pushed: bool
+    pushed_at: datetime | None = None
+    created_at: datetime
+
+
+class LogisticsManifestPushRequest(BaseModel):
+    pass  # future fields if needed
+
+
+class LogisticsManifestStatusUpdate(BaseModel):
+    status: str
 
 
 class DriverManifestSummary(BaseModel):

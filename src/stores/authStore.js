@@ -19,7 +19,13 @@ const ROLE_DASHBOARD_MAP = {
   WAREHOUSE_MANAGER: '/warehouse/dashboard',
   DISPATCHER: '/dispatcher/dashboard',
   DRIVER: '/driver/dashboard',
+  AI_AGENT: '/ai/dashboard',
+  AI_SUPPORT: '/ai/dashboard',
+  CUSTOMER_SUPPORT: '/ai/dashboard',
   // lowercase variants used in some legacy code
+  ai_agent: '/ai/dashboard',
+  ai_support: '/ai/dashboard',
+  customer_support: '/ai/dashboard',
   logistics_manager: '/logistic/dashboard',
   warehouse_manager: '/warehouse/dashboard',
   dispatcher: '/dispatcher/dashboard',
@@ -83,6 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (role === 'WAREHOUSE_MANAGER' || role === 'warehouse') return 'Warehouse Manager'
     if (role === 'DISPATCHER' || role === 'dispatcher') return 'Dispatcher'
     if (role === 'DRIVER' || role === 'driver') return 'Driver'
+    if (role === 'AI_AGENT' || role === 'ai_agent' || role === 'AI_SUPPORT' || role === 'ai_support' || role === 'CUSTOMER_SUPPORT' || role === 'customer_support') return 'Customer Support'
     return role
   })
 
@@ -585,6 +592,21 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout() {
+    // If the current user is a driver, notify the backend to end their shift and
+    // return their vehicle. Capture the token NOW before clearAuthState() wipes it.
+    // Requests are fire-and-forget so callers don't need to await this function.
+    const role = user.value?.role
+    const currentToken = token.value
+    if ((role === 'DRIVER' || role === 'driver') && currentToken) {
+      const headers = { 'Authorization': `Bearer ${currentToken}`, 'Content-Type': 'application/json' }
+      const base = apiUrl('/api/v1/logistics')
+      fetch(`${base}/drivers/me/shift/end`, { method: 'POST', headers }).catch(() => {})
+      fetch(`${base}/drivers/me/return-vehicle`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ odometer_km: null, fuel_level_pct: null, notes: null }),
+      }).catch(() => {})
+    }
     clearAuthState()
     pendingFlow.value = ''
     pendingRegistrationData.value = null

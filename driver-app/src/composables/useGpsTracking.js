@@ -1,20 +1,24 @@
 import { ref, computed } from 'vue'
 import { Geolocation } from '@capacitor/geolocation'
 import { getSimulatedGPS, isWithinGeofence, calculateDistance } from '../utils/geofence.js'
+import { updateDriverLocation } from '../services/api.js'
 
 /**
  * GPS Tracking Composable
- * Simulated version for demo - uses device GPS when available
- *
- * Production: Would send updates to backend every 30 seconds
- * Demo: Logs to console and updates local state
+ * Uses real device GPS when available, falls back to simulation.
+ * Posts location to backend every 30 seconds so the dispatcher map stays live.
  */
+
+// Throttle backend pushes to at most once per 30 s to avoid hammering the API.
+const LOCATION_POST_INTERVAL_MS = 30_000
+
 export function useGpsTracking() {
     const currentLocation = ref(null)
     const isTracking = ref(false)
     const trackingError = ref(null)
     let watchId = null
     let simulationInterval = null
+    let lastPostedAt = 0   // timestamp of last successful backend push
 
     const hasLocation = computed(() => currentLocation.value !== null)
 
@@ -67,13 +71,14 @@ export function useGpsTracking() {
                                 speed: position.coords.speed || 0,
                                 heading: position.coords.heading || 0,
                                 timestamp: new Date(position.timestamp).toISOString(),
-                                isMocked: false // TODO: Detect mocked GPS on Android
+                                isMocked: false
                             }
 
                             console.log('📍 Real GPS Update:', currentLocation.value)
-
-                            // In production: send to backend
-                            // await api.sendLocationUpdate(currentLocation.value)
+                            _maybePostLocation(
+                                position.coords.latitude,
+                                position.coords.longitude
+                            )
                         }
                     }
                 )
@@ -88,14 +93,31 @@ export function useGpsTracking() {
     function startSimulatedTracking() {
         console.log('📍 Starting simulated GPS tracking')
 
-        // Update every 5 seconds
-        simulationInterval = setInterval(() => {
-            currentLocation.value = getSimulatedGPS()
-            console.log('📍 Simulated GPS:', currentLocation.value)
-        }, 5000)
+        const tick = () => {
+            const pos = getSimulatedGPS()
+            currentLocation.value = pos
+            console.log('📍 Simulated GPS:', pos)
+            _maybePostLocation(pos.lat, pos.lng)
+        }
+
+        // Update every 5 seconds locally; backend receives at most every 30 s
+        simulationInterval = setInterval(tick, 5000)
 
         // Set initial position immediately
-        currentLocation.value = getSimulatedGPS()
+        tick()
+    }
+
+    /**
+     * Post the current location to the backend if the throttle window has passed.
+     * Fire-and-forget — tracking errors must never crash the UI.
+     */
+    function _maybePostLocation(lat, lng) {
+        const now = Date.now()
+        if (now - lastPostedAt < LOCATION_POST_INTERVAL_MS) return
+        lastPostedAt = now
+        updateDriverLocation(lat, lng).catch((err) => {
+            console.warn('📍 Location post failed (will retry next interval):', err?.message || err)
+        })
     }
 
     function stopTracking() {

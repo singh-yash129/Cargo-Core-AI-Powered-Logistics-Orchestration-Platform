@@ -70,11 +70,45 @@
                 <p class="text-xs mt-1">You'll see delivery updates, alerts & more here</p>
             </div>
         </div>
+
+        <!-- Full Message Modal -->
+        <Teleport to="body">
+            <div v-if="selectedNotif" class="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4"
+                @click.self="selectedNotif = null">
+                <div class="w-full max-w-md rounded-3xl p-6 shadow-2xl"
+                    :class="isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-100'">
+                    <!-- Icon + title -->
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                            :class="typeConfig[selectedNotif.type]?.bg || 'bg-accent-blue/15'">
+                            <span class="material-icons"
+                                :class="typeConfig[selectedNotif.type]?.color || 'text-accent-blue'">
+                                {{ typeConfig[selectedNotif.type]?.icon || 'info' }}
+                            </span>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-bold text-base">{{ selectedNotif.title }}</p>
+                            <p class="text-xs opacity-40">{{ formatTime(selectedNotif.timestamp) }}</p>
+                        </div>
+                        <button @click="selectedNotif = null" class="opacity-40 hover:opacity-70">
+                            <span class="material-icons">close</span>
+                        </button>
+                    </div>
+                    <!-- Full body -->
+                    <p class="text-sm leading-relaxed opacity-80">{{ selectedNotif.body }}</p>
+                    <button @click="selectedNotif = null"
+                        class="mt-5 w-full py-3 rounded-2xl font-bold text-sm"
+                        :class="isDark ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-700'">
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNotificationStore } from '../stores/notificationStore.js'
 import { useUiStore } from '../stores/uiStore.js'
@@ -83,6 +117,11 @@ const router = useRouter()
 const notificationStore = useNotificationStore()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+const selectedNotif = ref(null)
+
+onMounted(() => {
+    notificationStore.fetchFromBackend()
+})
 
 const typeConfig = {
     info: { icon: 'info', bg: 'bg-accent-blue/15', color: 'text-accent-blue' },
@@ -98,6 +137,8 @@ function handleTap(n) {
     notificationStore.markAsRead(n.id)
     if (n.route) {
         router.push(n.route)
+    } else {
+        selectedNotif.value = n
     }
 }
 
@@ -109,16 +150,17 @@ function handleClearAll() {
     }
 }
 
-function formatTime(iso) {
-    if (!iso) return ''
-    const diff = Date.now() - new Date(iso).getTime()
+function formatTime(ts) {
+    if (!ts) return ''
+    const d = new Date(ts)
+    const diff = Date.now() - d.getTime()
+    if (isNaN(diff)) return ts  // already a relative string from backend, show as-is
     const mins = Math.floor(diff / 60000)
     if (mins < 1) return 'Just now'
     if (mins < 60) return `${mins}m ago`
     const hrs = Math.floor(mins / 60)
     if (hrs < 24) return `${hrs}h ago`
-    const days = Math.floor(hrs / 24)
-    return `${days}d ago`
+    return `${Math.floor(hrs / 24)}d ago`
 }
 </script>
 

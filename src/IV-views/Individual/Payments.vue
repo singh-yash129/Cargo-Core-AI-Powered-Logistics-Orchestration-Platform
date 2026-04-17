@@ -130,6 +130,7 @@
             :description="selectedOrder ? ('Order ' + selectedOrder.id) : ''"
             :name="authStore.currentUser?.name || ''"
             :email="authStore.currentUser?.email || ''"
+            :wallet-balance="store.walletBalance"
             @success="onRazorpaySuccess"
         />
 

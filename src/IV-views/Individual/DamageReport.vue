@@ -292,13 +292,25 @@ function handlePhotos(e) {
     photos.value = [...photos.value, ...files]
 }
 
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+    })
+}
+
 async function submitReport() {
     if (!canSubmit.value || submitting.value) return
     submitting.value = true
+    const photoData = await Promise.all(
+        photos.value.map(p => p.file ? fileToBase64(p.file) : null)
+    ).then(arr => arr.filter(Boolean))
     const result = await store.reportDamageRemote(
         form.orderId,
         form.description,
-        photos.value.map(p => p.file?.name ?? p),
+        photoData,
         form.resolutionType
     )
     submitting.value = false

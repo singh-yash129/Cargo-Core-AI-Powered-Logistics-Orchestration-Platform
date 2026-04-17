@@ -186,10 +186,10 @@
             <!-- User Form Modal -->
             <Teleport to="body">
                 <div v-if="isModalOpen"
-                    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
                     @click.self="closeModal">
                     <div
-                        class="bg-slate-950/98 w-full max-w-4xl rounded-2xl shadow-2xl border border-white/10 overflow-visible flex flex-col backdrop-blur-xl">
+                        class="lm-user-form-modal bg-slate-950/98 w-full max-w-4xl rounded-2xl shadow-2xl border border-white/10 overflow-visible flex flex-col backdrop-blur-xl">
                         <!-- Header -->
                         <div
                             class="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-slate-900/90">
@@ -316,6 +316,34 @@
                                             <span
                                                 class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">arrow_drop_down</span>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-slate-900/70 p-4 rounded-xl border border-white/10 space-y-4 shadow-sm">
+                                    <h4
+                                        class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                        <div
+                                            class="w-6 h-6 rounded bg-primary/10 text-primary flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-[14px]">key</span>
+                                        </div>
+                                        Login Credentials
+                                    </h4>
+                                    <div class="grid grid-cols-2 gap-4 mt-3">
+                                        <div class="col-span-2 md:col-span-1">
+                                            <label
+                                                class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 uppercase tracking-wider">Username</label>
+                                            <input v-model="formData.username" type="text" placeholder="e.g. support_bangalore_01"
+                                                class="w-full bg-slate-800 border border-white/10 rounded-lg px-4 py-2.5 text-[13px] text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium font-mono">
+                                        </div>
+                                        <div class="col-span-2 md:col-span-1">
+                                            <label
+                                                class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 uppercase tracking-wider">Password</label>
+                                            <input v-model="formData.password" type="text" placeholder="Minimum 8 characters"
+                                                class="w-full bg-slate-800 border border-white/10 rounded-lg px-4 py-2.5 text-[13px] text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium font-mono">
+                                        </div>
+                                        <p class="col-span-2 text-xs text-gray-400">
+                                            The Customer Support agent will use this username and password to sign in to the AI dashboard.
+                                        </p>
                                     </div>
                                 </div>
                             </template>
@@ -1122,9 +1150,9 @@ const handleVendorApproval = async (user, nextStatus) => {
 
 const submitForm = async () => {
     try {
-        if (modalMode.value === 'create') {
+        if (['create', 'create-support'].includes(modalMode.value)) {
             if (!formData.value.username?.trim()) {
-                toast.error('Username is required for Manager and Dispatcher accounts.')
+                toast.error('Username is required for this account.')
                 return
             }
             if (!formData.value.password || formData.value.password.length < 8) {
@@ -1153,3 +1181,42 @@ const submitForm = async () => {
     }
 }
 </script>
+
+<style scoped>
+.lm-user-form-modal {
+    color: #e2e8f0;
+}
+
+.lm-user-form-modal :deep(h3),
+.lm-user-form-modal :deep(h4) {
+    color: #ffffff !important;
+}
+
+.lm-user-form-modal :deep(label) {
+    color: #cbd5e1 !important;
+}
+
+.lm-user-form-modal :deep(input),
+.lm-user-form-modal :deep(select),
+.lm-user-form-modal :deep(textarea) {
+    background-color: rgba(15, 23, 42, 0.92) !important;
+    color: #f8fafc !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color-scheme: dark;
+}
+
+.lm-user-form-modal :deep(input::placeholder),
+.lm-user-form-modal :deep(textarea::placeholder) {
+    color: #94a3b8 !important;
+}
+
+.lm-user-form-modal :deep(.text-gray-400),
+.lm-user-form-modal :deep(.text-gray-500) {
+    color: #94a3b8 !important;
+}
+
+.lm-user-form-modal :deep(input[type='date']::-webkit-calendar-picker-indicator) {
+    filter: invert(1);
+    opacity: 0.85;
+}
+</style>

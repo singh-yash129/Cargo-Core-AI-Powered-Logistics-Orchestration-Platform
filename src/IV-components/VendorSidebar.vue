@@ -44,8 +44,62 @@
       </div>
     </nav>
 
-    <div class="p-4 border-t border-gray-200 dark:border-white/5">
-      <div class="flex items-center gap-3 p-2 rounded-lg">
+    <div
+      class="p-4 border-t border-gray-200 dark:border-white/5 relative"
+      @mouseenter="isMenuOpen = true"
+      @mouseleave="isMenuOpen = false"
+    >
+      <transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="transform scale-95 opacity-0 translate-y-2"
+        enter-to-class="transform scale-100 opacity-100 translate-y-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="transform scale-100 opacity-100 translate-y-0"
+        leave-to-class="transform scale-95 opacity-0 translate-y-2"
+      >
+        <div
+          v-if="isMenuOpen"
+          class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-card-darker rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50"
+        >
+          <div class="py-1">
+            <button
+              class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors"
+              @click="showProfileModal = true"
+            >
+              <span class="material-symbols-outlined text-[20px] text-blue-500 dark:text-blue-400">person</span>
+              Profile
+            </button>
+
+            <button
+              class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors"
+              @click="showIdCardModal = true"
+            >
+              <span class="material-symbols-outlined text-[20px] text-blue-500 dark:text-blue-400">badge</span>
+              Business ID Card
+            </button>
+
+            <div class="w-full px-4 py-2.5 flex items-center gap-3">
+              <span class="material-symbols-outlined text-[20px] text-blue-500 dark:text-blue-400">
+                {{ isDark ? 'dark_mode' : 'light_mode' }}
+              </span>
+              <span class="text-sm text-gray-700 dark:text-gray-200 flex-1">Appearance</span>
+              <ThemeToggle />
+            </div>
+
+            <div class="border-t border-gray-200 dark:border-white/5 my-1"></div>
+
+            <button
+              class="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors"
+              @click="showLogoutConfirm = true"
+            >
+              <span class="material-symbols-outlined text-[20px]">logout</span>
+              Logout
+            </button>
+          </div>
+        </div>
+      </transition>
+
+      <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer transition-colors relative z-10">
         <div class="w-9 h-9 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
           <span class="font-bold text-xs text-blue-600 dark:text-blue-400">{{ vendorInitials }}</span>
         </div>
@@ -53,19 +107,107 @@
           <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ vendorName }}</div>
           <div class="text-xs text-gray-500 dark:text-gray-500 truncate">Vendor Account</div>
         </div>
-        <button class="text-gray-500 hover:text-red-500 transition-colors" @click="handleLogout">
-          <span class="material-symbols-outlined">logout</span>
-        </button>
+        <span class="material-symbols-outlined text-gray-500 dark:text-gray-400">more_vert</span>
       </div>
     </div>
   </aside>
+
+  <Teleport to="body">
+    <BaseModal :isOpen="showProfileModal" @close="showProfileModal = false">
+      <template #title>Vendor Profile</template>
+      <div class="space-y-6">
+        <div class="flex items-center gap-4">
+          <div class="w-20 h-20 rounded-xl bg-blue-500/20 border-2 border-blue-500/30 flex items-center justify-center text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {{ vendorInitials }}
+          </div>
+          <div>
+            <h4 class="text-xl font-bold text-white">{{ vendorName }}</h4>
+            <p class="text-gray-400">Vendor Account</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+            <div class="text-xs text-gray-500 mb-1">Email</div>
+            <div class="font-medium text-sm text-gray-900 dark:text-white">{{ vendorEmail }}</div>
+          </div>
+          <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+            <div class="text-xs text-gray-500 mb-1">Credit Balance</div>
+            <div class="font-medium text-sm text-gray-900 dark:text-white">Rs. {{ store.creditBalance.toLocaleString() }}</div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <button
+          class="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+          @click="showProfileModal = false"
+        >
+          Close
+        </button>
+      </template>
+    </BaseModal>
+  </Teleport>
+
+  <Teleport to="body">
+    <BaseModal :isOpen="showIdCardModal" @close="showIdCardModal = false">
+      <template #title>Business ID Card</template>
+      <div class="flex justify-center w-full">
+        <IdCard :employee="vendorCardData" />
+      </div>
+      <template #footer>
+        <button
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          @click="showIdCardModal = false"
+        >
+          Close
+        </button>
+      </template>
+    </BaseModal>
+  </Teleport>
+
+  <Teleport to="body">
+    <div
+      v-if="showLogoutConfirm"
+      class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      @click.self="showLogoutConfirm = false"
+    >
+      <div class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-gray-100 dark:border-white/10 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
+            <span class="material-symbols-outlined text-red-500 text-2xl">logout</span>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Confirm Logout</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Are you sure you want to sign out?</p>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button
+            class="flex-1 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors"
+            @click="showLogoutConfirm = false"
+          >
+            Cancel
+          </button>
+          <button
+            class="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors"
+            @click="handleLogout"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import BaseModal from '@/components/BaseModal.vue'
+import IdCard from '@/components/IdCard.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useVendorStore } from '@/stores/vendorStore'
+import { buildIdCardProfile } from '@/utils/idCardProfile'
 
 defineProps({ isOpen: Boolean })
 defineEmits(['close'])
@@ -73,6 +215,13 @@ defineEmits(['close'])
 const router = useRouter()
 const authStore = useAuthStore()
 const store = useVendorStore()
+
+const isMenuOpen = ref(false)
+const showProfileModal = ref(false)
+const showIdCardModal = ref(false)
+const showLogoutConfirm = ref(false)
+const isDark = ref(true)
+let themeObserver = null
 
 const menuItems = [
   { label: 'Dashboard', icon: 'dashboard', route: '/vendor/dashboard' },
@@ -84,10 +233,12 @@ const menuItems = [
   { label: 'Wallet', icon: 'account_balance_wallet', route: '/vendor/wallet' },
   { label: 'Invoices', icon: 'receipt', route: '/vendor/invoices' },
   { label: 'Analytics', icon: 'analytics', route: '/vendor/analytics' },
+  { label: 'Support', icon: 'support_agent', route: '/vendor/support' },
 ]
 
 const currentUser = computed(() => authStore.currentUser || JSON.parse(localStorage.getItem('auth_user') || 'null'))
 const vendorName = computed(() => currentUser.value?.name || currentUser.value?.company_name || 'Vendor')
+const vendorEmail = computed(() => currentUser.value?.email || currentUser.value?.business_email || 'support@cargocore.local')
 const vendorInitials = computed(() => vendorName.value.split(' ').map((part) => part[0]).join('').toUpperCase().slice(0, 2))
 
 const vendorMetrics = computed(() => ([
@@ -97,7 +248,28 @@ const vendorMetrics = computed(() => ([
   { id: 'issues', name: 'Overdue', value: String(store.overdueInvoices.length), color: store.overdueInvoices.length ? 'text-red-500' : 'text-green-500' },
 ]))
 
-async function handleLogout() {
+const vendorCardData = computed(() => buildIdCardProfile({
+  user: currentUser.value,
+  role: 'VENDOR',
+  name: vendorName.value,
+  email: vendorEmail.value,
+}))
+
+onMounted(() => {
+  isDark.value = document.documentElement.classList.contains('dark')
+  themeObserver = new MutationObserver(() => {
+    isDark.value = document.documentElement.classList.contains('dark')
+  })
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+})
+
+onUnmounted(() => {
+  if (themeObserver) themeObserver.disconnect()
+})
+
+function handleLogout() {
+  showLogoutConfirm.value = false
+  isMenuOpen.value = false
   const loginPath = authStore.logout()
   router.replace(loginPath)
 }

@@ -8,7 +8,12 @@ class OrderCreate(BaseModel):
     order_type: str = Field(..., max_length=20)
     warehouse_id: UUID | None = None
     pickup_addr: str = Field(..., min_length=5)
+    pickup_type: str | None = Field(default=None, max_length=20, description="'hub' or 'doorstep' for vendor orders")
+    pickup_lat: float | None = None
+    pickup_lng: float | None = None
     delivery_addr: str = Field(..., min_length=5)
+    cargo_weight_kg: float | None = Field(default=None, ge=0)
+    cargo_volume_m3: float | None = Field(default=None, ge=0)
     cargo_type: str | None = None
     vehicle_type: str | None = None
     labor_count: int = Field(default=0, ge=0)
@@ -39,7 +44,11 @@ class OrderCreate(BaseModel):
 class OrderUpdate(BaseModel):
     warehouse_id: UUID | None = None
     pickup_addr: str | None = Field(default=None, min_length=5)
+    pickup_lat: float | None = None
+    pickup_lng: float | None = None
     delivery_addr: str | None = Field(default=None, min_length=5)
+    cargo_weight_kg: float | None = Field(default=None, ge=0)
+    cargo_volume_m3: float | None = Field(default=None, ge=0)
     cargo_type: str | None = None
     vehicle_type: str | None = None
     labor_count: int | None = Field(default=None, ge=0)
@@ -57,6 +66,8 @@ class OrderUpdate(BaseModel):
     service_time_block: str | None = None
     delivery_notes: str | None = None
     scheduled_at: datetime | None = None
+    delivery_lat: float | None = None
+    delivery_lng: float | None = None
 
 
 class OrderAssignRequest(BaseModel):
@@ -65,6 +76,10 @@ class OrderAssignRequest(BaseModel):
 
 
 class CancelOrderRequest(BaseModel):
+    reason: str = Field(..., min_length=3)
+
+
+class OrderEscalateRequest(BaseModel):
     reason: str = Field(..., min_length=3)
 
 
@@ -78,6 +93,7 @@ class OrderItemUpsert(BaseModel):
 class OrderItemResponse(BaseModel):
     id: UUID
     sku: str
+    name: str | None = None
     quantity: int
     box_count: int | None
     estimated_volume: float | None
@@ -102,7 +118,12 @@ class OrderResponse(BaseModel):
     assigned_driver_name: str | None = None
     assigned_vehicle_code: str | None = None
     pickup_addr: str
+    pickup_type: str | None = None
+    pickup_lat: float | None = None
+    pickup_lng: float | None = None
     delivery_addr: str
+    cargo_weight_kg: float | None = None
+    cargo_volume_m3: float | None = None
     cargo_type: str | None
     vehicle_type: str | None
     labor_count: int
@@ -125,6 +146,7 @@ class OrderResponse(BaseModel):
     service_otp_verified_at: datetime | None = None
     service_time_block: str | None
     scheduled_at: datetime | None
+    arrived_at: datetime | None = None
     cancel_reason: str | None
     cancellation_fee: float = 0
     wallet_refund_amount: float = 0
@@ -135,8 +157,12 @@ class OrderResponse(BaseModel):
     poc_signature: str | None = None
     job_rating: int | None = None
     job_feedback: str | None = None
+    packing_return_data: dict | None = None
     customer_name: str | None = None
     customer_phone: str | None = None
+    escalated: bool = False
+    escalation_id: UUID | None = None
+    escalation_status: str | None = None
     created_at: datetime
     items: list[OrderItemResponse] = []
 
@@ -195,6 +221,47 @@ class ClusterResponse(BaseModel):
     avg_efficiency_pct: float
 
 
+# ── AI Dispatch Schemas ────────────────────────────────────────────────────────
+
+class DriverSuggestionItem(BaseModel):
+    order_id: str
+    order_tracking_code: str
+    pickup_addr: str
+    delivery_addr: str
+    priority: str
+    suggested_driver_id: str
+    suggested_driver_name: str
+    distance_km: float | None
+    confidence: int
+    reason: str
+    ai_powered: bool = True
+
+
+class DriverSuggestionResponse(BaseModel):
+    suggestions: list[DriverSuggestionItem]
+    total: int
+
+
+class ReturnTripSuggestionItem(BaseModel):
+    driver_id: str
+    driver_name: str
+    pending_order_id: str
+    pending_tracking_code: str
+    pickup_addr: str
+    delivery_addr: str
+    distance_km: float
+    priority: str
+    delivered_minutes_ago: int
+    last_delivery_addr: str
+    reason: str
+    ai_powered: bool = True
+
+
+class ReturnTripResponse(BaseModel):
+    suggestions: list[ReturnTripSuggestionItem]
+    total: int
+
+
 class BatchAssignment(BaseModel):
     order_id: UUID
     driver_id: UUID
@@ -210,3 +277,62 @@ class DeliveryOtpSendResponse(BaseModel):
     email: str
     sent_at: datetime
     debug_otp: str | None = None
+
+
+class TripRouteSignal(BaseModel):
+    key: str
+    label: str
+    severity: str
+
+
+class TripRouteOption(BaseModel):
+    route_id: str
+    label: str
+    eta_minutes: int
+    eta_label: str
+    distance_km: float
+    delta_minutes: int = 0
+    summary: str
+    recommended: bool = False
+
+
+class OrderTripIntelligenceItem(BaseModel):
+    order_id: UUID
+    tracking_code: str
+    order_status: str
+    driver_id: UUID | None = None
+    driver_name: str | None = None
+    vehicle_id: UUID | None = None
+    vehicle_code: str | None = None
+    pickup_addr: str
+    delivery_addr: str
+    priority: str = "NORMAL"
+    trip_stage: str
+    route_status: str
+    risk_level: str
+    eta_label: str
+    eta_minutes: int
+    delay_probability_pct: int
+    eta_confidence: str
+    planned_distance_km: float
+    no_go_zone_hit: bool = False
+    signal_count: int = 0
+    signals: list[TripRouteSignal] = Field(default_factory=list)
+    dispatcher_recommendation: str
+    driver_message: str
+    primary_route: TripRouteOption
+    alternate_route: TripRouteOption
+    recommended_route: str
+    generated_at: datetime
+
+
+class TripCommandPushRequest(BaseModel):
+    selected_route: str = Field(default="recommended", min_length=3, max_length=20)
+    dispatcher_note: str | None = Field(default=None, max_length=280)
+
+
+class TripDeviationReportRequest(BaseModel):
+    reason: str = Field(..., min_length=3, max_length=160)
+    details: str | None = Field(default=None, max_length=280)
+    latitude: float | None = None
+    longitude: float | None = None

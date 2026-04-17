@@ -43,11 +43,12 @@
   --background-light: #f7f8fc;
   --background-dark: #0b1220;
   --surface-light: #ffffff;
+  --card-dark: #111827;
   --card-darker: #111827;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: #0b1220;
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.145 0 0);
   --card-foreground: oklch(0.985 0 0);
@@ -84,6 +85,7 @@
   --background-light: #f7f8fc;
   --background-dark: #0b1220;
   --surface-light: #ffffff;
+  --card-dark: #111827;
   --card-darker: #111827;
 }
 
@@ -129,6 +131,7 @@
   --color-background-light: var(--background-light);
   --color-background-dark: var(--background-dark);
   --color-surface-light: var(--surface-light);
+  --color-card-dark: var(--card-dark);
   --color-card-darker: var(--card-darker);
 }
 

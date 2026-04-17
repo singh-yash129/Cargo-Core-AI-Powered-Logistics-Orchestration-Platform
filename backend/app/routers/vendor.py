@@ -30,8 +30,10 @@ from app.schemas.vendor import (
     VendorTeamMemberCreate,
     VendorTeamMemberResponse,
 )
-from app.schemas.wallet import WalletSummary
-from app.services import vendor_service, wallet_service
+from app.schemas.logistics import LogisticsNotificationItem, LogisticsNotificationUpdate
+from app.schemas.auth import MessageResponse
+from app.schemas.wallet import WalletSummary, WalletTopUpRequest, WalletTopUpResponse
+from app.services import logistics_service, vendor_service, wallet_service
 
 router = APIRouter(prefix="/api/v1/vendor", tags=["Vendor"])
 
@@ -263,3 +265,56 @@ async def get_wallet(
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     return await wallet_service.get_wallet_summary(db, current_user)
+
+
+@router.post("/wallet/top-up", response_model=WalletTopUpResponse)
+async def top_up_wallet(
+    data: WalletTopUpRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    result = await wallet_service.top_up_wallet(db, user=current_user, amount=data.amount)
+    await db.commit()
+    return result
+
+
+# ── Notification endpoints ────────────────────────────────────────────────────
+
+@router.get("/notifications", response_model=list[LogisticsNotificationItem])
+async def get_notifications(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await logistics_service.get_notifications(db, current_user)
+
+
+@router.put("/notifications/{notification_id}", response_model=LogisticsNotificationItem)
+async def update_notification(
+    notification_id: UUID,
+    data: LogisticsNotificationUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    result = await logistics_service.update_notification(db, notification_id, data, current_user)
+    await db.commit()
+    return result
+
+
+@router.post("/notifications/mark-all-read", response_model=MessageResponse)
+async def mark_all_notifications_read(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    result = await logistics_service.mark_all_notifications_read(db, current_user)
+    await db.commit()
+    return result
+
+
+@router.delete("/notifications", response_model=MessageResponse)
+async def clear_notifications(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    result = await logistics_service.clear_notifications(db, current_user)
+    await db.commit()
+    return result

@@ -66,6 +66,8 @@ function mapReturnRecord(item) {
         transportChargePendingAmount: Number(item.transport_charge_pending_amount || 0),
         transportChargeStatus: item.transport_charge_status || null,
         transportChargeAppliedAt: item.transport_charge_applied_at || null,
+        isUrgent: item.is_urgent ?? false,
+        urgentReason: item.urgent_reason || null,
     }
 }
 
@@ -95,8 +97,23 @@ function roleLabel(role) {
     if (role === 'WAREHOUSE_MANAGER') return 'Warehouse Manager'
     if (role === 'DISPATCHER') return 'Dispatcher'
     if (role === 'DRIVER') return 'Driver'
+    if (role === 'AI_AGENT' || role === 'AI_SUPPORT' || role === 'CUSTOMER_SUPPORT') return 'Customer Support'
     if (role === 'VENDOR') return 'Vendor'
     return role || 'User'
+}
+
+function roleApiValue(role) {
+    const normalized = String(role || 'DRIVER')
+        .trim()
+        .replace(/\s+/g, '_')
+        .replace(/-/g, '_')
+        .toUpperCase()
+
+    if (normalized === 'CUSTOMER_SUPPORT' || normalized === 'AI_SUPPORT') {
+        return 'AI_AGENT'
+    }
+
+    return normalized
 }
 
 async function apiRequest(path, options = {}) {
@@ -149,6 +166,7 @@ export const useLogisticStore = defineStore('logistic', () => {
     const aiSuggestionChips = ref([])
     const aiMessages = ref([])
     const aiSessionId = ref(null)
+    const dispatcherAiSessionId = ref(null) // separate session for dispatcher role
     const financeSummary = ref({})
     const financeCodRecords = ref([])
     const financeStaffRecords = ref([])
@@ -314,11 +332,14 @@ export const useLogisticStore = defineStore('logistic', () => {
         transactions.value = asArray(payload.transactions).map((tx) => ({
             id: asStringId(tx.id),
             hubId: asWarehouseId(tx.hub_id),
+            transactionCode: tx.transaction_code || '',
             date: tx.date,
             desc: tx.desc,
             type: tx.type,
             amount: tx.amount,
             status: tx.status,
+            metadataJson: tx.metadata_json || {},
+            relatedOrder: tx.related_order || null,
         }))
 
         reports.value = asArray(payload.reports).map((report) => ({
@@ -485,8 +506,20 @@ export const useLogisticStore = defineStore('logistic', () => {
     const filteredUsers = computed(() => filterByWarehouse(users.value))
     const filteredReturns = computed(() => filterByWarehouse(returns.value))
     const filteredZones = computed(() => filterByWarehouse(zones.value))
-    const filteredChats = computed(() => filterByWarehouse(chats.value))
-    const filteredEscalations = computed(() => filterByWarehouse(escalations.value))
+    const filteredChats = computed(() => {
+        const all = filterByWarehouse(chats.value)
+        // Deduplicate: if a "LM Driver: X" legacy thread exists alongside a plain "X"
+        // thread, hide the legacy one to avoid duplicate entries in the sidebar.
+        const plainNames = new Set(
+            all.filter((c) => !c.name.startsWith('LM Driver: ')).map((c) => c.name)
+        )
+        return all.filter(
+            (c) => !c.name.startsWith('LM Driver: ') || !plainNames.has(c.name.slice('LM Driver: '.length))
+        )
+    })
+    const filteredEscalations = computed(() =>
+        filterByWarehouse(escalations.value).filter((item) => item.status === 'OPEN')
+    )
     const filteredInventory = computed(() => filterByWarehouse(inventory.value))
     const filteredFinanceCodRecords = computed(() => filterByWarehouse(financeCodRecords.value))
     const filteredFinanceStaffRecords = computed(() => filterByWarehouse(financeStaffRecords.value))
@@ -565,8 +598,8 @@ export const useLogisticStore = defineStore('logistic', () => {
     }
 
     async function markAllNotificationsRead() {
-        await apiRequest('/logistics/notifications/mark-all-read', { method: 'POST', headers: authHeaders() })
         notifications.value.forEach((item) => { item.read = true })
+        await apiRequest('/logistics/notifications/mark-all-read', { method: 'POST', headers: authHeaders() }).catch(() => {})
     }
 
     async function clearNotifications() {
@@ -595,11 +628,14 @@ export const useLogisticStore = defineStore('logistic', () => {
         transactions.value = [{
             id: asStringId(created.id),
             hubId: asWarehouseId(created.hub_id),
+            transactionCode: created.transaction_code || '',
             date: created.date,
             desc: created.desc,
             type: created.type,
             amount: created.amount,
             status: created.status,
+            metadataJson: created.metadata_json || {},
+            relatedOrder: created.related_order || null,
         }, ...transactions.value]
 
         if (created.amount > 0) {
@@ -630,6 +666,24 @@ export const useLogisticStore = defineStore('logistic', () => {
         }
     }
 
+    async function askAiDispatcher(query) {
+        try {
+            const payload = { message: query, context: 'dispatcher' }
+            if (dispatcherAiSessionId.value) payload.session_id = dispatcherAiSessionId.value
+            const response = await apiRequest('/ai/chat', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify(payload),
+            })
+            if (response.session_id) dispatcherAiSessionId.value = response.session_id
+            let text = response.message || response.reply || response.text || 'No response.'
+            text = text.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+            return { text }
+        } catch (err) {
+            return { text: 'AI engine unavailable. Please try again.' }
+        }
+    }
+
     async function askAi(query) {
         const userMessage = {
             id: `user-${Date.now()}`,
@@ -640,7 +694,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         aiMessages.value.push(userMessage)
 
         try {
-            const payload = { message: query }
+            const payload = { message: query, context: 'logistic_manager' }
             if (aiSessionId.value) {
                 payload.session_id = aiSessionId.value
             }
@@ -754,6 +808,26 @@ export const useLogisticStore = defineStore('logistic', () => {
         return updatedCase
     }
 
+    async function fetchAlerts() {
+        try {
+            const data = await apiRequest('/logistics/alerts', { headers: authHeaders() })
+            if (Array.isArray(data)) {
+                alerts.value = data.map(alert => ({
+                    id: String(alert.id),
+                    type: alert.type,
+                    title: alert.title,
+                    description: alert.description,
+                    severity: alert.severity,
+                    icon: alert.icon || 'warning',
+                    timestamp: alert.timestamp,
+                    location: alert.location,
+                    recommendation: alert.recommendation,
+                    ...(alert.impact || {}),
+                }))
+            }
+        } catch (_) {}
+    }
+
     async function addAlert(alert) {
         await apiRequest('/logistics/alerts', {
             method: 'POST',
@@ -781,6 +855,23 @@ export const useLogisticStore = defineStore('logistic', () => {
             sender: 'dispatch',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         })
+    }
+
+    function getManagerDriverThreadName(driverOrName) {
+        const rawName = typeof driverOrName === 'string'
+            ? driverOrName
+            : driverOrName?.name
+        const safeName = String(rawName || '').trim()
+        return safeName || 'Unknown Driver'
+    }
+
+    function findManagerDriverThread(driver) {
+        if (!driver) return null
+        const threadName = getManagerDriverThreadName(driver)
+        // Match by exact name OR the legacy "LM Driver: X" format
+        return chats.value.find(
+            (chat) => chat.name === threadName || chat.name === `LM Driver: ${threadName}`
+        ) || null
     }
 
     async function fetchWmChats() {
@@ -826,13 +917,13 @@ export const useLogisticStore = defineStore('logistic', () => {
         return { messages: mappedMessages }
     }
 
-    async function createChatThread(name, phone = null) {
+    async function createChatThread(name, phone = null, warehouseId = null) {
         const created = await apiRequest('/logistics/chats', {
             method: 'POST',
             headers: authHeaders(),
-            body: JSON.stringify({ name, phone }),
+            body: JSON.stringify({ name, phone, warehouse_id: warehouseId }),
         })
-        chats.value.unshift({
+        const mappedThread = {
             id: String(created.id),
             hubId: asWarehouseId(created.hub_id),
             name: created.name,
@@ -841,8 +932,33 @@ export const useLogisticStore = defineStore('logistic', () => {
             status: created.status || 'Online',
             phone: created.phone || null,
             muted: false,
-            messages: [],
-        })
+            messages: (created.messages || []).map((m) => ({
+                id: String(m.id),
+                text: m.text,
+                sender: m.sender,
+                time: m.time,
+            })),
+        }
+        const existingIdx = chats.value.findIndex((chat) => chat.id === String(created.id))
+        if (existingIdx !== -1) {
+            chats.value[existingIdx] = mappedThread
+        } else {
+            chats.value.unshift(mappedThread)
+        }
+        return mappedThread
+    }
+
+    async function ensureManagerDriverThread(driver) {
+        if (!driver?.name) throw new Error('Driver context is required')
+
+        const existing = findManagerDriverThread(driver)
+        if (existing) return existing
+
+        const created = await createChatThread(
+            getManagerDriverThreadName(driver),
+            driver.phone || null,
+            driver.hubId || driver.warehouseId || null,
+        )
         return created
     }
 
@@ -1081,7 +1197,7 @@ export const useLogisticStore = defineStore('logistic', () => {
                 email: userData.email,
                 phone: userData.mobile || userData.phone || null,
                 password: userData.password || '12345678',
-                role: String(userData.role || 'DRIVER').replace(' ', '_').toUpperCase(),
+                role: roleApiValue(userData.role),
                 warehouse_id: userData.hubId && userData.hubId !== 'all' ? userData.hubId : null,
             }),
         })
@@ -1324,6 +1440,9 @@ export const useLogisticStore = defineStore('logistic', () => {
         filteredZones,
         filteredChats,
         filteredEscalations,
+        warehouseManagerUsers: computed(() =>
+            users.value.filter((u) => u.role === 'Warehouse Manager')
+        ),
         filteredInventory,
         filteredFinanceCodRecords,
         filteredFinanceStaffRecords,
@@ -1340,10 +1459,12 @@ export const useLogisticStore = defineStore('logistic', () => {
         addTransaction,
         fetchFinanceSummary,
         askAi,
+        askAiDispatcher,
         updateReturnStatus,
         issueReturnRefund,
         scheduleReturnPickup,
         addAlert,
+        fetchAlerts,
         resolveAlert,
         setWarehouse,
         togglePin,
@@ -1361,6 +1482,9 @@ export const useLogisticStore = defineStore('logistic', () => {
         sendMessageToDriver,
         sendChatMessage,
         createChatThread,
+        getManagerDriverThreadName,
+        findManagerDriverThread,
+        ensureManagerDriverThread,
         deleteChatThread,
         muteChatThread,
         sendBroadcast,

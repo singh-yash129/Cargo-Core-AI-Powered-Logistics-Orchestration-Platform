@@ -165,8 +165,11 @@
                             <select v-model="issueForm.orderId" @change="onOrderSelected"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
                                 <option value="">Select an active order...</option>
-                                <option v-for="o in activeOrders" :key="o.id" :value="o.tracking_code">
+                                <option v-for="o in ordersAvailableForIssuance" :key="o.id" :value="o.tracking_code">
                                     {{ o.tracking_code }} — {{ o.status }}
+                                </option>
+                                <option v-if="ordersAvailableForIssuance.length === 0" disabled value="">
+                                    No orders pending material issuance
                                 </option>
                             </select>
                         </div>
@@ -247,18 +250,18 @@
                         <div v-if="issueForm.orderId">
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 flex items-center gap-2">
                                 <span>Issue To (Driver / Laborer)</span>
-                                <span class="text-[10px] text-green-500 font-semibold">{{ availableLabourers.length }} available</span>
+                                <span class="text-[10px] text-green-500 font-semibold">{{ issuableLabourers.length }} selectable</span>
                             </label>
                             <select v-model="issueForm.issuedTo"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option value="">Select available staff...</option>
-                                <option v-for="l in availableLabourers" :key="l.id" :value="l.name || l.full_name">
-                                    {{ l.name || l.full_name }} ({{ l.role || l.designation || 'Labourer' }})
+                                <option value="">Select staff...</option>
+                                <option v-for="l in issuableLabourers" :key="l.id" :value="l.name || l.full_name">
+                                    {{ l.name || l.full_name }} ({{ labourerIssueLabel(l) }})
                                 </option>
                             </select>
-                            <div v-if="availableLabourers.length === 0" class="text-xs text-orange-500 mt-1 flex items-center gap-1">
+                            <div v-if="issuableLabourers.length === 0" class="text-xs text-orange-500 mt-1 flex items-center gap-1">
                                 <span class="material-symbols-outlined text-sm">warning</span>
-                                No workers currently available. All staff are assigned or off duty.
+                                No workers currently selectable. All staff are assigned to other orders or off duty.
                             </div>
                         </div>
                     </div>
@@ -483,7 +486,7 @@ function mergeIssuanceLogs(...logGroups) {
 
 // Filter inventory to packing-related items (category or name match)
 const packingItems = computed(() => {
-    const packingKeywords = ['pack', 'wrap', 'box', 'carton', 'tape', 'label', 'blanket', 'crate', 'film', 'dolly', 'pallet', 'protector', 'bag', 'material', 'rope']
+    const packingKeywords = ['pack', 'wrap', 'box', 'carton', 'tape', 'label', 'blanket', 'crate', 'film', 'pallet', 'protector', 'bag', 'rope', 'bubble', 'foam', 'sheet']
     const items = allInventory.value.filter(item => {
         const text = ((item.name || '') + (item.category || '') + (item.product_category || '')).toLowerCase()
         return packingKeywords.some(kw => text.includes(kw))
@@ -507,6 +510,36 @@ const packingItems = computed(() => {
     })
 })
 
+function normalizeSku(value = '') {
+    return String(value || '').trim().toUpperCase()
+}
+
+function inventoryIdTokenFromSku(sku = '') {
+    return normalizeSku(sku).replace(/^PKG-/, '')
+}
+
+function keywordsForSku(sku = '') {
+    const normalized = normalizeSku(sku)
+    const keywordMap = {
+        'PKG-CARTON': ['carton', 'box'],
+        'PKG-BUBBLE-WRAP': ['bubble', 'wrap'],
+        'PKG-PLASTIC-CRATE': ['crate', 'plastic'],
+        'PKG-BLANKET': ['blanket', 'pad'],
+        'PKG-WARDROBE-BOX': ['wardrobe', 'box'],
+        'PKG-TAPE': ['tape'],
+        'PKG-BOX': ['box', 'carton'],
+        'FOAM-SHEET': ['foam', 'sheet'],
+        'PKG-FOAM-SHEET': ['foam', 'sheet'],
+    }
+    const tokens = normalized
+        .replace(/^PKG-/, '')
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter(token => token.length > 2)
+    const phrase = normalized.replace(/^PKG-/, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+    return [...new Set([...(keywordMap[normalized] || []), ...tokens, phrase].filter(Boolean))]
+}
+
 const lowStockItems = computed(() => {
     const items = packingItems.value.filter(i => i.stock <= i.threshold)
     items.forEach(i => { if (!restockForm[i.id]) restockForm[i.id] = i.threshold * 2 })
@@ -515,23 +548,58 @@ const lowStockItems = computed(() => {
 
 const filteredLog = computed(() => issuanceLogs.value.filter(l => l.type === logTab.value))
 
+// Tracking codes of orders that have already had materials issued
+const issuedOrderTrackingCodes = computed(() => {
+    return new Set(
+        issuanceLogs.value
+            .filter(l => l.type === 'issued')
+            .map(l => l.orderId)
+            .filter(id => id && id !== 'N/A')
+    )
+})
+
+// Only show orders that haven't had materials issued yet
+const ordersAvailableForIssuance = computed(() => {
+    return activeOrders.value.filter(o => !issuedOrderTrackingCodes.value.has(o.tracking_code))
+})
+
 // Filter laborers by availability status
 const availableLabourers = computed(() => {
     return labourers.value.filter(l => l.status === 'AVAILABLE')
 })
 
-const assignedLabourers = computed(() => {
-    return labourers.value.filter(l => l.status === 'ASSIGNED' && l.assigned_order_tracking !== issueForm.orderId)
+const orderAssignedLabourers = computed(() => {
+    return labourers.value.filter(l => l.status === 'ASSIGNED' && l.assigned_order_tracking === issueForm.orderId)
 })
 
 const offDutyLabourers = computed(() => {
     return labourers.value.filter(l => l.status === 'OFF_DUTY')
 })
 
+const issuableLabourers = computed(() => {
+    const byId = new Map()
+    for (const labourer of orderAssignedLabourers.value) byId.set(String(labourer.id), labourer)
+    for (const labourer of availableLabourers.value) byId.set(String(labourer.id), labourer)
+    return [...byId.values()]
+})
+
+function labourerIssueLabel(labourer) {
+    if (labourer.assigned_order_tracking === issueForm.orderId) return 'Assigned to this order'
+    return labourer.role || labourer.designation || 'Available Labourer'
+}
+
+function issuableItemsForSelectedOrder() {
+    const byId = new Map(packingItems.value.map(item => [String(item.id), item]))
+    for (const item of recommendedMaterials.value) {
+        byId.set(String(item.id), item)
+    }
+    return [...byId.values()]
+}
+
 // Validation: check if any item qty exceeds available stock
 const issueValidationErrors = computed(() => {
     const errors = []
-    for (const item of packingItems.value) {
+    for (const item of issuableItemsForSelectedOrder()) {
         const qty = issueForm.items[item.id]
         if (qty && qty > 0 && qty > item.stock) {
             errors.push(`${item.name}: requested ${qty}, only ${item.stock} available`)
@@ -544,7 +612,7 @@ const canSubmitIssue = computed(() => {
     if (!issueForm.orderId || !issueForm.issuedTo) return false
     if (issueValidationErrors.value.length > 0) return false
     // At least one item must be issued
-    const hasItems = packingItems.value.some(item => {
+    const hasItems = issuableItemsForSelectedOrder().some(item => {
         const qty = issueForm.items[item.id]
         return qty && qty > 0
     })
@@ -597,15 +665,6 @@ function calculateRecommendedMaterials(order) {
         })
     }
 
-    // Blankets/pads for large items
-    const blanket = findMaterial(['blanket', 'pad'])
-    if (blanket && isLarge) {
-        recommendations.push({
-            ...blanket,
-            suggestedQty: Math.ceil(numItems / 5)
-        })
-    }
-
     // Labels
     const label = findMaterial(['label'])
     if (label) {
@@ -618,16 +677,90 @@ function calculateRecommendedMaterials(order) {
     return recommendations
 }
 
-function onOrderSelected() {
+async function onOrderSelected() {
     const selected = activeOrders.value.find(o => o.tracking_code === issueForm.orderId)
     selectedOrderDetails.value = selected
+    recommendedMaterials.value = []
 
-    if (selected) {
-        // Calculate recommended materials
-        recommendedMaterials.value = calculateRecommendedMaterials(selected)
-    } else {
-        recommendedMaterials.value = []
-    }
+    if (!selected) return
+
+    // Fetch the customer's actual material selections saved at booking time
+    try {
+        const res = await fetch(apiUrl(`api/v1/orders/${selected.id}/items`), {
+            headers: {
+                'Authorization': `Bearer ${authStore.authToken}`,
+                'Content-Type': 'application/json',
+            },
+        })
+        if (res.ok) {
+            const orderItems = await res.json()
+            console.log(`[PackingMaterials] Order ${selected.tracking_code} items from DB:`, orderItems)
+            const withQty = (orderItems || []).filter(item => item.quantity > 0)
+
+            // Always stop here — either show customer-selected items or nothing.
+            // Never fall through to the formula so we never show items the customer didn't pick.
+            if (withQty.length === 0) {
+                console.log(`[PackingMaterials] No items with qty>0 stored for ${selected.tracking_code} — customer selected no packing materials`)
+                recommendedMaterials.value = []
+                return
+            }
+            console.log(`[PackingMaterials] Items to resolve:`, withQty)
+
+            const headers2 = { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
+
+            // Resolve each order item to a real WM inventory item
+            const resolved = await Promise.all(withQty.map(async (item) => {
+                const itemInventoryIdToken = inventoryIdTokenFromSku(item.sku)
+
+                // 1. Exact SKU or legacy PKG-<inventory-id> match in local packing inventory
+                let invItem = packingItems.value.find(p => normalizeSku(p.sku) === normalizeSku(item.sku))
+                    || packingItems.value.find(p => normalizeSku(p.id) === itemInventoryIdToken)
+                if (invItem) {
+                    return { id: invItem.id, sku: item.sku, name: invItem.name, emoji: getEmoji(invItem.name, ''), unit: invItem.unit || 'pcs', suggestedQty: item.quantity, stock: invItem.stock ?? null }
+                }
+
+                // 2. Exact SKU or legacy PKG-<inventory-id> match in full local inventory
+                const raw = allInventory.value.find(p => normalizeSku(p.sku) === normalizeSku(item.sku))
+                    || allInventory.value.find(p => normalizeSku(p.id) === itemInventoryIdToken)
+                if (raw) {
+                    return { id: raw.id, sku: item.sku, name: raw.name, emoji: getEmoji(raw.name, ''), unit: raw.unit || 'pcs', suggestedQty: item.quantity, stock: raw.quantity_on_hand ?? null }
+                }
+
+                // 3. Keyword name match in packing inventory (PKG-* legacy SKUs)
+                const keywords = keywordsForSku(item.sku)
+                const kwMatch = packingItems.value.find(p => {
+                    const text = `${p.name || ''} ${p.sku || ''} ${p.category || ''}`.toLowerCase()
+                    return keywords.some(kw => text.includes(kw))
+                })
+                if (kwMatch) {
+                    return { id: kwMatch.id, sku: item.sku, name: kwMatch.name, emoji: getEmoji(kwMatch.name, ''), unit: kwMatch.unit || 'pcs', suggestedQty: item.quantity, stock: kwMatch.stock ?? null }
+                }
+
+                // 4. Backend SKU lookup — handles cross-warehouse SKUs not in local allInventory
+                try {
+                    const skuRes = await fetch(apiUrl(`api/v1/inventory?sku=${encodeURIComponent(item.sku)}&page_size=1`), { headers: headers2 })
+                    if (skuRes.ok) {
+                        const skuData = await skuRes.json()
+                        const found = (skuData.items || [])[0]
+                        if (found) {
+                            console.log(`[PackingMaterials] Resolved ${item.sku} via backend SKU lookup:`, found.name)
+                            return { id: found.id, sku: item.sku, name: found.name, emoji: getEmoji(found.name, ''), unit: found.unit || 'pcs', suggestedQty: item.quantity, stock: found.quantity_on_hand ?? null }
+                        }
+                    }
+                } catch { /* ignore */ }
+
+                console.warn(`[PackingMaterials] Could not resolve inventory item for SKU: ${item.sku}`)
+                return null
+            }))
+
+            recommendedMaterials.value = resolved.filter(Boolean)
+            console.log(`[PackingMaterials] Resolved ${recommendedMaterials.value.length}/${withQty.length} items`)
+            return
+        }
+    } catch { /* network error — show nothing */ }
+
+    // API failed entirely — show nothing rather than guessing
+    recommendedMaterials.value = []
 }
 
 function applyRecommendedQuantities() {
@@ -813,7 +946,9 @@ async function submitIssue() {
         let errorCount = 0
         const newLogs = []
 
-        for (const item of packingItems.value) {
+        const allIssuableItems = issuableItemsForSelectedOrder()
+
+        for (const item of allIssuableItems) {
             const qty = issueForm.items[item.id]
             if (qty && qty > 0) {
                 // Call inventory movement API

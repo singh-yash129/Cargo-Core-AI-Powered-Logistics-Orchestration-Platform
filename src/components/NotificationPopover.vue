@@ -8,9 +8,9 @@
       <span class="material-symbols-outlined text-[20px]" :class="{ 'text-primary': unreadCount > 0 }">notifications</span>
       <transition name="badge">
         <span
-          v-if="unreadCount > 0"
+          v-if="badgeCount > 0"
           class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 border-2 border-white dark:border-gray-900 text-white text-[9px] font-black flex items-center justify-center leading-none animate-pulse"
-        >{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+        >{{ badgeCount > 99 ? '99+' : badgeCount }}</span>
       </transition>
     </button>
 
@@ -153,14 +153,44 @@ const isOpen = ref(false)
 const unreadNotifs = computed(() => props.notifications.filter(n => !n.read))
 const readNotifs = computed(() => props.notifications.filter(n => n.read))
 
-function toggle() {
-  isOpen.value = !isOpen.value
-  if (isOpen.value) {
-    emit('open')
-    if (props.unreadCount > 0) emit('mark-all-read')
-  }
+// Persist seen notification IDs in localStorage so badge resets after user views them
+const SEEN_KEY = 'cargo_notif_seen_ids'
+
+function loadSeenIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')) } catch { return new Set() }
 }
-function close() { isOpen.value = false }
+function saveSeenIds(ids) {
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify([...ids])) } catch {}
+}
+
+const seenIds = ref(loadSeenIds())
+
+// Badge: unread notifications not yet seen by the user
+const badgeCount = computed(() =>
+  props.notifications.filter(n => !n.read && !seenIds.value.has(String(n.id))).length
+)
+
+// Guard against the backdrop's click firing on the same interaction that opens the panel
+let allowClose = false
+
+function toggle() {
+  if (isOpen.value) {
+    isOpen.value = false
+    return
+  }
+  isOpen.value = true
+  allowClose = false
+  // Mark all current notifications as seen — clears badge, persists across refreshes
+  const updated = new Set([...seenIds.value, ...props.notifications.map(n => String(n.id))])
+  seenIds.value = updated
+  saveSeenIds(updated)
+  setTimeout(() => { allowClose = true }, 100)
+  emit('open')
+}
+function close() {
+  if (!allowClose) return
+  isOpen.value = false
+}
 
 function handleMarkRead(notif) {
   if (!notif.read) emit('mark-read', notif.id)

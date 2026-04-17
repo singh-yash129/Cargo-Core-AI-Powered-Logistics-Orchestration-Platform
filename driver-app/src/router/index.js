@@ -186,6 +186,12 @@ const routes = [
                 component: () => import('../views/CustomerSignOff.vue'),
                 meta: { requiresAuth: true, hideNav: true }
             },
+            {
+                path: 'packing-return',
+                name: 'packing-return',
+                component: () => import('../views/PackingReturn.vue'),
+                meta: { requiresAuth: true, hideNav: true }
+            },
 
             // ── Geofence & Deviation ─────────────────────
             {
@@ -290,6 +296,12 @@ const routes = [
                 path: 'chat',
                 name: 'chat',
                 component: () => import('../views/DispatchChat.vue'),
+                meta: { requiresAuth: true, hideNav: true }
+            },
+            {
+                path: 'manager-chat',
+                name: 'manager-chat',
+                component: () => import('../views/ManagerChat.vue'),
                 meta: { requiresAuth: true, hideNav: true }
             },
             {

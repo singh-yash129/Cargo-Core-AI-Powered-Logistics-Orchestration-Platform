@@ -107,6 +107,10 @@
                                     <span class="material-symbols-outlined text-[12px]">wallet</span>
                                     Refunded
                                 </div>
+                                <div v-if="rma.isUrgent" class="mt-1 inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400" :title="rma.urgentReason || 'Flagged urgent by support'">
+                                    <span class="material-symbols-outlined text-[12px]">priority_high</span>
+                                    Urgent
+                                </div>
                             </td>
                             <td class="py-3 px-4">
                                 <span v-if="rma.flow_type === 'photo_review'"
@@ -641,9 +645,19 @@
                              class="max-h-full max-w-full object-contain transition-opacity duration-300"
                              :key="activeImageIndex"
                              alt="Claim proof">
-                        <div v-else class="text-white/30 flex flex-col items-center gap-2">
-                             <span class="material-symbols-outlined text-6xl">broken_image</span>
-                             <p>No images available.</p>
+                        <div v-else class="text-white/40 flex flex-col items-center gap-3 px-6 text-center">
+                            <span class="material-symbols-outlined text-6xl">broken_image</span>
+                            <template v-if="legacyFileNames.length > 0">
+                                <p class="text-sm font-medium text-white/60">Image preview unavailable</p>
+                                <p class="text-xs text-white/30 max-w-xs">This report was submitted before image upload was supported. The customer attached {{ legacyFileNames.length }} file(s) but only the filename(s) were saved.</p>
+                                <div class="mt-1 space-y-1">
+                                    <div v-for="name in legacyFileNames" :key="name" class="text-[11px] font-mono bg-white/10 px-3 py-1 rounded-full text-white/50">{{ name }}</div>
+                                </div>
+                                <p class="text-[11px] text-amber-400/70 mt-2">Ask the customer to resubmit with the new report form to view images.</p>
+                            </template>
+                            <template v-else>
+                                <p class="text-sm">No images attached to this report.</p>
+                            </template>
                         </div>
                         <button v-if="selectedImages.length > 1"
                                 @click="activeImageIndex = (activeImageIndex - 1 + selectedImages.length) % selectedImages.length"
@@ -719,6 +733,7 @@ const showDetailsModal = ref(false)
 const showImageModal = ref(false)
 const selectedRMA = ref(null)
 const selectedImages = ref([])
+const legacyFileNames = ref([])
 const activeImageIndex = ref(0)
 const submitting = ref(false)
 
@@ -923,7 +938,9 @@ const formatDateTime = (value) => {
 // Actions
 const openImageGallery = (rma) => {
     selectedRMA.value = rma
-    selectedImages.value = (rma.images || []).filter(img => img && (img.startsWith('http') || img.startsWith('/') || img.startsWith('data:')))
+    const allImages = rma.images || []
+    selectedImages.value = allImages.filter(img => img && (img.startsWith('http') || img.startsWith('/') || img.startsWith('data:')))
+    legacyFileNames.value = allImages.filter(img => img && !img.startsWith('http') && !img.startsWith('/') && !img.startsWith('data:'))
     activeImageIndex.value = 0
     showImageModal.value = true
 }

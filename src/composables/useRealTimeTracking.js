@@ -6,11 +6,24 @@
 import { ref, onMounted, onUnmounted, computed, unref, watch } from 'vue'
 import { authenticatedJsonRequest } from '../config/api.js'
 
-export function useRealTimeTracking(orderId = null) {
+export function useRealTimeTracking(orderId = null, options = {}) {
     const drivers = ref([])
     const loading = ref(false)
     const error = ref(null)
     let pollInterval = null
+
+    const trackingMode = options.mode || 'auto'
+    const trackingEnabled = options.enabled
+
+    function isTrackingEnabled() {
+        return trackingEnabled === undefined ? true : unref(trackingEnabled) !== false
+    }
+
+    function shouldFetchSingleOrder() {
+        if (trackingMode === 'single') return true
+        if (trackingMode === 'all') return false
+        return Boolean(unref(orderId))
+    }
 
     /**
      * Fetch all active driver locations (for dispatchers)
@@ -19,7 +32,7 @@ export function useRealTimeTracking(orderId = null) {
         try {
             loading.value = true
             error.value = null
-            const response = await authenticatedJsonRequest('/tracking/drivers', {
+            const response = await authenticatedJsonRequest('/api/v1/tracking/drivers', {
                 method: 'GET'
             })
             drivers.value = response
@@ -36,7 +49,10 @@ export function useRealTimeTracking(orderId = null) {
      */
     async function fetchOrderDriver() {
         const currentOrderId = unref(orderId)
-        if (!currentOrderId) return
+        if (!currentOrderId) {
+            drivers.value = []
+            return
+        }
 
         try {
             loading.value = true
@@ -51,6 +67,7 @@ export function useRealTimeTracking(orderId = null) {
                 drivers.value = []
             }
         } catch (err) {
+            drivers.value = []
             error.value = err.message || 'Failed to fetch driver location'
             console.error('Tracking error:', err)
         } finally {
@@ -63,7 +80,15 @@ export function useRealTimeTracking(orderId = null) {
      * @param {number} intervalMs - Poll interval in milliseconds (default: 10 seconds)
      */
     function startPolling(intervalMs = 10000) {
-        const fetchCurrent = () => unref(orderId) ? fetchOrderDriver() : fetchAllDrivers()
+        const fetchCurrent = () => {
+            if (!isTrackingEnabled()) {
+                drivers.value = []
+                error.value = null
+                return
+            }
+
+            return shouldFetchSingleOrder() ? fetchOrderDriver() : fetchAllDrivers()
+        }
         
         // Initial fetch
         fetchCurrent()
@@ -108,6 +133,13 @@ export function useRealTimeTracking(orderId = null) {
     
     // Watch for orderId changes
     watch(() => unref(orderId), () => {
+        if (pollInterval) {
+            stopPolling()
+            startPolling()
+        }
+    })
+
+    watch(() => (trackingEnabled === undefined ? true : unref(trackingEnabled)), () => {
         if (pollInterval) {
             stopPolling()
             startPolling()

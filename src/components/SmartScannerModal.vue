@@ -38,13 +38,34 @@
                     </template>
 
                     <template v-else>
-                        <div class="rounded-2xl border border-dashed border-emerald-400/30 bg-emerald-400/5 p-6 text-center">
-                            <span class="material-symbols-outlined text-emerald-400 text-[40px]">photo_camera</span>
-                            <p class="mt-3 text-sm text-gray-300">Capture a placeholder image for the workflow.</p>
+                        <div class="overflow-hidden rounded-2xl border border-emerald-400/20 bg-black/70">
+                            <div v-if="cameraError" class="p-6 text-center">
+                                <span class="material-symbols-outlined text-emerald-400 text-[40px]">videocam_off</span>
+                                <p class="mt-3 text-sm text-gray-300">{{ cameraError }}</p>
+                                <p class="mt-2 text-xs text-gray-500">You can still use your device camera fallback below.</p>
+                            </div>
+                            <div v-else class="relative aspect-[4/3] bg-black">
+                                <video
+                                    ref="videoRef"
+                                    autoplay
+                                    playsinline
+                                    muted
+                                    class="h-full w-full object-cover"
+                                />
+                                <div v-if="isCameraStarting" class="absolute inset-0 flex items-center justify-center bg-black/60 text-sm text-gray-300">
+                                    Starting camera...
+                                </div>
+                            </div>
                         </div>
-                        <button @click="submitCamera" class="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white hover:bg-emerald-400 transition-colors">
-                            Capture Image
-                        </button>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button @click="submitCamera" class="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white hover:bg-emerald-400 transition-colors">
+                                Capture Image
+                            </button>
+                            <label class="w-full rounded-xl border border-white/10 bg-slate-900 py-3 text-center font-semibold text-gray-200 hover:bg-white/5 transition-colors cursor-pointer">
+                                Use Device Camera
+                                <input ref="fileInputRef" type="file" accept="image/*" capture="environment" class="hidden" @change="handleFileChange">
+                            </label>
+                        </div>
                     </template>
                 </div>
             </div>
@@ -53,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 const props = defineProps({
     isOpen: {
@@ -70,13 +91,25 @@ const emit = defineEmits(['close', 'scan', 'camera'])
 
 const activeTab = ref(props.defaultTab)
 const scanValue = ref('')
+const videoRef = ref(null)
+const fileInputRef = ref(null)
+const cameraError = ref('')
+const isCameraStarting = ref(false)
+const mediaStream = ref(null)
 
 watch(
     () => props.isOpen,
-    (open) => {
-        if (!open) return
+    async (open) => {
+        if (!open) {
+            stopCamera()
+            return
+        }
         activeTab.value = props.defaultTab || 'scan'
         scanValue.value = ''
+        cameraError.value = ''
+        if (activeTab.value === 'camera') {
+            await startCamera()
+        }
     },
 )
 
@@ -87,17 +120,96 @@ watch(
     },
 )
 
+watch(activeTab, async (value) => {
+    if (value === 'camera' && props.isOpen) {
+        await startCamera()
+        return
+    }
+    stopCamera()
+})
+
+async function startCamera() {
+    if (!props.isOpen || activeTab.value !== 'camera') return
+    if (!navigator?.mediaDevices?.getUserMedia) {
+        cameraError.value = 'Live camera access is not available in this browser.'
+        return
+    }
+
+    stopCamera()
+    isCameraStarting.value = true
+    cameraError.value = ''
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { ideal: 'environment' },
+            },
+            audio: false,
+        })
+        mediaStream.value = stream
+        await nextTick()
+        if (videoRef.value) {
+            videoRef.value.srcObject = stream
+            await videoRef.value.play().catch(() => {})
+        }
+    } catch (error) {
+        cameraError.value = 'Camera permission was denied. Use the device camera fallback instead.'
+    } finally {
+        isCameraStarting.value = false
+    }
+}
+
+function stopCamera() {
+    if (!mediaStream.value) return
+    mediaStream.value.getTracks().forEach((track) => track.stop())
+    mediaStream.value = null
+    if (videoRef.value) {
+        videoRef.value.srcObject = null
+    }
+}
+
 const submitScan = () => {
     emit('scan', scanValue.value.trim() || `SCAN-${Date.now()}`)
     emit('close')
 }
 
 const submitCamera = () => {
-    emit('camera', {
-        id: `camera-${Date.now()}`,
-        name: 'Captured Image',
-        preview: 'https://placehold.co/800x500/png?text=Warehouse+Capture',
-    })
+    const video = videoRef.value
+    if (!video || !video.videoWidth || !video.videoHeight) {
+        cameraError.value = 'Camera is not ready yet. Please wait a moment and try again.'
+        return
+    }
+
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const context = canvas.getContext('2d')
+    if (!context) {
+        cameraError.value = 'Unable to capture from camera right now.'
+        return
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height)
+    emit('camera', canvas.toDataURL('image/jpeg', 0.92))
     emit('close')
 }
+
+function handleFileChange(event) {
+    const [file] = Array.from(event.target?.files || [])
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+        emit('camera', typeof reader.result === 'string' ? reader.result : '')
+        emit('close')
+    }
+    reader.readAsDataURL(file)
+
+    if (fileInputRef.value) {
+        fileInputRef.value.value = ''
+    }
+}
+
+onBeforeUnmount(() => {
+    stopCamera()
+})
 </script>

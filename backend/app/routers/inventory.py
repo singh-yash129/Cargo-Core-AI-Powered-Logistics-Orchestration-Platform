@@ -2,20 +2,13 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
+from pydantic import BaseModel
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user, require_role
-from app.models.user import User
-from app.schemas.auth import MessageResponse
-from typing import Annotated
-from uuid import UUID
-
-from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.database import get_db
-from app.dependencies import get_current_user, require_role
+from app.models.inventory import InventoryItem
 from app.models.user import User
 from app.schemas.auth import MessageResponse
 from app.schemas.inventory import (
@@ -30,10 +23,68 @@ from app.schemas.inventory import (
     RestockRequestStatusUpdate,
     RestockRequestResponse,
     RestockRequestListResponse,
+    MaterialRequestCreate,
+    MaterialRequestApprove,
+    MaterialRequestReject,
+    MaterialRequestResponse,
+    MaterialRequestListResponse,
 )
 from app.services import inventory_service
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["Inventory"])
+
+
+class PackingCatalogItem(BaseModel):
+    id: str
+    name: str
+    sku: str
+    category: str | None
+    stock: int
+    unit: str | None
+    selling_price: float | None
+
+    model_config = {"from_attributes": True}
+
+
+PACKING_KEYWORDS = ['pack', 'wrap', 'box', 'carton', 'tape', 'label',
+                    'blanket', 'crate', 'film', 'pallet', 'protector',
+                    'bag', 'rope', 'bubble', 'foam', 'sheet']
+
+
+@router.get("/packing-catalog", response_model=list[PackingCatalogItem])
+async def get_packing_catalog(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(get_current_user)],  # any authenticated user
+    warehouse_id: UUID | None = Query(default=None),
+):
+    """Return packing-related inventory items for the customer booking flow."""
+    filters = or_(
+        *[InventoryItem.name.ilike(f"%{kw}%") for kw in PACKING_KEYWORDS],
+        *[InventoryItem.category.ilike(f"%{kw}%") for kw in PACKING_KEYWORDS],
+    )
+    where_clauses = [filters, InventoryItem.sku.isnot(None), InventoryItem.sku != '']
+    if warehouse_id:
+        where_clauses.append(InventoryItem.warehouse_id == warehouse_id)
+
+    result = await db.execute(
+        select(InventoryItem)
+        .where(*where_clauses)
+        .order_by(InventoryItem.name)
+        .limit(50)
+    )
+    items = result.scalars().all()
+    return [
+        PackingCatalogItem(
+            id=str(item.id),
+            name=item.name,
+            sku=item.sku,
+            category=item.category,
+            stock=item.quantity_on_hand or 0,
+            unit=item.unit,
+            selling_price=item.selling_price or None,
+        )
+        for item in items
+    ]
 
 
 @router.get("", response_model=InventoryListResponse)
@@ -43,8 +94,9 @@ async def list_inventory(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     warehouse_id: UUID | None = Query(default=None),
+    sku: str | None = Query(default=None),
 ):
-    return await inventory_service.list_items(db, page, page_size, warehouse_id)
+    return await inventory_service.list_items(db, page, page_size, warehouse_id, sku)
 
 
 @router.get("/categories", response_model=list[str])
@@ -173,3 +225,49 @@ async def escalate_restock_request(
 ):
     """Escalate a pending restock request to Logistics Manager urgently."""
     return await inventory_service.escalate_restock_request(db, request_id, user)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Material Requests (WM requests new packing material -> LM approves)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/material-requests", response_model=MaterialRequestResponse, status_code=status.HTTP_201_CREATED)
+async def create_material_request(
+    data: MaterialRequestCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("WAREHOUSE_MANAGER"))],
+):
+    """WM requests a new packing material to be added to Rate Governance."""
+    return await inventory_service.create_material_request(db, data, user)
+
+
+@router.get("/material-requests", response_model=MaterialRequestListResponse)
+async def list_material_requests(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("WAREHOUSE_MANAGER", "LOGISTIC_MANAGER"))],
+    status_filter: str | None = Query(default=None, description="PENDING, APPROVED, or REJECTED"),
+):
+    """List material requests. WM sees own requests, LM sees all."""
+    return await inventory_service.list_material_requests(db, status_filter, user)
+
+
+@router.put("/material-requests/{request_id:uuid}/approve", response_model=MaterialRequestResponse)
+async def approve_material_request(
+    request_id: UUID,
+    data: MaterialRequestApprove,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER"))],
+):
+    """LM approves a material request and sets the rate. Auto-adds to rates config."""
+    return await inventory_service.approve_material_request(db, request_id, data, user)
+
+
+@router.put("/material-requests/{request_id:uuid}/reject", response_model=MaterialRequestResponse)
+async def reject_material_request(
+    request_id: UUID,
+    data: MaterialRequestReject,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER"))],
+):
+    """LM rejects a material request with optional notes."""
+    return await inventory_service.reject_material_request(db, request_id, data, user)

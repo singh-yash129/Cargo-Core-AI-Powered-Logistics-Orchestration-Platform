@@ -535,7 +535,7 @@ async function fetchDamageReviewQueue() {
     try {
         const headers = { 'Authorization': `Bearer ${authStore.authToken}` }
         const res = await fetch(
-            `http://localhost:8000/api/v1/damage-reports?status=Under+Review&flow_type=photo_review&page_size=50`,
+            `http://localhost:8000/api/v1/damage-reports?status=Reported&flow_type=photo_review&page_size=50`,
             { headers }
         )
         if (res.ok) {

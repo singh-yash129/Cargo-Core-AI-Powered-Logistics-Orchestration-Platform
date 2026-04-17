@@ -1,6 +1,6 @@
 <template>
     <div
-        class="min-h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased flex">
+        class="dispatcher-theme min-h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased flex">
 
         <!-- Mobile Overlay -->
         <div v-if="sidebarOpen" class="fixed inset-0 bg-black/50 z-40 lg:hidden" @click="sidebarOpen = false"></div>
@@ -50,9 +50,14 @@
                     </div>
 
                     <div class="flex items-center gap-1 sm:gap-3">
+                        <div class="hidden sm:block">
+                            <HeaderWeather hub-id="1" />
+                        </div>
+
                         <!-- Notifications -->
                         <NotificationPopover :notifications="store.notifications"
-                            :unread-count="store.unreadNotificationsCount" @mark-read="store.markNotificationRead"
+                            :unread-count="store.unreadNotificationsCount" @open="store.fetchNotifications()"
+                            @mark-read="store.markNotificationRead"
                             @mark-all-read="store.markAllNotificationsRead" @clear-all="store.clearNotifications" />
 
                         <!-- Meeting Scheduler -->
@@ -64,9 +69,6 @@
                         <div class="hidden sm:block">
                             <HeaderTodo />
                         </div>
-
-                        <!-- Theme Toggle -->
-                        <ThemeToggle />
 
                         <div class="hidden sm:block h-6 w-px bg-gray-200 dark:bg-white/10 mx-2"></div>
 
@@ -89,13 +91,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import DispatcherSidebar from '../LWD-components/DispatcherSidebar.vue'
+import HeaderWeather from '@/components/HeaderWeather.vue'
 import HeaderTodo from '@/components/HeaderTodo.vue'
 import HeaderMeetingScheduler from '@/components/HeaderMeetingScheduler.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'
-import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { useDispatcherStore } from '@/stores/dispatcherStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -104,6 +106,20 @@ const store = useLogisticStore()
 const dispatchStore = useDispatcherStore()
 const authStore = useAuthStore()
 const router = useRouter()
+let notificationPoll = null
+
+onMounted(() => {
+    document.body.classList.add('dispatcher-theme-portal')
+    store.fetchNotifications().catch(() => {})
+    notificationPoll = window.setInterval(() => {
+        store.fetchNotifications().catch(() => {})
+    }, 30000)
+})
+
+onBeforeUnmount(() => {
+    if (notificationPoll) window.clearInterval(notificationPoll)
+    document.body.classList.remove('dispatcher-theme-portal')
+})
 
 // Resolve hub name from user profile → hubs list
 const dispatcherHub = computed(() => {
@@ -125,3 +141,10 @@ function openNewServiceMove() {
     })
 }
 </script>
+
+<style>
+:is(.dispatcher-theme, body.dispatcher-theme-portal) {
+    --primary: #1ce783;
+    --primary-dark: #17c06d;
+}
+</style>
