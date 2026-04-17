@@ -72,7 +72,15 @@ async def test_order_list_contract(
     monkeypatch: pytest.MonkeyPatch,
     record_evidence,
 ) -> None:
-    async def _fake_list_orders(_db, _user, _page, _page_size, _status_filter):
+    async def _fake_list_orders(
+        _db,
+        _user,
+        _page,
+        _page_size,
+        _status_filter,
+        _search=None,
+        **_filters,
+    ):
         return make_order_list_response(total=1)
 
     monkeypatch.setattr(orders_service, "list_orders", _fake_list_orders)

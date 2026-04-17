@@ -53,10 +53,22 @@ async def test_orders_list_success(
     monkeypatch: pytest.MonkeyPatch,
     record_evidence,
 ) -> None:
-    async def _fake_list_orders(_db, _user, page, page_size, status_filter):
+    async def _fake_list_orders(
+        _db,
+        _user,
+        page,
+        page_size,
+        status_filter,
+        search=None,
+        **filters,
+    ):
         assert page == 1
         assert page_size == 20
         assert status_filter is None
+        assert search is None
+        assert filters.get("warehouse_substatus") is None
+        assert filters.get("order_type") is None
+        assert filters.get("pickup_type") is None
         return make_order_list_response(total=1)
 
     monkeypatch.setattr(orders_service, "list_orders", _fake_list_orders)
