@@ -85,6 +85,11 @@ class CustomerTrackingOrder(BaseModel):
     tracking_code: str
     status: str
     ui_status: str
+    warehouse_id: UUID | None = None
+    warehouse_name: str | None = None
+    warehouse_address: str | None = None
+    warehouse_lat: float | None = None
+    warehouse_lng: float | None = None
     warehouse_substatus: str | None = None
     pickup_addr: str
     delivery_addr: str

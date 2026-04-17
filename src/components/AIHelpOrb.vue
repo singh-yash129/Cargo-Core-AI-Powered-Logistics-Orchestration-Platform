@@ -34,7 +34,7 @@
               <h3 class="text-white font-semibold text-sm">Cargo AI Assistant</h3>
               <div class="flex items-center gap-1.5 mt-0.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-                <span class="text-[10px] text-gray-400">Online · Powered by Gemini</span>
+                <span class="text-[10px] text-gray-400">Online · {{ roleLabel }} mode · Powered by Gemini</span>
               </div>
             </div>
           </div>
@@ -55,8 +55,8 @@
             <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00C4FF] to-[#1E3A8A] flex items-center justify-center shadow-lg">
               <span class="material-symbols-outlined text-white text-2xl">smart_toy</span>
             </div>
-            <p class="text-white/80 font-medium text-sm">Hi! I'm your AI Assistant.</p>
-            <p class="text-white/40 text-xs leading-relaxed max-w-[220px]">Ask me about your orders, bookings, tracking, estimates, or anything about Cargo Core.</p>
+            <p class="text-white/80 font-medium text-sm">Hi {{ auth.userName || '' }}! I'm your AI Assistant.</p>
+            <p class="text-white/40 text-xs leading-relaxed max-w-[220px]">{{ welcomeHint }}</p>
           </div>
 
           <!-- Message bubbles -->
@@ -68,14 +68,25 @@
           >
             <!-- Avatar -->
             <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold mt-0.5"
-              :class="msg.role === 'ai' ? 'bg-gradient-to-br from-[#00C4FF] to-[#1E3A8A] text-white' : 'bg-white/10 text-white/70'">
-              {{ msg.role === 'ai' ? 'AI' : 'ME' }}
+              :class="msg.role === 'user'
+                ? 'bg-white/10 text-white/70'
+                : msg.role === 'support'
+                  ? 'bg-gradient-to-br from-orange-500 to-orange-700 text-white'
+                  : 'bg-gradient-to-br from-[#00C4FF] to-[#1E3A8A] text-white'">
+              {{ msg.role === 'user' ? 'ME' : msg.role === 'support' ? 'SUP' : 'AI' }}
             </div>
             <div class="max-w-[78%] space-y-1">
+              <!-- Support message label -->
+              <div v-if="msg.role === 'support' && msg.ref" class="flex items-center gap-1 px-1 mb-0.5">
+                <span class="material-symbols-outlined text-orange-400 text-[12px]">support_agent</span>
+                <span class="text-[10px] text-orange-400 font-medium">Support · {{ msg.ref }}</span>
+              </div>
               <div class="px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed"
-                :class="msg.role === 'ai'
-                  ? 'bg-white/8 border border-white/10 rounded-tl-none text-white/90'
-                  : 'bg-[#00C4FF]/20 border border-[#00C4FF]/30 rounded-tr-none text-white'">
+                :class="msg.role === 'user'
+                  ? 'bg-[#00C4FF]/20 border border-[#00C4FF]/30 rounded-tr-none text-white'
+                  : msg.role === 'support'
+                    ? 'bg-orange-500/10 border border-orange-500/30 rounded-tl-none text-white/90'
+                    : 'bg-white/8 border border-white/10 rounded-tl-none text-white/90'">
                 <span v-html="msg.text"></span>
               </div>
               <div class="text-[10px] text-white/30 px-1" :class="msg.role === 'user' ? 'text-right' : ''">{{ msg.time }}</div>
@@ -128,8 +139,11 @@
 </template>
 
 <script setup>
-import { ref, nextTick, computed } from 'vue'
-import { sendChat } from '@/utils/aiApi'
+import { ref, nextTick, computed, onUnmounted } from 'vue'
+import { sendChat, fetchSessions, fetchConversation } from '@/utils/aiApi'
+import { useAuthStore } from '@/stores/authStore'
+
+const auth = useAuthStore()
 
 const isOpen = ref(false)
 const userInput = ref('')
@@ -137,13 +151,52 @@ const isTyping = ref(false)
 const chatContainer = ref(null)
 const messages = ref([])
 const sessionId = ref(null)
+const historyLoaded = ref(false)
+// ISO string of the last server message we know about — used to detect new support messages
+let lastLoadedAt = null
+let pollTimer = null
 
-const defaultChips = [
-  'Where is my order?',
-  'How do I book a move?',
-  'Estimate cost for my move',
-  'Talk to a human agent',
-]
+const roleName = computed(() => String(auth.userRole || '').toUpperCase())
+const roleLabel = computed(() => {
+  if (roleName.value === 'VENDOR') return 'Vendor'
+  if (roleName.value === 'INDIVIDUAL') return 'Customer'
+  return 'General'
+})
+
+const welcomeHint = computed(() => {
+  if (roleName.value === 'VENDOR') {
+    return 'Ask me about your vendor shipments, inbound schedules, invoices, and wallet balance.'
+  }
+  if (roleName.value === 'INDIVIDUAL') {
+    return 'Ask me about your move bookings, tracking, estimates, payments, and support.'
+  }
+  return 'Ask me about your orders, bookings, tracking, estimates, or anything about Cargo Core.'
+})
+
+const defaultChips = computed(() => {
+  if (roleName.value === 'VENDOR') {
+    return [
+      'Show my pending vendor shipments',
+      'Do I have any overdue invoices?',
+      'What is my current wallet balance?',
+      'Talk to a human agent',
+    ]
+  }
+  if (roleName.value === 'INDIVIDUAL') {
+    return [
+      'Where is my order?',
+      'Estimate cost for my move',
+      'Show my recent bookings',
+      'Talk to a human agent',
+    ]
+  }
+  return [
+    'Where is my order?',
+    'How do I book a move?',
+    'Estimate cost for my move',
+    'Talk to a human agent',
+  ]
+})
 
 const unreadCount = ref(0)
 
@@ -165,6 +218,80 @@ function now() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+// ── History loading ──────────────────────────────────────────────────────────
+
+const SUPPORT_PREFIX_RE = /^\[Support — ([^\]]+)\]\s*/
+
+function mapServerMsg(m, idx) {
+  if (['support_message', 'agent_reply', 'handover'].includes(m.intent)) {
+    const match = m.message.match(SUPPORT_PREFIX_RE)
+    return {
+      id: `h-${m.created_at}-${idx}`,
+      role: 'support',
+      ref: match ? match[1] : null,
+      text: formatText(m.message.replace(SUPPORT_PREFIX_RE, '')),
+      time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt: m.created_at,
+    }
+  }
+  return {
+    id: `h-${m.created_at}-${idx}`,
+    role: m.role === 'user' ? 'user' : 'ai',
+    text: formatText(m.message),
+    time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    createdAt: m.created_at,
+  }
+}
+
+async function loadHistory() {
+  try {
+    const { sessions } = await fetchSessions()
+    if (!sessions?.length) return
+    const sid = sessions[0].session_id
+    sessionId.value = sid
+    const { messages: hist } = await fetchConversation(sid)
+    if (!hist?.length) return
+    messages.value = hist.map(mapServerMsg)
+    lastLoadedAt = hist[hist.length - 1].created_at
+    historyLoaded.value = true
+  } catch (err) {
+    console.warn('[AIHelpOrb] loadHistory failed:', err)
+  }
+}
+
+// Polls for new messages (support or otherwise) injected by the backend
+async function pollHistory() {
+  if (!sessionId.value || isTyping.value) return
+  try {
+    const { messages: hist } = await fetchConversation(sessionId.value)
+    if (!hist?.length) return
+    const newHist = lastLoadedAt
+      ? hist.filter(m => m.created_at > lastLoadedAt)
+      : []
+    if (!newHist.length) return
+    const offset = hist.length - newHist.length
+    const newMsgs = newHist.map((m, i) => mapServerMsg(m, offset + i))
+    messages.value.push(...newMsgs)
+    lastLoadedAt = hist[hist.length - 1].created_at
+    const supportCount = newMsgs.filter(m => m.role === 'support').length
+    if (!isOpen.value && supportCount > 0) unreadCount.value += supportCount
+    if (isOpen.value) await scrollToBottom()
+  } catch { /* ignore transient poll errors */ }
+}
+
+function startPolling() {
+  stopPolling()
+  pollTimer = setInterval(pollHistory, 15_000)
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+}
+
+onUnmounted(stopPolling)
+
+// ── Sending ──────────────────────────────────────────────────────────────────
+
 async function handleSend() {
   const text = userInput.value.trim()
   if (!text || isTyping.value) return
@@ -179,9 +306,16 @@ async function handleSend() {
     if (res.session_id) sessionId.value = res.session_id
 
     const reply = formatText(res.message || `I'm here to help!`)
-    messages.value.push({ id: `ai-${Date.now()}`, role: 'ai', text: reply, time: now() })
+    messages.value.push({
+      id: `ai-${Date.now()}`,
+      role: ['handover', 'agent_reply', 'support_message'].includes(res.intent) ? 'support' : 'ai',
+      text: reply,
+      time: now(),
+    })
 
-    // Only increment unread if panel is closed
+    // Advance lastLoadedAt so the next poll skips these locally-added messages
+    lastLoadedAt = new Date().toISOString()
+
     if (!isOpen.value) unreadCount.value++
   } catch (err) {
     messages.value.push({
@@ -204,19 +338,27 @@ function sendChip(chip) {
 function startNewChat() {
   messages.value = []
   sessionId.value = null
+  historyLoaded.value = false
+  lastLoadedAt = null
   unreadCount.value = 0
+  stopPolling()
 }
 
-function toggleOpen() {
+async function toggleOpen() {
   isOpen.value = !isOpen.value
   if (isOpen.value) {
     unreadCount.value = 0
+    if (!historyLoaded.value) await loadHistory()
+    startPolling()
     nextTick(scrollToBottom)
+  } else {
+    stopPolling()
   }
 }
 
 function close() {
   isOpen.value = false
+  stopPolling()
 }
 </script>
 

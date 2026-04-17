@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote_plus
 from uuid import UUID
@@ -10,7 +11,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.inventory import InventoryItem
+from app.models.inventory import InventoryItem, RestockRequest
 from app.models.labour import LabourAttendance, Labourer
 from app.models.logistics import (
     LogisticsAlert,
@@ -19,6 +20,8 @@ from app.models.logistics import (
     LogisticsDailyStats,
     LogisticsDriverProfile,
     LogisticsEscalation,
+    LogisticsManifest,
+    LogisticsMeeting,
     LogisticsNotification,
     LogisticsReturnCase,
     LogisticsTask,
@@ -47,6 +50,7 @@ from app.schemas.logistics import (
     LogisticsDashboardStats,
     LogisticsDriverItem,
     LogisticsEscalationItem,
+    LogisticsEscalationStatusUpdate,
     LogisticsHubItem,
     LogisticsMaintenanceItem,
     LogisticsNotificationItem,
@@ -86,6 +90,12 @@ from app.schemas.logistics import (
     DriverTelemetryResponse,
     DriverValidationItem,
     DriverVehicleBindRequest,
+    LogisticsManifestCreate,
+    LogisticsManifestItem,
+    LogisticsMeetingCreate,
+    LogisticsMeetingItem,
+    LogisticsMeetingParticipantItem,
+    LogisticsMeetingUpdate,
 )
 from app.utils.hashing import hash_password
 from app.utils.username import generate_unique_username
@@ -165,6 +175,60 @@ def _format_date_label(dt: datetime | None) -> str:
 def _avatar_url(name: str | None) -> str:
     safe_name = quote_plus((name or "Crew").strip() or "Crew")
     return f"https://ui-avatars.com/api/?name={safe_name}&background=1CE783&color=0B0F14"
+
+_RESTOCK_ESCALATION_REF_RE = re.compile(r"\[ref:([0-9a-fA-F-]{36})\]")
+
+
+def _to_logistics_escalation_item(escalation: LogisticsEscalation) -> LogisticsEscalationItem:
+    return LogisticsEscalationItem(
+        id=escalation.id,
+        hub_id=escalation.warehouse_id,
+        title=escalation.title,
+        priority=escalation.priority,
+        from_name=escalation.requester_name,
+        role=escalation.requester_role,
+        time=escalation.created_at.strftime("%I:%M %p"),
+        description=escalation.description,
+        action_details=escalation.action_details,
+        status=escalation.status,
+    )
+
+
+async def _reconcile_restock_escalations(db: AsyncSession) -> None:
+    open_escalations = (
+        await db.execute(
+            select(LogisticsEscalation).where(LogisticsEscalation.status == "OPEN")
+        )
+    ).scalars().all()
+
+    if not open_escalations:
+        return
+
+    request_ids: dict[str, LogisticsEscalation] = {}
+    for escalation in open_escalations:
+        match = _RESTOCK_ESCALATION_REF_RE.search(escalation.action_details or "")
+        if match:
+            request_ids[match.group(1)] = escalation
+
+    if not request_ids:
+        return
+
+    restock_requests = (
+        await db.execute(
+            select(RestockRequest).where(RestockRequest.id.in_([UUID(value) for value in request_ids.keys()]))
+        )
+    ).scalars().all()
+
+    changed = False
+    for req in restock_requests:
+        escalation = request_ids.get(str(req.id))
+        if escalation and req.status != "PENDING":
+            escalation.status = req.status
+            db.add(escalation)
+            changed = True
+
+    if changed:
+        await db.flush()
 
 
 def _order_job_type(order: Order) -> str:
@@ -277,7 +341,20 @@ def _notification_role_set(notification: LogisticsNotification) -> set[str]:
     }
 
 
+def _notification_visible_to_user(notification: LogisticsNotification, user: "User") -> bool:
+    # Per-user notifications (vendor/customer order events) are only visible to that user
+    if notification.target_user_id is not None:
+        return notification.target_user_id == user.id
+    roles = _notification_role_set(notification)
+    if not roles or "ALL" in roles:
+        return True
+    return user.role.name.upper() in roles
+
+
+# Keep old name as alias for callers that only have role name
 def _notification_visible_to_role(notification: LogisticsNotification, role_name: str) -> bool:
+    if notification.target_user_id is not None:
+        return False  # per-user notifications are not visible by role alone
     roles = _notification_role_set(notification)
     if not roles or "ALL" in roles:
         return True
@@ -737,6 +814,7 @@ def _build_house_shift_job(
         {"id": "final-1", "phase": "final", "task": "Customer walkthrough completed", "required": True, "completed": False},
     ]
     return {
+        "id": str(order.id),
         "jobId": order.tracking_code,
         "jobType": "HOUSE_SHIFT",
         "currentState": "ASSIGNED",
@@ -1080,6 +1158,8 @@ async def _build_return_case_item(
         transport_charge_pending_amount=round(float(case.transport_charge_pending_amount or 0.0), 2),
         transport_charge_status=case.transport_charge_status,
         transport_charge_applied_at=case.transport_charge_applied_at,
+        is_urgent=bool(getattr(case, "is_urgent", False)),
+        urgent_reason=getattr(case, "urgent_reason", None),
     )
 
 
@@ -1155,7 +1235,11 @@ async def get_dispatch_contacts(db: AsyncSession) -> list[DispatchContactItem]:
 
     result: list[DispatchContactItem] = []
     for user in users:
-        thread = thread_by_name.get(user.name.strip().lower())
+        # Driver threads are named "Driver: {name}" by the driver app — try that first
+        thread = (
+            thread_by_name.get(f"driver: {user.name.strip().lower()}")
+            or thread_by_name.get(user.name.strip().lower())
+        )
         thread_messages = []
         if thread:
             thread_messages = [
@@ -1210,6 +1294,22 @@ async def create_chat_thread(
     db: AsyncSession,
     data: "LogisticsChatThreadCreate",
 ) -> LogisticsChatThreadItem:
+    # Return existing thread if one with this name already exists (prevents duplicates)
+    existing = (
+        await db.execute(
+            select(LogisticsChatThread)
+            .where(LogisticsChatThread.name == data.name)
+            .order_by(LogisticsChatThread.created_at.asc())
+        )
+    ).scalars().first()
+    if existing:
+        messages = (await db.execute(
+            select(LogisticsChatMessage)
+            .where(LogisticsChatMessage.thread_id == existing.id)
+            .order_by(LogisticsChatMessage.created_at.asc())
+        )).scalars().all()
+        return _build_thread_item(existing, list(messages))
+
     thread = LogisticsChatThread(
         name=data.name,
         phone=data.phone,
@@ -1415,9 +1515,15 @@ async def ensure_logistics_seed_data(db: AsyncSession, manager_user: User) -> No
         await db.flush()
 
 async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
+    await _reconcile_restock_escalations(db)
     warehouses = (await db.execute(select(Warehouse).order_by(Warehouse.created_at.asc()))).scalars().all()
     alerts = (await db.execute(select(LogisticsAlert).where(LogisticsAlert.is_active.is_(True)).order_by(LogisticsAlert.created_at.desc()))).scalars().all()
-    notifications = (await db.execute(select(LogisticsNotification).order_by(LogisticsNotification.created_at.desc()))).scalars().all()
+    # Bootstrap is LOGISTIC_MANAGER only — exclude per-user notifications (vendor/customer order events)
+    notifications = (await db.execute(
+        select(LogisticsNotification)
+        .where(LogisticsNotification.target_user_id.is_(None))
+        .order_by(LogisticsNotification.created_at.desc())
+    )).scalars().all()
     tasks = (await db.execute(select(LogisticsTask).order_by(LogisticsTask.created_at.desc()))).scalars().all()
     driver_profiles = (await db.execute(select(LogisticsDriverProfile).order_by(LogisticsDriverProfile.created_at.asc()))).scalars().all()
     vehicles = (await db.execute(select(LogisticsVehicle).order_by(LogisticsVehicle.created_at.desc()))).scalars().all()
@@ -1577,6 +1683,8 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
             transport_charge_pending_amount=round(float(item.transport_charge_pending_amount or 0.0), 2),
             transport_charge_status=item.transport_charge_status,
             transport_charge_applied_at=item.transport_charge_applied_at,
+            is_urgent=bool(getattr(item, "is_urgent", False)),
+            urgent_reason=getattr(item, "urgent_reason", None),
         )
 
     inventory_items = (await db.execute(select(InventoryItem).order_by(InventoryItem.created_at.desc()))).scalars().all()
@@ -1664,11 +1772,6 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
             sla_week.append(sla_pct)
             revenue_week.append(round(daily_revenue[d], 2))
             orders_week.append(total_d)
-
-        # Reverse so Mon→Sun order
-        sla_week = list(reversed(sla_week))
-        revenue_week = list(reversed(revenue_week))
-        orders_week = list(reversed(orders_week))
 
     from app.services import finance_service as _finance_service
 
@@ -2214,8 +2317,59 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
             report_metrics["dwell_time"]["labels"].append(m.label)
             report_metrics["dwell_time"]["values"].append(m.value_main)
 
-    # Build a string-keyed order lookup for legacy transaction hub resolution
+    # Build order lookups for legacy transaction resolution and slip generation
     order_map_by_str_id: dict[str, Order] = {str(o.id): o for o in orders}
+    order_map_by_tracking: dict[str, Order] = {
+        str(o.tracking_code).upper(): o
+        for o in orders
+        if o.tracking_code
+    }
+
+    def _extract_tracking_code(value: str | None) -> str | None:
+        if not value:
+            return None
+        match = re.search(r"\b([A-Z]{2,5}-[A-Z0-9]{4,})\b", str(value).upper())
+        return match.group(1) if match else None
+
+    def _related_order_for_transaction(tx: LogisticsTransaction) -> dict | None:
+        meta = dict(tx.metadata_json or {})
+        order = None
+
+        order_id = meta.get("order_id")
+        if order_id:
+            order = order_map_by_str_id.get(str(order_id))
+
+        tracking_code = meta.get("tracking_code") or _extract_tracking_code(tx.description)
+        if order is None and tracking_code:
+            order = order_map_by_tracking.get(str(tracking_code).upper())
+
+        if order is None:
+            return None
+
+        customer = user_map.get(order.customer_id)
+        driver = user_map.get(order.assigned_driver_id) if order.assigned_driver_id else None
+        vehicle = vehicle_map.get(order.assigned_vehicle_id) if order.assigned_vehicle_id else None
+
+        return {
+            "id": str(order.id),
+            "tracking_code": order.tracking_code,
+            "created_at": order.created_at.isoformat() if order.created_at else None,
+            "scheduled_at": order.scheduled_at.isoformat() if order.scheduled_at else None,
+            "service_time_block": order.service_time_block,
+            "pickup_addr": order.pickup_addr,
+            "delivery_addr": order.delivery_addr,
+            "total_amount": float(order.total_amount or 0.0),
+            "paid_amount": float(order.paid_amount or 0.0),
+            "payment_mode": order.payment_mode,
+            "payment_status": order.payment_status,
+            "labor_count": order.labor_count,
+            "vehicle_type": order.vehicle_type,
+            "customer_name": customer.name if customer else None,
+            "customer_phone": customer.phone if customer else None,
+            "customer_email": customer.email if customer else None,
+            "assigned_driver_name": driver.name if driver else None,
+            "assigned_vehicle_code": vehicle.code if vehicle else None,
+        }
 
     def _tx_hub_id(tx: LogisticsTransaction) -> UUID | None:
         """Return the resolved warehouse_id for a transaction, inferring from metadata if null."""
@@ -2263,11 +2417,14 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
             LogisticsTransactionItem(
                 id=tx.id,
                 hub_id=_tx_hub_id(tx),
+                transaction_code=tx.transaction_code,
                 date=tx.transaction_date.strftime("%b %d, %Y"),
                 desc=tx.description,
                 type=tx.transaction_type,
                 amount=tx.amount,
                 status=tx.status,
+                metadata_json=dict(tx.metadata_json or {}),
+                related_order=_related_order_for_transaction(tx),
             )
             for tx in transactions
         ],
@@ -2279,7 +2436,7 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
         returns=[_to_return_case_item(item) for item in return_cases],
         zones=[LogisticsZoneItem(id=zone.id, hub_id=zone.warehouse_id, name=zone.name, type=zone.zone_type, radius=zone.radius_km, status=zone.status, color=zone.color_token, lat=zone.lat, lng=zone.lng) for zone in zones],
         chats=[LogisticsChatThreadItem(id=thread.id, hub_id=thread.warehouse_id, name=thread.name, time=_fmt_relative(thread.last_message_at), last_message=thread.last_message, status=thread.status, phone=thread.phone, muted=thread.muted, messages=[LogisticsChatMessageItem(id=message.id, text=message.text, sender=message.sender, time=message.created_at.strftime("%I:%M %p")) for message in messages_by_thread.get(thread.id, [])]) for thread in chat_threads],
-        escalations=[LogisticsEscalationItem(id=esc.id, hub_id=esc.warehouse_id, title=esc.title, priority=esc.priority, from_name=esc.requester_name, role=esc.requester_role, time=esc.created_at.strftime("%I:%M %p"), description=esc.description, action_details=esc.action_details, status=esc.status) for esc in escalations],
+        escalations=[_to_logistics_escalation_item(esc) for esc in escalations],
         inventory=[{"id": str(item.id), "name": item.name, "category": item.category or "General", "quantity": item.quantity_on_hand, "unit": item.unit, "threshold": item.safety_stock, "location": item.aisle or (warehouse_map.get(item.warehouse_id).name if warehouse_map.get(item.warehouse_id) else "Unknown"), "status": "Low Stock" if item.quantity_on_hand <= item.safety_stock else "Good", "hubId": item.warehouse_id, "sku": item.sku} for item in inventory_items],
         notifications=[LogisticsNotificationItem(id=item.id, title=item.title, message=item.message, time=_fmt_relative(item.created_at), read=item.is_read, type=item.type) for item in notifications],
         tasks=[LogisticsTaskItem(id=item.id, text=item.text, status=item.status, target_time=item.target_time, repeat=item.repeat_rule, created_at=item.created_at, last_alert_time=item.last_alert_time, silenced=item.silenced) for item in tasks],
@@ -2298,6 +2455,24 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
         report_metrics=report_metrics,
         equipment_ledger=[LogisticsEquipmentItem(id=eq.id, hub_id=eq.warehouse_id, item_type=eq.item_type, issued_count=eq.issued_count, returned_count=eq.returned_count, reference_code=eq.reference_code, status=eq.status) for eq in equipments]
     )
+
+
+async def update_escalation_status(
+    db: AsyncSession,
+    escalation_id: UUID,
+    data: LogisticsEscalationStatusUpdate,
+) -> LogisticsEscalationItem:
+    escalation = (
+        await db.execute(select(LogisticsEscalation).where(LogisticsEscalation.id == escalation_id))
+    ).scalar_one_or_none()
+    if escalation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Escalation not found")
+
+    escalation.status = (data.status or "").strip().upper()
+    db.add(escalation)
+    await db.flush()
+    await db.refresh(escalation)
+    return _to_logistics_escalation_item(escalation)
 
 
 async def answer_ai_query(db: AsyncSession, query: str) -> LogisticsAiQueryResponse:
@@ -2736,7 +2911,18 @@ async def create_transaction(db: AsyncSession, data: LogisticsTransactionCreate)
     )
     db.add(tx)
     await db.flush()
-    return LogisticsTransactionItem(id=tx.id, hub_id=tx.warehouse_id, date=tx.transaction_date.strftime("%b %d, %Y"), desc=tx.description, type=tx.transaction_type, amount=tx.amount, status=tx.status)
+    return LogisticsTransactionItem(
+        id=tx.id,
+        hub_id=tx.warehouse_id,
+        transaction_code=tx.transaction_code,
+        date=tx.transaction_date.strftime("%b %d, %Y"),
+        desc=tx.description,
+        type=tx.transaction_type,
+        amount=tx.amount,
+        status=tx.status,
+        metadata_json=dict(tx.metadata_json or {}),
+        related_order=None,
+    )
 
 
 async def update_return_case(db: AsyncSession, case_id: UUID, data: LogisticsReturnCaseUpdate) -> LogisticsReturnCaseItem:
@@ -2935,6 +3121,26 @@ async def create_zone(db: AsyncSession, data: LogisticsZoneCreate) -> LogisticsZ
     return LogisticsZoneItem(id=zone.id, hub_id=zone.warehouse_id, name=zone.name, type=zone.zone_type, radius=zone.radius_km, status=zone.status, color=zone.color_token, lat=zone.lat, lng=zone.lng)
 
 
+async def list_zones(db: AsyncSession) -> list[LogisticsZoneItem]:
+    zones = (
+        await db.execute(select(LogisticsZone).order_by(LogisticsZone.created_at.desc()))
+    ).scalars().all()
+    return [
+        LogisticsZoneItem(
+            id=zone.id,
+            hub_id=zone.warehouse_id,
+            name=zone.name,
+            type=zone.zone_type,
+            radius=zone.radius_km,
+            status=zone.status,
+            color=zone.color_token,
+            lat=zone.lat,
+            lng=zone.lng,
+        )
+        for zone in zones
+    ]
+
+
 async def update_zone(db: AsyncSession, zone_id: UUID, data: LogisticsZoneUpdate) -> LogisticsZoneItem:
     zone = await _get_zone(db, zone_id)
     for key, value in data.model_dump(exclude_unset=True).items():
@@ -2961,6 +3167,227 @@ async def add_chat_message(db: AsyncSession, thread_id: UUID, data: LogisticsCha
     await db.flush()
     bootstrap = await build_bootstrap(db)
     return next(item for item in bootstrap.chats if item.id == thread.id)
+
+
+_SUPPORTED_MEETING_TYPES = {"gmeet", "zoom", "other"}
+_TIME_LABEL_RE = re.compile(r"^\d{2}:\d{2}$")
+
+
+def _normalize_meeting_type(value: str | None) -> str:
+    normalized = (value or "other").strip().lower()
+    return normalized if normalized in _SUPPORTED_MEETING_TYPES else "other"
+
+
+def _normalize_meeting_link(value: str | None) -> str:
+    trimmed = (value or "").strip()
+    if not trimmed:
+        return ""
+    if re.match(r"^https?://", trimmed, re.IGNORECASE):
+        return trimmed
+    if re.match(r"^(meet\.google\.com|[\w-]+\.zoom\.(us|com)|zoom\.us|zoom\.com)", trimmed, re.IGNORECASE):
+        return f"https://{trimmed}"
+    return trimmed
+
+
+def _validate_meeting_time_range(start_time: str, end_time: str) -> None:
+    if not _TIME_LABEL_RE.match(start_time) or not _TIME_LABEL_RE.match(end_time):
+        raise HTTPException(status_code=400, detail="Meeting time must use HH:MM format")
+    if end_time <= start_time:
+        raise HTTPException(status_code=400, detail="Meeting end time must be after start time")
+
+
+async def _normalize_meeting_participants(
+    db: AsyncSession,
+    participant_ids: list[UUID] | None,
+    creator_id: UUID,
+) -> list[str]:
+    candidate_ids: list[UUID] = []
+    seen: set[str] = set()
+
+    for raw_id in [*(participant_ids or []), creator_id]:
+        normalized = str(raw_id)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        candidate_ids.append(raw_id)
+
+    if not candidate_ids:
+        return [str(creator_id)]
+
+    existing_ids = (
+        await db.execute(select(User.id).where(User.id.in_(candidate_ids)))
+    ).scalars().all()
+    existing_lookup = {str(item) for item in existing_ids}
+
+    normalized_ids = [str(item) for item in candidate_ids if str(item) in existing_lookup]
+    if str(creator_id) not in normalized_ids:
+        normalized_ids.append(str(creator_id))
+    return normalized_ids
+
+
+def _meeting_to_item(meeting: LogisticsMeeting) -> LogisticsMeetingItem:
+    participants: list[UUID] = []
+    for participant_id in meeting.participant_ids or []:
+        try:
+            participants.append(UUID(str(participant_id)))
+        except (TypeError, ValueError):
+            continue
+
+    return LogisticsMeetingItem(
+        id=meeting.id,
+        topic=meeting.topic,
+        description=meeting.description or "",
+        meeting_type=_normalize_meeting_type(meeting.meeting_type),
+        link=meeting.meeting_link,
+        date=meeting.meeting_date,
+        start_time=meeting.start_time,
+        end_time=meeting.end_time,
+        participants=participants,
+        created_by_id=meeting.created_by_id,
+        warehouse_id=meeting.warehouse_id,
+        created_at=meeting.created_at,
+        updated_at=meeting.updated_at,
+    )
+
+
+async def _get_meeting_for_user(db: AsyncSession, meeting_id: UUID, current_user: User) -> LogisticsMeeting:
+    meeting = (
+        await db.execute(
+            select(LogisticsMeeting).where(
+                LogisticsMeeting.id == meeting_id,
+                or_(
+                    LogisticsMeeting.created_by_id == current_user.id,
+                    LogisticsMeeting.participant_ids.contains([str(current_user.id)]),
+                ),
+            )
+        )
+    ).scalar_one_or_none()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    return meeting
+
+
+def _ensure_meeting_owner(meeting: LogisticsMeeting, current_user: User) -> None:
+    if meeting.created_by_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the meeting creator can modify this meeting")
+
+
+async def list_meetings(db: AsyncSession, current_user: User) -> list[LogisticsMeetingItem]:
+    meetings = (
+        await db.execute(
+            select(LogisticsMeeting)
+            .where(
+                or_(
+                    LogisticsMeeting.created_by_id == current_user.id,
+                    LogisticsMeeting.participant_ids.contains([str(current_user.id)]),
+                )
+            )
+            .order_by(LogisticsMeeting.meeting_date.asc(), LogisticsMeeting.start_time.asc(), LogisticsMeeting.created_at.asc())
+        )
+    ).scalars().all()
+    return [_meeting_to_item(meeting) for meeting in meetings]
+
+
+async def list_meeting_participants(db: AsyncSession, current_user: User) -> list[LogisticsMeetingParticipantItem]:
+    query = (
+        select(User)
+        .options(selectinload(User.role))
+        .where(User.is_active == True)
+    )
+
+    role_name = current_user.role.name if current_user.role else ""
+    if role_name == "LOGISTIC_MANAGER":
+        query = query.where(User.role.has(Role.name.in_(["LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER", "DRIVER"])))
+    elif role_name in {"WAREHOUSE_MANAGER", "DISPATCHER"}:
+        scoped_warehouse_id = current_user.warehouse_id
+        query = query.where(
+            or_(
+                User.role.has(Role.name == "LOGISTIC_MANAGER"),
+                and_(
+                    User.warehouse_id == scoped_warehouse_id,
+                    User.role.has(Role.name.in_(["WAREHOUSE_MANAGER", "DISPATCHER", "DRIVER"])),
+                ),
+            )
+        )
+
+    users = (await db.execute(query.order_by(User.name.asc()))).scalars().all()
+
+    return [
+        LogisticsMeetingParticipantItem(
+            id=user.id,
+            name=user.name,
+            role=user.role.name.replace("_", " ").title() if user.role else "User",
+            hub_id=user.warehouse_id,
+        )
+        for user in users
+    ]
+
+
+async def create_meeting(db: AsyncSession, data: LogisticsMeetingCreate, current_user: User) -> LogisticsMeetingItem:
+    _validate_meeting_time_range(data.start_time, data.end_time)
+    participant_ids = await _normalize_meeting_participants(db, data.participants, current_user.id)
+
+    meeting = LogisticsMeeting(
+        topic=data.topic.strip(),
+        description=data.description.strip() if data.description else "",
+        meeting_type=_normalize_meeting_type(data.meeting_type),
+        meeting_link=_normalize_meeting_link(data.link),
+        meeting_date=data.date,
+        start_time=data.start_time,
+        end_time=data.end_time,
+        participant_ids=participant_ids,
+        created_by_id=current_user.id,
+        warehouse_id=current_user.warehouse_id,
+    )
+    db.add(meeting)
+    await db.flush()
+    await db.refresh(meeting)
+    return _meeting_to_item(meeting)
+
+
+async def update_meeting(
+    db: AsyncSession,
+    meeting_id: UUID,
+    data: LogisticsMeetingUpdate,
+    current_user: User,
+) -> LogisticsMeetingItem:
+    meeting = await _get_meeting_for_user(db, meeting_id, current_user)
+    _ensure_meeting_owner(meeting, current_user)
+
+    updates = data.model_dump(exclude_unset=True)
+    next_start = updates.get("start_time", meeting.start_time)
+    next_end = updates.get("end_time", meeting.end_time)
+    _validate_meeting_time_range(next_start, next_end)
+
+    if "topic" in updates and updates["topic"] is not None:
+        meeting.topic = updates["topic"].strip()
+    if "description" in updates and updates["description"] is not None:
+        meeting.description = updates["description"].strip()
+    if "meeting_type" in updates and updates["meeting_type"] is not None:
+        meeting.meeting_type = _normalize_meeting_type(updates["meeting_type"])
+    if "link" in updates and updates["link"] is not None:
+        meeting.meeting_link = _normalize_meeting_link(updates["link"])
+    if "date" in updates and updates["date"] is not None:
+        meeting.meeting_date = updates["date"]
+    if "start_time" in updates and updates["start_time"] is not None:
+        meeting.start_time = updates["start_time"]
+    if "end_time" in updates and updates["end_time"] is not None:
+        meeting.end_time = updates["end_time"]
+    if "participants" in updates:
+        meeting.participant_ids = await _normalize_meeting_participants(db, updates["participants"], current_user.id)
+
+    db.add(meeting)
+    await db.flush()
+    await db.refresh(meeting)
+    return _meeting_to_item(meeting)
+
+
+async def delete_meeting(db: AsyncSession, meeting_id: UUID, current_user: User) -> MessageResponse:
+    meeting = await _get_meeting_for_user(db, meeting_id, current_user)
+    _ensure_meeting_owner(meeting, current_user)
+    await db.delete(meeting)
+    await db.flush()
+    return MessageResponse(message="Meeting deleted")
 
 
 def _task_to_item(task: LogisticsTask) -> LogisticsTaskItem:
@@ -3020,13 +3447,13 @@ async def update_task(db: AsyncSession, task_id: UUID, data: LogisticsTaskUpdate
 
 async def get_notifications(db: AsyncSession, current_user: User) -> list[LogisticsNotificationItem]:
     notifications = (await db.execute(select(LogisticsNotification).order_by(LogisticsNotification.created_at.desc()))).scalars().all()
-    notifications = [item for item in notifications if _notification_visible_to_role(item, current_user.role.name)]
+    notifications = [item for item in notifications if _notification_visible_to_user(item, current_user)]
     return [LogisticsNotificationItem(id=item.id, title=item.title, message=item.message, time=_fmt_relative(item.created_at), read=item.is_read, type=item.type) for item in notifications]
 
 
 async def update_notification(db: AsyncSession, notification_id: UUID, data: LogisticsNotificationUpdate, current_user: User) -> LogisticsNotificationItem:
     notification = (await db.execute(select(LogisticsNotification).where(LogisticsNotification.id == notification_id))).scalar_one_or_none()
-    if not notification or not _notification_visible_to_role(notification, current_user.role.name):
+    if not notification or not _notification_visible_to_user(notification, current_user):
         raise HTTPException(status_code=404, detail="Notification not found")
     notification.is_read = data.read
     db.add(notification)
@@ -3037,7 +3464,7 @@ async def update_notification(db: AsyncSession, notification_id: UUID, data: Log
 async def mark_all_notifications_read(db: AsyncSession, current_user: User) -> MessageResponse:
     notifications = (await db.execute(select(LogisticsNotification))).scalars().all()
     for notification in notifications:
-        if not _notification_visible_to_role(notification, current_user.role.name):
+        if not _notification_visible_to_user(notification, current_user):
             continue
         notification.is_read = True
         db.add(notification)
@@ -3048,11 +3475,81 @@ async def mark_all_notifications_read(db: AsyncSession, current_user: User) -> M
 async def clear_notifications(db: AsyncSession, current_user: User) -> MessageResponse:
     notifications = (await db.execute(select(LogisticsNotification))).scalars().all()
     for notification in notifications:
-        if not _notification_visible_to_role(notification, current_user.role.name):
+        if not _notification_visible_to_user(notification, current_user):
             continue
         await db.delete(notification)
     await db.flush()
     return MessageResponse(message="Notifications cleared")
+
+
+async def create_driver_crisis_alert(db: AsyncSession, user, payload: dict) -> LogisticsAlert:
+    """Create a crisis alert from a driver - for SOS, accidents, breakdowns etc."""
+    alert_type = payload.get("type", "sos")
+    
+    # Get driver name
+    driver_name = user.name or user.email.split("@")[0]
+    
+    # Build alert title based on type
+    type_labels = {
+        "sos": "🚨 SOS Alert",
+        "accident": "🚗 Accident Report", 
+        "breakdown": "🔧 Vehicle Breakdown",
+        "security": "🔐 Security Threat",
+        "medical": "🏥 Medical Emergency"
+    }
+    title = f"{type_labels.get(alert_type, '🚨 Emergency')} — {driver_name}"
+    
+    # Build description
+    location = payload.get("location", "Location unknown")
+    description = payload.get("description", f"Driver {driver_name} triggered {alert_type} alert")
+    if payload.get("latitude") and payload.get("longitude"):
+        location = f"{payload['latitude']}, {payload['longitude']}"
+        description += f" at coordinates {location}"
+    
+    # Severity based on type
+    severity_map = {"sos": "critical", "accident": "critical", "medical": "critical", "security": "high", "breakdown": "high"}
+    severity = severity_map.get(alert_type, "high")
+    
+    # Icon based on type
+    icon_map = {"sos": "emergency", "accident": "car_crash", "breakdown": "build", "security": "security", "medical": "local_hospital"}
+    icon = icon_map.get(alert_type, "warning")
+    
+    alert = LogisticsAlert(
+        alert_type=alert_type,
+        title=title,
+        description=description,
+        severity=severity,
+        icon=icon,
+        location=location,
+        recommendation=f"Contact driver {driver_name} immediately. Dispatch emergency response if needed.",
+        impact_json={"driver_id": str(user.id), "driver_name": driver_name, "alert_type": alert_type},
+        is_active=True,
+    )
+    db.add(alert)
+    await db.flush()
+    
+    # Broadcast crisis alert to dispatcher dashboard via WebSocket
+    try:
+        from app.routers.ws_fleet import fleet_manager
+        await fleet_manager.broadcast({
+            "type": "crisis_alert",
+            "alert_id": str(alert.id),
+            "alert_type": alert_type,
+            "title": title,
+            "description": description,
+            "severity": severity,
+            "icon": icon,
+            "location": location,
+            "latitude": payload.get("latitude"),
+            "longitude": payload.get("longitude"),
+            "driver_id": str(user.id),
+            "driver_name": driver_name,
+            "timestamp": datetime.now(UTC).isoformat(),
+        })
+    except Exception:
+        pass  # WebSocket broadcast is best-effort
+    
+    return alert
 
 
 async def create_alert(db: AsyncSession, payload: dict) -> LogisticsAlertItem:
@@ -3081,6 +3578,104 @@ async def resolve_alert(db: AsyncSession, alert_id: UUID) -> MessageResponse:
     db.add(alert)
     await db.flush()
     return MessageResponse(message="Alert resolved")
+
+
+async def list_alerts(db: AsyncSession) -> list[LogisticsAlertItem]:
+    result = await db.execute(
+        select(LogisticsAlert)
+        .where(LogisticsAlert.is_active == True)
+        .order_by(LogisticsAlert.created_at.desc())
+        .limit(50)
+    )
+    alerts = result.scalars().all()
+    return [
+        LogisticsAlertItem(
+            id=a.id,
+            type=a.alert_type,
+            title=a.title,
+            description=a.description,
+            severity=a.severity,
+            icon=a.icon,
+            timestamp=a.created_at.strftime("%I:%M %p"),
+            location=a.location,
+            recommendation=a.recommendation,
+            impact=a.impact_json,
+        )
+        for a in alerts
+    ]
+
+
+def _manifest_to_item(m: LogisticsManifest) -> LogisticsManifestItem:
+    from app.schemas.logistics import ManifestCrewMember
+    crew = [ManifestCrewMember(**c) for c in (m.crew_list or [])]
+    return LogisticsManifestItem(
+        id=m.id,
+        route_id=m.route_id,
+        driver_name=m.driver_name,
+        driver_id=m.driver_id,
+        vehicle_code=m.vehicle_code,
+        hub_name=m.hub_name,
+        crew_config=m.crew_config,
+        status=m.status,
+        orders_count=m.orders_count,
+        total_weight=m.total_weight,
+        total_distance=m.total_distance,
+        stop_count=m.stop_count,
+        total_volume=m.total_volume,
+        est_duration=m.est_duration,
+        fragile_count=m.fragile_count,
+        cod_count=m.cod_count,
+        crew_list=crew,
+        pushed=m.pushed,
+        pushed_at=m.pushed_at,
+        created_at=m.created_at,
+    )
+
+
+async def list_manifests(db: AsyncSession) -> list[LogisticsManifestItem]:
+    result = await db.execute(
+        select(LogisticsManifest).order_by(LogisticsManifest.created_at.desc()).limit(100)
+    )
+    return [_manifest_to_item(m) for m in result.scalars().all()]
+
+
+async def create_manifest(db: AsyncSession, data: LogisticsManifestCreate, created_by_id: UUID | None = None) -> LogisticsManifestItem:
+    crew_list = [c.model_dump() for c in data.crew_list] if data.crew_list else []
+    manifest = LogisticsManifest(
+        route_id=data.route_id,
+        driver_name=data.driver_name,
+        driver_id=data.driver_id,
+        vehicle_code=data.vehicle_code,
+        hub_name=data.hub_name,
+        crew_config=data.crew_config,
+        status="Draft",
+        orders_count=data.orders_count,
+        total_weight=data.total_weight,
+        total_distance=data.total_distance,
+        stop_count=data.stop_count,
+        total_volume=data.total_volume,
+        est_duration=data.est_duration,
+        fragile_count=data.fragile_count,
+        cod_count=data.cod_count,
+        crew_list=crew_list,
+        pushed=False,
+        created_by_id=created_by_id,
+    )
+    db.add(manifest)
+    await db.flush()
+    return _manifest_to_item(manifest)
+
+
+async def push_manifest(db: AsyncSession, manifest_id: UUID) -> LogisticsManifestItem:
+    manifest = (await db.execute(select(LogisticsManifest).where(LogisticsManifest.id == manifest_id))).scalar_one_or_none()
+    if not manifest:
+        raise HTTPException(status_code=404, detail="Manifest not found")
+    manifest.pushed = True
+    manifest.pushed_at = _now()
+    manifest.status = "Dispatched"
+    db.add(manifest)
+    await db.flush()
+    return _manifest_to_item(manifest)
 
 
 async def create_document(db: AsyncSession, data: LogisticsDocumentCreate) -> LogisticsDocumentItem:
@@ -3383,6 +3978,17 @@ async def end_shift(db: AsyncSession, user: User) -> dict:
     profile = await _get_driver_profile(db, user)
     profile.status = "Off-Duty"
     profile.current_job = None
+
+    # Snap driver's last known location back to their warehouse so the dispatcher
+    # map doesn't show them frozen at a delivery address after logout.
+    warehouse_id = user.warehouse_id or profile.warehouse_id
+    if warehouse_id:
+        warehouse = (await db.execute(
+            select(Warehouse).where(Warehouse.id == warehouse_id)
+        )).scalar_one_or_none()
+        if warehouse and warehouse.lat is not None and warehouse.lng is not None:
+            profile.current_location = f"{warehouse.lat},{warehouse.lng}"
+
     db.add(profile)
     await db.flush()
     return {"status": "success", "message": "Shift ended", "ended_at": _now().isoformat()}
@@ -3411,7 +4017,7 @@ async def return_vehicle(
     if notes:
         vehicle.maintenance_issue = notes
     vehicle.assigned_driver_id = None
-    vehicle.status = "Available"
+    vehicle.status = "Active"
     db.add(vehicle)
 
     profile = await _get_driver_profile(db, user)
@@ -3610,6 +4216,21 @@ async def send_broadcast(db: AsyncSession, payload: dict) -> MessageResponse:
     ))
 
     await db.commit()
+    
+    # Broadcast to drivers via WebSocket (real-time push)
+    if "DRIVER" in target_roles:
+        try:
+            from app.routers.ws_fleet import driver_alert_manager
+            await driver_alert_manager.broadcast({
+                "type": "broadcast_alert",
+                "severity": alert_type,  # info, warning, emergency
+                "title": title,
+                "message": message,
+                "timestamp": datetime.now(UTC).isoformat(),
+            })
+        except Exception:
+            pass  # WebSocket broadcast is best-effort
+    
     return MessageResponse(message=f"Broadcast sent to {len(target_users)} recipient(s)")
 
 
@@ -3701,28 +4322,56 @@ async def submit_fuel_receipt(
 
 # ── Driver Dispatch Chat ───────────────────────────────────────────────────────
 
+_DISPATCHER_SENDERS = {"dispatcher", "dispatch", "system", "me"}
+_MANAGER_SENDERS = {"manager", "logistics manager", "system", "me"}
+
+
+async def _find_driver_thread(db: AsyncSession, user: User):
+    """Find the driver's dispatch thread, checking both naming conventions."""
+    for name in (f"Driver: {user.name}", user.name):
+        thread = (
+            await db.execute(
+                select(LogisticsChatThread)
+                .options(selectinload(LogisticsChatThread.messages))
+                .where(LogisticsChatThread.name == name)
+                .order_by(LogisticsChatThread.created_at.asc())
+            )
+        ).scalars().first()
+        if thread:
+            return thread
+    return None
+
+
+async def _find_driver_manager_thread(db: AsyncSession, user: User):
+    """Find the driver's Logistics Manager thread, keeping it separate from dispatch."""
+    for name in (f"LM Driver: {user.name}", f"Manager: {user.name}"):
+        thread = (
+            await db.execute(
+                select(LogisticsChatThread)
+                .options(selectinload(LogisticsChatThread.messages))
+                .where(LogisticsChatThread.name == name)
+                .order_by(LogisticsChatThread.created_at.asc())
+            )
+        ).scalars().first()
+        if thread:
+            return thread
+    return None
+
+
 async def get_driver_dispatch_thread(
     db: AsyncSession,
     user: User,
 ) -> DriverDispatchThreadItem:
-    thread_name = f"Driver: {user.name}"
-    thread = (
-        await db.execute(
-            select(LogisticsChatThread)
-            .options(selectinload(LogisticsChatThread.messages))
-            .where(LogisticsChatThread.name == thread_name)
-        )
-    ).scalar_one_or_none()
+    thread = await _find_driver_thread(db, user)
 
     if not thread:
         thread = LogisticsChatThread(
-            name=thread_name,
+            name=f"Driver: {user.name}",
             status="Online",
             warehouse_id=user.warehouse_id,
         )
         db.add(thread)
         await db.flush()
-        # Add an initial system message
         welcome = LogisticsChatMessage(
             thread_id=thread.id,
             sender="Dispatcher",
@@ -3736,14 +4385,14 @@ async def get_driver_dispatch_thread(
                 .options(selectinload(LogisticsChatThread.messages))
                 .where(LogisticsChatThread.id == thread.id)
             )
-        ).scalar_one()
+        ).scalars().first()
         await db.commit()
 
     messages = [
         {
             "id": str(msg.id),
             "text": msg.text,
-            "fromDriver": msg.sender not in ("Dispatcher", "System"),
+            "fromDriver": msg.sender.lower() not in _DISPATCHER_SENDERS,
             "time": msg.created_at.strftime("%H:%M"),
         }
         for msg in thread.messages
@@ -3756,52 +4405,133 @@ async def add_driver_dispatch_message(
     user: User,
     data: DriverDispatchMessageCreate,
 ) -> DriverDispatchThreadItem:
-    thread_name = f"Driver: {user.name}"
-    thread = (
-        await db.execute(
-            select(LogisticsChatThread)
-            .options(selectinload(LogisticsChatThread.messages))
-            .where(LogisticsChatThread.name == thread_name)
-        )
-    ).scalar_one_or_none()
+    thread = await _find_driver_thread(db, user)
 
     if not thread:
         thread = LogisticsChatThread(
-            name=thread_name,
+            name=f"Driver: {user.name}",
             status="Online",
             warehouse_id=user.warehouse_id,
         )
         db.add(thread)
         await db.flush()
 
+    # Truncate sender to fit the String(30) DB column
+    sender_name = (user.name or "Driver")[:30]
     msg = LogisticsChatMessage(
         thread_id=thread.id,
-        sender=user.name,
+        sender=sender_name,
         text=data.text,
     )
     thread.last_message = data.text
     thread.last_message_at = _now()
     db.add(msg)
     db.add(thread)
-    await db.flush()
-
-    thread = (
-        await db.execute(
-            select(LogisticsChatThread)
-            .options(selectinload(LogisticsChatThread.messages))
-            .where(LogisticsChatThread.id == thread.id)
-        )
-    ).scalar_one()
     await db.commit()
+
+    # Fetch messages directly to avoid SQLAlchemy identity-map cache returning stale data
+    all_messages = (await db.execute(
+        select(LogisticsChatMessage)
+        .where(LogisticsChatMessage.thread_id == thread.id)
+        .order_by(LogisticsChatMessage.created_at.asc())
+    )).scalars().all()
 
     messages = [
         {
             "id": str(m.id),
             "text": m.text,
-            "fromDriver": m.sender not in ("Dispatcher", "System"),
+            "fromDriver": m.sender.lower() not in _DISPATCHER_SENDERS,
             "time": m.created_at.strftime("%H:%M"),
         }
-        for m in thread.messages
+        for m in all_messages
+    ]
+    return DriverDispatchThreadItem(thread_id=str(thread.id), messages=messages)
+
+
+async def get_driver_manager_thread(
+    db: AsyncSession,
+    user: User,
+) -> DriverDispatchThreadItem:
+    thread = await _find_driver_manager_thread(db, user)
+
+    if not thread:
+        thread = LogisticsChatThread(
+            name=f"LM Driver: {user.name}",
+            status="Online",
+            warehouse_id=user.warehouse_id,
+        )
+        db.add(thread)
+        await db.flush()
+        welcome = LogisticsChatMessage(
+            thread_id=thread.id,
+            sender="Logistics Manager",
+            text=f"Manager channel ready for {user.name}. Reach out if you need operational support.",
+        )
+        db.add(welcome)
+        await db.flush()
+        thread = (
+            await db.execute(
+                select(LogisticsChatThread)
+                .options(selectinload(LogisticsChatThread.messages))
+                .where(LogisticsChatThread.id == thread.id)
+            )
+        ).scalars().first()
+        await db.commit()
+
+    messages = [
+        {
+            "id": str(msg.id),
+            "text": msg.text,
+            "fromDriver": msg.sender.lower() not in _MANAGER_SENDERS,
+            "time": msg.created_at.strftime("%H:%M"),
+        }
+        for msg in thread.messages
+    ]
+    return DriverDispatchThreadItem(thread_id=str(thread.id), messages=messages)
+
+
+async def add_driver_manager_message(
+    db: AsyncSession,
+    user: User,
+    data: DriverDispatchMessageCreate,
+) -> DriverDispatchThreadItem:
+    thread = await _find_driver_manager_thread(db, user)
+
+    if not thread:
+        thread = LogisticsChatThread(
+            name=f"LM Driver: {user.name}",
+            status="Online",
+            warehouse_id=user.warehouse_id,
+        )
+        db.add(thread)
+        await db.flush()
+
+    sender_name = (user.name or "Driver")[:30]
+    msg = LogisticsChatMessage(
+        thread_id=thread.id,
+        sender=sender_name,
+        text=data.text,
+    )
+    thread.last_message = data.text
+    thread.last_message_at = _now()
+    db.add(msg)
+    db.add(thread)
+    await db.commit()
+
+    all_messages = (await db.execute(
+        select(LogisticsChatMessage)
+        .where(LogisticsChatMessage.thread_id == thread.id)
+        .order_by(LogisticsChatMessage.created_at.asc())
+    )).scalars().all()
+
+    messages = [
+        {
+            "id": str(m.id),
+            "text": m.text,
+            "fromDriver": m.sender.lower() not in _MANAGER_SENDERS,
+            "time": m.created_at.strftime("%H:%M"),
+        }
+        for m in all_messages
     ]
     return DriverDispatchThreadItem(thread_id=str(thread.id), messages=messages)
 

@@ -114,7 +114,10 @@
                     <h3 class="font-bold text-gray-900 dark:text-white">Top Performing Zones</h3>
                     <span class="text-[10px] text-gray-500 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded">{{ zones.length }} zones</span>
                 </div>
-                <div class="h-64">
+                <div v-if="zones.length === 0" class="h-64 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+                    No logistic-manager zones available for this hub yet.
+                </div>
+                <div v-else class="h-64">
                     <Bar :data="zoneChartData" :options="zoneChartOptions" />
                 </div>
             </div>
@@ -429,28 +432,18 @@ const weeklyChartOptions = {
 // ── Zone performance chart ──────────────────────────────────────────────
 const zones = computed(() => {
     const storeZones = store.filteredZones
-    if (storeZones.length) {
-        return storeZones.slice(0, 6).map((z, i) => ({
+    return storeZones
+        .slice()
+        .sort((a, b) => {
+            const scoreA = String(a.status || '').toLowerCase() === 'active' ? 1 : 0
+            const scoreB = String(b.status || '').toLowerCase() === 'active' ? 1 : 0
+            return scoreB - scoreA || a.name.localeCompare(b.name)
+        })
+        .slice(0, 6)
+        .map((z, i) => ({
             name: z.name,
-            perf: Math.min(100, 78 + ((z.id || i) % 22)),
+            perf: Math.min(100, (String(z.status || '').toLowerCase() === 'active' ? 88 : 72) + ((i % 3) * 4)),
         }))
-    }
-    // Derive from order hubs
-    const hubCounts = {}
-    store.activeOrders.forEach(o => {
-        const hub = (o.hub || o.warehouse || '').trim()
-        if (hub && hub !== 'Hub') hubCounts[hub] = (hubCounts[hub] || 0) + 1
-    })
-    const entries = Object.entries(hubCounts).sort((a, b) => b[1] - a[1]).slice(0, 5)
-    if (entries.length) {
-        return entries.map(([name, count]) => ({ name, perf: Math.min(100, 70 + count * 4) }))
-    }
-    return [
-        { name: 'Downtown Sector', perf: 98 },
-        { name: 'North Industrial', perf: 92 },
-        { name: 'Suburban West', perf: 88 },
-        { name: 'Airport Logistics', perf: 95 },
-    ]
 })
 
 const zoneColors = [

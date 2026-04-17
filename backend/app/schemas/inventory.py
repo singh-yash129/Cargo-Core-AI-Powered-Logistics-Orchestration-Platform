@@ -138,3 +138,46 @@ class RestockRequestListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+# Material Request schemas (WM requests new packing material -> LM approves)
+class MaterialRequestCreate(BaseModel):
+    material_name: str = Field(..., min_length=1, max_length=100)
+    category: str = Field(default="Packing Materials", max_length=100)
+    unit: str = Field(default="pcs", max_length=30)
+    suggested_rate: float | None = Field(default=None, ge=0)
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class MaterialRequestApprove(BaseModel):
+    approved_rate: float = Field(..., gt=0)
+    manager_notes: str | None = Field(default=None, max_length=500)
+
+
+class MaterialRequestReject(BaseModel):
+    manager_notes: str | None = Field(default=None, max_length=500)
+
+
+class MaterialRequestResponse(BaseModel):
+    id: UUID
+    material_name: str
+    category: str
+    unit: str
+    suggested_rate: float | None
+    reason: str | None
+    status: str
+    requested_by: UUID | None
+    requested_by_name: str | None = None
+    approved_by: UUID | None
+    approved_by_name: str | None = None
+    approved_rate: float | None
+    manager_notes: str | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class MaterialRequestListResponse(BaseModel):
+    items: list[MaterialRequestResponse]
+    total: int

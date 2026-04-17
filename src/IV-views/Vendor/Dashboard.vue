@@ -22,7 +22,7 @@
                     <div class="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wide">Wallet Balance</div>
                     <span class="material-symbols-outlined text-green-400 text-[20px]">account_balance_wallet</span>
                 </div>
-                <div class="text-3xl font-bold text-green-500">₹{{ walletBalance.toLocaleString() }}</div>
+                <div class="text-3xl font-bold text-green-500">₹{{ store.creditBalance.toLocaleString() }}</div>
                 <div class="text-gray-500 text-xs mt-1">Available credit</div>
             </router-link>
             <div class="glass-panel p-5 rounded-xl">
@@ -253,7 +253,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useVendorStore } from '@/stores/vendorStore'
 import BaseModal from '@/components/BaseModal.vue'
-import apiClient from '@/config/api'
 import {
     Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement,
     LineElement, ArcElement, Tooltip, Legend, Filler
@@ -265,24 +264,12 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineEleme
 const store = useVendorStore()
 const selected = ref(null)
 const spendFilter = ref('spend')
-const walletBalance = ref(0)
 
 // ── Theme detection (reacts to dark/light toggle) ───────────────────
 const isDark = ref(document.documentElement.classList.contains('dark'))
 let themeObserver = null
 
-async function fetchWalletBalance() {
-    try {
-        const response = await apiClient.get('/api/v1/vendor/wallet')
-        walletBalance.value = response.data.balance || 0
-    } catch (error) {
-        console.error('Failed to fetch wallet balance:', error)
-        walletBalance.value = 0
-    }
-}
-
 onMounted(() => {
-    fetchWalletBalance()
     themeObserver = new MutationObserver(() => {
         isDark.value = document.documentElement.classList.contains('dark')
     })

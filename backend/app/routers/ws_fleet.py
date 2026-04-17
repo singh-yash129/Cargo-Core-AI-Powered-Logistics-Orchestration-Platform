@@ -1,5 +1,5 @@
 """
-WebSocket endpoint for real-time fleet location broadcasting.
+WebSocket endpoint for real-time fleet location broadcasting and driver alerts.
 
 Flow:
   1. Dashboard connects to ws://<host>/ws/fleet?token=<jwt>
@@ -7,6 +7,11 @@ Flow:
   3. When a driver POSTs a location update (REST), logistics_service calls
      fleet_manager.broadcast() which pushes the update to every connected dashboard.
   4. Dashboard updates map markers without waiting for the next 30-second poll.
+
+Driver Alert Flow:
+  1. Driver app connects to ws://<host>/ws/driver-alerts?token=<jwt>
+  2. When dispatcher sends broadcast alert, driver_alert_manager.broadcast() pushes to all drivers.
+  3. Driver app receives alert and shows notification.
 """
 import json
 import asyncio
@@ -58,8 +63,70 @@ class FleetConnectionManager:
         return len(self._connections)
 
 
-# Singleton used across the whole app
+class DriverAlertManager:
+    """Thread-safe WebSocket connection pool for driver alert broadcasts."""
+
+    def __init__(self):
+        self._connections: dict[str, WebSocket] = {}  # driver_id -> websocket
+        self._lock = asyncio.Lock()
+
+    async def connect(self, ws: WebSocket, driver_id: str):
+        await ws.accept()
+        async with self._lock:
+            # Close existing connection if any
+            old_ws = self._connections.get(driver_id)
+            if old_ws:
+                try:
+                    await old_ws.close()
+                except Exception:
+                    pass
+            self._connections[driver_id] = ws
+
+    async def disconnect(self, driver_id: str):
+        async with self._lock:
+            self._connections.pop(driver_id, None)
+
+    async def broadcast(self, payload: dict[str, Any]):
+        """Send a JSON payload to all connected driver clients."""
+        if not self._connections:
+            return
+        message = json.dumps(payload)
+        dead: list[str] = []
+        async with self._lock:
+            targets = list(self._connections.items())
+        for driver_id, ws in targets:
+            try:
+                await ws.send_text(message)
+            except Exception:
+                dead.append(driver_id)
+        # Clean up dead connections
+        if dead:
+            async with self._lock:
+                for driver_id in dead:
+                    self._connections.pop(driver_id, None)
+
+    async def send_to_driver(self, driver_id: str, payload: dict[str, Any]):
+        """Send a JSON payload to a specific driver."""
+        async with self._lock:
+            ws = self._connections.get(driver_id)
+        if ws:
+            try:
+                await ws.send_text(json.dumps(payload))
+            except Exception:
+                async with self._lock:
+                    self._connections.pop(driver_id, None)
+
+    @property
+    def connection_count(self) -> int:
+        return len(self._connections)
+
+
+# Singletons used across the whole app
 fleet_manager = FleetConnectionManager()
+driver_alert_manager = DriverAlertManager()
+
+
+ALGORITHM = "HS256"
 
 
 async def _authenticate_ws_token(token: str | None) -> bool:
@@ -70,10 +137,24 @@ async def _authenticate_ws_token(token: str | None) -> bool:
         from app.config import get_settings
         from jose import jwt as jose_jwt
         settings = get_settings()
-        jose_jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+        jose_jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
         return True
     except (JWTError, Exception):
         return False
+
+
+async def _decode_ws_token(token: str | None) -> dict | None:
+    """Decode JWT token and return payload with user_id (sub)."""
+    if not token:
+        return None
+    try:
+        from app.config import get_settings
+        from jose import jwt as jose_jwt
+        settings = get_settings()
+        payload = jose_jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
+        return payload
+    except (JWTError, Exception):
+        return None
 
 
 @router.websocket("/ws/fleet")
@@ -119,3 +200,58 @@ async def fleet_websocket(
         pass
     finally:
         await fleet_manager.disconnect(ws)
+
+
+@router.websocket("/ws/driver-alerts")
+async def driver_alerts_websocket(
+    ws: WebSocket,
+    token: str | None = Query(default=None),
+):
+    """
+    WebSocket endpoint for driver alert notifications.
+
+    Connect with:
+        ws://<host>/ws/driver-alerts?token=<access_token>
+
+    Messages from server (JSON):
+        { "type": "alert", "severity": "critical|high|warning|info",
+          "title": "...", "message": "...", "timestamp": "..." }
+        { "type": "crisis_update", "alert_id": "...", "status": "...", ... }
+        { "type": "ping" }
+
+    Messages from client:
+        { "type": "pong" }  (keepalive response, ignored)
+        { "type": "ack", "alert_id": "..." }  (acknowledge receipt of alert)
+    """
+    payload = await _decode_ws_token(token)
+    if not payload:
+        await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    driver_id = payload.get("sub", "unknown")
+    await driver_alert_manager.connect(ws, driver_id)
+    # Send a welcome message so the client knows the connection is live
+    await ws.send_text(json.dumps({"type": "connected", "message": "Driver alerts WebSocket connected", "driver_id": driver_id}))
+
+    try:
+        while True:
+            # Keep connection open; client may send pong frames or ack messages
+            try:
+                msg = await asyncio.wait_for(ws.receive_text(), timeout=30.0)
+                # Handle ack messages if needed (currently just ignored)
+                try:
+                    data = json.loads(msg)
+                    if data.get("type") == "pong":
+                        pass  # Keepalive response, no action needed
+                except Exception:
+                    pass
+            except asyncio.TimeoutError:
+                # Send a ping every 30 s to keep the connection alive through proxies
+                try:
+                    await ws.send_text(json.dumps({"type": "ping"}))
+                except Exception:
+                    break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await driver_alert_manager.disconnect(driver_id)

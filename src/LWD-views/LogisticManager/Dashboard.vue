@@ -230,8 +230,8 @@
                                 class="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-2">
                                 Drivers Needing
                                 Support</h4>
-                            <div class="space-y-2">
-                                <div v-for="driver in store.filteredDrivers" :key="driver.id"
+                            <div v-if="driversNeedingSupport.length" class="space-y-2">
+                                <div v-for="driver in driversNeedingSupport" :key="driver.id"
                                     @click="store.openModal('driver-profile', driver)"
                                     class="flex items-center justify-between p-2 rounded hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer group transition-colors">
                                     <div class="flex items-center gap-3">
@@ -244,13 +244,16 @@
                                                 class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary transition-colors">
                                                 {{ driver.name }}</div>
                                             <div class="text-[10px]" :class="[
-                                                driver.status === 'breakdown' ? 'text-red-500 dark:text-red-400' : 'text-yellow-500 dark:text-yellow-400'
-                                            ]">{{ driver.status }}</div>
+                                                driver.supportTone === 'critical' ? 'text-red-500 dark:text-red-400' : 'text-yellow-500 dark:text-yellow-400'
+                                            ]">{{ driver.supportStatusLabel }}</div>
                                         </div>
                                     </div>
                                     <span
                                         class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-[18px]">chevron_right</span>
                                 </div>
+                            </div>
+                            <div v-else class="rounded-xl border border-dashed border-gray-200 dark:border-white/10 px-3 py-4 text-xs text-gray-500 dark:text-gray-400">
+                                No drivers currently need support.
                             </div>
                         </div>
                     </div>
@@ -334,7 +337,7 @@
             </div>
 
             <!-- Hub Performance Table / Interactive View -->
-            <div class="glass-panel p-4 lg:p-5 rounded-2xl flex flex-col justify-between h-full">
+            <div class="glass-panel p-4 lg:p-5 rounded-2xl flex flex-col justify-between h-full overflow-hidden">
                 <!-- Header -->
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">
@@ -450,9 +453,9 @@
                         </div>
 
                         <!-- Secondary Metrics Group (Circular) -->
-                        <div class="flex items-center gap-4 lg:gap-6 justify-around w-full lg:w-auto mt-4 lg:mt-0">
+                        <div class="flex items-center gap-3 lg:gap-4 justify-around w-full lg:w-auto mt-4 lg:mt-0">
                             <!-- Efficiency Circular -->
-                            <div class="relative w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0 group">
+                            <div class="relative w-14 h-14 lg:w-16 lg:h-16 flex-shrink-0 group">
                                 <svg class="w-full h-full transform -rotate-90 drop-shadow-sm" viewBox="0 0 36 36">
                                     <circle cx="18" cy="18" r="15.9155" fill="none"
                                         class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
@@ -473,7 +476,7 @@
                             </div>
 
                             <!-- Staff Circular -->
-                            <div class="relative w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0 group">
+                            <div class="relative w-14 h-14 lg:w-16 lg:h-16 flex-shrink-0 group">
                                 <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                     <circle cx="18" cy="18" r="15.9155" fill="none"
                                         class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
@@ -495,7 +498,7 @@
                             </div>
 
                             <!-- Vehicles Circular -->
-                            <div class="relative w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0 group">
+                            <div class="relative w-14 h-14 lg:w-16 lg:h-16 flex-shrink-0 group">
                                 <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                     <circle cx="18" cy="18" r="15.9155" fill="none"
                                         class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
@@ -570,7 +573,7 @@
 
             <!-- Chart Container -->
             <div class="h-64 lg:h-80 w-full relative">
-                <Line :key="activeTab" :data="chartData" :options="chartOptions" />
+                <Line :key="activeTab + '-' + selectedTimePeriod" :data="chartData" :options="chartOptions" />
             </div>
         </div>
 
@@ -578,7 +581,8 @@
         <AlertDetailsModal :is-open="store.activeModal === 'alert-details'" :alert="store.selectedItem"
             @close="store.closeModal()" @action="handleAlertAction" />
 
-        <DriverProfileModal :is-open="store.activeModal === 'driver-profile'" :driver="store.selectedItem"
+        <DriverProfileModal :key="store.selectedItem?.id || 'driver-profile'"
+            :is-open="store.activeModal === 'driver-profile'" :driver="store.selectedItem"
             @close="store.closeModal()" />
 
         <ContactHubModal :is-open="store.activeModal === 'contact-hub'" :hub="currentHub" @close="store.closeModal()" />
@@ -589,6 +593,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
 import AlertDetailsModal from '@/LWD-components/AlertDetailsModal.vue'
 import DriverProfileModal from '@/LWD-components/DriverProfileModal.vue'
 import ContactHubModal from '@/LWD-components/ContactHubModal.vue'
@@ -598,6 +603,7 @@ import L from 'leaflet'
 import { apiUrl } from '@/config/api'
 
 const store = useLogisticStore()
+const dispatcherStore = useDispatcherStore()
 const EMPTY_HUB = {
     id: 'all',
     hubCode: 'GLOBAL',
@@ -813,6 +819,44 @@ const currentHub = computed(() => {
         status: resolveNetworkStatus(hubs),
     }
 })
+
+const SUPPORT_DRIVER_STATUSES = new Set(['breakdown', 'deviation', 'delayed', 'suspended'])
+
+function getDriverSupportStatus(driver) {
+    if (!driver) return ''
+    const id = String(driver.id || '')
+    if (id && dispatcherStore.isDriverSuspended(id)) {
+        return 'suspended'
+    }
+    return String(driver.status || '').trim().toLowerCase()
+}
+
+function getDriverSupportTone(status) {
+    return ['breakdown', 'suspended'].includes(status) ? 'critical' : 'warning'
+}
+
+function formatDriverSupportStatus(status) {
+    if (!status) return 'Needs review'
+    return status
+        .split(/[\s_-]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ')
+}
+
+const driversNeedingSupport = computed(() => (
+    store.filteredDrivers
+        .filter((driver) => SUPPORT_DRIVER_STATUSES.has(getDriverSupportStatus(driver)))
+        .map((driver) => {
+            const supportStatus = getDriverSupportStatus(driver)
+            return {
+                ...driver,
+                supportStatus,
+                supportStatusLabel: formatDriverSupportStatus(supportStatus),
+                supportTone: getDriverSupportTone(supportStatus),
+            }
+        })
+))
 
 // --- KPI Card Computed ---
 const ordersTrend = computed(() => {
@@ -1042,6 +1086,8 @@ const chartOptions = computed(() => {
     if (activeTab.value === 'sla') {
         minBuild = 70;
         maxBuild = 100;
+    } else {
+        minBuild = 0;
     }
 
     return {

@@ -38,6 +38,10 @@
                 </div>
 
                 <div class="flex items-center gap-4">
+                    <div class="hidden sm:block">
+                        <HeaderWeather hub-id="1" />
+                    </div>
+
                     <!-- Search Bar Moved to Dashboard -->
 
                     <!-- Notifications -->
@@ -52,8 +56,6 @@
                     <!-- To-Do List -->
                     <HeaderTodo />
 
-                    <!-- Theme Toggle -->
-                    <ThemeToggle />
                 </div>
             </header>
 
@@ -86,10 +88,10 @@
 <script setup>
 import LogisticSidebar from '../LWD-components/LogisticSidebar.vue'
 import WarehouseSelectorModal from '@/LWD-components/WarehouseSelectorModal.vue'
+import HeaderWeather from '@/components/HeaderWeather.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'
 import HeaderTodo from '@/components/HeaderTodo.vue'
 import HeaderMeetingScheduler from '@/components/HeaderMeetingScheduler.vue'
-import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { RouterView, useRoute } from 'vue-router'
 import { computed, onBeforeUnmount, onMounted } from 'vue'
@@ -137,17 +139,28 @@ const globalPageTitle = computed(() => {
 </script>
 
 <style>
-.logistic-theme {
-    --logistic-surface-light: rgba(15, 23, 42, 0.72);
-    --logistic-surface-light-strong: rgba(15, 23, 42, 0.88);
+.logistic-theme,
+body.logistic-theme-portal {
+    --primary: #1ce783;
+    --primary-dark: #17c06d;
+    --logistic-surface-light: rgba(255, 255, 255, 0.92);
+    --logistic-surface-light-strong: rgba(255, 255, 255, 0.98);
     --logistic-surface-dark: rgba(15, 23, 42, 0.72);
     --logistic-surface-dark-strong: rgba(15, 23, 42, 0.88);
-    --logistic-border-light: rgba(148, 163, 184, 0.18);
+    --logistic-border-light: rgba(148, 163, 184, 0.22);
     --logistic-border-dark: rgba(148, 163, 184, 0.18);
+    --logistic-text-light: rgb(15 23 42);
+    --logistic-text-light-muted: rgb(100 116 139);
+    --logistic-text-dark: rgb(226 232 240);
+    --logistic-text-dark-muted: rgb(148 163 184);
 }
 
 :is(.logistic-theme, body.logistic-theme-portal) {
-    color: rgb(226 232 240);
+    color: var(--logistic-text-light);
+}
+
+.dark :is(.logistic-theme, body.logistic-theme-portal) {
+    color: var(--logistic-text-dark);
 }
 
 :is(.logistic-theme, body.logistic-theme-portal) :is(
@@ -217,7 +230,7 @@ const globalPageTitle = computed(() => {
     textarea
 ) {
     background-color: var(--logistic-surface-light-strong);
-    color: rgb(241 245 249);
+    color: var(--logistic-text-light);
     border-color: var(--logistic-border-light) !important;
 }
 
@@ -227,16 +240,16 @@ const globalPageTitle = computed(() => {
     textarea
 ) {
     background-color: var(--logistic-surface-dark-strong);
-    color: rgb(241 245 249);
+    color: var(--logistic-text-dark);
     border-color: var(--logistic-border-dark) !important;
 }
 
 :is(.logistic-theme, body.logistic-theme-portal) :is(input, textarea)::placeholder {
-    color: rgb(148 163 184);
+    color: var(--logistic-text-light-muted);
 }
 
 .dark :is(.logistic-theme, body.logistic-theme-portal) :is(input, textarea)::placeholder {
-    color: rgb(148 163 184);
+    color: var(--logistic-text-dark-muted);
 }
 
 :is(.logistic-theme, body.logistic-theme-portal) :is(
@@ -245,14 +258,30 @@ const globalPageTitle = computed(() => {
     .text-gray-700,
     .text-gray-600
 ) {
-    color: rgb(226 232 240) !important;
+    color: var(--logistic-text-light) !important;
+}
+
+.dark :is(.logistic-theme, body.logistic-theme-portal) :is(
+    .text-gray-900,
+    .text-gray-800,
+    .text-gray-700,
+    .text-gray-600
+) {
+    color: var(--logistic-text-dark) !important;
 }
 
 :is(.logistic-theme, body.logistic-theme-portal) :is(
     .text-gray-500,
     .text-gray-400
 ) {
-    color: rgb(148 163 184) !important;
+    color: var(--logistic-text-light-muted) !important;
+}
+
+.dark :is(.logistic-theme, body.logistic-theme-portal) :is(
+    .text-gray-500,
+    .text-gray-400
+) {
+    color: var(--logistic-text-dark-muted) !important;
 }
 
 :is(.logistic-theme, body.logistic-theme-portal) :is(
@@ -270,8 +299,20 @@ const globalPageTitle = computed(() => {
     .dark\:bg-white\/5,
     .dark\:bg-white\/10
 ) {
+    background-color: rgba(255, 255, 255, 0.94) !important;
+    color: var(--logistic-text-light) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+.dark :is(.logistic-theme, body.logistic-theme-portal) button:is(
+    .bg-white,
+    .bg-gray-50,
+    .bg-gray-100,
+    .dark\:bg-white\/5,
+    .dark\:bg-white\/10
+) {
     background-color: rgba(15, 23, 42, 0.82) !important;
-    color: rgb(241 245 249) !important;
+    color: var(--logistic-text-dark) !important;
     border-color: rgba(148, 163, 184, 0.18) !important;
 }
 
@@ -279,16 +320,16 @@ const globalPageTitle = computed(() => {
     .bg-primary,
     .dark\:bg-primary
 ) {
-    background-color: rgb(37 99 235) !important;
+    background-color: var(--primary) !important;
     color: rgb(255 255 255) !important;
-    border-color: rgba(59, 130, 246, 0.35) !important;
+    border-color: rgba(28, 231, 131, 0.35) !important;
 }
 
 :is(.logistic-theme, body.logistic-theme-portal) button:is(
     .hover\:bg-primary\/90,
     .dark\:hover\:bg-primary\/90
 ):hover {
-    background-color: rgb(29 78 216) !important;
+    background-color: var(--primary-dark) !important;
     color: rgb(255 255 255) !important;
 }
 
@@ -298,8 +339,19 @@ const globalPageTitle = computed(() => {
     .border-gray-200,
     .border-gray-300
 ):not(.bg-primary):not(.bg-blue-500):not(.bg-green-500):not(.bg-red-500):not(.bg-yellow-500) {
+    background-color: rgba(255, 255, 255, 0.94);
+    color: var(--logistic-text-light);
+    border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+.dark :is(.logistic-theme, body.logistic-theme-portal) button:is(
+    .border,
+    .border-gray-100,
+    .border-gray-200,
+    .border-gray-300
+):not(.bg-primary):not(.bg-blue-500):not(.bg-green-500):not(.bg-red-500):not(.bg-yellow-500) {
     background-color: rgba(15, 23, 42, 0.82);
-    color: rgb(241 245 249);
+    color: var(--logistic-text-dark);
     border-color: rgba(148, 163, 184, 0.18) !important;
 }
 
@@ -308,11 +360,24 @@ const globalPageTitle = computed(() => {
     .hover\:bg-gray-100,
     .hover\:bg-gray-200
 ):hover {
+    background-color: rgba(241, 245, 249, 0.98) !important;
+}
+
+.dark :is(.logistic-theme, body.logistic-theme-portal) button:is(
+    .hover\:bg-gray-50,
+    .hover\:bg-gray-100,
+    .hover\:bg-gray-200
+):hover {
     background-color: rgba(30, 41, 59, 0.92) !important;
 }
 
 :is(.logistic-theme, body.logistic-theme-portal) option {
+    background-color: rgb(255 255 255);
+    color: var(--logistic-text-light);
+}
+
+.dark :is(.logistic-theme, body.logistic-theme-portal) option {
     background-color: rgb(15 23 42);
-    color: rgb(241 245 249);
+    color: var(--logistic-text-dark);
 }
 </style>

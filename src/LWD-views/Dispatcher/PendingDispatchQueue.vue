@@ -1,12 +1,12 @@
 <template>
-    <div class="space-y-6">
+    <div class="space-y-6 min-w-0">
         <!-- Header -->
-        <div class="flex justify-between items-center">
-            <div>
+        <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div class="min-w-0">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Pending Dispatch Queue</h2>
                 <p class="text-sm text-gray-400 mt-1">Orders marked "Ready for Dispatch" by Warehouse Manager</p>
             </div>
-            <div class="flex gap-2 items-center">
+            <div class="flex flex-wrap items-center gap-2 xl:justify-end">
                 <div class="text-[10px] text-gray-500 text-right hidden sm:block">
                     <div>Auto-refreshes every 30s</div>
                     <div v-if="lastRefreshed" class="text-gray-400">Updated {{ lastRefreshed }}</div>
@@ -18,14 +18,6 @@
                 <button @click="runGlobalFeasibilityCheck"
                     class="bg-yellow-100 dark:bg-yellow-500/15 hover:bg-yellow-200 dark:hover:bg-yellow-500/25 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-500/30 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold">
                     <span class="material-symbols-outlined text-[18px]">verified</span> Feasibility Check
-                </button>
-                <button @click="openSlip('tripManifest')"
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">assignment</span> Manifest
-                </button>
-                <button @click="openSlip('assetCheckout')"
-                    class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">inventory_2</span> Asset Kit
                 </button>
                 <button @click="batchAssign" :disabled="selectedOrders.length === 0"
                     class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm disabled:opacity-40 disabled:cursor-not-allowed">
@@ -169,8 +161,8 @@
                                 </div>
                             </td>
                             <td class="p-4">
-                                <div class="text-gray-900 dark:text-white">{{ order.weight }} kg</div>
-                                <div class="text-[10px] text-gray-500">{{ order.volume }} m³</div>
+                                <div class="text-gray-900 dark:text-white">{{ formatOrderWeight(order) }}</div>
+                                <div class="text-[10px] text-gray-500">{{ formatOrderVolume(order) }}</div>
                             </td>
                             <td class="p-4">
                                 <div class="flex items-center gap-1" v-if="order.laborCount > 0">
@@ -270,14 +262,14 @@
                         <div class="grid grid-cols-3 gap-3 text-xs">
                             <div>
                                 <span class="text-gray-500 block">Weight</span>
-                                <span class="text-gray-900 dark:text-white">{{ feasCheckOrder?.weight }} / 2000 kg</span>
+                                <span class="text-gray-900 dark:text-white">{{ formatCapacityValue(feasCheckOrder?.weight, feasCheckOrder?.hasWeight, 2000, 'kg') }}</span>
                                 <div class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded mt-1">
                                     <div class="h-full rounded" :class="(feasCheckOrder?.weight / 2000 * 100) > 70 ? 'bg-yellow-500' : 'bg-green-500'" :style="{ width: Math.min(100, (feasCheckOrder?.weight / 2000) * 100) + '%' }"></div>
                                 </div>
                             </div>
                             <div>
                                 <span class="text-gray-500 block">Volume</span>
-                                <span class="text-gray-900 dark:text-white">{{ feasCheckOrder?.volume }} / 12 m³</span>
+                                <span class="text-gray-900 dark:text-white">{{ formatCapacityValue(feasCheckOrder?.volume, feasCheckOrder?.hasVolume, 12, 'm³') }}</span>
                                 <div class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded mt-1">
                                     <div class="h-full bg-green-500 rounded" :style="{ width: Math.min(100, (feasCheckOrder?.volume / 12) * 100) + '%' }"></div>
                                 </div>
@@ -391,19 +383,19 @@
                         </option>
                     </select>
                     <p v-if="assignDriversLoading" class="text-xs text-gray-400 mt-1">Loading drivers...</p>
-                    <p v-if="!assignDriversLoading && assignDrivers.length === 0" class="text-xs text-red-400 mt-1">No drivers available. Ask Logistic Manager to add drivers.</p>
+                    <p v-if="!assignDriversLoading && assignDrivers.length === 0" class="text-xs text-red-400 mt-1">No active drivers available. Drivers must start their shift in the driver app to appear here.</p>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         Vehicle
-                        <span v-if="assignConfirmOrder?.type === 'PARCEL_PICKUP'" class="text-orange-400 font-normal normal-case">(select for return pickup)</span>
+                        <span v-if="orderAllowsDirectVehicleSelection(assignConfirmOrder)" class="text-orange-400 font-normal normal-case">(dispatcher can select directly)</span>
                         <span v-else class="text-gray-400 font-normal normal-case">(assigned by warehouse)</span>
                     </label>
                     <p v-if="assignVehiclesLoading" class="text-xs text-gray-400 mt-1">Loading...</p>
                     <div v-else-if="assignVehicles.length > 0">
-                        <select v-model="assignVehicleId" :disabled="assignConfirmOrder?.type !== 'PARCEL_PICKUP'"
+                        <select v-model="assignVehicleId" :disabled="!orderAllowsDirectVehicleSelection(assignConfirmOrder)"
                             class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none"
-                            :class="assignConfirmOrder?.type !== 'PARCEL_PICKUP' ? 'opacity-70 cursor-not-allowed' : ''">
+                            :class="!orderAllowsDirectVehicleSelection(assignConfirmOrder) ? 'opacity-70 cursor-not-allowed' : ''">
                             <option value="" class="bg-white dark:bg-gray-800">— Select Vehicle —</option>
                             <option v-for="v in assignVehicles" :key="v.id" :value="v.id" class="bg-white dark:bg-gray-800">
                                 {{ v.code }} · {{ v.type }}{{ v.license_plate ? ' (' + v.license_plate + ')' : '' }}
@@ -411,9 +403,9 @@
                         </select>
                     </div>
                     <div v-else class="flex items-center gap-2 px-3 py-2 rounded-lg text-xs border"
-                        :class="assignConfirmOrder?.type === 'PARCEL_PICKUP' ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400'">
+                        :class="orderAllowsDirectVehicleSelection(assignConfirmOrder) ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400'">
                         <span class="material-symbols-outlined text-[14px]">warning</span>
-                        <span v-if="assignConfirmOrder?.type === 'PARCEL_PICKUP'">No available vehicles — all vehicles are currently busy</span>
+                        <span v-if="orderAllowsDirectVehicleSelection(assignConfirmOrder)">No available vehicles — all vehicles are currently busy</span>
                         <span v-else>Not yet assigned — Warehouse Manager must assign a vehicle via Loading Dock first</span>
                     </div>
                 </div>
@@ -445,7 +437,7 @@
             <div class="max-h-32 overflow-y-auto space-y-1 mb-4">
                 <div v-for="order in selectedOrders" :key="order.id" class="text-xs p-2 bg-gray-50 dark:bg-white/5 rounded-lg flex justify-between">
                     <span class="text-gray-900 dark:text-white font-bold">{{ order.id }}</span>
-                    <span class="text-gray-500">{{ order.weight }}kg • {{ order.priority }}</span>
+                    <span class="text-gray-500">{{ formatOrderWeight(order) }} • {{ order.priority }}</span>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -463,9 +455,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useDispatcherStore } from '@/stores/dispatcherStore'
 import { getStoredAccessToken } from '@/config/api'
-import { useSlipPrinter } from '@/composables/useSlipPrinter'
-
-const { openSlip } = useSlipPrinter()
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 function authHeaders() {
@@ -527,14 +516,154 @@ const batchToast = ref('')
 const warehouses = computed(() => store.hubs.map(h => h.name))
 
 const pendingOrders = ref([])
+const FEASIBILITY_STORAGE_KEY = 'cc_dispatcher_pending_queue_feasibility_v1'
 
-watch(() => store.pendingOrders, (list) => {
-    pendingOrders.value = list.map(o => ({ ...o, selected: false, feasibility: o.feasibility || 'unchecked' }))
-}, { immediate: true })
+function formatMetric(value, hasValue, unit) {
+    return hasValue ? `${value} ${unit}` : '—'
+}
+
+function formatOrderWeight(order) {
+    return formatMetric(order?.weight, order?.hasWeight, 'kg')
+}
+
+function formatOrderVolume(order) {
+    return formatMetric(order?.volume, order?.hasVolume, 'm³')
+}
+
+function formatCapacityValue(value, hasValue, capacity, unit) {
+    return hasValue ? `${value} / ${capacity} ${unit}` : `— / ${capacity} ${unit}`
+}
+
+function loadFeasibilityOverrides() {
+    if (typeof window === 'undefined') return {}
+    try {
+        const raw = window.localStorage.getItem(FEASIBILITY_STORAGE_KEY)
+        const parsed = raw ? JSON.parse(raw) : {}
+        return parsed && typeof parsed === 'object' ? parsed : {}
+    } catch (_) {
+        return {}
+    }
+}
+
+const feasibilityOverrides = ref(loadFeasibilityOverrides())
+
+function persistFeasibilityOverrides() {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(FEASIBILITY_STORAGE_KEY, JSON.stringify(feasibilityOverrides.value))
+}
+
+function saveFeasibilityOverride(orderId, feasibility, failReason = '') {
+    feasibilityOverrides.value = {
+        ...feasibilityOverrides.value,
+        [String(orderId)]: {
+            feasibility,
+            failReason,
+            updatedAt: new Date().toISOString(),
+        },
+    }
+    persistFeasibilityOverrides()
+}
+
+function clearFeasibilityOverride(orderId) {
+    const next = { ...feasibilityOverrides.value }
+    delete next[String(orderId)]
+    feasibilityOverrides.value = next
+    persistFeasibilityOverrides()
+}
+
+const availableDriversCount = computed(() => store.dispatcherDrivers.filter(driver => {
+    const status = String(driver.status || '').toLowerCase()
+    return !driver.suspended
+        && !driver.maintenance
+        && (driver.activeOrders?.length || 0) === 0
+        && ['active', 'idle', 'on break', 'on_break'].includes(status)
+}).length)
+
+function evaluateDispatchFeasibility(order) {
+    if (!order) return { feasibility: 'unchecked', failReason: '' }
+
+    if (order.warehouseSubstatus === 'ON_HOLD' || order.status === 'ON_HOLD') {
+        return { feasibility: 'infeasible', failReason: 'Warehouse hold' }
+    }
+
+    if (order.loadingInProgress || !order.readyForDispatch) {
+        return { feasibility: 'unchecked', failReason: '' }
+    }
+
+    if (!order.vehicleId) {
+        return { feasibility: 'infeasible', failReason: 'No vehicle' }
+    }
+
+    if (Number(order.weight || 0) > 2000) {
+        return { feasibility: 'infeasible', failReason: 'Overweight' }
+    }
+
+    if (Number(order.volume || 0) > 12) {
+        return { feasibility: 'infeasible', failReason: 'Over volume' }
+    }
+
+    if (availableDriversCount.value === 0) {
+        return { feasibility: 'infeasible', failReason: 'No driver' }
+    }
+
+    return { feasibility: 'feasible', failReason: '' }
+}
+
+function deriveFeasibility(order) {
+    if (!order) return { feasibility: 'unchecked', failReason: '' }
+
+    const manual = feasibilityOverrides.value[String(order.id)]
+    if (manual?.feasibility) {
+        return {
+            feasibility: manual.feasibility,
+            failReason: manual.failReason || '',
+        }
+    }
+
+    if (order.warehouseSubstatus === 'ON_HOLD' || order.status === 'ON_HOLD') {
+        return { feasibility: 'infeasible', failReason: 'Warehouse hold' }
+    }
+
+    if (order.feasibility && order.feasibility !== 'unchecked') {
+        return { feasibility: order.feasibility, failReason: order.failReason || '' }
+    }
+
+    if (order.loadingInProgress || !order.readyForDispatch) {
+        return { feasibility: 'unchecked', failReason: '' }
+    }
+
+    return { feasibility: 'unchecked', failReason: '' }
+}
+
+function hydratePendingOrders(list) {
+    const selectedIds = new Set(pendingOrders.value.filter(order => order.selected).map(order => order.id))
+    pendingOrders.value = list.map(order => {
+        const next = { ...order, selected: selectedIds.has(order.id) }
+        const feasibilityState = deriveFeasibility(next)
+        next.feasibility = feasibilityState.feasibility
+        next.failReason = feasibilityState.failReason
+        return next
+    })
+}
+
+function applyFeasibilityState(order, feasibility, failReason = '') {
+    if (!order) return
+    order.feasibility = feasibility
+    order.failReason = failReason
+    saveFeasibilityOverride(order.id, feasibility, failReason)
+}
+
+watch(
+    () => [store.pendingOrders, feasibilityOverrides.value],
+    ([list]) => {
+        hydratePendingOrders(list || [])
+    },
+    { immediate: true, deep: true }
+)
 
 const urgentCount = computed(() => pendingOrders.value.filter(o => o.priority === 'URGENT').length)
 const highCount = computed(() => pendingOrders.value.filter(o => o.priority === 'HIGH').length)
-const totalWeight = computed(() => pendingOrders.value.reduce((sum, o) => sum + o.weight, 0))
+const totalWeight = computed(() => pendingOrders.value.reduce((sum, o) => sum + Number(o.weight || 0), 0))
 const feasibleCount = computed(() => pendingOrders.value.filter(o => o.feasibility === 'feasible').length)
 const selectedOrders = computed(() => pendingOrders.value.filter(o => o.selected))
 const readyCount = computed(() => pendingOrders.value.filter(o => o.readyForDispatch).length)
@@ -553,6 +682,11 @@ const filteredOrders = computed(() => {
     // Ready-for-dispatch orders float to the top
     return [...list].sort((a, b) => (b.readyForDispatch ? 1 : 0) - (a.readyForDispatch ? 1 : 0))
 })
+
+function orderAllowsDirectVehicleSelection(order) {
+    const type = String(order?.type || '').toUpperCase()
+    return type === 'PARCEL_PICKUP' || type === 'SERVICE_MOVE'
+}
 
 function getPriorityClass(priority) {
     const map = {
@@ -580,6 +714,9 @@ function getTimeRemaining(deadline) {
 }
 
 function runFeasibilityCheck(order) {
+    const next = evaluateDispatchFeasibility(order)
+    order.feasibility = next.feasibility
+    order.failReason = next.failReason
     feasCheckOrder.value = order
     feasibilityToast.value = ''
     showFeasibilityModal.value = true
@@ -587,17 +724,18 @@ function runFeasibilityCheck(order) {
 
 function runGlobalFeasibilityCheck() {
     pendingOrders.value.forEach(o => {
-        if (o.feasibility === 'unchecked') {
-            o.feasibility = o.weight > 1000 ? 'infeasible' : 'feasible'
-            o.failReason = o.weight > 1000 ? 'Overweight' : ''
-        }
+        const next = evaluateDispatchFeasibility(o)
+        o.feasibility = next.feasibility
+        o.failReason = next.failReason
     })
 }
 
 function approveAndAssign() {
     if (feasCheckOrder.value) {
-        feasCheckOrder.value.feasibility = 'feasible'
-        feasCheckOrder.value.failReason = ''
+        clearFeasibilityOverride(feasCheckOrder.value.id)
+        const next = deriveFeasibility(feasCheckOrder.value)
+        feasCheckOrder.value.feasibility = next.feasibility
+        feasCheckOrder.value.failReason = next.failReason
         feasibilityToast.value = `✓ ${feasCheckOrder.value.id} — Assigned to next available driver`
         setTimeout(() => {
             const idx = pendingOrders.value.findIndex(o => o.id === feasCheckOrder.value.id)
@@ -609,6 +747,7 @@ function approveAndAssign() {
 
 function holdFeasOrder() {
     if (feasCheckOrder.value) {
+        applyFeasibilityState(feasCheckOrder.value, 'infeasible', 'On Hold')
         feasibilityToast.value = `⏸ ${feasCheckOrder.value.id} — Hold placed`
         setTimeout(() => { showFeasibilityModal.value = false }, 1000)
     }
@@ -649,9 +788,15 @@ async function assignDriver(order) {
         const transitOrders = tRes.ok ? await tRes.json() : []
         const activeOrders = [...(Array.isArray(assignedOrders) ? assignedOrders : assignedOrders.items || []), ...(Array.isArray(transitOrders) ? transitOrders : transitOrders.items || [])]
 
-        // Drivers already on an active order
+        // Drivers already on an active order OR suspended/off-duty
         const busyDriverIds = new Set(activeOrders.map(o => String(o.assigned_driver_id)).filter(Boolean))
-        assignDrivers.value = allDrivers.filter(d => !busyDriverIds.has(String(d.id)))
+        assignDrivers.value = allDrivers.filter(d => {
+            const status = (d.status || '').toLowerCase()
+            return !busyDriverIds.has(String(d.id)) &&
+                !store.isDriverSuspended(String(d.id)) &&
+                status !== 'suspended' &&
+                status !== 'off-duty'  // driver has ended their shift — not available
+        })
 
         // Vehicle already assigned to this order (set by warehouse at loading dock)
         const preAssignedVehicleId = assignConfirmOrder.value?.vehicleId
@@ -676,8 +821,8 @@ async function assignDriver(order) {
             const v = vehicleArr.find(v => String(v.id) === preAssignedVehicleId)
             dispatchable = v ? [v] : []
             assignVehicleId.value = preAssignedVehicleId
-        } else if (assignConfirmOrder.value?.type === 'PARCEL_PICKUP') {
-            // Return pickup — no loading dock process, dispatcher picks any free vehicle
+        } else if (orderAllowsDirectVehicleSelection(assignConfirmOrder.value)) {
+            // Service moves and return pickups can be dispatched directly by the dispatcher.
             dispatchable = vehicleArr.filter(v => !busyVehicleIds.has(String(v.id)) && !dockedVehicleIds.has(String(v.id)))
         } else {
             // No vehicle assigned by warehouse (small parcel / no loading dock) —
@@ -711,6 +856,7 @@ async function confirmAssign() {
         if (res.ok) {
             assignSuccess.value = `✓ Order assigned successfully`
             setTimeout(() => {
+                clearFeasibilityOverride(assignConfirmOrder.value.id)
                 const idx = pendingOrders.value.findIndex(o => o.id === assignConfirmOrder.value.id)
                 if (idx > -1) pendingOrders.value.splice(idx, 1)
                 showAssignConfirm.value = false
@@ -732,8 +878,7 @@ function escalateOrder(order) {
 }
 
 function holdOrder(order) {
-    order.feasibility = 'infeasible'
-    order.failReason = 'On Hold'
+    applyFeasibilityState(order, 'infeasible', 'On Hold')
 }
 
 function batchAssign() {
@@ -743,6 +888,7 @@ function batchAssign() {
 function confirmBatchAssign() {
     const count = selectedOrders.value.length
     const ids = selectedOrders.value.map(o => o.id)
+    ids.forEach(clearFeasibilityOverride)
     batchToast.value = `✓ ${count} order${count > 1 ? 's' : ''} dispatched successfully`
     setTimeout(() => {
         pendingOrders.value = pendingOrders.value.filter(o => !ids.includes(o.id))

@@ -16,7 +16,8 @@ export const useUiStore = defineStore('ui', () => {
 
     function showToast(message, type = 'info', duration = 3000) {
         if (toastTimer) clearTimeout(toastTimer)
-        toast.value = { id: Date.now(), message, type }
+        const safeMessage = typeof message === 'string' ? message : (message?.message || JSON.stringify(message) || 'Unknown error')
+        toast.value = { id: Date.now(), message: safeMessage, type }
 
         toastTimer = setTimeout(() => {
             toast.value = null

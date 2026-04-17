@@ -2,7 +2,7 @@
     <div class="space-y-6">
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Labor Management</h2>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap justify-end gap-2">
                 <button @click="showCreateModal = true"
                     class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
                     <span class="material-symbols-outlined">person_add</span>
@@ -11,21 +11,6 @@
                 <button @click="showAssignModal = true"
                     class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined">link</span> Assign to Order
-                </button>
-                <button @click="openSlip('laborAssignment')"
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
-                    <span class="material-symbols-outlined">engineering</span>
-                    Assignment Slip
-                </button>
-                <button @click="openSlip('salarySlip')"
-                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
-                    <span class="material-symbols-outlined">payments</span>
-                    Salary Slip
-                </button>
-                <button @click="showShiftModal = true"
-                    class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
-                    <span class="material-symbols-outlined">group_add</span>
-                    Manage Shifts
                 </button>
             </div>
         </div>
@@ -173,6 +158,11 @@
                                         title="Assign to Order">
                                         <span class="material-symbols-outlined text-[14px]">link</span>
                                     </button>
+                                    <button v-if="canPrintAssignmentSlip(staff)" @click="openAssignmentSlip(staff)"
+                                        class="bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-500 dark:text-indigo-300 px-2 py-1 rounded text-xs font-bold transition-colors"
+                                        title="Assignment Slip">
+                                        <span class="material-symbols-outlined text-[14px]">print</span>
+                                    </button>
                                     <button @click="openStaffDetail(staff)"
                                         class="text-gray-500 hover:text-gray-900 dark:text-white" title="More">
                                         <span class="material-symbols-outlined text-[16px]">more_horiz</span>
@@ -260,42 +250,6 @@
             </div>
         </Teleport>
 
-        <!-- Manage Shifts Modal -->
-        <Teleport to="body">
-            <div v-if="showShiftModal"
-                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                @click.self="showShiftModal = false">
-                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
-                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Manage Shifts</h3>
-                        <button @click="showShiftModal = false"
-                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                                class="material-symbols-outlined">close</span></button>
-                    </div>
-                    <div class="p-6 space-y-4">
-                        <div v-for="shift in shifts" :key="shift.name"
-                            class="p-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-lg flex justify-between items-center">
-                            <div>
-                                <div class="text-sm font-bold text-gray-900 dark:text-white">{{ shift.name }}</div>
-                                <div class="text-xs text-gray-500">{{ shift.time }} • {{ shift.staff }} staff</div>
-                            </div>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold"
-                                :class="shift.active ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'">{{
-                                    shift.active ? 'Active' : 'Inactive' }}</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button @click="showShiftModal = false; showToast('Morning shift extended by 1 hour')"
-                                class="bg-primary/20 hover:bg-primary/30 text-green-700 dark:text-primary py-2 rounded-lg text-sm font-bold transition-colors">Extend
-                                Morning Shift</button>
-                            <button @click="showShiftModal = false; showToast('Extra staff called for evening shift')"
-                                class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 py-2 rounded-lg text-sm font-bold transition-colors">Call
-                                Extra Staff</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
-
         <!-- Staff Detail Modal -->
         <Teleport to="body">
             <div v-if="showStaffDetail && selectedStaff"
@@ -343,6 +297,10 @@
                             </div>
                         </div>
                         <div class="flex gap-2">
+                            <button v-if="canPrintAssignmentSlip(selectedStaff)" @click="openAssignmentSlip(selectedStaff)"
+                                class="bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-600 dark:text-indigo-300 py-2 px-4 rounded-lg text-sm font-bold transition-colors">
+                                Assignment Slip
+                            </button>
                             <button v-if="selectedStaff.status !== 'Off Duty'" @click="setOffDuty(selectedStaff)"
                                 class="flex-1 bg-gray-500/20 hover:bg-gray-500/30 text-gray-600 dark:text-gray-400 py-2 rounded-lg text-sm font-bold transition-colors">Set
                                 Off Duty</button>
@@ -460,7 +418,6 @@ const searchQuery = ref('')
 const deptFilter = ref('')
 const statusFilter = ref('')
 const showAssignModal = ref(false)
-const showShiftModal = ref(false)
 const showStaffDetail = ref(false)
 const showCreateModal = ref(false)
 const assignTarget = ref(null)
@@ -501,13 +458,6 @@ function resetNewLabourerForm() {
         skills: []
     }
 }
-
-// Static shift config (shifts are scheduling config, not transactional)
-const shifts = ref([
-    { name: 'Morning Shift', time: '06:00 - 14:00', staff: 0, active: true },
-    { name: 'Afternoon Shift', time: '14:00 - 22:00', staff: 0, active: true },
-    { name: 'Night Shift', time: '22:00 - 06:00', staff: 0, active: false },
-])
 
 const staffList = ref([])
 
@@ -582,8 +532,6 @@ async function fetchLabourers() {
             }
         })
 
-        // Update shift staff counts
-        shifts.value[0].staff = staffList.value.filter(s => s.status !== 'Off Duty').length
     } catch (error) {
         console.error('Error fetching labourers:', error)
         showToast('Error loading staff data', 'error')
@@ -626,6 +574,15 @@ function openAssign(staff) {
     assignTarget.value = staff
     assignOrderId.value = ''
     showAssignModal.value = true
+}
+
+function canPrintAssignmentSlip(staff) {
+    return Boolean(staff?.orderId)
+}
+
+function openAssignmentSlip(staff) {
+    if (!canPrintAssignmentSlip(staff)) return
+    openSlip('laborAssignment')
 }
 
 async function assignWorker() {

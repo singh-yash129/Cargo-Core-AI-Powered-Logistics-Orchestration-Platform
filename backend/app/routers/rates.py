@@ -1,16 +1,23 @@
 """
 rates.py
-GET  /api/v1/rates  — public, returns current rate config
-PUT  /api/v1/rates  — LOGISTIC_MANAGER only, persists new config
+GET  /api/v1/rates                  — public, returns current rate config
+PUT  /api/v1/rates                  — LOGISTIC_MANAGER only, persists new config
+GET  /api/v1/rates/inventory-seeded — LM only, checks if packing materials exist in inventory
+POST /api/v1/rates/seed-inventory   — LM only, one-time seed packing materials to all warehouses
 """
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Annotated, Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import get_db
 from app.dependencies import require_role
+from app.models.inventory import InventoryItem
+from app.services.inventory_service import sync_packing_materials_to_inventory
 
 router = APIRouter(prefix="/api/v1/rates", tags=["Rates"])
 
@@ -26,11 +33,11 @@ _DEFAULTS: Dict[str, Any] = {
     "customerLaborRate": 250,       # ₹ per helper (vendor shipments)
     "customerPackingFee": 200,      # flat packing fee (vendor shipments)
     "insurancePct": 3,              # insurance as % of declared value
-    "materials": {
-        "box": 50,
-        "bubbleWrap": 20,
-        "crate": 200,
-    },
+    "materials": [
+        {"id": "box", "name": "Box", "rate": 50, "unit": "pcs"},
+        {"id": "bubbleWrap", "name": "Bubble Wrap", "rate": 20, "unit": "m"},
+        {"id": "crate", "name": "Crate Rental", "rate": 200, "unit": "pcs"},
+    ],
     # ── Individual / House-shift (used by BookMove → individualStore) ──────
     "individualBookingFee": 300,    # fixed base booking charge
     "individualLaborRate": 800,     # ₹ per helper (house-shift)
@@ -132,3 +139,47 @@ async def update_rates(payload: Dict[str, Any]) -> Dict[str, Any]:
             current[k] = v
     _save(current)
     return current
+
+
+@router.get(
+    "/inventory-seeded",
+    summary="Check if packing materials have been seeded to inventory (LOGISTIC_MANAGER only)",
+    dependencies=[Depends(require_role("LOGISTIC_MANAGER"))],
+)
+async def check_inventory_seeded(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Dict[str, Any]:
+    result = await db.execute(
+        select(func.count(InventoryItem.id)).where(
+            InventoryItem.category == "Packing Materials",
+            InventoryItem.sku.like("PKG-%"),
+        )
+    )
+    count = result.scalar_one()
+    return {"seeded": count > 0}
+
+
+@router.post(
+    "/seed-inventory",
+    summary="One-time seed packing materials from rate governance to all warehouse inventories (LOGISTIC_MANAGER only)",
+    dependencies=[Depends(require_role("LOGISTIC_MANAGER"))],
+)
+async def seed_inventory(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Dict[str, Any]:
+    # Guard: if already seeded, do nothing
+    count_result = await db.execute(
+        select(func.count(InventoryItem.id)).where(
+            InventoryItem.category == "Packing Materials",
+            InventoryItem.sku.like("PKG-%"),
+        )
+    )
+    if count_result.scalar_one() > 0:
+        return {"seeded": True, "already_done": True, "message": "Packing materials already exist in inventory"}
+
+    materials = _load().get("materials", [])
+    if not materials:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No materials defined in rate governance")
+
+    await sync_packing_materials_to_inventory(db, materials)
+    return {"seeded": True, "already_done": False, "message": f"Seeded {len(materials)} materials to all active warehouses"}

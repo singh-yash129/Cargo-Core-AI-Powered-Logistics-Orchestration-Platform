@@ -145,6 +145,7 @@ function normalizeRole(role) {
     .toUpperCase()
   if (normalized === 'LOGISTICS_MANAGER') return 'LOGISTIC_MANAGER'
   if (normalized === 'CUSTOMER') return 'INDIVIDUAL'
+  if (normalized === 'AI_AGENT' || normalized === 'CUSTOMER_SUPPORT') return 'AI_SUPPORT'
   return normalized
 }
 

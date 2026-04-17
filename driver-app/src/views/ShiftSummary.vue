@@ -117,12 +117,13 @@ onMounted(() => {
 async function endShift() {
     try {
         await api.endShift()
+        driverStore.logout()
+        uiStore.showToast('Shift ended. See you tomorrow!', 'success')
+        router.replace('/login')
     } catch (err) {
         console.error('Failed to end shift on backend:', err)
+        uiStore.showToast('Could not end shift — check your connection and try again.', 'error')
     }
-    driverStore.logout()
-    uiStore.showToast('Shift ended. See you tomorrow!', 'success')
-    router.replace('/login')
 }
 
 const routeLabel = computed(() => {

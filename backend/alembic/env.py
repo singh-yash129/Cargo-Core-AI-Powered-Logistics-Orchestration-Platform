@@ -18,6 +18,7 @@ import app.models.inventory  # noqa: F401
 import app.models.labour  # noqa: F401
 import app.models.logistics  # noqa: F401
 import app.models.payment  # noqa: F401
+import app.models.support_contact  # noqa: F401
 import app.models.vendor  # noqa: F401
 import app.models.wallet  # noqa: F401
 

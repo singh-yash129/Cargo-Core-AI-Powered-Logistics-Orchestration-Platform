@@ -11,6 +11,7 @@ from app.models.order import CustomerQuote as CustomerQuoteModel
 from app.models.order import DamageReport as DamageReportModel
 from app.models.order import Order
 from app.models.user import User
+from app.models.warehouse import Warehouse
 from app.schemas.auth import UserProfile
 from app.schemas.customer import (
     DamageReviewQueueItem,
@@ -401,15 +402,34 @@ async def get_customer_tracking(db: AsyncSession, user: User) -> CustomerTrackin
         ).all()
         qc_map = {row.order_id: row.checked_at for row in qc_rows}
 
+    warehouse_map: dict = {}
+    warehouse_ids = list({order.warehouse_id for order in orders if order.warehouse_id})
+    if warehouse_ids:
+        warehouse_rows = (
+            await db.execute(
+                select(Warehouse).where(Warehouse.id.in_(warehouse_ids))
+            )
+        ).scalars().all()
+        warehouse_map = {
+            warehouse.id: warehouse
+            for warehouse in warehouse_rows
+        }
+
     tracking_orders = []
     for order in orders:
         qc_checked_at = qc_map.get(order.id)
+        warehouse = warehouse_map.get(order.warehouse_id)
         tracking_orders.append(
             CustomerTrackingOrder(
                 id=order.id,
                 tracking_code=order.tracking_code,
                 status=order.status,
                 ui_status=_ui_status(order.status),
+                warehouse_id=warehouse.id if warehouse else order.warehouse_id,
+                warehouse_name=warehouse.name if warehouse else None,
+                warehouse_address=warehouse.address if warehouse else None,
+                warehouse_lat=warehouse.lat if warehouse else None,
+                warehouse_lng=warehouse.lng if warehouse else None,
                 warehouse_substatus=order.warehouse_substatus,
                 pickup_addr=order.pickup_addr,
                 delivery_addr=order.delivery_addr,
@@ -811,3 +831,15 @@ async def update_customer_settings(db: AsyncSession, user: User, settings: Custo
     await db.flush()
 
     return CustomerSettingsResponse(settings=settings)
+
+
+async def delete_customer_account(db: AsyncSession, user: User) -> None:
+    if user.role.name != "INDIVIDUAL":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account deletion is only available for individual users",
+        )
+
+    user.is_active = False
+    db.add(user)
+    await db.flush()

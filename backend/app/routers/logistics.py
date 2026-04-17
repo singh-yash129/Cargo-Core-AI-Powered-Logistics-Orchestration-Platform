@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -31,6 +31,8 @@ from app.schemas.logistics import (
     LogisticsDriverCreate,
     LogisticsDriverItem,
     LogisticsDriverUpdate,
+    LogisticsEscalationItem,
+    LogisticsEscalationStatusUpdate,
     LogisticsNotificationItem,
     LogisticsNotificationUpdate,
     LogisticsReturnCaseItem,
@@ -50,6 +52,14 @@ from app.schemas.logistics import (
     LogisticsDocumentItem,
     LogisticsDocumentCreate,
     LogisticsDocumentUpdateStatus,
+    LogisticsAlertItem,
+    LogisticsManifestCreate,
+    LogisticsManifestItem,
+    LogisticsManifestStatusUpdate,
+    LogisticsMeetingCreate,
+    LogisticsMeetingItem,
+    LogisticsMeetingParticipantItem,
+    LogisticsMeetingUpdate,
 )
 from app.services import logistics_service
 
@@ -62,6 +72,16 @@ async def bootstrap(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
 ):
     return await logistics_service.build_bootstrap(db)
+
+
+@router.put("/escalations/{escalation_id}", response_model=LogisticsEscalationItem)
+async def update_escalation_status(
+    escalation_id: UUID,
+    data: LogisticsEscalationStatusUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+):
+    return await logistics_service.update_escalation_status(db, escalation_id, data)
 
 
 @router.post("/ai/query", response_model=LogisticsAiQueryResponse)
@@ -110,8 +130,14 @@ async def update_driver(
     driver_id: UUID,
     data: LogisticsDriverUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+    user: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
 ):
+    if getattr(getattr(user, "role", None), "name", None) == "DISPATCHER":
+        dispatcher_only_fields = [data.current_location, data.current_job, data.warehouse_id, data.efficiency_score]
+        if any(value is not None for value in dispatcher_only_fields):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Dispatchers can only update driver suspension status")
+        if data.status not in {"Active", "Suspended"}:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Dispatcher driver status must be Active or Suspended")
     return await logistics_service.update_driver(db, driver_id, data)
 
 
@@ -200,6 +226,14 @@ async def create_zone(
     return await logistics_service.create_zone(db, data)
 
 
+@router.get("/zones", response_model=list[LogisticsZoneItem])
+async def list_zones(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.list_zones(db)
+
+
 @router.put("/zones/{zone_id}", response_model=LogisticsZoneItem)
 async def update_zone(
     zone_id: UUID,
@@ -271,6 +305,50 @@ async def delete_chat(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
 ):
     return await logistics_service.delete_chat_thread(db, thread_id)
+
+
+@router.get("/meetings", response_model=list[LogisticsMeetingItem])
+async def list_meetings(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.list_meetings(db, current_user)
+
+
+@router.get("/meeting-participants", response_model=list[LogisticsMeetingParticipantItem])
+async def list_meeting_participants(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.list_meeting_participants(db, current_user)
+
+
+@router.post("/meetings", response_model=LogisticsMeetingItem, status_code=status.HTTP_201_CREATED)
+async def create_meeting(
+    data: LogisticsMeetingCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.create_meeting(db, data, current_user)
+
+
+@router.put("/meetings/{meeting_id}", response_model=LogisticsMeetingItem)
+async def update_meeting(
+    meeting_id: UUID,
+    data: LogisticsMeetingUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.update_meeting(db, meeting_id, data, current_user)
+
+
+@router.delete("/meetings/{meeting_id}", response_model=MessageResponse)
+async def delete_meeting(
+    meeting_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.delete_meeting(db, meeting_id, current_user)
 
 
 @router.get("/tasks", response_model=list[LogisticsTaskItem])
@@ -346,16 +424,24 @@ async def clear_notifications(
 @router.post("/notifications/broadcast", response_model=MessageResponse)
 async def send_broadcast(
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
     payload: dict = Body(...),
 ):
     return await logistics_service.send_broadcast(db, payload)
 
 
+@router.get("/alerts", response_model=list[LogisticsAlertItem])
+async def list_alerts(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.list_alerts(db)
+
+
 @router.post("/alerts", response_model=dict)
 async def create_alert(
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
     payload: dict = Body(...),
 ):
     alert = await logistics_service.create_alert(db, payload)
@@ -366,9 +452,35 @@ async def create_alert(
 async def resolve_alert(
     alert_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
 ):
     return await logistics_service.resolve_alert(db, alert_id)
+
+
+@router.get("/manifests", response_model=list[LogisticsManifestItem])
+async def list_manifests(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.list_manifests(db)
+
+
+@router.post("/manifests", response_model=LogisticsManifestItem, status_code=status.HTTP_201_CREATED)
+async def create_manifest(
+    data: LogisticsManifestCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.create_manifest(db, data, created_by_id=user.id)
+
+
+@router.post("/manifests/{manifest_id}/push", response_model=LogisticsManifestItem)
+async def push_manifest(
+    manifest_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "DISPATCHER"))],
+):
+    return await logistics_service.push_manifest(db, manifest_id)
 
 
 @router.post("/documents", response_model=LogisticsDocumentItem, status_code=status.HTTP_201_CREATED)
@@ -528,12 +640,49 @@ async def send_dispatch_message(
     return await logistics_service.add_driver_dispatch_message(db, user, data)
 
 
+@router.get("/drivers/me/manager-thread", response_model=DriverDispatchThreadItem)
+async def get_manager_thread(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.get_driver_manager_thread(db, user)
+
+
+@router.post("/drivers/me/manager-thread/messages", response_model=DriverDispatchThreadItem)
+async def send_manager_message(
+    data: DriverDispatchMessageCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    return await logistics_service.add_driver_manager_message(db, user, data)
+
+
 @router.get("/drivers/me/audit", response_model=list[DriverAuditEventItem])
 async def get_driver_audit(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[object, Depends(require_role("DRIVER"))],
 ):
     return await logistics_service.get_driver_audit_log(db, user)
+
+
+@router.post("/drivers/me/crisis-alert", response_model=dict)
+async def send_driver_crisis_alert(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+    payload: dict = Body(...),
+):
+    """Send a crisis/SOS alert from driver - visible in dispatcher's crisis management"""
+    alert = await logistics_service.create_driver_crisis_alert(db, user, payload)
+    return {"message": "Crisis alert sent", "alert_id": str(alert.id)}
+
+
+@router.get("/drivers/me/notifications", response_model=list[LogisticsNotificationItem])
+async def get_driver_notifications(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[object, Depends(require_role("DRIVER"))],
+):
+    """Get notifications visible to the current driver (broadcasts sent to drivers)."""
+    return await logistics_service.get_notifications(db, user)
 
 
 @router.post("/drivers/me/cashout", response_model=dict)

@@ -2,6 +2,7 @@
 email.py
 Async email sender using Gmail SMTP (TLS on port 587).
 """
+from html import escape
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -11,7 +12,13 @@ from loguru import logger
 from app.config import get_settings
 
 
-async def send_email(to: str, subject: str, html_body: str) -> bool:
+async def send_email(
+    to: str,
+    subject: str,
+    html_body: str,
+    *,
+    reply_to: str | None = None,
+) -> bool:
     """Send an email via Gmail SMTP. Returns True on success."""
     settings = get_settings()
 
@@ -30,6 +37,8 @@ async def send_email(to: str, subject: str, html_body: str) -> bool:
         msg["Subject"] = subject
         msg["From"] = f"Cargo Core <{smtp_user}>"
         msg["To"] = to
+        if reply_to:
+            msg["Reply-To"] = reply_to.strip()
         msg.attach(MIMEText(html_body, "html"))
 
         with smtplib.SMTP(smtp_host, settings.smtp_port) as server:
@@ -43,6 +52,69 @@ async def send_email(to: str, subject: str, html_body: str) -> bool:
     except Exception as e:
         logger.error(f"[EMAIL] Failed to send email to {to}: {e}")
         return False
+
+
+def support_contact_reply_email_html(
+    *,
+    customer_name: str,
+    reference_code: str,
+    original_subject: str,
+    reply_message: str,
+    support_agent_name: str,
+) -> str:
+    safe_name = escape(customer_name or "there")
+    safe_reference = escape(reference_code)
+    safe_subject = escape(original_subject)
+    safe_agent_name = escape(support_agent_name)
+    safe_reply_message = escape(reply_message).replace("\n", "<br>")
+
+    return f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Support Reply - Cargo Core</title>
+    </head>
+    <body style="margin:0;padding:0;background:#0F1419;font-family:Arial,sans-serif;">
+        <table role="presentation" style="width:100%;border-collapse:collapse;padding:32px 16px;">
+            <tr>
+                <td align="center">
+                    <table role="presentation" style="width:100%;max-width:620px;background:#111827;border-radius:18px;overflow:hidden;">
+                        <tr>
+                            <td style="padding:32px;background:linear-gradient(135deg,#1E3A8A 0%,#00C4FF 100%);color:#ffffff;text-align:center;">
+                                <h1 style="margin:0;font-size:30px;">Cargo Core</h1>
+                                <p style="margin:8px 0 0 0;font-size:14px;opacity:0.92;">Support Team Reply</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:36px 32px;color:#E5E7EB;">
+                                <p style="margin:0 0 14px 0;font-size:16px;">Hi {safe_name},</p>
+                                <p style="margin:0 0 20px 0;font-size:15px;line-height:1.6;">
+                                    We reviewed your contact request <strong>{safe_reference}</strong>
+                                    regarding <strong>{safe_subject}</strong>.
+                                </p>
+                                <div style="margin:0 0 22px 0;padding:20px;border:1px solid rgba(0,196,255,0.35);border-radius:14px;background:#0B1220;">
+                                    <div style="font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#93C5FD;margin-bottom:12px;">Reply from Support</div>
+                                    <div style="font-size:15px;line-height:1.7;color:#F9FAFB;">{safe_reply_message}</div>
+                                </div>
+                                <p style="margin:0 0 10px 0;font-size:14px;line-height:1.6;color:#CBD5E1;">
+                                    Regards,<br>
+                                    {safe_agent_name}<br>
+                                    Cargo Core Support
+                                </p>
+                                <p style="margin:18px 0 0 0;font-size:12px;line-height:1.6;color:#94A3B8;">
+                                    This email was sent in response to your website contact form submission.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
 
 
 def delivery_otp_email_html(otp: str, customer_name: str, tracking_code: str, delivery_address: str) -> str:

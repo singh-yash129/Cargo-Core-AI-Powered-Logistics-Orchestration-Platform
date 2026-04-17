@@ -62,7 +62,8 @@ export const useJobStore = defineStore('job', () => {
             ARRIVE_DEST: ['UNLOADING_INVENTORY'],
             UNLOADING_INVENTORY: ['FINAL_CHECKLIST'],
             FINAL_CHECKLIST: ['POC_CAPTURE'],
-            POC_CAPTURE: ['COMPLETED'],
+            POC_CAPTURE: ['PACKING_RETURN'],
+            PACKING_RETURN: ['COMPLETED'],
             COMPLETED: []
         }
     }
@@ -542,7 +543,8 @@ export const useJobStore = defineStore('job', () => {
 
     function mapOrderTypeToJobType(orderType) {
         const signal = String(orderType || '').toLowerCase()
-        if (['house', 'shift', 'move', 'moving', 'relocation', 'furniture'].some(token => signal.includes(token))) {
+        if (['house', 'shift', 'move', 'moving', 'relocation', 'furniture',
+             'luggage', 'household', 'mixed'].some(token => signal.includes(token))) {
             return 'HOUSE_SHIFT'
         }
         if (['pickup', 'return', 'reverse', 'collection'].some(token => signal.includes(token))) {
@@ -656,13 +658,33 @@ export const useJobStore = defineStore('job', () => {
         }]
     }
 
+    // Cargo types that belong to the "Small Package / Parcel" booking mode.
+    // Everything else under INDIVIDUAL order_type is a house shift / goods move.
+    const SMALL_PACKAGE_CARGO_TYPES = new Set([
+        'document', 'fragile item', 'soft item', 'hard item',
+    ])
+
     function mapOrderToJob(order, dashboard) {
-        const jobType = mapOrderTypeToJobType([
-            order.order_type,
-            order.cargo_type,
-            order.vehicle_type,
-            order.service_time_block,
-        ].filter(Boolean).join(' '))
+        const rawOrderType = String(order.order_type || '').toUpperCase()
+        const rawCargoType = String(order.cargo_type || '').toLowerCase().trim()
+
+        let jobType
+        if (rawOrderType === 'SERVICE_MOVE') {
+            // SERVICE_MOVE is always a goods move
+            jobType = 'HOUSE_SHIFT'
+        } else if (rawOrderType === 'INDIVIDUAL') {
+            // For INDIVIDUAL orders the cargo_type tells us which booking mode was used:
+            // Small Package mode uses: Document / Fragile Item / Soft Item / Hard Item
+            // House Shift mode uses everything else (Household Goods, Furniture, Luggage/Boxes, etc.)
+            jobType = SMALL_PACKAGE_CARGO_TYPES.has(rawCargoType) ? 'PARCEL_DELIVERY' : 'HOUSE_SHIFT'
+        } else {
+            jobType = mapOrderTypeToJobType([
+                order.order_type,
+                order.cargo_type,
+                order.vehicle_type,
+                order.service_time_block,
+            ].filter(Boolean).join(' '))
+        }
         const vehicleId = order.assigned_vehicle_code?.split(' · ')[0]
             || dashboard?.current_vehicle?.vehicleId
             || null
@@ -741,8 +763,8 @@ export const useJobStore = defineStore('job', () => {
             customerName: order.customer_name || 'Customer',
             pickupAddr: order.pickup_addr || '',
             deliveryAddr: order.delivery_addr || order.destination_addr || '',
-            weight: order.weight || order.total_weight || 0,
-            volume: order.volume || order.total_volume || 0,
+            weight: order.cargo_weight_kg || order.weight || order.total_weight || 0,
+            volume: order.cargo_volume_m3 || order.volume || order.total_volume || 0,
             deadline: order.delivery_deadline || order.scheduled_at,
             stops: parseOrderStops(order, jobType),
             warehouseId: order.warehouse_id || null,

@@ -87,24 +87,24 @@
                         <span class="material-symbols-outlined animate-spin mr-2">progress_activity</span> Connecting...
                     </div>
                     <div v-for="msg in chatMessages" :key="msg.id" class="flex gap-2 max-w-[85%]"
-                        :class="msg.sender === 'dispatch' ? 'self-end flex-row-reverse' : 'items-end'">
+                        :class="isManagerOutgoing(msg) ? 'self-end flex-row-reverse' : 'items-end'">
 
                         <!-- Avatar (only for driver) -->
-                        <div v-if="msg.sender === 'driver'"
+                        <div v-if="!isManagerOutgoing(msg)"
                             class="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white mt-auto"
                             :class="driver.avatarColor || 'bg-gray-700'">
                             {{ driver.name.charAt(0) }}
                         </div>
 
                         <!-- Message Bubble -->
-                        <div class="p-3 text-sm" :class="[
-                            msg.sender === 'dispatch'
-                                ? 'bg-primary text-white rounded-2xl rounded-tr-sm'
-                                : 'bg-gray-100 dark:bg-white/5 text-gray-800 dark:text-gray-200 rounded-2xl rounded-tl-sm'
+                        <div class="p-3 text-sm break-words whitespace-pre-wrap border shadow-sm" :class="[
+                            isManagerOutgoing(msg)
+                                ? 'bg-emerald-600 border-emerald-500 text-white rounded-2xl rounded-tr-sm'
+                                : 'bg-slate-800 border-slate-700 text-slate-100 rounded-2xl rounded-tl-sm'
                         ]">
                             {{ msg.text }}
                             <div class="text-[9px] mt-1"
-                                :class="msg.sender === 'dispatch' ? 'text-white/70 text-right' : 'text-gray-400'">
+                                :class="isManagerOutgoing(msg) ? 'text-emerald-100/80 text-right' : 'text-slate-400'">
                                 {{ msg.time }}
                             </div>
                         </div>
@@ -114,11 +114,13 @@
                 <div class="pt-4 border-t border-gray-200 dark:border-white/10">
                     <div class="relative">
                         <input type="text" v-model="newMessage" @keyup.enter="sendMessage"
+                            :disabled="chatLoading || chatSending"
                             placeholder="Type a message..."
                             class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full py-2.5 pl-4 pr-12 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
                         <button @click="sendMessage"
+                            :disabled="chatLoading || chatSending || !newMessage.trim()"
                             class="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-primary text-white hover:bg-primary-dark transition-colors"
-                            :class="{ 'opacity-50 cursor-not-allowed': !newMessage.trim() }">
+                            :class="{ 'opacity-50 cursor-not-allowed': chatLoading || chatSending || !newMessage.trim() }">
                             <span class="material-symbols-outlined text-[16px] ml-0.5">send</span>
                         </button>
                     </div>
@@ -132,6 +134,7 @@
 import { ref, computed, watch } from 'vue'
 import BaseModal from '../components/BaseModal.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
+import { useUiStore } from '@/stores/uiStore'
 
 const props = defineProps({
     isOpen: Boolean,
@@ -140,57 +143,109 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 const store = useLogisticStore()
+const uiStore = useUiStore()
 
 const activeView = ref('profile')
 const newMessage = ref('')
 const chatThreadId = ref(null)
 const chatLoading = ref(false)
+const chatSending = ref(false)
+const MANAGER_SENDERS = new Set(['me', 'manager', 'logistics manager'])
+
+const driverContext = computed(() => {
+    if (!props.driver) return null
+    const liveDriver = store.drivers.find((item) => (
+        String(item.id) === String(props.driver.id)
+        || String(item.name || '').trim().toLowerCase() === String(props.driver.name || '').trim().toLowerCase()
+    ))
+    if (!liveDriver) return props.driver
+    return {
+        ...liveDriver,
+        ...props.driver,
+        phone: props.driver.phone || liveDriver.phone || null,
+        hubId: props.driver.hubId || liveDriver.hubId || null,
+        warehouseId: props.driver.warehouseId || liveDriver.warehouseId || null,
+        avatarColor: props.driver.avatarColor || liveDriver.avatarColor || 'bg-gray-700',
+    }
+})
 
 const chatMessages = computed(() => {
     if (chatThreadId.value) {
         const thread = store.chats.find(c => c.id === chatThreadId.value)
         return thread?.messages || []
     }
-    return props.driver?.chatHistory || []
+    return []
 })
 
 const openChat = async () => {
     activeView.value = 'chat'
-    if (!props.driver || chatThreadId.value) return
-    const existing = store.chats.find(c =>
-        c.name === props.driver.name ||
-        (props.driver.phone && c.phone === props.driver.phone)
-    )
-    if (existing) {
-        chatThreadId.value = existing.id
-    } else {
-        chatLoading.value = true
-        try {
-            const created = await store.createChatThread(props.driver.name, props.driver.phone || null)
-            chatThreadId.value = String(created.id)
-        } catch {
-            // fallback to local chatHistory already handled by computed
-        } finally {
-            chatLoading.value = false
-        }
+    if (!driverContext.value || chatThreadId.value) return
+    chatLoading.value = true
+    try {
+        const thread = await store.ensureManagerDriverThread(driverContext.value)
+        chatThreadId.value = String(thread.id)
+    } finally {
+        chatLoading.value = false
     }
 }
 
 const sendMessage = async () => {
-    if (!newMessage.value.trim()) return
-    const text = newMessage.value
-    newMessage.value = ''
-    if (chatThreadId.value) {
+    const text = newMessage.value.trim()
+    if (!text || chatSending.value) return
+
+    chatSending.value = true
+    let optimisticMessageId = null
+    try {
+        if (!chatThreadId.value && driverContext.value) {
+            chatLoading.value = true
+            const thread = await store.ensureManagerDriverThread(driverContext.value)
+            chatThreadId.value = String(thread.id)
+            chatLoading.value = false
+        }
+        if (!chatThreadId.value) return
+
+        const thread = store.chats.find((item) => item.id === chatThreadId.value)
+        if (thread) {
+            optimisticMessageId = `pending-${Date.now()}`
+            const optimisticTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            thread.messages.push({
+                id: optimisticMessageId,
+                text,
+                sender: 'me',
+                time: optimisticTime,
+            })
+            thread.lastMessage = text
+            thread.time = 'Just now'
+        }
+
+        newMessage.value = ''
         await store.sendChatMessage(chatThreadId.value, text)
-    } else {
-        store.sendMessageToDriver(props.driver.id, text)
+    } catch (error) {
+        if (optimisticMessageId && chatThreadId.value) {
+            const thread = store.chats.find((item) => item.id === chatThreadId.value)
+            if (thread) {
+                thread.messages = thread.messages.filter((msg) => msg.id !== optimisticMessageId)
+            }
+        }
+        newMessage.value = text
+        uiStore.showToast?.(error?.message || 'Failed to send message', 'error', 2500)
+    } finally {
+        chatLoading.value = false
+        chatSending.value = false
     }
+}
+
+function isManagerOutgoing(msg) {
+    return MANAGER_SENDERS.has(String(msg?.sender || '').toLowerCase())
 }
 
 const handleClose = () => {
     setTimeout(() => {
         activeView.value = 'profile'
         chatThreadId.value = null
+        newMessage.value = ''
+        chatLoading.value = false
+        chatSending.value = false
     }, 300)
     emit('close')
 }
@@ -204,4 +259,26 @@ function getStatusClass(status) {
         default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
     }
 }
+
+watch(
+    () => [props.isOpen, driverContext.value?.id, driverContext.value?.name],
+    async ([isOpen]) => {
+        if (!isOpen) return
+        newMessage.value = ''
+        if (!driverContext.value) {
+            chatThreadId.value = null
+            return
+        }
+        chatLoading.value = true
+        try {
+            const thread = await store.ensureManagerDriverThread(driverContext.value)
+            chatThreadId.value = String(thread.id)
+        } catch (_) {
+            chatThreadId.value = null
+        } finally {
+            chatLoading.value = false
+        }
+    },
+    { immediate: true }
+)
 </script>

@@ -376,7 +376,7 @@ const availableVehicles = computed(() => {
             .filter(d => d.status === 'Occupied' && d.vehicleId && d.rawId !== assignDock.value?.rawId)
             .map(d => String(d.vehicleId))
     )
-    return fleetVehicles.value.filter(v => v.status === 'Active' && !assignedVehicleIds.has(String(v.id)))
+    return fleetVehicles.value.filter(v => (v.status === 'Active' || v.status === 'Available') && !assignedVehicleIds.has(String(v.id)))
 })
 
 const availableOrders = computed(() => {
@@ -598,17 +598,48 @@ function openSettingsModal(dock) {
     showSettingsModal.value = true
 }
 
-function saveSettings() {
-    if (settingsDock.value && settingsDock.value.status !== 'Occupied') {
-        settingsDock.value.status = settingsForm.status
-        settingsDock.value.statusClass = settingsForm.status === 'Maintenance' ? 'bg-red-500' : 'bg-green-500'
-        settingsDock.value.badgeClass = settingsForm.status === 'Maintenance' ? 'bg-red-500 text-white' : 'bg-green-500'
+async function saveSettings() {
+    if (!settingsDock.value || settingsDock.value.status === 'Occupied') {
+        showSettingsModal.value = false
+        return
     }
+    const warehouseId = getWarehouseId()
+    const dockRawId = settingsDock.value.rawId
+    if (warehouseId && dockRawId) {
+        const isMaintenance = settingsForm.status === 'Maintenance'
+        try {
+            const res = await fetch(
+                `http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/loading-docks/${dockRawId}/maintenance?is_maintenance=${isMaintenance}`,
+                { method: 'POST', headers: { 'Authorization': `Bearer ${authStore.authToken}` } }
+            )
+            if (!res.ok) throw new Error('API error')
+        } catch (e) {
+            showToast(`Failed to save dock settings`, 'error')
+            showSettingsModal.value = false
+            return
+        }
+    }
+    settingsDock.value.status = settingsForm.status
+    settingsDock.value.statusClass = settingsForm.status === 'Maintenance' ? 'bg-red-500' : 'bg-green-500'
+    settingsDock.value.badgeClass = settingsForm.status === 'Maintenance' ? 'bg-red-500 text-white' : 'bg-green-500'
     showSettingsModal.value = false
     showToast(`Dock ${settingsDock.value?.id} settings updated`)
 }
 
-function clearMaintenance(dock) {
+async function clearMaintenance(dock) {
+    const warehouseId = getWarehouseId()
+    if (warehouseId && dock.rawId) {
+        try {
+            const res = await fetch(
+                `http://localhost:8000/api/v1/warehouses/${warehouseId}/operations/loading-docks/${dock.rawId}/maintenance?is_maintenance=false`,
+                { method: 'POST', headers: { 'Authorization': `Bearer ${authStore.authToken}` } }
+            )
+            if (!res.ok) throw new Error('API error')
+        } catch (e) {
+            showToast(`Failed to clear maintenance`, 'error')
+            return
+        }
+    }
     dock.status = 'Free'
     dock.statusClass = 'bg-green-500'
     dock.badgeClass = 'bg-green-500'

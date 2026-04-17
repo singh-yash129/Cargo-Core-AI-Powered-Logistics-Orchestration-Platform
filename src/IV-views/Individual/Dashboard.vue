@@ -73,43 +73,6 @@
             </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-            <router-link to="/individual/book-move"
-                class="glass-panel p-4 md:p-6 rounded-xl hover:border-green-500/50 transition-all cursor-pointer group relative overflow-hidden">
-                <div class="absolute right-0 top-0 p-4 opacity-10"><span
-                        class="material-symbols-outlined text-6xl">local_shipping</span></div>
-                <div
-                    class="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center text-green-500 mb-4 group-hover:scale-110 transition-transform">
-                    <span class="material-symbols-outlined text-2xl">add_circle</span>
-                </div>
-                <h3 class="font-bold text-gray-900 dark:text-white text-lg">Book a Move</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">House shift or small package delivery.</p>
-            </router-link>
-            <router-link to="/individual/estimator"
-                class="glass-panel p-4 md:p-6 rounded-xl hover:border-purple-500/50 transition-all cursor-pointer group relative overflow-hidden">
-                <div class="absolute right-0 top-0 p-4 opacity-10"><span
-                        class="material-symbols-outlined text-6xl">photo_camera</span></div>
-                <div
-                    class="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-500 mb-4 group-hover:scale-110 transition-transform">
-                    <span class="material-symbols-outlined text-2xl">auto_awesome</span>
-                </div>
-                <h3 class="font-bold text-gray-900 dark:text-white text-lg">AI Estimator</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Upload a photo to get volume estimates.</p>
-            </router-link>
-            <router-link to="/individual/quotes"
-                class="glass-panel p-4 md:p-6 rounded-xl hover:border-blue-500/50 transition-all cursor-pointer group relative overflow-hidden">
-                <div class="absolute right-0 top-0 p-4 opacity-10"><span
-                        class="material-symbols-outlined text-6xl">request_quote</span></div>
-                <div
-                    class="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500 mb-4 group-hover:scale-110 transition-transform">
-                    <span class="material-symbols-outlined text-2xl">receipt_long</span>
-                </div>
-                <h3 class="font-bold text-gray-900 dark:text-white text-lg">Get Instant Quote</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Check prices for different vehicle types.</p>
-            </router-link>
-        </div>
-
         <!-- Active Moves Status -->
         <div v-if="activeMoves.length" class="space-y-6">
             <div v-for="move in activeMoves" :key="move.id" class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
@@ -195,20 +158,31 @@
                             </a>
                         </div>
 
-                        <!-- OTP Section -->
-                        <div
+                        <!-- OTP Section — only for Small Package / Parcel deliveries -->
+                        <div v-if="!move.isHouseShift && move.serviceOtp"
                             class="flex items-center justify-between bg-blue-50/50 dark:bg-blue-500/5 p-3 border border-blue-100 dark:border-blue-500/10 rounded-xl">
                             <div class="flex items-center gap-3">
                                 <span class="material-symbols-outlined text-blue-500">dialpad</span>
                                 <div class="text-sm">
-                                    <div class="text-gray-900 dark:text-blue-100 font-bold">Service START OTP</div>
-                                    <div class="text-[10px] text-gray-500 dark:text-blue-300/70 uppercase">Share this
-                                        with origin crew</div>
+                                    <div class="text-gray-900 dark:text-blue-100 font-bold">Delivery OTP</div>
+                                    <div class="text-[10px] text-gray-500 dark:text-blue-300/70 uppercase">Share with
+                                        the driver on delivery</div>
                                 </div>
                             </div>
                             <div
                                 class="font-mono text-2xl font-black text-blue-600 dark:text-blue-400 tracking-[0.25em] bg-white dark:bg-black/20 px-4 py-1.5 rounded-lg shadow-inner">
                                 {{ move.serviceOtp }}
+                            </div>
+                        </div>
+
+                        <!-- House Shift — sign-off reminder instead of OTP -->
+                        <div v-else-if="move.isHouseShift"
+                            class="flex items-center gap-3 bg-purple-50/50 dark:bg-purple-500/5 p-3 border border-purple-100 dark:border-purple-500/15 rounded-xl">
+                            <span class="material-symbols-outlined text-purple-500">draw</span>
+                            <div class="text-sm">
+                                <div class="text-gray-900 dark:text-purple-100 font-bold">Sign-off at Destination</div>
+                                <div class="text-[10px] text-gray-500 dark:text-purple-300/70 uppercase">Driver will ask
+                                    for your signature once unloading is complete</div>
                             </div>
                         </div>
 
@@ -407,15 +381,27 @@ ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Le
 
 const store = useIndividualStore()
 const lastRefreshTime = ref('')
-const walletBalance = ref(0)
+const walletBalance = computed(() => Number(store.walletBalance || 0))
 let autoRefreshInterval = null
 
 const apiDashboard = computed(() => store.dashboardSummary)
 const selectedMoveIdx = ref(0)
 
+// Cargo types from the "Small Package / Parcel" booking mode — these use OTP delivery
+const SMALL_PKG_CARGO_TYPES = new Set(['document', 'fragile item', 'soft item', 'hard item'])
+
+function isHouseShiftOrder(move) {
+    const orderType = String(move.order_type || '').toUpperCase()
+    const cargoType = String(move.cargo_type || '').toLowerCase().trim()
+    if (orderType === 'SERVICE_MOVE') return true
+    if (orderType === 'INDIVIDUAL') return !SMALL_PKG_CARGO_TYPES.has(cargoType)
+    return false
+}
+
 function mapMove(move) {
     if (!move) return null
     const driverName = move.driver?.name || 'Crew assignment pending'
+    const houseShift = isHouseShiftOrder(move)
     return {
         id: move.tracking_code,
         eta: move.eta_label,
@@ -424,11 +410,12 @@ function mapMove(move) {
         uiStatus: move.ui_status || move.status,
         vehicleType: move.vehicle_type,
         cargoType: move.cargo_type || 'Household Goods',
+        isHouseShift: houseShift,
         pickup: move.pickup_addr || '',
         destination: move.delivery_addr || '',
         laborCount: move.labor_count,
         serviceTimeBlock: move.service_time_block,
-        serviceOtp: move.service_otp,
+        serviceOtp: houseShift ? null : move.service_otp,
         cost: {
             base: Number(move.cost?.base || 0),
             vehicle: Number(move.cost?.vehicle || 0),
@@ -526,13 +513,7 @@ async function refreshDashboard() {
 }
 
 async function fetchWalletBalance() {
-    try {
-        const response = await apiClient.get('/api/v1/customer/wallet')
-        walletBalance.value = response.data.balance || 0
-    } catch (error) {
-        console.error('Failed to fetch wallet balance:', error)
-        walletBalance.value = 0
-    }
+    await store.fetchWalletBalance()
 }
 
 function updateRefreshTime() {

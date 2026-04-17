@@ -3,11 +3,7 @@
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Fleet & Drivers Overview</h2>
             <div class="flex gap-3">
-                <button @click="openSafetyChecklist"
-                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
-                    <span class="material-symbols-outlined text-sm">health_and_safety</span> Safety Checklist
-                </button>
-                <button @click="generateMaintenanceReport"
+<button @click="generateMaintenanceReport"
                     class="bg-slate-800 hover:bg-slate-700 text-white font-medium dark:bg-white/10 dark:hover:bg-white/15 dark:text-white border border-slate-700 dark:border-white/10 py-2 px-4 rounded-lg transition-colors shadow-sm flex items-center gap-2">
                     <span class="material-symbols-outlined text-sm">download</span> Maintenance Report
                 </button>
@@ -83,27 +79,54 @@
             <div class="glass-panel rounded-xl p-6 h-[500px] flex flex-col">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Driver Roster & Performance</h3>
                 <div class="space-y-4 overflow-y-auto pr-2 flex-grow custom-scrollbar">
-                    <div v-for="driver in searchedDrivers" :key="driver.id" @click="openDriverProfile(driver)"
-                        class="flex items-center gap-4 p-3 rounded-lg bg-gray-50 border border-transparent hover:border-primary/30 cursor-pointer dark:bg-white/5 dark:hover:bg-primary/20 transition-colors shadow-sm group">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm shrink-0"
-                            :class="driver.avatarColor">
-                            {{ driver.name.charAt(0) }}
+                    <div v-for="driver in searchedDrivers" :key="driver.id"
+                        class="flex items-center gap-4 p-3 rounded-lg border transition-colors shadow-sm"
+                        :class="driver.dispatcherSuspended
+                            ? 'bg-red-50 dark:bg-red-500/5 border-red-200 dark:border-red-500/20'
+                            : 'bg-gray-50 dark:bg-white/5 border-transparent'">
+                        <!-- Avatar with suspended ring -->
+                        <div class="relative shrink-0">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm"
+                                :class="driver.dispatcherSuspended ? 'bg-red-700 opacity-60' : driver.avatarColor">
+                                {{ driver.name.charAt(0) }}
+                            </div>
+                            <span v-if="driver.dispatcherSuspended"
+                                class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-white dark:border-gray-900 flex items-center justify-center"
+                                title="Suspended by Dispatcher">
+                                <span class="material-symbols-outlined text-white" style="font-size:8px">block</span>
+                            </span>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-900 dark:text-white font-bold text-sm truncate">{{ driver.name }}</span>
-                                <span class="text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ml-2 shrink-0"
-                                    :class="driver.status === 'active' ? 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400' : 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400'">
-                                    {{ driver.status }}
+                            <div class="flex justify-between items-center gap-2">
+                                <span class="font-bold text-sm truncate"
+                                    :class="driver.dispatcherSuspended ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-white'">
+                                    {{ driver.name }}
                                 </span>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <!-- Dispatcher suspended badge -->
+                                    <span v-if="driver.dispatcherSuspended"
+                                        class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400 border border-red-300 dark:border-red-500/30 flex items-center gap-1">
+                                        <span class="material-symbols-outlined" style="font-size:10px">block</span>
+                                        Suspended
+                                    </span>
+                                    <!-- Normal status badge -->
+                                    <span v-else class="text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                                        :class="driver.status === 'active' ? 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400' : 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400'">
+                                        {{ driver.status }}
+                                    </span>
+                                </div>
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
-                                <span class="font-medium text-green-600 dark:text-green-400">{{ driver.efficiency }}% eff.</span>
-                                <span v-if="driver.rating" class="text-yellow-500">★ {{ Number(driver.rating).toFixed(1) }}</span>
-                                <span class="text-gray-300 dark:text-gray-600">•</span>
-                                <span class="font-medium text-primary truncate">{{ store.hubs.find(h => h.id === driver.hubId)?.name || 'Main Hub' }}</span>
-                                <span class="text-gray-300 dark:text-gray-600">•</span>
-                                <span class="truncate">{{ driver.currentJob || 'Standby' }}</span>
+                            <div class="text-xs mt-0.5 flex items-center gap-2 flex-wrap"
+                                :class="driver.dispatcherSuspended ? 'text-red-400/70 dark:text-red-400/50' : 'text-gray-500 dark:text-gray-400'">
+                                <span v-if="driver.dispatcherSuspended" class="font-semibold text-red-500 dark:text-red-400/80">Blocked from dispatch</span>
+                                <template v-else>
+                                    <span class="font-medium text-green-600 dark:text-green-400">{{ driver.efficiency }}% eff.</span>
+                                    <span v-if="driver.rating" class="text-yellow-500">★ {{ Number(driver.rating).toFixed(1) }}</span>
+                                    <span class="text-gray-300 dark:text-gray-600">•</span>
+                                    <span class="font-medium text-primary truncate">{{ store.hubs.find(h => h.id === driver.hubId)?.name || 'Main Hub' }}</span>
+                                    <span class="text-gray-300 dark:text-gray-600">•</span>
+                                    <span class="truncate">{{ driver.currentJob || 'Standby' }}</span>
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -114,25 +137,49 @@
             <div class="glass-panel rounded-xl p-6 h-[500px] flex flex-col">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">Top Leaderboard</h3>
                 <div class="space-y-4 overflow-y-auto pr-2 flex-grow custom-scrollbar">
-                    <div v-for="driver in searchedTopDrivers" :key="driver.id" @click="openDriverProfile(driver)"
-                        class="flex items-center gap-4 p-3 rounded-lg bg-gray-50 border border-transparent hover:border-gray-200 dark:bg-white/5 dark:hover:bg-white/10 transition-colors shadow-sm cursor-pointer group">
-                        <img v-if="driver.avatar" :src="driver.avatar"
-                            class="w-10 h-10 rounded-full border border-gray-200 dark:border-white/10">
-                        <div v-else class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm shrink-0"
-                            :class="driver.avatarColor || 'bg-gray-600'">
-                            {{ (driver.name || '?').charAt(0) }}
-                        </div>
-                        <div class="flex-1">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-900 dark:text-white font-bold text-sm">{{ driver.name }}</span>
-                                <span
-                                    class="text-yellow-500 dark:text-yellow-400 font-bold text-sm bg-yellow-50 dark:bg-yellow-500/10 px-2 py-0.5 rounded-full border border-yellow-200 dark:border-yellow-500/20">★
-                                    {{ driver.rating }}</span>
+                    <div v-for="driver in searchedTopDrivers" :key="driver.id"
+                        class="flex items-center gap-4 p-3 rounded-lg border transition-colors shadow-sm"
+                        :class="driver.dispatcherSuspended
+                            ? 'bg-red-50 dark:bg-red-500/5 border-red-200 dark:border-red-500/20'
+                            : 'bg-gray-50 dark:bg-white/5 border-transparent'">
+                        <!-- Avatar -->
+                        <div class="relative shrink-0">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm"
+                                :class="driver.dispatcherSuspended ? 'bg-red-700 opacity-60' : (driver.avatarColor || 'bg-gray-600')">
+                                {{ (driver.name || '?').charAt(0) }}
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ driver.trips }} trips •
-                                <span class="font-medium"
-                                    :class="driver.ontime > 95 ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'">{{
-                                        driver.ontime }}% On-time</span>
+                            <span v-if="driver.dispatcherSuspended"
+                                class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-white dark:border-gray-900 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-white" style="font-size:8px">block</span>
+                            </span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-center gap-2">
+                                <span class="font-bold text-sm truncate"
+                                    :class="driver.dispatcherSuspended ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-white'">
+                                    {{ driver.name }}
+                                </span>
+                                <!-- Suspended overrides rating badge -->
+                                <span v-if="driver.dispatcherSuspended"
+                                    class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400 border border-red-300 dark:border-red-500/30 shrink-0 flex items-center gap-1">
+                                    <span class="material-symbols-outlined" style="font-size:10px">block</span>
+                                    Suspended
+                                </span>
+                                <span v-else
+                                    class="text-yellow-500 dark:text-yellow-400 font-bold text-sm bg-yellow-50 dark:bg-yellow-500/10 px-2 py-0.5 rounded-full border border-yellow-200 dark:border-yellow-500/20 shrink-0">
+                                    ★ {{ driver.rating }}
+                                </span>
+                            </div>
+                            <div class="text-xs mt-1"
+                                :class="driver.dispatcherSuspended ? 'text-red-400/70 dark:text-red-400/50' : 'text-gray-500 dark:text-gray-400'">
+                                <span v-if="driver.dispatcherSuspended" class="font-semibold text-red-500 dark:text-red-400/80">Blocked from dispatch</span>
+                                <template v-else>
+                                    {{ driver.trips }} trips •
+                                    <span class="font-medium"
+                                        :class="driver.ontime > 95 ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'">
+                                        {{ driver.ontime }}% On-time
+                                    </span>
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -229,29 +276,28 @@
                                 class="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer relative"
                                 @click="openVehicleProfile(store.filteredVehicles.find(v => v.id === issue.id), 'history')">
                                 <td class="py-3 px-2 text-gray-700 dark:text-white font-mono font-medium">
-                                    {{ issue.id }}<br />
+                                    {{ store.filteredVehicles.find(v => v.id === issue.id)?.code || store.filteredVehicles.find(v => v.id === issue.id)?.id || issue.id }}<br />
                                     <span class="text-[10px] text-gray-500">
                                         {{ store.filteredVehicles.find(v => v.id === issue.id)?.licensePlate || 'N/A' }}
                                     </span>
                                 </td>
                                 <td class="py-3 text-gray-600 dark:text-gray-300 font-medium">
-                                    {{ issue.issue }}<br/>
-                                    <span class="text-[10px] text-gray-400 font-normal">Reported: 2 days ago</span>
+                                    {{ issue.issue }}
                                 </td>
                                 <td class="py-3 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">
                                     {{ store.hubs.find(h => h.id === issue.hubId)?.name || 'Main Hub' }}
                                 </td>
                                 <td class="py-3 text-gray-600 dark:text-gray-300">
                                     <div class="font-medium text-gray-900 dark:text-white">
-                                        {{ store.filteredVehicles.find(v => v.id === issue.id)?.type || 'Heavy Truck' }}
+                                        {{ store.filteredVehicles.find(v => v.id === issue.id)?.type || '—' }}
                                     </div>
                                     <div class="text-[10px] text-gray-500">
-                                        {{ store.filteredVehicles.find(v => v.id === issue.id)?.model || 'Volvo FH16' }} 
-                                        ({{ store.filteredVehicles.find(v => v.id === issue.id)?.year || '2021' }})
+                                        {{ store.filteredVehicles.find(v => v.id === issue.id)?.model || '—' }}
+                                        <template v-if="store.filteredVehicles.find(v => v.id === issue.id)?.year">({{ store.filteredVehicles.find(v => v.id === issue.id)?.year }})</template>
                                     </div>
                                 </td>
                                 <td class="py-3 text-right text-gray-600 dark:text-gray-300 font-mono">
-                                    ₹{{ Math.floor(Math.random() * 500) + 150 }}.00
+                                    {{ maintenanceCost(issue.id) }}
                                 </td>
                                 <td class="py-3 text-right">
                                     <span
@@ -303,7 +349,7 @@
                     <div class="p-4 border-t border-gray-100 dark:border-white/5 mt-4">
                         <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">{{ logStats.trend.label }}</p>
                         <div class="w-full bg-gray-200 dark:bg-white/10 rounded-full h-2 mb-1">
-                            <div class="h-2 rounded-full" :class="`bg-${logStats.color}-500`" style="width: 75%"></div>
+                            <div class="h-2 rounded-full" :class="`bg-${logStats.color}-500`" :style="`width: ${logStats.trend.pct}%`"></div>
                         </div>
                         <div class="flex justify-between text-xs text-gray-500">
                             <span>{{ logStats.trend.value }}</span>
@@ -406,7 +452,7 @@
                                 <tr class="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer" @click="toggleDocExpand(vehicleId)">
                                     <td class="py-3 px-2 text-gray-900 dark:text-white font-mono font-medium flex items-center gap-2">
                                         <span class="material-symbols-outlined text-gray-400 text-sm transition-transform duration-200" :class="expandedDocs.includes(vehicleId) ? 'rotate-90' : ''">chevron_right</span>
-                                        {{ vehicleId }}
+                                        {{ docs[0]?.vehicleCode && docs[0].vehicleCode !== 'N/A' ? docs[0].vehicleCode : vehicleId }}
                                     </td>
                                     <td class="py-3 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">
                                         {{ store.hubs.find(h => h.id === docs[0]?.hubId)?.name || 'Main Hub' }}
@@ -452,7 +498,7 @@
                                                 </div>
                                                 <div class="flex items-center gap-4">
                                                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border"
-                                                        :class="doc.status === 'Active' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-500/10 dark:text-green-400' : (doc.status === 'Expiring Soon' ? 'bg-yellow-50 text-yellow-600 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400')">
+                                                        :class="doc.status === 'Active' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-500/10 dark:text-green-400' : (doc.status === 'Expiring Soon' ? 'bg-yellow-50 text-yellow-600 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400' : (doc.status === 'Pending Verification' ? 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400'))">
                                                         {{ doc.status }}
                                                     </span>
                                                     <button @click.stop="openDocModal(doc)" class="text-primary hover:text-primary/80 font-medium text-xs flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors">
@@ -550,7 +596,7 @@
                                                         <p class="text-xs font-medium" :class="new Date(doc.expiry) < new Date() ? 'text-red-500' : 'text-gray-900 dark:text-white'">{{ doc.expiry }}</p>
                                                     </div>
                                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border"
-                                                        :class="doc.status === 'Active' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-500/10 dark:text-green-400' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400'">
+                                                        :class="doc.status === 'Active' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-500/10 dark:text-green-400' : (doc.status === 'Expiring Soon' ? 'bg-yellow-50 text-yellow-600 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400' : (doc.status === 'Pending Verification' ? 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400'))">
                                                         {{ doc.status }}
                                                     </span>
                                                     <button @click.stop="openDocModal(doc)" class="text-primary hover:text-primary/80 font-medium text-xs flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors">
@@ -571,52 +617,7 @@
         <!-- Tab Content: Live Locations -->
         <div v-if="activeTab === 'Live Locations'" class="flex flex-col gap-4">
 
-            <!-- Live Map -->
-            <div class="glass-panel rounded-xl overflow-hidden border border-gray-200 dark:border-white/5 relative" style="height:420px;">
-                <!-- Status badge -->
-                <div class="absolute top-3 left-3 z-[401] pointer-events-none">
-                    <div class="bg-white/90 dark:bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-gray-900 dark:text-white text-xs font-bold flex items-center gap-2 border border-gray-200 dark:border-white/10 shadow-md">
-                        <span class="w-2 h-2 rounded-full animate-pulse" :class="fleetLoading ? 'bg-yellow-400' : wsConnected ? 'bg-green-500' : 'bg-yellow-400'"></span>
-                        {{ fleetLoading ? 'Fetching locations...' : `${liveDrivers.length} active driver${liveDrivers.length !== 1 ? 's' : ''} tracked` }}
-                        <span class="text-[10px] px-1.5 py-0.5 rounded font-mono" :class="wsConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'">{{ wsConnected ? 'WS' : 'POLL' }}</span>
-                    </div>
-                </div>
-                <!-- No data hint -->
-                <div v-if="!fleetLoading && liveDrivers.length === 0"
-                    class="absolute inset-0 flex items-center justify-center z-[402] pointer-events-none">
-                    <div class="bg-white/90 dark:bg-black/70 backdrop-blur-md px-6 py-4 rounded-xl border border-gray-200 dark:border-white/10 text-center shadow-lg">
-                        <span class="material-symbols-outlined text-gray-400 text-3xl block mb-2">location_off</span>
-                        <p class="text-sm font-bold text-gray-900 dark:text-white">No Active Drivers</p>
-                        <p class="text-xs text-gray-500 mt-1">GPS data will appear once drivers start their shift and send location.</p>
-                    </div>
-                </div>
-                <l-map ref="liveLocationsMap" :zoom="selectedFleetDriver ? 14 : 11" :center="fleetMapCenter" :use-global-leaflet="false" style="height:100%;width:100%;">
-                    <l-tile-layer
-                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                        layer-type="base"
-                        name="CartoDB Voyager"
-                    />
-                    <l-marker v-for="d in liveDrivers" :key="d.driver_id" :lat-lng="[d.latitude, d.longitude]">
-                        <l-popup>
-                            <div class="text-xs p-1">
-                                <div class="font-bold flex items-center gap-1 mb-1">
-                                    <span style="color:#22c55e;font-size:14px;" class="material-symbols-outlined">local_shipping</span>
-                                    {{ d.driver_name }}
-                                </div>
-                                <div class="text-gray-500 mb-0.5">Vehicle: <span class="font-medium text-gray-900">{{ d.vehicle_code || 'N/A' }}</span></div>
-                                <div class="text-gray-400 font-mono text-[10px]">{{ d.latitude?.toFixed(5) }}, {{ d.longitude?.toFixed(5) }}</div>
-                                <div class="text-gray-500 text-[10px] mt-1">Updated: {{ d.last_updated ? new Date(d.last_updated).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'}) : 'N/A' }}</div>
-                                <div class="text-[9px] uppercase font-bold px-1.5 py-0.5 inline-block rounded mt-1"
-                                    :style="d.status === 'in-transit' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#dcfce7;color:#15803d'">
-                                    {{ d.status }}
-                                </div>
-                            </div>
-                        </l-popup>
-                    </l-marker>
-                </l-map>
-            </div>
-
-            <!-- Driver List below map -->
+            <!-- Driver List -->
             <div class="glass-panel rounded-xl p-5 border border-gray-200 dark:border-white/5">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-bold text-gray-900 dark:text-white text-sm">Active Driver Locations</h3>
@@ -636,7 +637,9 @@
                         <div class="min-w-0 flex-1">
                             <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ d.driver_name }}</p>
                             <p class="text-[10px] text-gray-500">{{ d.vehicle_code || 'No vehicle' }}</p>
-                            <p class="text-[10px] font-mono text-primary">{{ d.latitude?.toFixed(4) }}, {{ d.longitude?.toFixed(4) }}</p>
+                            <p class="text-[10px] text-primary truncate">
+                                {{ liveDriverLocation(d) }}
+                            </p>
                         </div>
                         <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase flex-shrink-0"
                             :class="d.status === 'in-transit' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400'">
@@ -652,21 +655,21 @@
         <!-- Add/Edit Vehicle Modal -->
         <Teleport to="body">
             <div v-if="isVehicleModalOpen"
-                class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
                 @click.self="closeVehicleModal">
                 <div :class="vehicleModalMode === 'add' ? 'max-w-[800px]' : 'max-w-md'"
-                    class="bg-white dark:bg-card-dark w-full rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
+                    class="lm-vehicle-modal bg-slate-950/98 w-full rounded-2xl shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh] backdrop-blur-xl">
                     <div
-                        class="px-6 py-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-gray-50 dark:bg-white/5">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ vehicleModalMode === 'add' ? `Add
+                        class="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-slate-900/90">
+                        <h3 class="text-lg font-bold text-white">{{ vehicleModalMode === 'add' ? `Add
                             New Vehicle` : `Edit Vehicle` }}</h3>
                         <button @click="closeVehicleModal"
-                            class="text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors">
+                            class="text-gray-400 hover:text-white transition-colors">
                             <span class="material-symbols-outlined">close</span>
                         </button>
                     </div>
 
-                    <div class="p-6 overflow-y-auto" :class="vehicleModalMode === 'add' ? 'grid grid-cols-1 md:grid-cols-2 gap-8' : 'space-y-4'">
+                    <div class="p-6 overflow-y-auto bg-slate-950/95 text-slate-200" :class="vehicleModalMode === 'add' ? 'grid grid-cols-1 md:grid-cols-2 gap-8' : 'space-y-4'">
                         <!-- Left Column: Vehicle Details -->
                         <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
@@ -706,8 +709,8 @@
                         </div> <!-- End Left Column -->
 
                         <!-- Right Column: Required Documentation Section -->
-                        <div v-if="vehicleModalMode === 'add'" class="space-y-6 bg-gray-50/50 dark:bg-black/10 p-5 rounded-2xl border border-gray-200/50 dark:border-white/5">
-                            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Required Documents</h4>
+                        <div v-if="vehicleModalMode === 'add'" class="space-y-6 bg-slate-900/70 p-5 rounded-2xl border border-white/10">
+                            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Required Documents</h4>
                             
                             <!-- Insurance Policy -->
                             <div class="space-y-3">
@@ -717,11 +720,11 @@
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-xs font-medium text-gray-500 mb-1">Expiry Date</label>
+                                        <label class="block text-xs font-medium text-slate-300 mb-1">Expiry Date</label>
                                         <input type="date" v-model="vehicleFormData.insuranceExpiry" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm">
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-medium text-gray-500 mb-1">Policy Document</label>
+                                        <label class="block text-xs font-medium text-slate-300 mb-1">Policy Document</label>
                                         <label class="w-full flex items-center justify-center gap-2 cursor-pointer bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg px-3 py-2 text-xs font-bold text-primary transition-colors h-[38px]">
                                             <span class="material-symbols-outlined text-[16px]">cloud_upload</span>
                                             <span class="truncate">{{ vehicleFormData.insuranceFileName || 'Upload PDF/IMG' }}</span>
@@ -739,11 +742,11 @@
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-xs font-medium text-gray-500 mb-1">Expiry Date</label>
+                                        <label class="block text-xs font-medium text-slate-300 mb-1">Expiry Date</label>
                                         <input type="date" v-model="vehicleFormData.registrationExpiry" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm">
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-medium text-gray-500 mb-1">Registration Document</label>
+                                        <label class="block text-xs font-medium text-slate-300 mb-1">Registration Document</label>
                                         <label class="w-full flex items-center justify-center gap-2 cursor-pointer bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg px-3 py-2 text-xs font-bold text-primary transition-colors h-[38px]">
                                             <span class="material-symbols-outlined text-[16px]">cloud_upload</span>
                                             <span class="truncate">{{ vehicleFormData.registrationFileName || 'Upload PDF/IMG' }}</span>
@@ -756,7 +759,7 @@
                     </div>
 
                     <div
-                        class="px-6 py-4 border-t border-gray-200 dark:border-white/5 flex justify-end gap-3 bg-gray-50 dark:bg-white/5">
+                        class="px-6 py-4 border-t border-white/10 flex justify-end gap-3 bg-slate-900/90">
                         <button @click="closeVehicleModal"
                             class="px-4 py-2 rounded-lg font-medium text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 dark:bg-white/10 dark:border-white/10 dark:text-gray-200 dark:hover:bg-white/15 transition-colors shadow-sm">Cancel</button>
                         <button @click="submitVehicle" :disabled="isSubmitting"
@@ -769,126 +772,6 @@
             </div>
         </Teleport>
 
-
-        <!-- Driver Profile Modal with Chat -->
-        <Teleport to="body">
-            <div v-if="activeDriverProfile"
-                class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-                @click.self="closeDriverProfile">
-                <div
-                    class="bg-white dark:bg-card-dark w-full max-w-4xl rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col md:flex-row h-[600px]">
-                    <!-- Left: Profile Details -->
-                    <div class="w-full md:w-1/2 p-6 overflow-y-auto border-r border-gray-200 dark:border-white/10">
-                        <div class="flex items-center gap-4 mb-6">
-                            <!-- Image Avatar if available (Top Drivers) -->
-                            <img v-if="activeDriverProfile.avatar" 
-                                :src="activeDriverProfile.avatar" 
-                                class="w-16 h-16 rounded-full object-cover border-2 border-primary/20 shadow-sm">
-                            
-                            <!-- Initials Avatar fallback (Standard Drivers) -->
-                            <div v-else 
-                                class="w-16 h-16 rounded-full flex items-center justify-center font-bold text-white text-2xl shadow-sm"
-                                :class="activeDriverProfile.avatarColor || 'bg-blue-500'">
-                                {{ activeDriverProfile.name.charAt(0) }}
-                            </div>
-                            
-                            <div>
-                                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ activeDriverProfile.name
-                                }}</h3>
-                                <div class="text-sm text-gray-500">{{ activeDriverProfile.id }} • {{
-                                    activeDriverProfile.phone }}</div>
-                            </div>
-                            <!-- Status Toggle -->
-                            <div class="ml-auto">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-                                    :class="activeDriverProfile.status === 'active' ? 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400' : 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400'">
-                                    {{ activeDriverProfile.status }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div class="bg-gray-50 dark:bg-black/20 rounded-xl p-4">
-                                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Efficiency</p>
-                                <p class="text-xl font-bold text-gray-900 dark:text-white">{{
-                                    activeDriverProfile.efficiency }}%</p>
-                            </div>
-                            <div class="bg-gray-50 dark:bg-black/20 rounded-xl p-4">
-                                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Vehicle</p>
-                                <p class="text-sm font-bold text-gray-900 dark:text-white mt-1">{{
-                                    activeDriverProfile.vehicle }}</p>
-                            </div>
-                            <div class="col-span-2 bg-gray-50 dark:bg-black/20 rounded-xl p-4">
-                                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Current Job /
-                                    Location</p>
-                                <p class="text-sm font-bold text-gray-900 dark:text-white mt-1">{{
-                                    activeDriverProfile.currentJob }} • {{ activeDriverProfile.location }}</p>
-                            </div>
-                        </div>
-
-                        <!-- Dynamic performance metrics from store -->
-                        <h4 class="font-bold text-gray-900 dark:text-white mb-3">Performance History</h4>
-                        <div class="space-y-3">
-                            <div class="flex justify-between text-sm py-2 border-b border-gray-100 dark:border-white/5">
-                                <span class="text-gray-500">Lifetime Deliveries</span>
-                                <span class="font-bold text-gray-900 dark:text-white">
-                                    {{ driverStats(activeDriverProfile).trips != null ? driverStats(activeDriverProfile).trips.toLocaleString() : '—' }}
-                                </span>
-                            </div>
-                            <div class="flex justify-between text-sm py-2 border-b border-gray-100 dark:border-white/5">
-                                <span class="text-gray-500">Customer Rating</span>
-                                <span class="font-bold" :class="driverStats(activeDriverProfile).rating ? 'text-yellow-500' : 'text-gray-400'">
-                                    {{ driverStats(activeDriverProfile).rating != null ? '★ ' + driverStats(activeDriverProfile).rating : '—' }}
-                                </span>
-                            </div>
-                            <div class="flex justify-between text-sm py-2 border-b border-gray-100 dark:border-white/5">
-                                <span class="text-gray-500">On-Time Rate</span>
-                                <span class="font-bold" :class="driverStats(activeDriverProfile).ontime ? 'text-green-500' : 'text-gray-400'">
-                                    {{ driverStats(activeDriverProfile).ontime != null ? driverStats(activeDriverProfile).ontime + '%' : '—' }}
-                                </span>
-                            </div>
-                            <div class="flex justify-between text-sm py-2 border-b border-gray-100 dark:border-white/5">
-                                <span class="text-gray-500">Efficiency Score</span>
-                                <span class="font-bold" :class="activeDriverProfile.efficiency >= 90 ? 'text-green-500' : activeDriverProfile.efficiency >= 70 ? 'text-yellow-500' : activeDriverProfile.efficiency ? 'text-red-500' : 'text-gray-400'">
-                                    {{ activeDriverProfile.efficiency != null ? activeDriverProfile.efficiency + '%' : '—' }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right: Chat Interface -->
-                    <div class="w-full md:w-1/2 flex flex-col bg-gray-50 dark:bg-white/5">
-                        <div class="p-4 border-b border-gray-200 dark:border-white/5 bg-white dark:bg-transparent">
-                            <h4 class="font-bold text-gray-900 dark:text-white">Direct Comms (Dispatch)</h4>
-                        </div>
-
-                        <!-- Chat Bubbles -->
-                        <div class="flex-1 p-4 overflow-y-auto space-y-4">
-                            <div v-for="msg in activeDriverProfile.chatHistory" :key="msg.id" class="flex flex-col"
-                                :class="msg.sender === 'dispatch' ? 'items-end' : 'items-start'">
-                                <div class="max-w-[80%] rounded-2xl px-4 py-2 text-sm"
-                                    :class="msg.sender === 'dispatch' ? 'bg-primary text-white rounded-tr-sm' : 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white rounded-tl-sm'">
-                                    {{ msg.text }}
-                                </div>
-                                <span class="text-[10px] text-gray-500 mt-1">{{ msg.time }}</span>
-                            </div>
-                        </div>
-
-                        <!-- Chat Input -->
-                        <div
-                            class="p-4 bg-white dark:bg-transparent border-t border-gray-200 dark:border-white/5 flex gap-2">
-                            <input v-model="chatInput" @keyup.enter="sendChat" type="text"
-                                placeholder="Type a message to driver..."
-                                class="flex-1 bg-gray-100 dark:bg-black/20 border border-transparent focus:border-primary/50 rounded-full px-4 text-sm text-gray-900 dark:text-white outline-none">
-                            <button @click="sendChat"
-                                class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors">
-                                <span class="material-symbols-outlined text-[18px]">send</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
 
         <!-- Vehicle Profile Modal -->
         <Teleport to="body">
@@ -1174,6 +1057,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
+import { useAuthStore } from '@/stores/authStore'
 import { storeToRefs } from 'pinia'
 import { useSlipPrinter } from '@/composables/useSlipPrinter'
 import { apiUrl, API_BASE_URL } from '@/config/api'
@@ -1192,7 +1077,11 @@ L.Icon.Default.mergeOptions({
 const { openSlip, openSlipWithData } = useSlipPrinter()
 
 const store = useLogisticStore()
+const authStore = useAuthStore()
 const { filteredTopDrivers, filteredMaintenance, filteredVehicles } = storeToRefs(store)
+
+// Dispatcher store — shared reactive suspend state (same Pinia instance, no localStorage polling needed)
+const dispatcherStore = useDispatcherStore()
 
 // ── Live Tracking (WebSocket + REST fallback) ──────────────────────────────────
 const liveDrivers = ref([])
@@ -1209,6 +1098,21 @@ function buildWsUrl() {
     const token = localStorage.getItem('auth_token') || ''
     const wsBase = API_BASE_URL.replace(/^http/, 'ws')
     return `${wsBase}/ws/fleet?token=${encodeURIComponent(token)}`
+}
+
+function liveDriverLocation(d) {
+    // Try to get a human-readable location from the store driver record
+    const storeDriver = store.drivers.find(sd =>
+        String(sd.id) === String(d.driver_id) ||
+        String(sd.name || '').trim().toLowerCase() === String(d.driver_name || '').trim().toLowerCase()
+    )
+    if (storeDriver?.location) return storeDriver.location
+    const hub = store.hubs.find(h => h.id === storeDriver?.hubId)
+    if (hub?.name) return hub.name
+    if (d.last_updated) {
+        return 'Updated ' + new Date(d.last_updated).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    }
+    return 'Location updating…'
 }
 
 function applyLocationUpdate(msg) {
@@ -1408,22 +1312,45 @@ const shareFormData = ref({
 const activeDriverProfile = ref(null)
 const activeVehicleProfile = ref(null)
 const chatInput = ref('')
+const managerChatLoading = ref(false)
+const LM_SENDERS = new Set(['me', 'manager', 'logistics manager'])
 
-// Computed properties for Search & Grouping
+const activeDriverMessages = computed(() => {
+    const threadId = activeDriverProfile.value?.managerThreadId
+    if (!threadId) return []
+    const thread = store.chats.find(c => c.id === threadId)
+    return thread?.messages || []
+})
+
+const isDriverSuspendedInFleet = (driver) => {
+    const id = String(driver?.id || '')
+    const status = String(driver?.status || '').toLowerCase()
+    if (status === 'suspended') return true
+    if (id && dispatcherStore.isDriverSuspended(id)) return true
+    return store.drivers.some((item) =>
+        String(item.id) === id && String(item.status || '').toLowerCase() === 'suspended'
+    )
+}
+
+// ── Computed properties for Search & Grouping
 const searchedDrivers = computed(() => {
     const q = searchQuery.value.toLowerCase()
-    return store.filteredDrivers.filter(d => 
-        !q || 
-        d.name.toLowerCase().includes(q) || 
-        d.vehicle.toLowerCase().includes(q) || 
-        d.currentJob.toLowerCase().includes(q) ||
-        d.status.toLowerCase().includes(q)
-    )
+    return store.filteredDrivers
+        .filter(d =>
+            !q ||
+            d.name.toLowerCase().includes(q) ||
+            String(d.vehicle || '').toLowerCase().includes(q) ||
+            String(d.currentJob || '').toLowerCase().includes(q) ||
+            String(d.status || '').toLowerCase().includes(q)
+        )
+        .map(d => ({ ...d, dispatcherSuspended: isDriverSuspendedInFleet(d) }))
 })
 
 const searchedTopDrivers = computed(() => {
     const q = searchQuery.value.toLowerCase()
-    return filteredTopDrivers.value.filter(d => !q || d.name.toLowerCase().includes(q))
+    return filteredTopDrivers.value
+        .filter(d => !q || d.name.toLowerCase().includes(q))
+        .map(d => ({ ...d, dispatcherSuspended: isDriverSuspendedInFleet(d) }))
 })
 
 const searchedVehicles = computed(() => {
@@ -1468,52 +1395,60 @@ const logStats = computed(() => {
     if (activeLogType.value === 'Fuel Logs') {
         const totalVolume = logs.reduce((sum, log) => sum + (log.gallons || 0), 0)
         const avgPrice = totalVolume > 0 ? (totalCost / totalVolume).toFixed(2) : 0
+        const completedCount = logs.filter(l => l.status === 'Completed' || l.status === 'Verified').length
+        const trendPct = logs.length ? Math.round((completedCount / logs.length) * 100) : 0
         return {
             title: 'Fuel Consumption',
             icon: 'local_gas_station',
             color: 'orange',
             tiles: [
-                { label: 'Avg Price/Gal', value: `$${avgPrice}` },
-                { label: 'Total Volume', value: `${totalVolume.toLocaleString()} gal` }
+                { label: 'Avg Price/Gal', value: `₹${avgPrice}` },
+                { label: 'Total Volume', value: `${totalVolume.toLocaleString()} L` }
             ],
-            trend: { label: 'Efficiency Trend', value: '7.8 MPG (Avg)', target: '8.0' },
+            trend: { label: 'Verified Logs', value: `${completedCount} / ${logs.length}`, target: `${logs.length}`, pct: trendPct },
             totalCost
         }
     } else if (activeLogType.value === 'Service Logs') {
+        const completedCount = logs.filter(l => l.status === 'Completed').length
+        const trendPct = logs.length ? Math.round((completedCount / logs.length) * 100) : 0
         return {
             title: 'Service Metrics',
             icon: 'car_repair',
             color: 'blue',
             tiles: [
                 { label: 'Total Services', value: logs.length },
-                { label: 'Avg Cost', value: `$${logs.length ? (totalCost / logs.length).toFixed(0) : 0}` }
+                { label: 'Avg Cost', value: `₹${logs.length ? (totalCost / logs.length).toFixed(0) : 0}` }
             ],
-            trend: { label: 'Completion Rate', value: '98%', target: '100%' },
+            trend: { label: 'Completion Rate', value: `${completedCount} / ${logs.length}`, target: `${logs.length}`, pct: trendPct },
             totalCost
         }
     } else if (activeLogType.value === 'Maintenance Logs') {
+        const resolvedCount = logs.filter(l => l.status === 'Resolved').length
+        const trendPct = logs.length ? Math.round((resolvedCount / logs.length) * 100) : 0
         return {
             title: 'Maintenance Costs',
             icon: 'build',
             color: 'red',
             tiles: [
                 { label: 'Active Repairs', value: logs.filter(l => l.status !== 'Resolved').length },
-                { label: 'Avg Repair Cost', value: `$${logs.length ? (totalCost / logs.length).toFixed(0) : 0}` }
+                { label: 'Avg Repair Cost', value: `₹${logs.length ? (totalCost / logs.length).toFixed(0) : 0}` }
             ],
-            trend: { label: 'Downtime', value: '12 hrs', target: '< 24 hrs' },
+            trend: { label: 'Resolved', value: `${resolvedCount} / ${logs.length}`, target: `${logs.length}`, pct: trendPct },
             totalCost
         }
     } else {
+        const completedCount = logs.filter(l => l.status === 'Completed').length
+        const trendPct = logs.length ? Math.round((completedCount / logs.length) * 100) : 0
         return {
            title: 'Fleet Hygiene',
             icon: 'cleaning_services',
             color: 'teal',
             tiles: [
                 { label: 'Total Washes', value: logs.length },
-                { label: 'Avg Wash Cost', value: `$${logs.length ? (totalCost / logs.length).toFixed(0) : 0}` }
+                { label: 'Avg Wash Cost', value: `₹${logs.length ? (totalCost / logs.length).toFixed(0) : 0}` }
             ],
-            trend: { label: 'Clean Score', value: '4.8/5', target: '5.0' },
-            totalCost 
+            trend: { label: 'Completed', value: `${completedCount} / ${logs.length}`, target: `${logs.length}`, pct: trendPct },
+            totalCost
         }
     }
 })
@@ -1628,6 +1563,16 @@ const openSafetyChecklist = () => {
     } else {
         openSlip('vehicleSafetyChecklist')
     }
+}
+
+const openSafetyChecklistForVehicle = (vehicle) => {
+    const driver = store.filteredDrivers.find(d => d.vehicle === vehicle.code) || null
+    openSlipWithData('vehicleSafetyChecklist', driver, vehicle)
+}
+
+const openSafetyChecklistForDriver = (driver) => {
+    const vehicle = store.filteredVehicles.find(v => v.code === driver.vehicle) || null
+    openSlipWithData('vehicleSafetyChecklist', driver, vehicle)
 }
 
 const generateMaintenanceReport = () => {
@@ -1830,6 +1775,14 @@ const submitVehicle = async () => {
     }
 }
 
+// Get cost for a maintenance item from fleet logs
+const maintenanceCost = (vehicleId) => {
+    const vehicle = store.filteredVehicles.find(v => v.id === vehicleId)
+    if (!vehicle) return '—'
+    const log = (store.fleetLogs['Maintenance Logs'] || []).find(l => l.vehicleId === vehicle.code)
+    return log?.cost != null ? `₹${log.cost.toLocaleString()}` : '—'
+}
+
 // Helper: get performance stats from topDrivers list
 const driverStats = (driver) => {
     if (!driver) return {}
@@ -1842,29 +1795,87 @@ const driverStats = (driver) => {
 }
 
 // Profiles logic
-const openDriverProfile = (driver) => {
+const openDriverProfile = async (driver) => {
+    const dispatcherSuspended = isDriverSuspendedInFleet(driver)
     // Merge fields without injecting fake/static data
     activeDriverProfile.value = {
         ...driver,
+        dispatcherSuspended,
         id: driver.id || null,
         phone: driver.phone || null,
-        status: driver.status || 'active',
+        status: dispatcherSuspended ? 'Suspended' : (driver.status || 'active'),
         efficiency: driver.efficiency ?? null,
         vehicle: driver.vehicle || 'Company Fleet',
-        currentJob: driver.currentJob || 'On Route',
+        currentJob: dispatcherSuspended ? 'Blocked from dispatch' : (driver.currentJob || 'On Route'),
         location: driver.location || null,
         avatarColor: driver.avatarColor || 'bg-blue-600',
-        chatHistory: driver.chatHistory || []
+        managerThreadId: null,
+    }
+    managerChatLoading.value = true
+    try {
+        const thread = await store.ensureManagerDriverThread(activeDriverProfile.value)
+        activeDriverProfile.value = {
+            ...activeDriverProfile.value,
+            managerThreadId: String(thread.id),
+        }
+    } finally {
+        managerChatLoading.value = false
     }
 }
 const closeDriverProfile = () => {
     activeDriverProfile.value = null
     chatInput.value = ''
 }
-const sendChat = () => {
-    if (!chatInput.value.trim() || !activeDriverProfile.value) return
-    store.sendMessageToDriver(activeDriverProfile.value.id, chatInput.value)
+
+const forceEndDriverShift = async (driver) => {
+    // 1. Resolve warehouse coords to snap driver location back to hub
+    const hub = store.hubs.find(h => h.id === driver.hubId)
+    const warehouseLocation = (hub?.lat && hub?.lng) ? `${hub.lat},${hub.lng}` : null
+
+    // 2. Set driver Off-Duty + reset location to warehouse in one call
+    const updatePayload = { status: 'Off-Duty', current_job: null }
+    if (warehouseLocation) updatePayload.current_location = warehouseLocation
+
+    await fetch(`http://localhost:8000/api/v1/logistics/drivers/${driver.id}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${authStore.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatePayload),
+    }).catch(() => {})
+
+    // 3. Release the vehicle assigned to this driver
+    const byName = store.filteredVehicles.find(v => v.driver === driver.name)
+    if (byName) {
+        await store.updateVehicle(byName.id, { assigned_driver_id: null, status: 'Active' })
+    } else {
+        try {
+            const res = await fetch(`http://localhost:8000/api/v1/logistics/vehicles`, {
+                headers: { 'Authorization': `Bearer ${authStore.token}` }
+            })
+            if (res.ok) {
+                const list = await res.json()
+                const veh = (Array.isArray(list) ? list : list.items || [])
+                    .find(v => String(v.assigned_driver_id) === String(driver.id))
+                if (veh) await store.updateVehicle(veh.id, { assigned_driver_id: null, status: 'Active' })
+            }
+        } catch (_) { /* best-effort */ }
+    }
+
+    await store.refresh()
+
+    // 4. Update the open profile badge reactively
+    if (activeDriverProfile.value?.id === driver.id) {
+        activeDriverProfile.value = { ...activeDriverProfile.value, status: 'Off-Duty' }
+    }
+}
+const sendChat = async () => {
+    if (!chatInput.value.trim() || !activeDriverProfile.value?.managerThreadId) return
+    const text = chatInput.value.trim()
     chatInput.value = ''
+    await store.sendChatMessage(activeDriverProfile.value.managerThreadId, text)
+}
+
+const isLmOutgoing = (msg) => {
+    return LM_SENDERS.has(String(msg?.sender || '').toLowerCase())
 }
 
 const openVehicleProfile = (vehicle, viewMode = 'full') => {
@@ -1896,3 +1907,42 @@ const closeVehicleProfile = () => {
     activeVehicleProfile.value = null
 }
 </script>
+
+<style scoped>
+.lm-vehicle-modal {
+    color: #e2e8f0;
+}
+
+.lm-vehicle-modal :deep(label) {
+    color: #cbd5e1 !important;
+}
+
+.lm-vehicle-modal :deep(input),
+.lm-vehicle-modal :deep(select),
+.lm-vehicle-modal :deep(textarea) {
+    background-color: rgba(15, 23, 42, 0.92) !important;
+    color: #f8fafc !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color-scheme: dark;
+}
+
+.lm-vehicle-modal :deep(input::placeholder),
+.lm-vehicle-modal :deep(textarea::placeholder) {
+    color: #94a3b8 !important;
+}
+
+.lm-vehicle-modal :deep(option) {
+    background-color: rgb(15 23 42) !important;
+    color: #f8fafc !important;
+}
+
+.lm-vehicle-modal :deep(.text-gray-400),
+.lm-vehicle-modal :deep(.text-gray-500) {
+    color: #94a3b8 !important;
+}
+
+.lm-vehicle-modal :deep(input[type='date']::-webkit-calendar-picker-indicator) {
+    filter: invert(1);
+    opacity: 0.85;
+}
+</style>

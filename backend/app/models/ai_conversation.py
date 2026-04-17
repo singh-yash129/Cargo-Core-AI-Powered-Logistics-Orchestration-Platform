@@ -25,6 +25,12 @@ class AIConversation(Base):
         ForeignKey("users.id"),
         nullable=False,
     )
+    author_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
+        comment="Actual sender for human-agent messages; null for automated AI replies.",
+    )
     role: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -53,11 +59,13 @@ class AIConversation(Base):
     )
 
     # Relationships
-    user: Mapped["User"] = relationship("User")  # noqa: F821
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])  # noqa: F821
+    author_user: Mapped["User | None"] = relationship("User", foreign_keys=[author_user_id])  # noqa: F821
 
     __table_args__ = (
         Index("ix_ai_conversations_session_id", "session_id"),
         Index("ix_ai_conversations_user_id", "user_id"),
+        Index("ix_ai_conversations_author_user_id", "author_user_id"),
     )
 
     def __repr__(self) -> str:

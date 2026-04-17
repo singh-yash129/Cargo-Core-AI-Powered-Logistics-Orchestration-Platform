@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
+from app.schemas.auth import MessageResponse
+from app.schemas.logistics import LogisticsNotificationItem, LogisticsNotificationUpdate
 from app.schemas.customer import (
     CustomerDamageReport,
     CustomerDamageReportCreate,
@@ -19,8 +22,8 @@ from app.schemas.customer import (
     CustomerSettingsResponse,
     CustomerTrackingResponse,
 )
-from app.schemas.wallet import WalletSummary
-from app.services import customer_service, wallet_service
+from app.schemas.wallet import WalletSummary, WalletTopUpRequest, WalletTopUpResponse
+from app.services import customer_service, logistics_service, wallet_service
 
 router = APIRouter(prefix="/api/v1/customer", tags=["Customer"])
 
@@ -107,9 +110,82 @@ async def update_settings(
     return await customer_service.update_customer_settings(db, current_user, data)
 
 
+@router.delete("/account", response_model=MessageResponse)
+async def delete_account(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    await customer_service.delete_customer_account(db, current_user)
+    return MessageResponse(message="Account deleted successfully")
+
+
 @router.get("/wallet", response_model=WalletSummary)
 async def get_wallet(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     return await wallet_service.get_wallet_summary(db, current_user)
+
+
+@router.post("/wallet/top-up", response_model=WalletTopUpResponse)
+async def top_up_wallet(
+    data: WalletTopUpRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    result = await wallet_service.top_up_wallet(db, user=current_user, amount=data.amount)
+    await db.commit()
+    return result
+
+
+@router.post("/wallet/backfill-debits")
+async def backfill_wallet_debits(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """Backfill missing DEBIT entries for old wallet payments recorded via the wrong endpoint."""
+    created = await wallet_service.backfill_wallet_debits(db, current_user)
+    await db.commit()
+    return {"created": created}
+
+
+# ── Notification endpoints ────────────────────────────────────────────────────
+
+@router.get("/notifications", response_model=list[LogisticsNotificationItem])
+async def get_notifications(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await logistics_service.get_notifications(db, current_user)
+
+
+@router.put("/notifications/{notification_id}", response_model=LogisticsNotificationItem)
+async def update_notification(
+    notification_id: UUID,
+    data: LogisticsNotificationUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    result = await logistics_service.update_notification(db, notification_id, data, current_user)
+    await db.commit()
+    return result
+
+
+@router.post("/notifications/mark-all-read", response_model=MessageResponse)
+async def mark_all_notifications_read(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    result = await logistics_service.mark_all_notifications_read(db, current_user)
+    await db.commit()
+    return result
+
+
+@router.delete("/notifications", response_model=MessageResponse)
+async def clear_notifications(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    result = await logistics_service.clear_notifications(db, current_user)
+    await db.commit()
+    return result

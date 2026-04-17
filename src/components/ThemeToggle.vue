@@ -10,21 +10,31 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { applyThemePreference, initializeTheme } from '@/utils/theme'
 
-const isDark = ref(true)
-
-function applyTheme(value) {
-  isDark.value = value
-  document.documentElement.classList.toggle('dark', value)
-  localStorage.theme = value ? 'dark' : 'light'
-}
+const isDark = ref(false)
+let themeObserver = null
 
 function toggleTheme() {
-  applyTheme(!isDark.value)
+  isDark.value = applyThemePreference(isDark.value ? 'light' : 'dark') === 'dark'
 }
 
 onMounted(() => {
-  applyTheme(localStorage.theme !== 'light')
+  initializeTheme()
+  isDark.value = document.documentElement.classList.contains('dark')
+
+  themeObserver = new MutationObserver(() => {
+    isDark.value = document.documentElement.classList.contains('dark')
+  })
+
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class'],
+  })
+})
+
+onUnmounted(() => {
+  themeObserver?.disconnect()
 })
 </script>

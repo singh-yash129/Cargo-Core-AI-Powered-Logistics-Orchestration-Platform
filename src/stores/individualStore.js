@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { apiUrl } from '@/config/api'
 import { useRates } from '@/composables/useRates'
+import { buildPodData } from '@/utils/pod'
 
 let orderCounter = 3050
 
@@ -25,10 +26,23 @@ export const useIndividualStore = defineStore('individual', () => {
         joiningDate: authUser?.created_at || new Date().toISOString(),
         tier: 'Gold Member',
         address: authUser?.address || '',
-        language: 'English',
-        paymentDefault: 'Full Payment',
+        language: authUser?.preferred_language || 'en',
+        currency: authUser?.preferred_currency || 'INR',
+        paymentDefault: authUser?.default_payment_method || 'Full Payment',
         notificationsEnabled: true,
         smsAlerts: true,
+        notificationPrefs: {
+            push: true,
+            sms: true,
+            email: true,
+            geofence: true,
+            promo: false,
+        },
+        privacyPrefs: {
+            location: true,
+            analytics: true,
+            marketing: false,
+        },
     })
     const dashboardSummary = ref(null)
     // ─── AI Estimator Pre-fill ────────────────────────────────────
@@ -66,6 +80,96 @@ export const useIndividualStore = defineStore('individual', () => {
         user.value.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
     )
 
+    function normalizeLanguageSetting(value) {
+        const normalized = String(value || '').trim().toLowerCase()
+        const aliases = {
+            en: 'en',
+            english: 'en',
+            hi: 'hi',
+            hindi: 'hi',
+            ta: 'ta',
+            tamil: 'ta',
+            te: 'te',
+            telugu: 'te',
+            bn: 'bn',
+            bengali: 'bn',
+            mr: 'mr',
+            marathi: 'mr',
+        }
+        return aliases[normalized] || 'en'
+    }
+
+    function normalizeCurrencySetting(value) {
+        const normalized = String(value || '').trim().toUpperCase()
+        if (normalized.includes('USD')) return 'USD'
+        if (normalized.includes('EUR')) return 'EUR'
+        return 'INR'
+    }
+
+    function normalizePaymentSetting(value) {
+        const normalized = String(value || '').trim().toLowerCase()
+        if (normalized.includes('partial')) return 'Partial'
+        if (normalized.includes('cash') || normalized === 'cod') return 'COD'
+        return 'Full Payment'
+    }
+
+    function normalizeCustomerSettings(settings = {}) {
+        return {
+            language: normalizeLanguageSetting(settings.language),
+            currency: normalizeCurrencySetting(settings.currency),
+            default_payment: normalizePaymentSetting(settings.default_payment),
+            notification_prefs: {
+                push: settings.notification_prefs?.push ?? true,
+                sms: settings.notification_prefs?.sms ?? true,
+                email: settings.notification_prefs?.email ?? true,
+                geofence: settings.notification_prefs?.geofence ?? true,
+                promo: settings.notification_prefs?.promo ?? false,
+            },
+            privacy_prefs: {
+                location: settings.privacy_prefs?.location ?? true,
+                analytics: settings.privacy_prefs?.analytics ?? true,
+                marketing: settings.privacy_prefs?.marketing ?? false,
+            },
+        }
+    }
+
+    function syncStoredAuthUser(patch = {}) {
+        if (typeof window === 'undefined') return
+        const authData = JSON.parse(localStorage.getItem('auth_user') || 'null') || {}
+        localStorage.setItem('auth_user', JSON.stringify({
+            ...authData,
+            ...patch,
+        }))
+    }
+
+    function applyCustomerSettings(settings = {}) {
+        const normalized = normalizeCustomerSettings(settings)
+        user.value = {
+            ...user.value,
+            language: normalized.language,
+            currency: normalized.currency,
+            paymentDefault: normalized.default_payment,
+            notificationsEnabled: !!normalized.notification_prefs.push,
+            smsAlerts: !!normalized.notification_prefs.sms,
+            notificationPrefs: normalized.notification_prefs,
+            privacyPrefs: normalized.privacy_prefs,
+        }
+        syncStoredAuthUser({
+            preferred_language: normalized.language,
+            preferred_currency: normalized.currency,
+            default_payment_method: normalized.default_payment,
+            notifications_push: normalized.notification_prefs.push,
+            notifications_sms: normalized.notification_prefs.sms,
+            notifications_email: normalized.notification_prefs.email,
+            notifications_geofence: normalized.notification_prefs.geofence,
+            notifications_promo: normalized.notification_prefs.promo,
+            privacy_location: normalized.privacy_prefs.location,
+            privacy_analytics: normalized.privacy_prefs.analytics,
+            privacy_marketing: normalized.privacy_prefs.marketing,
+        })
+        return normalized
+    }
+
     // ─── Vehicle Fleet Catalog ──────────────────────────────────
     const vehicleTypes = ref([
         { key: 'mini-truck', name: 'Mini Truck', icon: 'local_shipping', capacity: '500 kg / 1 BHK', seats: 2, priceMultiplier: 1.0, desc: 'Ideal for small moves & packages' },
@@ -85,8 +189,33 @@ export const useIndividualStore = defineStore('individual', () => {
 
     const walletBalance = ref(0)
     const pendingTransportCharge = ref(0)
-    function addFunds(amount) {
-        if (amount > 0) walletBalance.value += amount
+    async function addFunds(amount) {
+        const topUpAmount = Number(amount || 0)
+        if (!(topUpAmount > 0)) return false
+
+        try {
+            const token = localStorage.getItem('auth_token')
+            const res = await fetch(apiUrl('api/v1/customer/wallet/top-up'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ amount: topUpAmount }),
+            })
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}))
+                throw new Error(err.detail || 'Failed to top up wallet')
+            }
+
+            const data = await res.json()
+            walletBalance.value = Number(data.balance ?? walletBalance.value + topUpAmount)
+            return true
+        } catch (error) {
+            console.error('Failed to add wallet funds:', error)
+            return false
+        }
     }
     async function fetchWalletBalance() {
         try {
@@ -122,13 +251,30 @@ export const useIndividualStore = defineStore('individual', () => {
     const damageReports = ref([])
 
     // ─── Notifications ───────────────────────────────────────────
-    const notifications = ref([
-        { id: 1, title: 'Move Update', message: 'Your crew is on the way!', time: '10 min ago', read: false, icon: 'local_shipping' },
-        { id: 2, title: 'Payment Received', message: '₹9,950 payment confirmed.', time: '1 hour ago', read: false, icon: 'payments' },
-        { id: 3, title: 'Delivery Complete', message: 'MOV-3045 delivered successfully.', time: '2 days ago', read: true, icon: 'task_alt' },
-    ])
+    const notifications = ref([])
 
     const unreadNotificationsCount = computed(() => notifications.value.filter(n => !n.read).length)
+
+    async function fetchNotifications() {
+        try {
+            const token = localStorage.getItem('auth_token')
+            const res = await fetch(apiUrl('api/v1/customer/notifications'), {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            })
+            if (!res.ok) return
+            const data = await res.json()
+            notifications.value = (Array.isArray(data) ? data : []).map((item) => ({
+                id: item.id,
+                title: item.title,
+                message: item.message,
+                time: item.time,
+                read: item.read,
+                type: item.type,
+            }))
+        } catch (e) {
+            console.warn('[individualStore] fetchNotifications error:', e)
+        }
+    }
 
     async function fetchWarehouses() {
         try {
@@ -219,6 +365,8 @@ export const useIndividualStore = defineStore('individual', () => {
             laborCount: order.labor_count || 0,
             packingRequired: Number(order.packing_amount || 0) > 0,
             vehicleType: order.vehicle_type || String(order.order_type || 'move').toLowerCase(),
+            cargoWeightKg: Number(order.cargo_weight_kg ?? order.weight ?? order.total_weight ?? 0),
+            cargoVolumeM3: Number(order.cargo_volume_m3 ?? order.volume ?? order.total_volume ?? 0),
             materials: {},
             cost: {
                 base: Number(order.base_amount || 0),
@@ -231,21 +379,32 @@ export const useIndividualStore = defineStore('individual', () => {
                 carryForward: Number(order.carry_forward_charge_amount || 0),
                 total: Number(order.total_amount || 0),
             },
-            driver: null,
+            driver: order.assigned_driver_name || order.driver || null,
+            customerName: order.customer_name || null,
+            customerPhone: order.customer_phone || null,
             eta: order.scheduled_at ? new Date(order.scheduled_at).toLocaleString() : 'TBD',
             progress: status === 'delivered' ? 100 : status === 'in-transit' ? 65 : status === 'dispatched' ? 40 : 0,
             paymentMode: order.payment_mode || 'Pending',
             paymentStatus: order.payment_status || (status === 'delivered' ? 'paid' : 'pending'),
+            paidAmount: Number(order.paid_amount || 0),
             isDummyPayment: false,
             rating: null,
             feedback: '',
             createdAt: order.created_at,
+            deliveredAt: order.delivered_at || null,
+            declaredValue: Number(order.declared_value || 0),
             serviceTimeBlock: order.service_time_block || 'TBD',
             dwellTime: { loading: 0, unloading: 0, total: 0 },
             beforeAfterPhotos: {},
             crewCheckin: null,
             transportLog,
-            pod: null,
+            pod: status === 'delivered' ? buildPodData(order, {
+                timestamp: order.delivered_at
+                    ? new Date(order.delivered_at).toLocaleString()
+                    : (order.created_at ? new Date(order.created_at).toLocaleString() : 'Delivered'),
+                location: order.delivery_addr || '—',
+                signedByFallback: 'Receiver',
+            }) : null,
             cancellation: order.cancel_reason ? { reason: order.cancel_reason, fee: 0, date: new Date().toISOString() } : null,
             hasDamageReport: false,
             damageReportId: '',
@@ -298,11 +457,9 @@ export const useIndividualStore = defineStore('individual', () => {
         const log = []
         const createdTime = order.created_at ? new Date(order.created_at).toLocaleString() : 'N/A'
 
-        // Backfill: confirmed orders with no substatus still show as queued
-        let ws = warehouseSubstatus
-        if (!ws && (order.status === 'CONFIRMED' || ['dispatched', 'in-transit', 'delivered'].includes(status))) {
-            ws = 'AWAITING_PICK'
-        }
+        // Direct transport orders (packing_amount == 0) skip all warehouse steps —
+        // the driver goes straight to the customer's location.
+        const isDirectTransport = Number(order.packing_amount ?? 0) === 0
 
         // Order created
         log.push({ event: 'Order created', time: createdTime, icon: 'receipt_long', color: 'blue' })
@@ -312,125 +469,156 @@ export const useIndividualStore = defineStore('individual', () => {
             log.push({ event: 'Order confirmed', time: createdTime, icon: 'check_circle', color: 'green' })
         }
 
-        // Queued / Awaiting Pick
-        if (['AWAITING_PICK', 'PICKING', 'PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
-            log.push({
-                event: 'Queued for Picking',
-                description: "Orders that are queued up and ready, but no one has started picking them yet.",
-                time: order.created_at ? new Date(order.created_at).toLocaleString() : 'Ready',
-                icon: 'hourglass_empty',
-                color: 'amber'
-            })
+        if (isDirectTransport) {
+            // ── Direct transport path: no warehouse steps ──────────────────────
+            if (order.status === 'CONFIRMED' || ['dispatched', 'in-transit', 'delivered'].includes(status)) {
+                log.push({
+                    event: 'Driver assigned',
+                    description: 'A driver has been assigned and will head directly to your pickup location.',
+                    time: order.dispatched_at ? new Date(order.dispatched_at).toLocaleString() : 'Assigned',
+                    icon: 'person_pin_circle',
+                    color: 'blue'
+                })
+            }
+
+            if (status === 'in-transit') {
+                log.push({
+                    event: 'Driver en route to pickup',
+                    description: 'Your driver is on the way to collect your items.',
+                    time: order.dispatched_at ? new Date(order.dispatched_at).toLocaleString() : 'On the way',
+                    icon: 'local_shipping',
+                    color: 'green'
+                })
+            }
+        } else {
+            // ── Full warehouse path ────────────────────────────────────────────
+
+            // Backfill: confirmed orders with no substatus still show as queued
+            let ws = warehouseSubstatus
+            if (!ws && (order.status === 'CONFIRMED' || ['dispatched', 'in-transit', 'delivered'].includes(status))) {
+                ws = 'AWAITING_PICK'
+            }
+
+            // Queued / Awaiting Pick
+            if (['AWAITING_PICK', 'PICKING', 'PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+                log.push({
+                    event: 'Queued for Picking',
+                    description: "Orders that are queued up and ready, but no one has started picking them yet.",
+                    time: order.created_at ? new Date(order.created_at).toLocaleString() : 'Ready',
+                    icon: 'hourglass_empty',
+                    color: 'amber'
+                })
+            }
+
+            // On Hold
+            if (ws === 'ON_HOLD') {
+                log.push({
+                    event: 'Order On Hold',
+                    description: "Orders that are blocked. Usually, this means they don't have enough labourers assigned to them yet.",
+                    time: new Date().toLocaleString(),
+                    icon: 'pause_circle',
+                    color: 'red'
+                })
+            }
+
+            // Picking started
+            if (['PICKING', 'PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+                log.push({
+                    event: 'Picking started',
+                    description: "Orders currently being gathered by your staff from the warehouse shelves.",
+                    time: order.picking_started_at ? new Date(order.picking_started_at).toLocaleString() : 'In progress',
+                    icon: 'shopping_basket',
+                    color: 'blue'
+                })
+            }
+
+            // Picking completed (Picked)
+            if (['PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+                log.push({
+                    event: 'Picking completed',
+                    description: "Orders where all items are gathered and are waiting to be boxed.",
+                    time: order.picking_completed_at ? new Date(order.picking_completed_at).toLocaleString() : 'Completed',
+                    icon: 'inventory_2',
+                    color: 'cyan'
+                })
+            }
+
+            // Packing started
+            if (['PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+                log.push({
+                    event: 'Packing started',
+                    description: "Orders currently at a packing station, being boxed and prepped for dispatch.",
+                    time: order.packing_started_at ? new Date(order.packing_started_at).toLocaleString() : 'In progress',
+                    icon: 'package_2',
+                    color: 'amber'
+                })
+            }
+
+            // Packing completed
+            if (['PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+                log.push({
+                    event: 'Packing completed',
+                    time: order.packing_completed_at ? new Date(order.packing_completed_at).toLocaleString() : 'Completed',
+                    icon: 'deployed_code',
+                    color: 'green'
+                })
+            }
+
+            // Quality check passed
+            if (['QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
+                log.push({
+                    event: 'Quality check passed',
+                    time: order.qc_passed_at ? new Date(order.qc_passed_at).toLocaleString() : 'Verified',
+                    icon: 'verified',
+                    color: 'green'
+                })
+            }
+
+            // Ready for dispatch
+            if (['READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws) || status === 'dispatched' || status === 'in-transit') {
+                log.push({
+                    event: 'Ready for dispatch',
+                    time: order.dispatch_ready_at ? new Date(order.dispatch_ready_at).toLocaleString() : 'Ready',
+                    icon: 'local_shipping',
+                    color: 'blue'
+                })
+            }
+
+            // Dispatched from warehouse (truck left the dock, driver not yet assigned)
+            if (['ON_DOCK', 'DISPATCHED'].includes(ws)) {
+                log.push({
+                    event: 'Dispatched from warehouse',
+                    description: 'Your shipment has left the warehouse and is awaiting driver assignment.',
+                    time: order.dispatched_at ? new Date(order.dispatched_at).toLocaleString() : 'Dispatched',
+                    icon: 'output',
+                    color: 'blue'
+                })
+            }
+
+            // Driver assigned (dispatcher assigned a driver + vehicle)
+            if (status === 'dispatched' || status === 'in-transit') {
+                log.push({
+                    event: 'Driver assigned',
+                    description: 'A driver and vehicle have been assigned to your shipment.',
+                    time: order.dispatched_at ? new Date(order.dispatched_at).toLocaleString() : 'Assigned',
+                    icon: 'person_pin_circle',
+                    color: 'blue'
+                })
+            }
+
+            // Shipment in transit (vehicle is on the road)
+            if (status === 'in-transit') {
+                log.push({
+                    event: 'Shipment in transit',
+                    description: 'Your shipment is on its way to the destination.',
+                    time: order.dispatched_at ? new Date(order.dispatched_at).toLocaleString() : 'On the way',
+                    icon: 'local_shipping',
+                    color: 'green'
+                })
+            }
         }
 
-        // On Hold
-        if (ws === 'ON_HOLD') {
-            log.push({
-                event: 'Order On Hold',
-                description: "Orders that are blocked. Usually, this means they don't have enough labourers assigned to them yet.",
-                time: new Date().toLocaleString(),
-                icon: 'pause_circle',
-                color: 'red'
-            })
-        }
-
-        // Picking started
-        if (['PICKING', 'PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
-            log.push({
-                event: 'Picking started',
-                description: "Orders currently being gathered by your staff from the warehouse shelves.",
-                time: order.picking_started_at ? new Date(order.picking_started_at).toLocaleString() : 'In progress',
-                icon: 'shopping_basket',
-                color: 'blue'
-            })
-        }
-
-        // Picking completed (Picked)
-        if (['PICKED', 'PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
-            log.push({
-                event: 'Picking completed',
-                description: "Orders where all items are gathered and are waiting to be boxed.",
-                time: order.picking_completed_at ? new Date(order.picking_completed_at).toLocaleString() : 'Completed',
-                icon: 'inventory_2',
-                color: 'cyan'
-            })
-        }
-
-        // Packing started
-        if (['PACKING', 'PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
-            log.push({
-                event: 'Packing started',
-                description: "Orders currently at a packing station, being boxed and prepped for dispatch.",
-                time: order.packing_started_at ? new Date(order.packing_started_at).toLocaleString() : 'In progress',
-                icon: 'package_2',
-                color: 'amber'
-            })
-        }
-
-        // Packing completed
-        if (['PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
-            log.push({
-                event: 'Packing completed',
-                time: order.packing_completed_at ? new Date(order.packing_completed_at).toLocaleString() : 'Completed',
-                icon: 'deployed_code',
-                color: 'green'
-            })
-        }
-
-        // Quality check passed
-        if (['QC_PASSED', 'READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws)) {
-            log.push({
-                event: 'Quality check passed',
-                time: order.qc_passed_at ? new Date(order.qc_passed_at).toLocaleString() : 'Verified',
-                icon: 'verified',
-                color: 'green'
-            })
-        }
-
-        // Ready for dispatch
-        if (['READY_FOR_DISPATCH', 'ON_DOCK', 'DISPATCHED'].includes(ws) || status === 'dispatched' || status === 'in-transit') {
-            log.push({
-                event: 'Ready for dispatch',
-                time: order.dispatch_ready_at ? new Date(order.dispatch_ready_at).toLocaleString() : 'Ready',
-                icon: 'local_shipping',
-                color: 'blue'
-            })
-        }
-
-        // Dispatched from warehouse (truck left the dock, driver not yet assigned)
-        if (['ON_DOCK', 'DISPATCHED'].includes(ws)) {
-            log.push({
-                event: 'Dispatched from warehouse',
-                description: 'Your shipment has left the warehouse and is awaiting driver assignment.',
-                time: order.dispatched_at ? new Date(order.dispatched_at).toLocaleString() : 'Dispatched',
-                icon: 'output',
-                color: 'blue'
-            })
-        }
-
-        // Driver assigned (dispatcher assigned a driver + vehicle)
-        if (status === 'dispatched' || status === 'in-transit') {
-            log.push({
-                event: 'Driver assigned',
-                description: 'A driver and vehicle have been assigned to your shipment.',
-                time: order.dispatched_at ? new Date(order.dispatched_at).toLocaleString() : 'Assigned',
-                icon: 'person_pin_circle',
-                color: 'blue'
-            })
-        }
-
-        // Shipment in transit (vehicle is on the road)
-        if (status === 'in-transit') {
-            log.push({
-                event: 'Shipment in transit',
-                description: 'Your shipment is on its way to the destination.',
-                time: order.dispatched_at ? new Date(order.dispatched_at).toLocaleString() : 'On the way',
-                icon: 'local_shipping',
-                color: 'green'
-            })
-        }
-
-        // Delivered
+        // Delivered (same for both paths)
         if (status === 'delivered') {
             log.push({
                 event: 'Delivery completed',
@@ -440,7 +628,7 @@ export const useIndividualStore = defineStore('individual', () => {
             })
         }
 
-        // Cancelled
+        // Cancelled (same for both paths)
         if (status === 'cancelled') {
             const cancelReason = order.cancel_reason || 'Order was cancelled'
             log.push({
@@ -479,6 +667,11 @@ export const useIndividualStore = defineStore('individual', () => {
             trackingCode: order.tracking_code,
             status,
             rawStatus: order.status,
+            warehouseId: order.warehouse_id ? String(order.warehouse_id) : null,
+            warehouseName: order.warehouse_name || null,
+            warehouseAddress: order.warehouse_address || null,
+            warehouseLat: order.warehouse_lat ?? null,
+            warehouseLng: order.warehouse_lng ?? null,
             warehouseSubstatus,
             moveType: 'house-shift',
             cargoType: order.cargo_type || 'Household Goods',
@@ -490,16 +683,30 @@ export const useIndividualStore = defineStore('individual', () => {
             packingRequired: false,
             vehicleType: order.vehicle_type || 'assigned',
             materials: {},
-            cost: { base: 0, labor: 0, materials: 0, packing: 0, vehicle: 0, platformFee: 0, taxes: 0, total: 0 },
-            driver: order.driver || null,
+            cost: {
+                base: Number(order.base_amount || 0),
+                labor: Number(order.labor_amount || 0),
+                materials: Number(order.materials_amount || 0),
+                packing: Number(order.packing_amount || 0),
+                vehicle: Number(order.vehicle_amount || 0),
+                platformFee: Number(order.platform_fee || 0),
+                taxes: Number(order.tax_amount || 0),
+                total: Number(order.total_amount || 0),
+            },
+            driver: order.assigned_driver_name || order.driver || null,
+            customerName: order.customer_name || null,
+            customerPhone: order.customer_phone || null,
             eta: order.eta_label || 'TBD',
             progress: order.progress ?? 0,
-            paymentMode: 'Pending',
-            paymentStatus: status === 'delivered' ? 'paid' : 'pending',
+            paymentMode: order.payment_mode || 'Pending',
+            paymentStatus: order.payment_status || (status === 'delivered' ? 'paid' : 'pending'),
+            paidAmount: Number(order.paid_amount || 0),
             isDummyPayment: false,
             rating: null,
             feedback: '',
             createdAt: order.created_at,
+            deliveredAt: order.delivered_at || null,
+            declaredValue: Number(order.declared_value || 0),
             serviceTimeBlock: order.scheduled_at ? new Date(order.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBD',
             dwellTime: { loading: 0, unloading: 0, total: 0 },
             beforeAfterPhotos: {},
@@ -511,7 +718,11 @@ export const useIndividualStore = defineStore('individual', () => {
             packing_completed_at: enriched.packing_completed_at,
             qc_passed_at: enriched.qc_passed_at,
             dispatched_at: enriched.dispatched_at,
-            pod: null,
+            pod: status === 'delivered' ? buildPodData(order, {
+                timestamp: order.delivered_at ? new Date(order.delivered_at).toLocaleString() : 'Delivered',
+                location: order.delivery_addr || '—',
+                signedByFallback: 'Receiver',
+            }) : null,
             cancellation: order.cancel_reason
                 ? { reason: order.cancel_reason, fee: order.cancellation_fee || 0, date: order.updated_at || new Date().toISOString() }
                 : null,
@@ -557,6 +768,9 @@ export const useIndividualStore = defineStore('individual', () => {
                 phone: data.profile?.phone || user.value.phone,
                 joiningDate: data.profile?.created_at || user.value.joiningDate,
             }
+
+            // Load notifications in parallel with dashboard (best-effort)
+            fetchNotifications().catch(() => {})
 
             return { success: true, data }
         } catch (error) {
@@ -900,14 +1114,8 @@ export const useIndividualStore = defineStore('individual', () => {
             }
 
             const data = await response.json()
-            user.value = {
-                ...user.value,
-                language: data.settings?.language || user.value.language,
-                paymentDefault: data.settings?.default_payment || user.value.paymentDefault,
-                notificationsEnabled: !!data.settings?.notification_prefs?.push,
-                smsAlerts: !!data.settings?.notification_prefs?.sms,
-            }
-            return { success: true, data: data.settings }
+            const normalizedSettings = applyCustomerSettings(data.settings)
+            return { success: true, data: normalizedSettings }
         } catch (error) {
             settingsError.value = 'Error connecting to the server.'
             return { success: false, message: settingsError.value }
@@ -917,6 +1125,9 @@ export const useIndividualStore = defineStore('individual', () => {
     }
 
     async function saveSettingsRemote(settings) {
+        settingsLoading.value = true
+        settingsError.value = ''
+
         try {
             const token = localStorage.getItem('auth_token')
             const response = await fetch(apiUrl('api/v1/customer/settings'), {
@@ -930,32 +1141,124 @@ export const useIndividualStore = defineStore('individual', () => {
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}))
-                return { success: false, message: errData.detail || 'Failed to save settings.' }
+                settingsError.value = errData.detail || 'Failed to save settings.'
+                return { success: false, message: settingsError.value }
             }
 
             const data = await response.json()
-            user.value = {
-                ...user.value,
-                language: data.settings?.language || user.value.language,
-                paymentDefault: data.settings?.default_payment || user.value.paymentDefault,
-                notificationsEnabled: !!data.settings?.notification_prefs?.push,
-                smsAlerts: !!data.settings?.notification_prefs?.sms,
-            }
-            return { success: true, data: data.settings }
+            const normalizedSettings = applyCustomerSettings(data.settings)
+            return { success: true, data: normalizedSettings }
         } catch (error) {
-            return { success: false, message: 'Error connecting to the server.' }
+            settingsError.value = 'Error connecting to the server.'
+            return { success: false, message: settingsError.value }
+        } finally {
+            settingsLoading.value = false
+        }
+    }
+
+    async function deleteAccountRemote() {
+        settingsLoading.value = true
+        settingsError.value = ''
+
+        try {
+            const token = localStorage.getItem('auth_token')
+            const response = await fetch(apiUrl('api/v1/customer/account'), {
+                method: 'DELETE',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            })
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}))
+                settingsError.value = errData.detail || 'Failed to delete account.'
+                return { success: false, message: settingsError.value }
+            }
+
+            const data = await response.json().catch(() => ({}))
+            return { success: true, message: data.message || 'Account deleted successfully.' }
+        } catch (error) {
+            settingsError.value = 'Error connecting to the server.'
+            return { success: false, message: settingsError.value }
+        } finally {
+            settingsLoading.value = false
         }
     }
 
     // ─── Materials Catalog ───────────────────────────────────────
-    const materialsCatalog = computed(() => ([
-        { key: 'boxes', name: 'Carton Boxes (Large)', price: rates.value.materials?.box ?? 50, icon: 'inventory_2', unit: 'pcs' },
-        { key: 'bubbleWrap', name: 'Bubble Wrap Rolls', price: rates.value.materials?.bubbleWrap ?? 20, icon: 'bubble_chart', unit: 'rolls' },
-        { key: 'plasticCrates', name: 'Plastic Crates', price: rates.value.materials?.crate ?? 200, icon: 'deployed_code', unit: 'pcs' },
-        { key: 'blankets', name: 'Padded Blankets', price: 80, icon: 'bed', unit: 'pcs' },
-        { key: 'wardrobeBoxes', name: 'Wardrobe Boxes', price: 350, icon: 'checkroom', unit: 'pcs' },
-        { key: 'tape', name: 'Packing Tape', price: 40, icon: 'straighten', unit: 'rolls' },
-    ]))
+    // Icon mapping for material names
+    const materialIcons = {
+        'box': 'inventory_2',
+        'bubbleWrap': 'bubble_chart',
+        'crate': 'deployed_code',
+        'foamSheet': 'layers',
+        'tape': 'straighten',
+        'blanket': 'bed',
+        'wardrobeBox': 'checkroom',
+        'palletWrap': 'deployed_code',
+        'default': 'package_2'
+    }
+
+    const MATERIAL_SKU_MAP = {
+        box: 'PKG-CARTON',
+        boxes: 'PKG-CARTON',
+        carton: 'PKG-CARTON',
+        cartons: 'PKG-CARTON',
+        bubbleWrap: 'PKG-BUBBLE-WRAP',
+        bubble: 'PKG-BUBBLE-WRAP',
+        wrap: 'PKG-BUBBLE-WRAP',
+        crate: 'PKG-PLASTIC-CRATE',
+        crates: 'PKG-PLASTIC-CRATE',
+        plasticCrates: 'PKG-PLASTIC-CRATE',
+        blanket: 'PKG-BLANKET',
+        blankets: 'PKG-BLANKET',
+        wardrobeBox: 'PKG-WARDROBE-BOX',
+        wardrobeBoxes: 'PKG-WARDROBE-BOX',
+        tape: 'PKG-TAPE',
+        foamSheet: 'FOAM-SHEET',
+        foam: 'FOAM-SHEET',
+    }
+
+    function fallbackPackingSku(name = '') {
+        return String(name || '')
+            .trim()
+            .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+            .toUpperCase()
+            .replace(/[^A-Z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .substring(0, 10)
+    }
+
+    function resolveMaterialSku(material = {}) {
+        const explicitSku = String(material.sku || '').trim()
+        if (explicitSku) return explicitSku
+
+        const key = String(material.key || material.id || '').trim()
+        if (MATERIAL_SKU_MAP[key]) return MATERIAL_SKU_MAP[key]
+
+        return fallbackPackingSku(material.name || key)
+    }
+
+    const materialsCatalog = computed(() => {
+        const materials = rates.value.materials
+
+        // If materials is an array (new format), use it directly
+        if (Array.isArray(materials)) {
+            return materials.map(m => ({
+                key: m.id,
+                name: m.name,
+                sku: resolveMaterialSku({ key: m.id, name: m.name, sku: m.sku }),
+                price: m.rate,
+                icon: materialIcons[m.id] || materialIcons.default,
+                unit: m.unit || 'pcs'
+            }))
+        }
+
+        // Fallback for old object format
+        return [
+            { key: 'boxes', name: 'Carton Boxes (Large)', price: materials?.box ?? 50, icon: 'inventory_2', unit: 'pcs' },
+            { key: 'bubbleWrap', name: 'Bubble Wrap Rolls', price: materials?.bubbleWrap ?? 20, icon: 'bubble_chart', unit: 'rolls' },
+            { key: 'plasticCrates', name: 'Plastic Crates', price: materials?.crate ?? 200, icon: 'deployed_code', unit: 'pcs' },
+        ]
+    })
 
     // ─── Actions ─────────────────────────────────────────────────
 
@@ -974,6 +1277,8 @@ export const useIndividualStore = defineStore('individual', () => {
             warehouse_id: data.warehouseId || null,
             pickup_addr: data.pickup || '',
             delivery_addr: data.destination || '',
+            cargo_weight_kg: Number(data.packageWeight || data.cargoWeightKg || 0) || null,
+            cargo_volume_m3: Number(data.cargoVolumeM3 || 0) || null,
             cargo_type: data.cargoType || null,
             vehicle_type: data.vehicleType || null,
             labor_count: data.laborCount || 0,
@@ -993,16 +1298,6 @@ export const useIndividualStore = defineStore('individual', () => {
             initial_payment_method: initialPaymentAmount > 0 ? (data.paymentMethod || 'Online') : null,
             service_time_block: data.moveType === 'small-package' ? '30 min' : '2-3 hours',
             scheduled_at: data.date ? new Date(data.date).toISOString() : null,
-        }
-
-        // SKU mapping for packing materials (must match inventory items in warehouse)
-        const MATERIAL_SKU_MAP = {
-            boxes: 'PKG-CARTON',
-            bubbleWrap: 'PKG-BUBBLE-WRAP',
-            plasticCrates: 'PKG-PLASTIC-CRATE',
-            blankets: 'PKG-BLANKET',
-            wardrobeBoxes: 'PKG-WARDROBE-BOX',
-            tape: 'PKG-TAPE',
         }
 
         try {
@@ -1028,49 +1323,39 @@ export const useIndividualStore = defineStore('individual', () => {
                 : null
 
             // Submit packing materials as OrderItems (so warehouse inventory deduction works during packing)
-            const MATERIAL_KEYWORDS = {
-                boxes:        ['carton', 'box'],
-                bubbleWrap:   ['bubble', 'wrap'],
-                plasticCrates:['crate', 'plastic'],
-                blankets:     ['blanket', 'pad'],
-                wardrobeBoxes:['wardrobe'],
-                tape:         ['tape'],
+            // Prefer pre-resolved materialItems (sku + qty) passed directly from the booking form.
+            // Only fall back to the old MATERIAL_SKU_MAP lookup when materialItems is not provided.
+            const directItems = (data.materialItems || [])
+                .map(i => ({ ...i, sku: resolveMaterialSku(i) }))
+                .filter(i => i.sku && i.quantity > 0)
+
+            let resolvedItems = null
+            if (directItems.length > 0) {
+                // Catalog-resolved: already have correct SKUs from the real WM inventory
+                resolvedItems = directItems.map(i => ({ sku: i.sku, quantity: i.quantity, box_count: null, estimated_volume: null }))
+            } else {
+                // Legacy fallback: map old form.materials keys via MATERIAL_SKU_MAP
+                const rawMaterialItems = Object.entries(data.materials || {})
+                    .filter(([, qty]) => qty > 0)
+                    .map(([key, qty]) => ({ key, qty, sku: resolveMaterialSku({ key }) }))
+                    .filter(({ sku }) => sku)
+                if (rawMaterialItems.length > 0) {
+                    resolvedItems = rawMaterialItems.map(({ sku, qty }) => ({ sku, quantity: qty, box_count: null, estimated_volume: null }))
+                }
             }
 
-            const rawMaterialItems = Object.entries(data.materials || {})
-                .filter(([, qty]) => qty > 0)
-                .map(([key, qty]) => ({ key, qty, fallbackSku: MATERIAL_SKU_MAP[key] || `PKG-${key.toUpperCase()}` }))
-
-            if (rawMaterialItems.length > 0) {
+            if (resolvedItems && resolvedItems.length > 0) {
                 try {
                     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-
-                    // Resolve to actual warehouse inventory SKUs so deduction matches regardless of how items were named
-                    let resolvedItems = rawMaterialItems.map(({ fallbackSku, qty }) => ({ sku: fallbackSku, quantity: qty, box_count: null, estimated_volume: null }))
-
-                    if (resolvedWarehouseId) {
-                        try {
-                            const invRes = await fetch(apiUrl(`api/v1/inventory?page=1&page_size=200&warehouse_id=${resolvedWarehouseId}`), { headers })
-                            if (invRes.ok) {
-                                const invData = await invRes.json()
-                                const inventory = invData.items || invData || []
-                                resolvedItems = rawMaterialItems.map(({ key, qty, fallbackSku }) => {
-                                    const keywords = MATERIAL_KEYWORDS[key] || []
-                                    const match = inventory.find(inv => {
-                                        const text = ((inv.name || '') + ' ' + (inv.category || '') + ' ' + (inv.sku || '')).toLowerCase()
-                                        return keywords.some(kw => text.includes(kw))
-                                    })
-                                    return { sku: match ? match.sku : fallbackSku, quantity: qty, box_count: null, estimated_volume: null }
-                                })
-                            }
-                        } catch { /* use fallback PKG-* SKUs */ }
-                    }
-
-                    await fetch(apiUrl(`api/v1/orders/${backendOrder.id}/items`), {
+                    const itemsRes = await fetch(apiUrl(`api/v1/orders/${backendOrder.id}/items`), {
                         method: 'POST',
                         headers,
                         body: JSON.stringify(resolvedItems),
                     })
+                    if (!itemsRes.ok) {
+                        const errBody = await itemsRes.json().catch(() => ({}))
+                        console.error('Failed to attach packing material items:', itemsRes.status, errBody)
+                    }
                 } catch (itemErr) {
                     console.error('Could not attach packing material items to order:', itemErr)
                 }
@@ -1201,6 +1486,43 @@ export const useIndividualStore = defineStore('individual', () => {
         })
     }
 
+    async function rescheduleOrderRemote(id, newDate, newTime) {
+        const order = orders.value.find(o => o.id === id || o.backendId === id)
+        if (!order?.backendId) {
+            rescheduleOrder(id, newDate, newTime)
+            return { success: true }
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token')
+            const scheduled_at = newDate ? new Date(newDate).toISOString() : null
+            const response = await fetch(apiUrl(`api/v1/orders/${order.backendId}`), {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ scheduled_at }),
+            })
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}))
+                return { success: false, message: errData.detail || 'Failed to reschedule order.' }
+            }
+
+            const updated = await response.json()
+            const normalized = normalizeBackendOrder(updated)
+            const index = orders.value.findIndex(o => o.backendId === updated.id)
+            if (index >= 0) orders.value[index] = normalized
+            notifications.value.unshift({
+                id: Date.now(), title: 'Rescheduled', message: `${normalized.id} moved to ${newDate}.`, time: 'Just now', read: false, icon: 'schedule',
+            })
+            return { success: true, order: normalized }
+        } catch (error) {
+            return { success: false, message: 'Error connecting to the server.' }
+        }
+    }
+
     function submitRating(id, rating, feedback) {
         updateOrder(id, { rating, feedback })
     }
@@ -1240,16 +1562,25 @@ export const useIndividualStore = defineStore('individual', () => {
             if (backendId) {
                 try {
                     const token = localStorage.getItem('auth_token')
-                    await fetch(apiUrl(`api/v1/orders/${backendId}/pay`), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                        body: JSON.stringify({
-                            payment_ref: paymentRef,
-                            payment_mode: 'ONLINE',
-                            payment_method: mode,
-                            amount,
-                        }),
-                    })
+                    const isWalletPayment = typeof mode === 'string' && mode.toLowerCase().includes('wallet')
+                    if (isWalletPayment) {
+                        await fetch(apiUrl(`api/v1/orders/${backendId}/wallet-pay`), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                            body: JSON.stringify({ amount }),
+                        })
+                    } else {
+                        await fetch(apiUrl(`api/v1/orders/${backendId}/pay`), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                            body: JSON.stringify({
+                                payment_ref: paymentRef,
+                                payment_mode: 'ONLINE',
+                                payment_method: mode,
+                                amount,
+                            }),
+                        })
+                    }
                 } catch (e) {
                     console.warn('[makePayment] Backend /pay call failed (non-fatal):', e)
                 }
@@ -1300,17 +1631,39 @@ export const useIndividualStore = defineStore('individual', () => {
         return { base, labor, packing, materials: matCost, vehicle: vehicleCost, platformFee, taxes, total: subtotal + platformFee + taxes }
     }
 
-    function markNotificationRead(id) {
+    async function markNotificationRead(id) {
         const n = notifications.value.find(n => n.id === id)
         if (n) n.read = true
+        try {
+            const token = localStorage.getItem('auth_token')
+            await fetch(apiUrl(`api/v1/customer/notifications/${id}`), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ read: true }),
+            })
+        } catch (e) { /* best-effort */ }
     }
 
-    function markAllNotificationsRead() {
+    async function markAllNotificationsRead() {
         notifications.value.forEach(n => { n.read = true })
+        try {
+            const token = localStorage.getItem('auth_token')
+            await fetch(apiUrl('api/v1/customer/notifications/mark-all-read'), {
+                method: 'POST',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            })
+        } catch (e) { /* best-effort */ }
     }
 
-    function clearNotifications() {
+    async function clearNotifications() {
         notifications.value = []
+        try {
+            const token = localStorage.getItem('auth_token')
+            await fetch(apiUrl('api/v1/customer/notifications'), {
+                method: 'DELETE',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            })
+        } catch (e) { /* best-effort */ }
     }
 
     function updateProfile(updates) {
@@ -1337,7 +1690,7 @@ export const useIndividualStore = defineStore('individual', () => {
         profileLoading, profileError, fetchProfile, saveProfileRemote,
         paymentsLoading, paymentsError, paymentsSummary, fetchPaymentsSummary,
         damageReportsLoading, damageReportsError, fetchDamageReports, reportDamageRemote,
-        settingsLoading, settingsError, fetchSettings, saveSettingsRemote,
+        settingsLoading, settingsError, fetchSettings, saveSettingsRemote, deleteAccountRemote,
         ordersLoading, ordersError, fetchOrders, cancelOrderRemote,
         user, userInitials,
         warehouses, fetchWarehouses,
@@ -1347,9 +1700,9 @@ export const useIndividualStore = defineStore('individual', () => {
         pendingTransportCharge,
         monthlySpending, vehicleTypes,
         quotes, payments, damageReports,
-        notifications, unreadNotificationsCount,
+        notifications, unreadNotificationsCount, fetchNotifications,
         materialsCatalog,
-        createOrder, updateOrder, cancelOrder, rescheduleOrder, submitRating,
+        createOrder, updateOrder, cancelOrder, rescheduleOrder, rescheduleOrderRemote, submitRating,
         addQuote, convertQuoteToOrder, makePayment, reportDamage, calculateQuote,
         markNotificationRead, markAllNotificationsRead, clearNotifications,
         updateProfile, savedAddresses, saveAddress, deleteAddress,

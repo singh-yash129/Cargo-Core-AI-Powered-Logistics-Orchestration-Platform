@@ -3,13 +3,13 @@
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Inventory Management</h2>
             <div class="flex gap-2">
+                <button @click="showRequestMaterialModal = true"
+                    class="bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">
+                    <span class="material-symbols-outlined">add_shopping_cart</span> Request Material
+                </button>
                 <button @click="openScanner('scan')"
                     class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined">qr_code_scanner</span> Scan Item
-                </button>
-                <button @click="showAddModal = true"
-                    class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
-                    <span class="material-symbols-outlined">add</span> Add Stock
                 </button>
             </div>
         </div>
@@ -438,12 +438,149 @@
             <span class="material-symbols-outlined">check_circle</span>
             <div class="font-bold">{{ toastMsg }}</div>
         </div>
+
+        <!-- Request New Material Modal -->
+        <Teleport to="body">
+            <div v-if="showRequestMaterialModal"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showRequestMaterialModal = false">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10 overflow-hidden">
+                    <!-- Header -->
+                    <div class="p-5 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-orange-50 dark:bg-orange-900/20">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-orange-500 text-[20px]">add_shopping_cart</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900 dark:text-white text-base">Packing Materials</h3>
+                                <p class="text-[11px] text-gray-500">Add approved materials or request new ones</p>
+                            </div>
+                        </div>
+                        <button @click="showRequestMaterialModal = false"
+                            class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                            <span class="material-symbols-outlined text-[20px]">close</span>
+                        </button>
+                    </div>
+                    <!-- Body -->
+                    <div class="p-5 space-y-4">
+                        
+                        <!-- Approved Materials Ready to Add -->
+                        <div v-if="approvedMaterials.length > 0">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-green-600 dark:text-green-400 mb-2 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                Ready to Add
+                            </p>
+                            <div class="space-y-2 mb-4">
+                                <div v-for="req in approvedMaterials" :key="req.id"
+                                    class="flex items-center justify-between bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/30 rounded-xl p-3">
+                                    <div>
+                                        <span class="font-medium text-gray-900 dark:text-white">{{ req.material_name }}</span>
+                                        <span class="text-xs text-gray-500 ml-2">₹{{ req.approved_rate }}/{{ req.unit }}</span>
+                                    </div>
+                                    <button @click="addApprovedMaterial(req)"
+                                        class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition-colors">
+                                        <span class="material-symbols-outlined text-[14px]">add</span>
+                                        Add Stock
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pending Requests -->
+                        <div v-if="pendingMaterials.length > 0">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-yellow-600 dark:text-yellow-400 mb-2 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">hourglass_empty</span>
+                                Pending Approval
+                            </p>
+                            <div class="space-y-2 mb-4">
+                                <div v-for="req in pendingMaterials" :key="req.id"
+                                    class="flex items-center justify-between bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/30 rounded-xl p-3">
+                                    <span class="font-medium text-gray-900 dark:text-white">{{ req.material_name }}</span>
+                                    <span class="text-xs text-yellow-600 dark:text-yellow-400">Awaiting LM</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Divider if there are existing requests -->
+                        <div v-if="myMaterialRequests.length > 0" class="relative">
+                            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200 dark:border-white/10"></div></div>
+                            <div class="relative flex justify-center"><span class="bg-white dark:bg-gray-900 px-3 text-xs text-gray-500">OR REQUEST NEW</span></div>
+                        </div>
+
+                        <!-- Request New Material Form -->
+                        <div>
+                            <label class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Material Name <span class="text-red-400">*</span></label>
+                            <input type="text" v-model="materialRequestForm.name" placeholder="e.g. Foam Sheet, Pallet Wrap"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Unit</label>
+                                <select v-model="materialRequestForm.unit"
+                                    class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white text-sm">
+                                    <option value="pcs">pcs (pieces)</option>
+                                    <option value="m">m (meter)</option>
+                                    <option value="kg">kg</option>
+                                    <option value="roll">roll</option>
+                                    <option value="sheet">sheet</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Suggested Rate (₹)</label>
+                                <input type="number" v-model.number="materialRequestForm.suggestedRate" placeholder="Optional"
+                                    class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white font-mono text-sm" />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Reason / Justification</label>
+                            <textarea v-model="materialRequestForm.reason" rows="2" placeholder="Why is this material needed?"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white text-sm resize-none"></textarea>
+                        </div>
+                        <div class="flex gap-3 pt-1">
+                            <button @click="showRequestMaterialModal = false"
+                                class="flex-1 py-3 rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 font-bold text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                Cancel
+                            </button>
+                            <button @click="submitMaterialRequest" :disabled="!materialRequestForm.name || submittingRequest"
+                                class="flex-[2] py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
+                                <span class="material-symbols-outlined text-[18px]">{{ submittingRequest ? 'hourglass_empty' : 'send' }}</span>
+                                {{ submittingRequest ? 'Submitting...' : 'Request New' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Only show rejected requests panel if any -->
+        <div v-if="rejectedMaterials.length > 0" class="glass-panel rounded-xl overflow-hidden">
+            <div class="p-4 border-b border-gray-100 dark:border-white/5 bg-red-50/50 dark:bg-red-900/10 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-red-500">info</span>
+                    <h3 class="font-bold text-gray-900 dark:text-white">Rejected Requests</h3>
+                </div>
+            </div>
+            <div class="divide-y divide-gray-100 dark:divide-white/5">
+                <div v-for="req in rejectedMaterials" :key="req.id" class="p-3 flex items-center justify-between">
+                    <div>
+                        <span class="font-medium text-gray-900 dark:text-white line-through opacity-60">{{ req.material_name }}</span>
+                        <span v-if="req.manager_notes" class="text-xs text-red-500 ml-2">• {{ req.manager_notes }}</span>
+                    </div>
+                    <span class="text-xs px-2 py-1 rounded-full font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                        REJECTED
+                    </span>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive, inject, watch } from 'vue'
+import { ref, computed, reactive, inject, watch, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
+import { getStoredAccessToken } from '@/config/api'
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 const authStore = useAuthStore()
 const openScanner = inject('openScanner')
@@ -471,6 +608,101 @@ const addForm = reactive({ sku: '', name: '', stock: 0, weight: 0, zone: 'A', ca
 const inventory = ref([])
 const categories = ref([])
 const CATEGORY_STORAGE_PREFIX = 'warehouse-manager-inventory-categories'
+
+// Material Request state
+const showRequestMaterialModal = ref(false)
+const submittingRequest = ref(false)
+const myMaterialRequests = ref([])
+const materialRequestForm = reactive({
+    name: '',
+    unit: 'pcs',
+    suggestedRate: null,
+    reason: ''
+})
+
+// Computed filters for material requests
+const approvedMaterials = computed(() => myMaterialRequests.value.filter(r => r.status === 'APPROVED'))
+const pendingMaterials = computed(() => myMaterialRequests.value.filter(r => r.status === 'PENDING'))
+const rejectedMaterials = computed(() => myMaterialRequests.value.filter(r => r.status === 'REJECTED'))
+
+async function fetchMyMaterialRequests() {
+    try {
+        const token = getStoredAccessToken()
+        const res = await fetch(`${API_BASE}/api/v1/inventory/material-requests`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.ok) {
+            const data = await res.json()
+            myMaterialRequests.value = data.items || []
+        }
+    } catch (e) {
+        console.error('Failed to fetch material requests:', e)
+    }
+}
+
+async function submitMaterialRequest() {
+    if (!materialRequestForm.name) return
+    
+    submittingRequest.value = true
+    try {
+        const token = getStoredAccessToken()
+        const res = await fetch(`${API_BASE}/api/v1/inventory/material-requests`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+                material_name: materialRequestForm.name,
+                unit: materialRequestForm.unit,
+                suggested_rate: materialRequestForm.suggestedRate || null,
+                reason: materialRequestForm.reason || null
+            })
+        })
+        
+        if (res.ok) {
+            showRequestMaterialModal.value = false
+            materialRequestForm.name = ''
+            materialRequestForm.unit = 'pcs'
+            materialRequestForm.suggestedRate = null
+            materialRequestForm.reason = ''
+            toastMsg.value = 'Material request submitted!'
+            setTimeout(() => { toastMsg.value = '' }, 3000)
+            fetchMyMaterialRequests()
+        } else {
+            const err = await res.json()
+            alert(err.detail || 'Failed to submit request')
+        }
+    } catch (e) {
+        console.error('Failed to submit material request:', e)
+        alert('Failed to submit request')
+    } finally {
+        submittingRequest.value = false
+    }
+}
+
+// Quick add approved material to inventory - pre-fills the Add Stock form
+function addApprovedMaterial(req) {
+    // Close the Request Material modal first
+    showRequestMaterialModal.value = false
+    
+    // Generate SKU from material name
+    const sku = req.material_name.toUpperCase().replace(/\s+/g, '-').substring(0, 10)
+    
+    // Pre-fill the add form
+    addForm.sku = sku
+    addForm.name = req.material_name
+    addForm.category = 'Packing Materials'
+    addForm.stock = 0
+    addForm.weight = 0
+    addForm.zone = 'A'
+    
+    // Ensure Packing Materials category exists
+    if (!customCategories.value.includes('Packing Materials')) {
+        customCategories.value.push('Packing Materials')
+        persistCustomCategories()
+    }
+    
+    // Open the add modal
+    showAddModal.value = true
+}
 
 // Watch for global scans and handle them here
 watch(lastGlobalScan, (newScanObj) => {
@@ -663,7 +895,7 @@ watch(
 
         if (!warehouseId) return
 
-        await Promise.all([fetchInventory(), fetchCategories()])
+        await Promise.all([fetchInventory(), fetchCategories(), fetchMyMaterialRequests()])
     },
     { immediate: true }
 )

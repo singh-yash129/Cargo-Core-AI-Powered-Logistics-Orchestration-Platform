@@ -20,6 +20,12 @@
             </div>
         </div>
 
+        <div class="glass-panel p-3 rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10">
+            <p class="text-xs text-amber-800 dark:text-amber-300 font-medium">
+                Recurring auto-debit works only via wallet. Enable auto-debit in Recurring Schedules and keep enough wallet balance before the scheduled date/time.
+            </p>
+        </div>
+
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="glass-panel p-5 rounded-xl border-l-4 border-red-500">
@@ -143,6 +149,7 @@
             :description="payingInvoice ? ('Invoice ' + payingInvoice.id) : ''"
             :name="authStore.currentUser?.name || ''"
             :email="authStore.currentUser?.email || ''"
+            :wallet-balance="store.walletBalance"
             @success="onRazorpaySuccess"
         />
     </div>
@@ -190,6 +197,7 @@ function viewInvoice(inv) {
 function openPayModal(inv) {
     payingInvoice.value = inv
     showPayModal.value = true
+    showToast('Tip: For next recurring run, enable Wallet Auto-Debit in Recurring Schedules and keep sufficient wallet balance.', 'warning')
 }
 
 async function onRazorpaySuccess({ payment_id, method, amount }) {
@@ -240,9 +248,14 @@ function downloadCsv(filename, rows) {
     URL.revokeObjectURL(url)
 }
 
-function showToast(msg) {
+function showToast(msg, type = 'success') {
     const t = document.createElement('div')
-    t.className = 'fixed right-4 bottom-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
+    const cls = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        warning: 'bg-amber-600',
+    }[type] || 'bg-green-500'
+    t.className = `fixed right-4 bottom-4 z-[9999] ${cls} text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl`
     t.textContent = msg
     document.body.appendChild(t)
     setTimeout(() => t.remove(), 3000)

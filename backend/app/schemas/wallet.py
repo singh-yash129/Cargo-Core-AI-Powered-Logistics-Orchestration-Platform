@@ -34,3 +34,12 @@ class WalletPaymentResponse(BaseModel):
     remaining_wallet_balance: float
     paid_amount: float
     payment_status: str
+
+
+class WalletTopUpRequest(BaseModel):
+    amount: float = Field(gt=0)
+
+
+class WalletTopUpResponse(BaseModel):
+    added_amount: float
+    balance: float

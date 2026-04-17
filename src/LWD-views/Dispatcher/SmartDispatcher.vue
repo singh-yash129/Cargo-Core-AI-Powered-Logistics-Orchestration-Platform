@@ -29,7 +29,7 @@
                 <span class="material-symbols-outlined text-primary">terminal</span>
                 <input v-model="nlCommand" type="text"
                     class="flex-1 bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm placeholder-gray-500 focus:border-primary/50 focus:outline-none"
-                    placeholder='Type a command e.g. "Assign all downtown parcels to the smallest van" or "Re-route Zone B drivers around highway closure"'
+                    placeholder='Type a command e.g. "Show ready orders with assigned vehicles" or "Suggest best driver for released orders"'
                     @keyup.enter="executeNLCommand" />
                 <button @click="executeNLCommand" :disabled="nlProcessing"
                     class="bg-primary hover:bg-primary-dark text-black font-bold px-4 py-3 rounded-lg text-sm transition-colors flex items-center gap-1 disabled:opacity-50">
@@ -56,12 +56,12 @@
             <div class="glass-panel p-6 rounded-xl flex flex-col h-[540px]">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary">lightbulb</span>
-                    Live Optimization Suggestions
+                    AI Dispatch Suggestions
                 </h3>
                 <div class="space-y-4 flex-1 overflow-y-auto no-scrollbar pr-2">
                     <div v-if="suggestions.length === 0" class="text-center py-8 text-gray-500 text-sm">
                         <span class="material-symbols-outlined text-green-400 text-[32px] block mb-2">check_circle</span>
-                        No optimization suggestions right now. Fleet looks balanced.
+                        No dispatch exceptions right now. Released orders are covered.
                     </div>
                     <div v-for="suggestion in suggestions.filter(s => !ignoredSuggestions.has(s.id))" :key="suggestion.id"
                         class="p-4 bg-gray-50 dark:bg-white/5 border rounded-xl transition-all cursor-pointer group"
@@ -96,10 +96,10 @@
                 </div>
             </div>
 
-            <!-- Predictive Load + Peak Demand -->
+            <!-- Dispatch Forecast + Controls -->
             <div class="space-y-6 flex flex-col h-[540px] overflow-y-auto no-scrollbar pr-2">
                 <div class="glass-panel p-6 rounded-xl flex-1">
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Demand Prediction (Next 4 Hours)</h3>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Dispatch Readiness Forecast (Next 4 Hours)</h3>
                     <div class="h-48">
                         <Bar :data="demandChartData" :options="demandChartOptions" />
                     </div>
@@ -111,19 +111,17 @@
                     </div>
                 </div>
 
-                <!-- Peak Demand Prioritization Controls -->
+                <!-- Dispatch Control Toggles -->
                 <div class="glass-panel p-6 rounded-xl flex-[0_0_auto]">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-red-400">priority_high</span>
-                        Peak Demand Prioritization
+                        Dispatch Control Toggles
                     </h3>
                     <div class="space-y-3">
                         <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div>
-                                <div class="text-sm text-gray-900 dark:text-white font-medium">Dynamic Queue
-                                    Reallocation</div>
-                                <div class="text-[10px] text-gray-500">Auto-reprioritize orders during peak demand
-                                    surges</div>
+                                <div class="text-sm text-gray-900 dark:text-white font-medium">Ready Order Prioritization</div>
+                                <div class="text-[10px] text-gray-500">Auto-rank released orders that are waiting for driver confirmation</div>
                             </div>
                             <button @click="togglePeak('reallocation')"
                                 :class="peakReallocation ? 'bg-primary' : 'bg-gray-600'"
@@ -134,10 +132,8 @@
                         </div>
                         <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div>
-                                <div class="text-sm text-gray-900 dark:text-white font-medium">Shift Extension Mode
-                                </div>
-                                <div class="text-[10px] text-gray-500">Allow voluntary driver shift extensions during
-                                    peaks</div>
+                                <div class="text-sm text-gray-900 dark:text-white font-medium">Driver Availability Escalation</div>
+                                <div class="text-[10px] text-gray-500">Alert operations when vehicle-linked orders have no free driver</div>
                             </div>
                             <button @click="togglePeak('shift')" :class="shiftExtension ? 'bg-primary' : 'bg-gray-600'"
                                 class="w-10 h-5 rounded-full relative transition-colors">
@@ -147,10 +143,8 @@
                         </div>
                         <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                             <div>
-                                <div class="text-sm text-gray-900 dark:text-white font-medium">VIP Orders Priority Lock
-                                </div>
-                                <div class="text-[10px] text-gray-500">Guarantee on-time delivery for VIP during peak
-                                </div>
+                                <div class="text-sm text-gray-900 dark:text-white font-medium">Critical Order Priority Lock</div>
+                                <div class="text-[10px] text-gray-500">Keep urgent released orders at the top of dispatcher review</div>
                             </div>
                             <button @click="togglePeak('vip')" :class="vipLock ? 'bg-primary' : 'bg-gray-600'"
                                 class="w-10 h-5 rounded-full relative transition-colors">
@@ -238,7 +232,7 @@
         <div class="glass-panel p-6 rounded-xl">
             <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-yellow-400">schedule</span>
-                AI Delay Prediction Engine
+                AI Dispatch Risk Engine
             </h3>
             <div v-if="delayPredictions.length === 0" class="text-center py-8 text-gray-500 text-sm">
                 <span class="material-symbols-outlined text-green-400 text-[32px] block mb-2">check_circle</span>
@@ -303,45 +297,149 @@ const chatTyping = ref(false)
 const chatContainer = ref(null)
 
 const quickCommands = [
-    'Assign all downtown parcels to smallest van',
-    'Re-route Zone B around highway closure',
-    'Show idle drivers near Warehouse 3',
-    'Balance load across all active drivers',
-    'Prioritize VIP orders for next 2 hours',
-    'Find closest vehicle to Warehouse 4',
-    'Delay Route 7 due to weather alerts',
-    'Simulate 20% traffic increase in downtown'
+    'Show ready orders with assigned vehicles',
+    'Suggest best driver for released orders',
+    'Show free drivers near Warehouse 3',
+    'Flag orders with no driver available',
+    'Prioritize urgent released orders',
+    'Explain why this driver was suggested',
+    'Predict dispatch delay for ready orders',
+    'Find the next backup driver'
 ]
 
-const chatChips = ['Driver status?', 'Overloaded routes?', 'Idle drivers?', 'SLA risk?']
+const chatChips = ['Best driver?', 'Ready orders?', 'No driver available?', 'Why this driver?']
 
-const nlResponses = {
-    'assign all downtown parcels to smallest van': 'Scanning downtown parcels and available vehicles... Found matching orders and the most lightly loaded van in range. Assignment queued — check Driver Management for confirmation.',
-    're-route zone b around highway closure': 'Closure detected. Calculating alternate routing via service roads for affected drivers in Zone B. Updated ETAs will reflect in the route optimizer.',
-    'show idle drivers near warehouse 3': 'Scanning drivers near Warehouse 3... Check Driver Management for the current idle driver list sorted by proximity.',
-    'balance load across all active drivers': 'Analyzing current load distribution. Rebalancing plan generated — transferring orders from overloaded drivers to available ones. Review in Route Optimization.',
-    'prioritize vip orders for next 2 hours': 'VIP orders identified and locked for priority dispatch. Capacity reserved and standard orders rescheduled as needed. On-time probability maximized.'
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+}
+
+function normalizeCommand(value) {
+    return String(value || '').trim().toLowerCase()
+}
+
+function getWarehouseByNumber(number) {
+    const normalized = String(number)
+    return (store.hubs || []).find((hub) => {
+        const idMatch = String(hub.id || '') === normalized
+        const codeMatch = String(hub.hubCode || '').match(/\d+/)?.[0] === normalized
+        const nameMatch = String(hub.name || '').match(/\d+/)?.[0] === normalized
+        return idMatch || codeMatch || nameMatch
+    }) || null
+}
+
+function executeLocalQuickCommand(command) {
+    const normalized = normalizeCommand(command)
+    const drivers = store.dispatcherDrivers || []
+    const activeOrders = store.activeOrders || []
+
+    if (normalized === 'show idle drivers near warehouse 3') {
+        const hub = getWarehouseByNumber(3)
+        const idleDrivers = drivers
+            .filter((driver) => driver.statusColor === 'bg-green-500' && (driver.load || 0) < 30)
+            .sort((a, b) => {
+                const aNear = String(a.hubId || '') === String(hub?.id || '')
+                const bNear = String(b.hubId || '') === String(hub?.id || '')
+                if (aNear !== bNear) return aNear ? -1 : 1
+                return (a.load || 0) - (b.load || 0)
+            })
+            .slice(0, 5)
+
+        return {
+            text: idleDrivers.length
+                ? `<b>Executed:</b> idle-driver scan${hub ? ` for <b>${escapeHtml(hub.name)}</b>` : ''}.<br>${idleDrivers.map((driver) => `${escapeHtml(driver.name)} (${driver.load}% load)`).join(', ')}.`
+                : `<b>Executed:</b> idle-driver scan${hub ? ` for <b>${escapeHtml(hub.name)}</b>` : ''}.<br>No low-load active drivers found right now.`,
+        }
+    }
+
+    if (normalized === 'prioritize vip orders for next 2 hours') {
+        vipLock.value = true
+        peakToast.value = 'VIP priority lock ON — Smart Dispatcher reserved priority handling'
+        setTimeout(() => { peakToast.value = '' }, 3000)
+        const vipOrders = activeOrders.filter((order) => String(order.priority || '').toUpperCase() === 'VIP')
+        return {
+            text: `<b>Executed:</b> VIP priority lock enabled for the next 2 hours.<br>Current VIP orders in scope: <b>${vipOrders.length}</b>.`
+        }
+    }
+
+    if (normalized === 'find closest vehicle to warehouse 4') {
+        const hub = getWarehouseByNumber(4)
+        const nearbyDrivers = drivers
+            .filter((driver) => String(driver.hubId || '') === String(hub?.id || ''))
+            .sort((a, b) => (a.load || 0) - (b.load || 0))
+        const best = nearbyDrivers[0]
+
+        return {
+            text: best
+                ? `<b>Executed:</b> closest-vehicle scan${hub ? ` for <b>${escapeHtml(hub.name)}</b>` : ''}.<br>Best available match: <b>${escapeHtml(best.vehicle || 'Unassigned vehicle')}</b> with driver <b>${escapeHtml(best.name)}</b> at <b>${best.load}%</b> load.`
+                : `<b>Executed:</b> closest-vehicle scan${hub ? ` for <b>${escapeHtml(hub.name)}</b>` : ''}.<br>No active driver-linked vehicle found for that warehouse right now.`,
+        }
+    }
+
+    if (normalized === 'balance load across all active drivers') {
+        const overloaded = drivers.filter((driver) => (driver.load || 0) > 85)
+        const underused = drivers.filter((driver) => driver.statusColor === 'bg-green-500' && (driver.load || 0) < 30)
+        return {
+            text: `<b>Analysis ready:</b> load balance review completed.<br>Overloaded drivers: <b>${overloaded.length}</b>. Underused active drivers: <b>${underused.length}</b>.<br>No automatic reassignment is wired from this panel yet.`,
+        }
+    }
+
+    if (normalized === 'assign all downtown parcels to smallest van') {
+        const pendingCount = (store.pendingOrders || []).length
+        return {
+            text: `<b>Analysis ready:</b> found <b>${pendingCount}</b> pending order(s) to review for downtown assignment.<br>This panel does not yet auto-assign orders from the quick chip itself.`,
+        }
+    }
+
+    if (normalized === 're-route zone b around highway closure') {
+        return {
+            text: `<b>Analysis ready:</b> reroute request captured for <b>Zone B</b>.<br>No direct reroute executor is connected from this quick chip yet; use Route Optimization to apply route changes.`,
+        }
+    }
+
+    if (normalized === 'delay route 7 due to weather alerts') {
+        return {
+            text: `<b>Analysis ready:</b> weather-delay scenario prepared for <b>Route 7</b>.<br>This quick chip does not currently write an actual route-delay update into operations data.`,
+        }
+    }
+
+    if (normalized === 'simulate 20% traffic increase in downtown') {
+        return {
+            text: `<b>Analysis ready:</b> simulated downtown traffic increase request received.<br>This panel currently shows advisory output only and does not run a live traffic simulation.`,
+        }
+    }
+
+    return null
 }
 
 async function executeNLCommand() {
     if (!nlCommand.value.trim() || nlProcessing.value) return
     nlProcessing.value = true
     nlResponse.value = ''
-    const cmd = nlCommand.value.toLowerCase().trim()
     try {
+        const localResult = executeLocalQuickCommand(nlCommand.value)
+        if (localResult) {
+            nlResponse.value = localResult.text
+            return
+        }
         const result = await store.askAi(nlCommand.value)
-        nlResponse.value = result?.text || nlResponses[cmd] || `Processing: "${nlCommand.value}". AI identified 3 matching drivers and 12 eligible orders. Recommended: Reassign 4 orders to DRV-042 (Tata Ace, 1.2T, 85% route overlap). Savings: 18km, 35 min.`
+        nlResponse.value = result?.text || `Could not get an AI response for "${nlCommand.value}". Please try again.`
     } catch (_) {
-        nlResponse.value = nlResponses[cmd] || `Processing: "${nlCommand.value}". AI identified 3 matching drivers and 12 eligible orders.`
+        nlResponse.value = `AI engine unavailable. Please try again.`
     } finally {
         nlProcessing.value = false
     }
 }
 
 function togglePeak(type) {
-    if (type === 'reallocation') { peakReallocation.value = !peakReallocation.value; peakToast.value = peakReallocation.value ? 'Dynamic reallocation enabled — queue will auto-sort during surges' : 'Dynamic reallocation disabled' }
-    else if (type === 'shift') { shiftExtension.value = !shiftExtension.value; peakToast.value = shiftExtension.value ? 'Shift extension activated — drivers notified' : 'Shift extension disabled' }
-    else if (type === 'vip') { vipLock.value = !vipLock.value; peakToast.value = vipLock.value ? 'VIP priority lock ON — 6 orders protected' : 'VIP priority lock removed' }
+    if (type === 'reallocation') { peakReallocation.value = !peakReallocation.value; peakToast.value = peakReallocation.value ? 'Ready-order prioritization enabled for released jobs' : 'Ready-order prioritization disabled' }
+    else if (type === 'shift') { shiftExtension.value = !shiftExtension.value; peakToast.value = shiftExtension.value ? 'Driver availability escalation activated' : 'Driver availability escalation disabled' }
+    else if (type === 'vip') { vipLock.value = !vipLock.value; peakToast.value = vipLock.value ? 'Critical order priority lock enabled' : 'Critical order priority lock removed' }
     setTimeout(() => { peakToast.value = '' }, 3000)
 }
 
@@ -416,15 +514,9 @@ const demandChartOptions = {
 
 // Chat
 const chatMessages = ref([
-    { id: 1, sender: 'ai', text: 'Hello! I\'m your AI Dispatch Agent. Ask me anything about routes, drivers, load balancing, or delay predictions. I can also execute dispatch commands for you.' }
+    { id: 1, sender: 'ai', text: 'Hello! I\'m your AI Dispatch Agent. Ask me about released orders, best driver suggestions, no-driver exceptions, or dispatch delay risks.' }
 ])
 
-const aiChatResponses = {
-    'driver status?': 'Checking live driver status... See Driver Management for the full breakdown of active, idle, and offline drivers with current load percentages.',
-    'overloaded routes?': 'Scanning route loads... Any drivers over 85% capacity are flagged in the Load Imbalance suggestion above. Use Route Optimization to rebalance.',
-    'idle drivers?': 'Scanning for idle drivers... Drivers with 0% load and active status are listed in Driver Management. They are available for immediate dispatch.',
-    'sla risk?': 'Checking SLA compliance... Orders past their dispatch window or with slipping ETAs appear in Order Status Control under Active SLA Violations.'
-}
 
 let chatId = 2
 async function sendChat() {
@@ -436,12 +528,10 @@ async function sendChat() {
     scrollChat()
     try {
         const result = await store.askAi(userMsg)
-        const key = userMsg.toLowerCase()
-        const responseText = result?.text || aiChatResponses[key] || `Analyzing "${userMsg}"... Based on current fleet data: I found 3 relevant insights. The most impactful action would be to rebalance the ${userMsg.includes('route') ? 'affected routes' : 'driver workload'}. Would you like me to execute this optimization?`
+        const responseText = result?.text || 'No response from AI. Please try again.'
         chatMessages.value.push({ id: chatId++, sender: 'ai', text: responseText })
     } catch (_) {
-        const key = userMsg.toLowerCase()
-        chatMessages.value.push({ id: chatId++, sender: 'ai', text: aiChatResponses[key] || 'AI engine unavailable. Please try again.' })
+        chatMessages.value.push({ id: chatId++, sender: 'ai', text: 'AI engine unavailable. Please try again.' })
     } finally {
         chatTyping.value = false
         scrollChat()
@@ -466,53 +556,56 @@ function handleChipsScroll(e) {
 const suggestions = computed(() => {
     const result = []
     const drivers = store.dispatcherDrivers
-    if (!drivers.length) return result
+    const allOrders = [...(store.pendingOrders || []), ...(store.activeOrders || [])]
+    const readyOrders = allOrders.filter(order => order.readyForDispatch && order.vehicleId && !order.driverId)
+    const freeDrivers = drivers.filter(driver =>
+        driver.authorized
+        && !driver.suspended
+        && !driver.maintenance
+        && (driver.activeOrders?.length || 0) === 0
+    )
 
-    // Load imbalance check — use efficiency if non-zero, else derive from stops (assigned orders)
-    const effectiveLoad = d => {
-        const effLoad = d.load || 0
-        if (effLoad > 0) return effLoad
-        return Math.min(100, (d.stops || 0) * 20) // 5 stops ≈ 100% load
-    }
-    const overloaded = drivers.filter(d => effectiveLoad(d) > 85)
-    const idle = drivers.filter(d => effectiveLoad(d) < 30 && d.statusColor === 'bg-green-500')
-    if (overloaded.length && idle.length) {
+    if (readyOrders.length && freeDrivers.length) {
         result.push({
-            id: 'load-imbalance', title: 'Load Imbalance Detected', color: 'text-orange-600 dark:text-orange-400', applied: false,
-            message: `Driver <strong>${overloaded[0].name}</strong> is at ${effectiveLoad(overloaded[0])}% capacity while <strong>${idle[0].name}</strong> (${effectiveLoad(idle[0])}% load) is available. Consider rebalancing.`,
-            explanation: `${overloaded.length} driver(s) are over 85% load. ${idle.length} driver(s) are under 30% load in the fleet.`,
-            confidence: 91,
+            id: 'best-driver-match',
+            title: 'Best Driver Suggestion Ready',
+            color: 'text-primary',
+            applied: false,
+            message: `<strong>${readyOrders[0].trackingCode || readyOrders[0].id}</strong> is released with vehicle <strong>${readyOrders[0].vehicle || 'assigned'}</strong>. <strong>${freeDrivers[0].name}</strong> is the best free driver to review first.`,
+            explanation: 'The suggestion is based on driver availability, shift time remaining, and warehouse-fit signals from current dispatch data.',
+            confidence: 94,
             actions: [
-                { label: 'Auto-Balance', class: 'bg-orange-500/30 hover:bg-orange-500/40 text-orange-800 dark:text-orange-400 border border-orange-500/40 dark:border-orange-500/20' },
+                { label: 'Queue Suggestion', class: 'bg-primary/30 hover:bg-primary/40 text-primary-900 dark:text-primary border border-primary/40 dark:border-primary/20' },
                 { label: 'Review', class: 'bg-gray-300 hover:bg-gray-400 dark:bg-white/10 dark:hover:bg-white/20 text-gray-800 dark:text-gray-300 border border-gray-400 dark:border-white/10' }
             ]
         })
     }
 
-    // HOS warning check
-    const hosRisk = drivers.filter(d => d.breakDue)
-    if (hosRisk.length) {
+    if (readyOrders.length > freeDrivers.length) {
         result.push({
-            id: 'hos-risk', title: 'HOS Compliance Risk', color: 'text-red-600 dark:text-red-400', applied: false,
-            message: `<strong>${hosRisk.length}</strong> driver(s) are approaching their Hours-of-Service limit. New assignments may be blocked soon.`,
-            explanation: `Drivers: ${hosRisk.map(d => d.name).join(', ')}. System will block new assignments at HOS limit.`,
-            confidence: 95,
+            id: 'driver-gap',
+            title: 'Driver Gap Detected',
+            color: 'text-orange-600 dark:text-orange-400',
+            applied: false,
+            message: `<strong>${readyOrders.length - freeDrivers.length}</strong> released order(s) have a vehicle assigned but not enough free drivers available right now.`,
+            explanation: 'Dispatcher attention is needed for escalation, reassignment, or release sequencing.',
+            confidence: 92,
             actions: [
-                { label: 'Review HOS', class: 'bg-red-500/30 hover:bg-red-500/40 text-red-800 dark:text-red-400 border border-red-500/40 dark:border-red-500/20' },
+                { label: 'Review Gap', class: 'bg-orange-500/30 hover:bg-orange-500/40 text-orange-800 dark:text-orange-400 border border-orange-500/40 dark:border-orange-500/20' },
                 { label: 'Ignore', class: 'bg-gray-300 hover:bg-gray-400 dark:bg-white/10 dark:hover:bg-white/20 text-gray-800 dark:text-gray-300 border border-gray-400 dark:border-white/10' }
             ]
         })
     }
 
-    // Pending orders check
-    if (store.pendingOrders.length > 5) {
+    const hosRisk = drivers.filter(d => d.breakDue)
+    if (hosRisk.length) {
         result.push({
-            id: 'pending-queue', title: 'Large Pending Queue', color: 'text-yellow-600 dark:text-yellow-400', applied: false,
-            message: `<strong>${store.pendingOrders.length}</strong> orders are pending dispatch. Consider running the Route Optimizer to batch-assign efficiently.`,
-            explanation: `A large pending queue can cause SLA violations. Auto-assign can reduce dispatch time by up to 40%.`,
-            confidence: 85,
+            id: 'hos-risk', title: 'Driver Shift Limit Risk', color: 'text-red-600 dark:text-red-400', applied: false,
+            message: `<strong>${hosRisk.length}</strong> driver(s) are approaching their shift limit. New one-to-one assignments may be blocked soon.`,
+            explanation: `Drivers: ${hosRisk.map(d => d.name).join(', ')}. Confirm a backup driver before assigning another released order.`,
+            confidence: 95,
             actions: [
-                { label: 'Optimize Now', class: 'bg-yellow-500/30 hover:bg-yellow-500/40 text-yellow-800 dark:text-yellow-400 border border-yellow-500/40 dark:border-yellow-500/20' },
+                { label: 'Review HOS', class: 'bg-red-500/30 hover:bg-red-500/40 text-red-800 dark:text-red-400 border border-red-500/40 dark:border-red-500/20' },
                 { label: 'Ignore', class: 'bg-gray-300 hover:bg-gray-400 dark:bg-white/10 dark:hover:bg-white/20 text-gray-800 dark:text-gray-300 border border-gray-400 dark:border-white/10' }
             ]
         })

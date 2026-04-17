@@ -224,34 +224,35 @@ async function completeJob() {
     // Get the house-shift order ID (top-level job id, not a stop id)
     const orderId = jobStore.jobData?.id || jobStore.jobData?.jobId || null
 
-    if (orderId) {
-        try {
-            uiStore.showToast('Saving sign-off...', 'info', 1500)
-            await api.submitHouseShiftSignoff(
-                orderId,
-                sigBase64,
-                printedName.value,
-                collectedBalance.value ? 'Balance collected' : null
-            )
-        } catch (err) {
-            console.error('House-shift sign-off error:', err)
-            uiStore.showToast(`Sign-off upload failed — continuing anyway`, 'warning', 2500)
-        }
-    } else {
-        console.warn('[CustomerSignOff] No orderId found — sign-off not saved to backend')
+    if (!orderId) {
+        console.warn('[CustomerSignOff] No orderId found - sign-off not saved to backend')
+        uiStore.showToast('Order ID missing. Sign-off must be saved before completing the job.', 'error', 3000)
+        submitting.value = false
+        return
+    }
+
+    try {
+        uiStore.showToast('Saving sign-off...', 'info', 1500)
+        await api.submitHouseShiftSignoff(
+            orderId,
+            sigBase64,
+            printedName.value,
+            collectedBalance.value ? 'Balance collected' : null
+        )
+    } catch (err) {
+        console.error('House-shift sign-off error:', err)
+        uiStore.showToast(err?.message || 'Sign-off upload failed. Please retry.', 'error', 3000)
+        submitting.value = false
+        return
     }
 
     submitting.value = false
-    uiStore.showToast('Job completed!', 'success', 3000)
+    uiStore.showToast('Sign-off saved! Logging packing assets next...', 'success', 2500)
     setTimeout(() => {
-        if (jobStore.jobState === 'COMPLETED') {
-            router.push('/job-completion')
-            return
-        }
         if (jobStore.jobState !== 'POC_CAPTURE') {
             jobStore.jobState = 'POC_CAPTURE'
         }
-        advanceAndNavigate('COMPLETED', {
+        advanceAndNavigate('PACKING_RETURN', {
             customerName: printedName.value,
             completedAt: new Date().toISOString(),
             balanceCollected: collectedBalance.value

@@ -130,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useIndividualStore } from '@/stores/individualStore'
 import apiClient from '@/config/api'
 
@@ -147,10 +147,24 @@ async function fetchWallet() {
     try {
         const response = await apiClient.get('/api/v1/customer/wallet')
         walletData.value = response.data
+        store.walletBalance = Number(response.data?.balance ?? 0)
+        store.pendingTransportCharge = Number(response.data?.pending_transport_charge ?? 0)
     } catch (error) {
         console.error('Failed to fetch wallet:', error)
     }
 }
+
+async function backfillDebits() {
+    try {
+        await apiClient.post('/api/v1/customer/wallet/backfill-debits')
+    } catch {
+        // non-fatal — old payments simply won't appear if backfill fails
+    }
+}
+
+watch(() => store.walletBalance, (nextBalance) => {
+    walletData.value.balance = Number(nextBalance ?? 0)
+})
 
 function formatDate(dateString) {
     const date = new Date(dateString)
@@ -165,6 +179,7 @@ function formatDate(dateString) {
 }
 
 onMounted(async () => {
+    await backfillDebits()
     await fetchWallet()
 })
 </script>
