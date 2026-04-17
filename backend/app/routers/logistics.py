@@ -104,6 +104,15 @@ async def list_drivers(
     return await logistics_service.list_drivers(db)
 
 
+@router.post("/drivers", response_model=LogisticsDriverItem, status_code=status.HTTP_201_CREATED)
+async def create_driver(
+    data: LogisticsDriverCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
+):
+    return await logistics_service.create_driver(db, data)
+
+
 
 @router.put("/drivers/{driver_id}", response_model=LogisticsDriverItem)
 async def update_driver(

@@ -96,7 +96,11 @@ async def low_stock(
     return await inventory_service.low_stock_items(db, warehouse_id)
 
 
-@router.get("/{item_id:uuid}", response_model=InventoryResponse)
+@router.get(
+    "/{item_id:uuid}",
+    response_model=InventoryResponse,
+    responses={404: {"description": "Inventory item not found"}},
+)
 async def get_inventory_item(
     item_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -105,7 +109,11 @@ async def get_inventory_item(
     return await inventory_service.get_item_detail(db, item_id)
 
 
-@router.put("/{item_id:uuid}", response_model=InventoryResponse)
+@router.put(
+    "/{item_id:uuid}",
+    response_model=InventoryResponse,
+    responses={404: {"description": "Inventory item not found"}},
+)
 async def update_inventory_item(
     item_id: UUID,
     data: InventoryUpdate,
@@ -115,7 +123,11 @@ async def update_inventory_item(
     return await inventory_service.update_item(db, item_id, data)
 
 
-@router.delete("/{item_id:uuid}", response_model=MessageResponse)
+@router.delete(
+    "/{item_id:uuid}",
+    response_model=MessageResponse,
+    responses={404: {"description": "Inventory item not found"}},
+)
 async def delete_inventory_item(
     item_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -155,7 +167,11 @@ async def list_restock_requests(
     return await inventory_service.list_restock_requests(db, page, page_size, warehouse_id, status_filter, user)
 
 
-@router.put("/restock-requests/{request_id:uuid}/status", response_model=RestockRequestResponse)
+@router.put(
+    "/restock-requests/{request_id:uuid}/status",
+    response_model=RestockRequestResponse,
+    responses={404: {"description": "Restock request not found"}},
+)
 async def update_restock_request_status(
     request_id: UUID,
     data: RestockRequestStatusUpdate,
@@ -165,7 +181,11 @@ async def update_restock_request_status(
     return await inventory_service.update_restock_request_status(db, request_id, data, user)
 
 
-@router.post("/restock-requests/{request_id:uuid}/escalate", response_model=RestockRequestResponse)
+@router.post(
+    "/restock-requests/{request_id:uuid}/escalate",
+    response_model=RestockRequestResponse,
+    responses={404: {"description": "Restock request not found"}},
+)
 async def escalate_restock_request(
     request_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],

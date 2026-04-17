@@ -1,8 +1,115 @@
 openapi: 3.1.0
 info:
   title: Logistics & Move Management API
-  description: Backend API for the Logistics & Personal Move Management System
+  description: |
+    Backend API for the Logistics & Personal Move Management System.
+
+    User stories covered in this specification:
+    - As an Individual or Vendor, I want to register/login so that I can place and track orders.
+    - As a user, I want OTP/password reset flows so that I can recover account access securely.
+    - As a customer, I want geocoding and tracking APIs so that I can find addresses and track deliveries.
+    - As a logistics manager, I want rates and operational APIs so that I can manage business operations.
+
+    API mapping summary:
+    - Authentication: /api/v1/auth/*
+    - Geocoding: /api/v1/geocoding/*
+    - Orders and tracking: /api/v1/orders/*, /api/v1/tracking/*
+    - Pricing: /api/v1/rates
+    - Health monitoring: /health
   version: 1.0.0
+  license:
+    name: Proprietary
+    url: https://quadcoredevs.com/license
+servers:
+- url: /
+  description: Current API host
+security:
+- OAuth2PasswordBearer: []
+x-user-stories:
+- id: US-AUTH-001
+  actor: Individual or Vendor
+  story: As an Individual or Vendor, I want to register and login so that I can access the platform.
+  api_mapping:
+  - path: /api/v1/auth/register
+    method: post
+    operationId: register_api_v1_auth_register_post
+  - path: /api/v1/auth/login
+    method: post
+    operationId: login_api_v1_auth_login_post
+  - path: /api/v1/auth/token
+    method: post
+    operationId: token_login_api_v1_auth_token_post
+- id: US-AUTH-002
+  actor: Any user
+  story: As a user, I want OTP and password reset APIs so that I can recover account access.
+  api_mapping:
+  - path: /api/v1/auth/forgot-password
+    method: post
+    operationId: forgot_password_api_v1_auth_forgot_password_post
+  - path: /api/v1/auth/reset-password
+    method: post
+    operationId: reset_password_api_v1_auth_reset_password_post
+  - path: /api/v1/auth/send-otp
+    method: post
+    operationId: send_otp_api_v1_auth_send_otp_post
+  - path: /api/v1/auth/verify-otp
+    method: post
+    operationId: verify_otp_api_v1_auth_verify_otp_post
+- id: US-GEO-001
+  actor: Customer
+  story: As a customer, I want address search and reverse geocoding so that I can provide accurate pickup/drop data.
+  api_mapping:
+  - path: /api/v1/geocoding/search
+    method: get
+    operationId: search_addresses_api_v1_geocoding_search_get
+  - path: /api/v1/geocoding/reverse
+    method: get
+    operationId: reverse_geocode_api_v1_geocoding_reverse_get
+- id: US-ORD-001
+  actor: Customer
+  story: As a customer, I want to track an order with a tracking code so that I can monitor delivery status.
+  api_mapping:
+  - path: /api/v1/orders/track/{tracking_code}
+    method: get
+    operationId: track_order_api_v1_orders_track__tracking_code__get
+- id: US-RATE-001
+  actor: Logistics manager
+  story: As a logistics manager, I want to read and update rates so that pricing stays current.
+  api_mapping:
+  - path: /api/v1/rates
+    method: get
+    operationId: get_rates_api_v1_rates_get
+  - path: /api/v1/rates
+    method: put
+    operationId: update_rates_api_v1_rates_put
+- id: US-HEALTH-001
+  actor: Platform operator
+  story: As an operator, I want a health endpoint so that uptime can be monitored.
+  api_mapping:
+  - path: /health
+    method: get
+    operationId: health_check_health_get
+x-api-mapping:
+  Authentication:
+  - post /api/v1/auth/register
+  - post /api/v1/auth/login
+  - post /api/v1/auth/token
+  - post /api/v1/auth/refresh
+  - post /api/v1/auth/forgot-password
+  - post /api/v1/auth/reset-password
+  - post /api/v1/auth/send-otp
+  - post /api/v1/auth/verify-otp
+  - post /api/v1/auth/google-login
+  Geocoding:
+  - get /api/v1/geocoding/search
+  - get /api/v1/geocoding/reverse
+  Orders:
+  - get /api/v1/orders/track/{tracking_code}
+  Rates:
+  - get /api/v1/rates
+  - put /api/v1/rates
+  System:
+  - get /health
 paths:
   /api/v1/auth/register:
     post:
@@ -14,6 +121,7 @@ paths:
         and Driver accounts are provisioned by the Logistic Manager via the /users
         admin endpoint.
       operationId: register_api_v1_auth_register_post
+      security: []
       requestBody:
         content:
           application/json:
@@ -39,6 +147,7 @@ paths:
       - Authentication
       summary: Issue JWT tokens with user profile
       operationId: login_api_v1_auth_login_post
+      security: []
       requestBody:
         content:
           application/json:
@@ -67,6 +176,7 @@ paths:
         dialog. Enter your email or username in the `username` field. Use `/api/v1/auth/login`
         if you need the JSON response that also includes the user profile.
       operationId: token_login_api_v1_auth_token_post
+      security: []
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -92,6 +202,7 @@ paths:
       - Authentication
       summary: Refresh access token
       operationId: refresh_api_v1_auth_refresh_post
+      security: []
       requestBody:
         content:
           application/json:
@@ -213,6 +324,7 @@ paths:
       - Authentication
       summary: Request password reset email
       operationId: forgot_password_api_v1_auth_forgot_password_post
+      security: []
       requestBody:
         content:
           application/json:
@@ -238,6 +350,7 @@ paths:
       - Authentication
       summary: Confirm password reset with token
       operationId: reset_password_api_v1_auth_reset_password_post
+      security: []
       requestBody:
         content:
           application/json:
@@ -263,6 +376,7 @@ paths:
       - Authentication
       summary: Send email verification OTP for signup
       operationId: send_otp_api_v1_auth_send_otp_post
+      security: []
       requestBody:
         content:
           application/json:
@@ -288,6 +402,7 @@ paths:
       - Authentication
       summary: Verify email OTP before completing signup
       operationId: verify_otp_api_v1_auth_verify_otp_post
+      security: []
       requestBody:
         content:
           application/json:
@@ -313,6 +428,7 @@ paths:
       - Authentication
       summary: Login or Register with Google
       operationId: google_login_api_v1_auth_google_login_post
+      security: []
       requestBody:
         content:
           application/json:
@@ -1375,6 +1491,7 @@ paths:
 
         No authentication required - public endpoint.'
       operationId: search_addresses_api_v1_geocoding_search_get
+      security: []
       parameters:
       - name: q
         in: query
@@ -1422,6 +1539,7 @@ paths:
 
         No authentication required - public endpoint.'
       operationId: reverse_geocode_api_v1_geocoding_reverse_get
+      security: []
       parameters:
       - name: lat
         in: query
@@ -3639,6 +3757,7 @@ paths:
       - Orders
       summary: Track Order
       operationId: track_order_api_v1_orders_track__tracking_code__get
+      security: []
       parameters:
       - name: tracking_code
         in: path
@@ -3652,6 +3771,8 @@ paths:
           content:
             application/json:
               schema: {}
+        '404':
+          description: Tracking code not found
         '422':
           description: Validation Error
           content:
@@ -4126,6 +4247,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InventoryResponse'
+        '404':
+          description: Inventory item not found
         '422':
           description: Validation Error
           content:
@@ -4160,6 +4283,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InventoryResponse'
+        '404':
+          description: Inventory item not found
         '422':
           description: Validation Error
           content:
@@ -4188,6 +4313,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Inventory item not found
         '422':
           description: Validation Error
           content:
@@ -4334,6 +4461,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RestockRequestResponse'
+        '404':
+          description: Restock request not found
         '422':
           description: Validation Error
           content:
@@ -4364,6 +4493,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RestockRequestResponse'
+        '404':
+          description: Restock request not found
         '422':
           description: Validation Error
           content:
@@ -5605,6 +5736,7 @@ paths:
       - Health
       summary: Health Check
       operationId: health_check_health_get
+      security: []
       responses:
         '200':
           description: Successful Response

@@ -236,7 +236,10 @@ async def pay_order_with_wallet(
     return result
 
 
-@router.get("/track/{tracking_code}")
+@router.get(
+    "/track/{tracking_code}",
+    responses={404: {"description": "Tracking code not found"}},
+)
 async def track_order(tracking_code: str, db: Annotated[AsyncSession, Depends(get_db)]):
     return await orders_service.track_order(db, tracking_code)
 

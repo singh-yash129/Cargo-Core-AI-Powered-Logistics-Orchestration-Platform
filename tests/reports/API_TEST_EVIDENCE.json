@@ -25,7 +25,7 @@
         "refresh_token": "refresh-token-123",
         "token_type": "bearer",
         "user": {
-          "id": "bb7f2b06-b65f-498b-9623-af7153c6bbd9",
+          "id": "6115f7b2-b7a4-4dde-8538-907f209251ff",
           "name": "Test User",
           "username": "test.user",
           "email": "test.user@example.com",
@@ -40,7 +40,7 @@
           "contact_person": null,
           "business_email": null,
           "business_phone": null,
-          "created_at": "2026-04-03T12:04:43.869181Z"
+          "created_at": "2026-04-04T12:41:31.068603Z"
         },
         "pending_approval": false,
         "message": "Registration successful"
@@ -48,7 +48,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:43.871683+00:00"
+    "recorded_at": "2026-04-04T12:41:31.071145+00:00"
   },
   {
     "case_id": "AUTH-CON-003",
@@ -73,7 +73,7 @@
         "refresh_token": "refresh-token-123",
         "token_type": "bearer",
         "user": {
-          "id": "d1f4ceae-d186-46b9-a7b5-465a9dd715a5",
+          "id": "5441c15d-e6bf-48fb-953b-60be84cc4fd6",
           "name": "Test User",
           "username": "test.user",
           "email": "test.user@example.com",
@@ -88,13 +88,13 @@
           "contact_person": null,
           "business_email": null,
           "business_phone": null,
-          "created_at": "2026-04-03T12:04:43.875772Z"
+          "created_at": "2026-04-04T12:41:31.075660Z"
         }
       }
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:43.876384+00:00"
+    "recorded_at": "2026-04-04T12:41:31.076429+00:00"
   },
   {
     "case_id": "AUTH-CON-004",
@@ -131,7 +131,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:43.880608+00:00"
+    "recorded_at": "2026-04-04T12:41:31.080654+00:00"
   },
   {
     "case_id": "AUTH-INT-001",
@@ -155,7 +155,7 @@
         "refresh_token": "refresh-token-123",
         "token_type": "bearer",
         "user": {
-          "id": "3def8898-59cf-43bc-abb7-1ad1bae6e78f",
+          "id": "c48d6326-b247-4ce6-8c6d-e3f414ecc1ae",
           "name": "Test User",
           "username": "test.user",
           "email": "test.user@example.com",
@@ -170,7 +170,7 @@
           "contact_person": null,
           "business_email": null,
           "business_phone": null,
-          "created_at": "2026-04-03T12:04:47.069155Z"
+          "created_at": "2026-04-04T12:41:34.278996Z"
         },
         "pending_approval": false,
         "message": "Registration successful"
@@ -178,7 +178,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.069736+00:00"
+    "recorded_at": "2026-04-04T12:41:34.279993+00:00"
   },
   {
     "case_id": "AUTH-INT-002",
@@ -216,7 +216,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.073298+00:00"
+    "recorded_at": "2026-04-04T12:41:34.283822+00:00"
   },
   {
     "case_id": "AUTH-INT-003",
@@ -241,7 +241,7 @@
         "refresh_token": "refresh-token-123",
         "token_type": "bearer",
         "user": {
-          "id": "120f3fcf-9ab6-455a-a0da-d9c2de585d76",
+          "id": "d7901bc2-d02e-4301-9311-2ea78d7c8e48",
           "name": "Test User",
           "username": "test.user",
           "email": "test.user@example.com",
@@ -256,13 +256,13 @@
           "contact_person": null,
           "business_email": null,
           "business_phone": null,
-          "created_at": "2026-04-03T12:04:47.075548Z"
+          "created_at": "2026-04-04T12:41:34.285903Z"
         }
       }
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.076068+00:00"
+    "recorded_at": "2026-04-04T12:41:34.286435+00:00"
   },
   {
     "case_id": "AUTH-INT-004",
@@ -286,7 +286,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.082908+00:00"
+    "recorded_at": "2026-04-04T12:41:34.293795+00:00"
   },
   {
     "case_id": "AUTH-INT-005",
@@ -307,7 +307,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.085537+00:00"
+    "recorded_at": "2026-04-04T12:41:34.296864+00:00"
   },
   {
     "case_id": "AUTH-INT-006",
@@ -328,7 +328,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.087773+00:00"
+    "recorded_at": "2026-04-04T12:41:34.299855+00:00"
   },
   {
     "case_id": "AUTH-INT-007",
@@ -363,12 +363,12 @@
         "contact_person": null,
         "business_email": null,
         "business_phone": null,
-        "created_at": "2026-04-03T12:04:47.089194Z"
+        "created_at": "2026-04-04T12:41:34.300917Z"
       }
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.090598+00:00"
+    "recorded_at": "2026-04-04T12:41:34.302103+00:00"
   },
   {
     "case_id": "AUTH-INT-008",
@@ -390,7 +390,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.093767+00:00"
+    "recorded_at": "2026-04-04T12:41:34.305623+00:00"
   },
   {
     "case_id": "AUTH-INT-009",
@@ -414,7 +414,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.097171+00:00"
+    "recorded_at": "2026-04-04T12:41:34.308930+00:00"
   },
   {
     "case_id": "AUTH-INT-010",
@@ -437,7 +437,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.100295+00:00"
+    "recorded_at": "2026-04-04T12:41:34.311845+00:00"
   },
   {
     "case_id": "ORD-CON-002",
@@ -459,7 +459,7 @@
     "actual_output": {
       "status_code": 201,
       "body": {
-        "id": "76cbf757-7403-49ba-a6b9-f9477fbc9aa1",
+        "id": "7dc7f99c-334a-4b76-9059-538a3a2d4e55",
         "tracking_code": "TRK-1001",
         "order_type": "MOVE",
         "status": "CREATED",
@@ -468,8 +468,8 @@
         "picking_completed_at": null,
         "packing_started_at": null,
         "packing_completed_at": null,
-        "customer_id": "55651bdb-f10b-4dd1-aea2-b4575b3d417f",
-        "warehouse_id": "4a856653-c7a2-42bd-b096-8295726d7ee1",
+        "customer_id": "2886cc4d-353c-4d95-9b11-623dd9cfdc1a",
+        "warehouse_id": "d8af634c-6af0-415c-a16e-004b5accdb09",
         "assigned_driver_id": null,
         "assigned_vehicle_id": null,
         "assigned_driver_name": null,
@@ -508,10 +508,10 @@
         "job_feedback": null,
         "customer_name": "Jane Doe",
         "customer_phone": "9999999999",
-        "created_at": "2026-04-03T12:04:44.981132Z",
+        "created_at": "2026-04-04T12:41:32.177356Z",
         "items": [
           {
-            "id": "23d06a51-49b3-4a3b-9da4-dfd4bd219c2f",
+            "id": "07b63138-2425-47b9-a7aa-ead36e065fca",
             "sku": "BOX-MEDIUM",
             "quantity": 3,
             "box_count": 2,
@@ -522,7 +522,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:44.981844+00:00"
+    "recorded_at": "2026-04-04T12:41:32.178162+00:00"
   },
   {
     "case_id": "ORD-CON-003",
@@ -548,7 +548,7 @@
       "body": {
         "items": [
           {
-            "id": "28dee536-8036-4836-9de3-04360f88fd60",
+            "id": "14929059-9540-4c54-a7c9-5bc7f1da2f6c",
             "tracking_code": "TRK-1001",
             "order_type": "MOVE",
             "status": "CONFIRMED",
@@ -557,8 +557,8 @@
             "picking_completed_at": null,
             "packing_started_at": null,
             "packing_completed_at": null,
-            "customer_id": "10ca3178-7b4f-4862-96ea-b30109f24b24",
-            "warehouse_id": "79237e52-e645-446f-930c-0db463712ef4",
+            "customer_id": "5a57946c-6026-498c-9516-e80c30f35583",
+            "warehouse_id": "a8196c64-9bc6-45f6-9c7d-82db5d64a249",
             "assigned_driver_id": null,
             "assigned_vehicle_id": null,
             "assigned_driver_name": null,
@@ -597,10 +597,10 @@
             "job_feedback": null,
             "customer_name": "Jane Doe",
             "customer_phone": "9999999999",
-            "created_at": "2026-04-03T12:04:44.984545Z",
+            "created_at": "2026-04-04T12:41:32.181052Z",
             "items": [
               {
-                "id": "52e607be-95be-406e-b60c-19f8d6f16c1b",
+                "id": "9b03875b-9b96-43df-a386-42985369440e",
                 "sku": "BOX-MEDIUM",
                 "quantity": 3,
                 "box_count": 2,
@@ -616,7 +616,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:44.985186+00:00"
+    "recorded_at": "2026-04-04T12:41:32.181704+00:00"
   },
   {
     "case_id": "ORD-CON-004",
@@ -624,7 +624,7 @@
     "endpoint": "GET /api/v1/orders/{order_id}/items",
     "input": {
       "path": {
-        "order_id": "f5f84df1-7d6d-4c3d-bc72-69bc76b32f36"
+        "order_id": "e9b78210-2868-4733-981c-8b33ab9ca85d"
       }
     },
     "expected_output": {
@@ -639,7 +639,7 @@
       "status_code": 200,
       "body": [
         {
-          "id": "e900362f-e985-4696-a862-2aea4edeb8ae",
+          "id": "c5181742-7c60-471d-af21-e67ac4b2f685",
           "sku": "BOX-MEDIUM",
           "quantity": 3,
           "box_count": 2,
@@ -649,7 +649,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:44.988275+00:00"
+    "recorded_at": "2026-04-04T12:41:32.184949+00:00"
   },
   {
     "case_id": "ORD-INT-001",
@@ -667,7 +667,7 @@
     "actual_output": {
       "status_code": 201,
       "body": {
-        "id": "8271a9e1-a6bb-4930-b5de-8fc6dce7f161",
+        "id": "57dffa9a-2061-49f9-bdff-e23642e58075",
         "tracking_code": "TRK-1001",
         "order_type": "MOVE",
         "status": "CREATED",
@@ -676,8 +676,8 @@
         "picking_completed_at": null,
         "packing_started_at": null,
         "packing_completed_at": null,
-        "customer_id": "86d2c231-0a84-4a75-808c-3a018d089e64",
-        "warehouse_id": "3a7fb0da-d08b-488b-ad3d-733fd8ec5a0e",
+        "customer_id": "b345aefd-ee6c-4519-a88b-444faec52fcb",
+        "warehouse_id": "5577911e-909a-4321-9b3c-384e77d79bed",
         "assigned_driver_id": null,
         "assigned_vehicle_id": null,
         "assigned_driver_name": null,
@@ -716,10 +716,10 @@
         "job_feedback": null,
         "customer_name": "Jane Doe",
         "customer_phone": "9999999999",
-        "created_at": "2026-04-03T12:04:47.102735Z",
+        "created_at": "2026-04-04T12:41:34.315250Z",
         "items": [
           {
-            "id": "b5249a38-76db-4445-8635-1a1f63f0b4f1",
+            "id": "3afd99c7-4074-4758-b180-b5e5de9f5676",
             "sku": "BOX-MEDIUM",
             "quantity": 3,
             "box_count": 2,
@@ -730,7 +730,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.103312+00:00"
+    "recorded_at": "2026-04-04T12:41:34.315828+00:00"
   },
   {
     "case_id": "ORD-INT-002",
@@ -751,7 +751,7 @@
       "body": {
         "items": [
           {
-            "id": "cfa8f1b6-64fe-4452-b9f4-30a889e82fd7",
+            "id": "5ba0421a-fd8c-40f7-b9a6-350109b25e7b",
             "tracking_code": "TRK-1001",
             "order_type": "MOVE",
             "status": "CONFIRMED",
@@ -760,8 +760,8 @@
             "picking_completed_at": null,
             "packing_started_at": null,
             "packing_completed_at": null,
-            "customer_id": "c24ae2b1-b437-4fb0-8a37-28519d4e0d4d",
-            "warehouse_id": "2f2af4f6-17a4-43eb-a508-b0bfdf28be5d",
+            "customer_id": "537a840f-661e-4fc0-adf8-7d422bbfce9a",
+            "warehouse_id": "67eb862a-0854-4875-bae7-9262c80909ff",
             "assigned_driver_id": null,
             "assigned_vehicle_id": null,
             "assigned_driver_name": null,
@@ -800,10 +800,10 @@
             "job_feedback": null,
             "customer_name": "Jane Doe",
             "customer_phone": "9999999999",
-            "created_at": "2026-04-03T12:04:47.106110Z",
+            "created_at": "2026-04-04T12:41:34.318237Z",
             "items": [
               {
-                "id": "c1726fd5-cf15-4289-beb3-405aaad7991c",
+                "id": "696e3341-c207-4812-8d8e-e21020248b6c",
                 "sku": "BOX-MEDIUM",
                 "quantity": 3,
                 "box_count": 2,
@@ -819,7 +819,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.106804+00:00"
+    "recorded_at": "2026-04-04T12:41:34.318818+00:00"
   },
   {
     "case_id": "ORD-INT-003",
@@ -827,17 +827,17 @@
     "endpoint": "GET /api/v1/orders/{order_id}",
     "input": {
       "path": {
-        "order_id": "42542189-7c5e-49c2-a73a-53ee2d222c2f"
+        "order_id": "6381f876-8467-4d3c-bb8f-2a9b0cebfd8d"
       }
     },
     "expected_output": {
       "status_code": 200,
-      "id": "42542189-7c5e-49c2-a73a-53ee2d222c2f"
+      "id": "6381f876-8467-4d3c-bb8f-2a9b0cebfd8d"
     },
     "actual_output": {
       "status_code": 200,
       "body": {
-        "id": "42542189-7c5e-49c2-a73a-53ee2d222c2f",
+        "id": "6381f876-8467-4d3c-bb8f-2a9b0cebfd8d",
         "tracking_code": "TRK-1001",
         "order_type": "MOVE",
         "status": "CONFIRMED",
@@ -846,8 +846,8 @@
         "picking_completed_at": null,
         "packing_started_at": null,
         "packing_completed_at": null,
-        "customer_id": "d79751d5-be5d-432f-bc62-b309ebebf9e0",
-        "warehouse_id": "66ed5f60-210a-4063-8646-b139b9da1dc0",
+        "customer_id": "6adc2d57-8fe0-4a04-ab03-1adfe8a80b92",
+        "warehouse_id": "7827b348-4651-44d3-98db-045d72b0d7ff",
         "assigned_driver_id": null,
         "assigned_vehicle_id": null,
         "assigned_driver_name": null,
@@ -886,10 +886,10 @@
         "job_feedback": null,
         "customer_name": "Jane Doe",
         "customer_phone": "9999999999",
-        "created_at": "2026-04-03T12:04:47.109196Z",
+        "created_at": "2026-04-04T12:41:34.321385Z",
         "items": [
           {
-            "id": "effa9390-ab24-4c03-a2b0-03aad31f6217",
+            "id": "78dcf08d-1e34-4d71-b4b8-2c45c1e85602",
             "sku": "BOX-MEDIUM",
             "quantity": 3,
             "box_count": 2,
@@ -900,7 +900,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.109768+00:00"
+    "recorded_at": "2026-04-04T12:41:34.322155+00:00"
   },
   {
     "case_id": "ORD-INT-004",
@@ -908,7 +908,7 @@
     "endpoint": "PUT /api/v1/orders/{order_id}",
     "input": {
       "path": {
-        "order_id": "483204dc-43cf-4fa6-9327-618ed982faba"
+        "order_id": "9e32a991-d84d-4bd4-855d-d858403c097c"
       },
       "json": {
         "pickup_addr": "999 Updated Pickup Road"
@@ -921,7 +921,7 @@
     "actual_output": {
       "status_code": 200,
       "body": {
-        "id": "483204dc-43cf-4fa6-9327-618ed982faba",
+        "id": "9e32a991-d84d-4bd4-855d-d858403c097c",
         "tracking_code": "TRK-1001",
         "order_type": "MOVE",
         "status": "CONFIRMED",
@@ -930,8 +930,8 @@
         "picking_completed_at": null,
         "packing_started_at": null,
         "packing_completed_at": null,
-        "customer_id": "142ffdd5-af6b-45c6-bdc8-4a96bb1cf242",
-        "warehouse_id": "de0d6a61-d6f0-4ab0-b5d3-b7e77014b5ce",
+        "customer_id": "dc29eb90-cb65-4e60-badc-4f03f0107875",
+        "warehouse_id": "e5b3d86a-0ad8-49ea-8bd3-8ecd4662accf",
         "assigned_driver_id": null,
         "assigned_vehicle_id": null,
         "assigned_driver_name": null,
@@ -970,10 +970,10 @@
         "job_feedback": null,
         "customer_name": "Jane Doe",
         "customer_phone": "9999999999",
-        "created_at": "2026-04-03T12:04:47.112149Z",
+        "created_at": "2026-04-04T12:41:34.324903Z",
         "items": [
           {
-            "id": "e22203f8-0dd2-4f5e-a664-1a9c3045f6ce",
+            "id": "dd78b05e-9df6-4935-a6fc-0992cfde4f89",
             "sku": "BOX-MEDIUM",
             "quantity": 3,
             "box_count": 2,
@@ -984,7 +984,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.112937+00:00"
+    "recorded_at": "2026-04-04T12:41:34.325579+00:00"
   },
   {
     "case_id": "ORD-INT-005",
@@ -1031,7 +1031,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.116502+00:00"
+    "recorded_at": "2026-04-04T12:41:34.329054+00:00"
   },
   {
     "case_id": "ORD-INT-006",
@@ -1052,7 +1052,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.118892+00:00"
+    "recorded_at": "2026-04-04T12:41:34.331492+00:00"
   },
   {
     "case_id": "ORD-INT-007",
@@ -1060,7 +1060,7 @@
     "endpoint": "GET /api/v1/orders/{order_id}/items",
     "input": {
       "path": {
-        "order_id": "a0142794-78b9-4121-9e2f-30b79187e7ea"
+        "order_id": "8a33b93a-48d4-4e53-8e91-893637c845f1"
       }
     },
     "expected_output": {
@@ -1071,7 +1071,7 @@
       "status_code": 200,
       "body": [
         {
-          "id": "0a63f4c6-be16-4a34-a07c-9de6dc2bf0b2",
+          "id": "ff4af3fa-175c-494c-a05d-a58f1fb166f5",
           "sku": "BOX-MEDIUM",
           "quantity": 3,
           "box_count": 2,
@@ -1081,7 +1081,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.121599+00:00"
+    "recorded_at": "2026-04-04T12:41:34.334093+00:00"
   },
   {
     "case_id": "ORD-INT-008",
@@ -1089,7 +1089,7 @@
     "endpoint": "POST /api/v1/orders/{order_id}/items",
     "input": {
       "path": {
-        "order_id": "dd4e1bdc-998d-4b3d-844b-7e63d55f0c97"
+        "order_id": "bd99d03f-e4ed-4482-926b-c8033b8b7475"
       },
       "json": [
         {
@@ -1107,7 +1107,7 @@
       "status_code": 200,
       "body": [
         {
-          "id": "3d0f5329-1abe-4cc3-a949-f6659fcc4def",
+          "id": "1ec78f48-2d28-489b-9d8c-3234855bd629",
           "sku": "BOX-MEDIUM",
           "quantity": 3,
           "box_count": 2,
@@ -1117,7 +1117,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.124777+00:00"
+    "recorded_at": "2026-04-04T12:41:34.337281+00:00"
   },
   {
     "case_id": "ORD-INT-009",
@@ -1125,7 +1125,7 @@
     "endpoint": "POST /api/v1/orders/{order_id}/delivery-otp/send",
     "input": {
       "path": {
-        "order_id": "c5c1ca2e-99b6-4432-be8c-cd8865af8e64"
+        "order_id": "61285cb0-449a-4aef-af6f-d9288edcfd9b"
       },
       "json": {
         "force_resend": false
@@ -1146,11 +1146,11 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.128071+00:00"
+    "recorded_at": "2026-04-04T12:41:34.341161+00:00"
   },
   {
     "case_id": "ORD-INT-010",
-    "test_name": "test_orders_track_unknown_mismatch_showcase",
+    "test_name": "test_orders_track_unknown_returns_404",
     "endpoint": "GET /api/v1/orders/track/{tracking_code}",
     "input": {
       "path": {
@@ -1158,20 +1158,18 @@
       }
     },
     "expected_output": {
-      "status_code": 200,
-      "found": false
+      "status_code": 404,
+      "detail": "Tracking code not found"
     },
     "actual_output": {
-      "status_code": 200,
+      "status_code": 404,
       "body": {
-        "found": false,
-        "tracking_code": "UNKNOWN-TRACKING",
-        "message": "Tracking code not found"
+        "detail": "Tracking code not found"
       }
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.130763+00:00"
+    "recorded_at": "2026-04-04T12:41:34.343678+00:00"
   },
   {
     "case_id": "PUB-CON-002",
@@ -1192,7 +1190,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:45.965904+00:00"
+    "recorded_at": "2026-04-04T12:41:33.224600+00:00"
   },
   {
     "case_id": "PUB-CON-003",
@@ -1213,7 +1211,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.065747+00:00"
+    "recorded_at": "2026-04-04T12:41:34.275376+00:00"
   },
   {
     "case_id": "TRK-INT-001",
@@ -1234,7 +1232,7 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.133551+00:00"
+    "recorded_at": "2026-04-04T12:41:34.346836+00:00"
   },
   {
     "case_id": "TRK-INT-002",
@@ -1251,20 +1249,20 @@
       "status_code": 200,
       "body": [
         {
-          "driver_id": "bc7e5746-fd45-4cb4-a043-1315bf795d97",
+          "driver_id": "fb3dbd43-19a7-4157-bf64-4461850fdeb9",
           "driver_name": "Driver One",
           "latitude": 19.076,
           "longitude": 72.8777,
-          "vehicle_id": "7bd38fa6-aa42-47b6-bba6-f1b93146a665",
+          "vehicle_id": "a8c486bc-2402-429e-b035-d4f4b3110cf1",
           "vehicle_code": "VH-001",
           "status": "On-Duty",
-          "last_updated": "2026-04-03T12:04:47.134757+00:00"
+          "last_updated": "2026-04-04T12:41:34.348432+00:00"
         }
       ]
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.136827+00:00"
+    "recorded_at": "2026-04-04T12:41:34.350597+00:00"
   },
   {
     "case_id": "TRK-INT-003",
@@ -1272,7 +1270,7 @@
     "endpoint": "GET /api/v1/tracking/orders/{order_id}/driver",
     "input": {
       "path": {
-        "order_id": "3711e659-de34-4520-a6d1-2c3b342a5779"
+        "order_id": "715c965d-b166-4846-9be9-41272e146732"
       }
     },
     "expected_output": {
@@ -1282,19 +1280,19 @@
     "actual_output": {
       "status_code": 200,
       "body": {
-        "driver_id": "a8415827-fd9b-4fa8-b3fd-9c7ba3b31984",
+        "driver_id": "c4aee719-74a0-4ba6-be31-2c7b1c2d303d",
         "driver_name": "Driver Two",
         "latitude": 18.5204,
         "longitude": 73.8567,
-        "vehicle_id": "1c6e170f-97b8-40a9-8877-15ca0c71fbf5",
+        "vehicle_id": "5ced14b8-991a-45b2-989f-c9172eed9d95",
         "vehicle_code": "VH-002",
         "status": "In-Transit",
-        "last_updated": "2026-04-03T12:04:47.138489+00:00"
+        "last_updated": "2026-04-04T12:41:34.352229+00:00"
       }
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.140593+00:00"
+    "recorded_at": "2026-04-04T12:41:34.354367+00:00"
   },
   {
     "case_id": "TRK-INT-004",
@@ -1302,7 +1300,7 @@
     "endpoint": "GET /api/v1/tracking/orders/{order_id}/driver",
     "input": {
       "path": {
-        "order_id": "6912fbc5-5f26-49e3-b5f9-dddebb0c859c"
+        "order_id": "cbdaeb22-6d8f-4460-8589-c5b6be0db8ef"
       }
     },
     "expected_output": {
@@ -1315,6 +1313,6 @@
     },
     "status": "PASS",
     "notes": null,
-    "recorded_at": "2026-04-03T12:04:47.143001+00:00"
+    "recorded_at": "2026-04-04T12:41:34.357315+00:00"
   }
 ]

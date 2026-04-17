@@ -24,7 +24,7 @@ Scope: Repository-level tests only. backend/* is read-only.
 | ORD-INT-007 | Integration | GET /api/v1/orders/{order_id}/items | Get order items | 200 list of items | test_orders_get_items_success |
 | ORD-INT-008 | Integration | POST /api/v1/orders/{order_id}/items | Upsert order items | 200 list of upserted items | test_orders_upsert_items_success |
 | ORD-INT-009 | Integration | POST /api/v1/orders/{order_id}/delivery-otp/send | Driver sends delivery OTP | 200 otp send payload | test_orders_send_delivery_otp_success_for_driver |
-| ORD-INT-010 | Integration | GET /api/v1/orders/track/{tracking_code} | Unknown tracking code behavior | 200 with not-found payload | test_orders_track_unknown_mismatch_showcase |
+| ORD-INT-010 | Integration | GET /api/v1/orders/track/{tracking_code} | Unknown tracking code behavior | 404 with tracking not-found detail | test_orders_track_unknown_returns_404 |
 | TRK-INT-001 | Integration | GET /api/v1/tracking/drivers | Unauthenticated tracking request | 401 not authenticated | test_tracking_requires_authentication |
 | TRK-INT-002 | Integration | GET /api/v1/tracking/drivers | Authenticated active drivers request | 200 with driver location list | test_tracking_active_drivers_success |
 | TRK-INT-003 | Integration | GET /api/v1/tracking/orders/{order_id}/driver | Authenticated order-driver lookup | 200 with driver location object | test_tracking_order_driver_success |

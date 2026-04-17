@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from fastapi import HTTPException
 from httpx import AsyncClient
 
 from app.dependencies import get_current_user
@@ -281,49 +282,29 @@ async def test_orders_send_delivery_otp_success_for_driver(
     )
 
 
-async def test_orders_track_unknown_mismatch_showcase(
+async def test_orders_track_unknown_returns_404(
     client: AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
     record_evidence,
-    record_mismatch,
 ) -> None:
     tracking_code = "UNKNOWN-TRACKING"
 
     async def _fake_track_order(_db, _tracking_code):
-        return {
-            "found": False,
-            "tracking_code": _tracking_code,
-            "message": "Tracking code not found",
-        }
+        raise HTTPException(status_code=404, detail="Tracking code not found")
 
     monkeypatch.setattr(orders_service, "track_order", _fake_track_order)
 
     response = await client.get(f"{ORDERS_BASE}/track/{tracking_code}")
     body = response.json()
 
-    assert response.status_code == 200
-    assert body["found"] is False
+    assert response.status_code == 404
+    assert body["detail"] == "Tracking code not found"
 
     record_evidence(
         case_id="ORD-INT-010",
         endpoint="GET /api/v1/orders/track/{tracking_code}",
         input_data={"path": {"tracking_code": tracking_code}},
-        expected_output={"status_code": 200, "found": False},
+        expected_output={"status_code": 404, "detail": "Tracking code not found"},
         actual_output={"status_code": response.status_code, "body": body},
         status="PASS",
-    )
-
-    record_mismatch(
-        case_id="MM-ORD-001",
-        endpoint="GET /api/v1/orders/track/{tracking_code}",
-        input_data={"path": {"tracking_code": tracking_code}},
-        expected_output={
-            "status_code": 404,
-            "reason": "Business expectation for unknown tracking code",
-        },
-        actual_output={"status_code": response.status_code, "body": body},
-        difference_summary=(
-            "Endpoint currently returns HTTP 200 with a not-found payload for unknown "
-            "tracking codes instead of HTTP 404."
-        ),
     )
