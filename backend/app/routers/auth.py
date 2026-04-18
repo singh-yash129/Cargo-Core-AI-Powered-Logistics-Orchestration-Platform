@@ -234,6 +234,32 @@ async def verify_otp(
     return await auth_service.verify_signup_otp(redis, data)
 
 @router.post(
+    "/send-login-otp",
+    response_model=SignupOtpSendResponse,
+    summary="Send login OTP to existing customer or vendor email",
+)
+async def send_login_otp(
+    data: SendOTPRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis, Depends(get_redis)],
+):
+    return await auth_service.send_login_otp(db, redis, data)
+
+
+@router.post(
+    "/verify-login-otp",
+    response_model=LoginResponse,
+    summary="Verify login OTP and issue JWT tokens",
+)
+async def verify_login_otp(
+    data: VerifyOTPRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis, Depends(get_redis)],
+):
+    return await auth_service.verify_login_otp(db, redis, data)
+
+
+@router.post(
     '/google-login',
     response_model=LoginResponse,
     summary='Login or Register with Google',

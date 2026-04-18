@@ -43,13 +43,15 @@ from app.utils.username import generate_unique_username, normalize_username
 _BLACKLIST_PREFIX = "blacklist:"
 _RESET_PREFIX = "pwd_reset:"
 _OTP_PREFIX = "signup_otp:"
-_RESET_OTP_PREFIX = "reset_otp:"  # New prefix for password reset OTPs
+_RESET_OTP_PREFIX = "reset_otp:"
+_LOGIN_OTP_PREFIX = "login_otp:"
 _RESET_TTL_SECONDS = 3600   # 1 hour
 _OTP_TTL_SECONDS = 600      # 10 minutes
 
 # In-memory OTP fallback when Redis is unavailable
 _otp_memory: dict[str, str] = {}
 _reset_otp_memory: dict[str, str] = {}
+_login_otp_memory: dict[str, str] = {}
 settings = get_settings()
 
 # Roles allowed through the public /register endpoint (kept in sync with schema).
@@ -612,6 +614,98 @@ async def verify_signup_otp(redis: Redis | None, data: VerifyOTPRequest) -> OTPV
 
     logger.info(f"Email verified via OTP: {data.email}")
     return OTPVerifiedResponse(verified=True, message="Email verified successfully!")
+
+
+# Roles allowed to use OTP login (only self-service roles with real Gmail accounts)
+_OTP_LOGIN_ALLOWED_ROLES = frozenset({"INDIVIDUAL", "VENDOR"})
+
+
+async def send_login_otp(db: AsyncSession, redis: Redis | None, data: SendOTPRequest) -> SignupOtpSendResponse:
+    """Send a login OTP to an existing INDIVIDUAL or VENDOR user's email."""
+    import random
+    from app.utils.email import send_email, otp_email_html
+
+    email = data.email.lower()
+    user = await _get_user_by_email(db, email)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No account found with this email address.",
+        )
+
+    await db.refresh(user, attribute_names=["role"])
+
+    if user.role.name not in _OTP_LOGIN_ALLOWED_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="OTP login is only available for customer and vendor accounts.",
+        )
+
+    _ensure_user_can_authenticate(user)
+
+    otp = f"{random.randint(0, 999999):06d}"
+    key = f"{_LOGIN_OTP_PREFIX}{email}"
+    sent_at = datetime.now(timezone.utc)
+    if redis is not None:
+        await redis.setex(key, _OTP_TTL_SECONDS, otp)
+    else:
+        _login_otp_memory[email] = otp
+    logger.info(f"[DEV] Login OTP for {email}: {otp}")
+
+    sent = await send_email(
+        to=email,
+        subject="Your Cargo Core Login Code",
+        html_body=otp_email_html(otp, email),
+    )
+    if not sent:
+        if settings.is_production:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Login OTP email could not be sent. Check SMTP configuration.",
+            )
+        logger.warning("[EMAIL] Login OTP generated without email delivery in development for {}", email)
+        return SignupOtpSendResponse(
+            message="Login OTP generated (email unavailable in development)",
+            email=email,
+            sent_at=sent_at,
+            debug_otp=otp,
+        )
+
+    return SignupOtpSendResponse(message="Login OTP sent successfully", email=email, sent_at=sent_at)
+
+
+async def verify_login_otp(db: AsyncSession, redis: Redis | None, data: VerifyOTPRequest) -> LoginResponse:
+    """Verify a login OTP and return JWT tokens."""
+    email = data.email.lower()
+    key = f"{_LOGIN_OTP_PREFIX}{email}"
+
+    if redis is not None:
+        stored = await redis.get(key)
+        stored_otp = stored.decode() if isinstance(stored, bytes) else (str(stored) if stored else None)
+    else:
+        stored_otp = _login_otp_memory.get(email)
+
+    if not stored_otp or stored_otp != data.otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP. Please request a new one.",
+        )
+
+    if redis is not None:
+        await redis.delete(key)
+    else:
+        _login_otp_memory.pop(email, None)
+
+    user = await _get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    await db.refresh(user, attribute_names=["role"])
+    _ensure_user_can_authenticate(user)
+    logger.info(f"Login via OTP for user: {email}")
+    return _build_login_response(user)
+
 
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
