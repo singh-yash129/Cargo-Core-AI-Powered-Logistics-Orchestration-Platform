@@ -5,6 +5,7 @@
     "documented_statuses": [
       204,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -17,6 +18,7 @@
     "documented_statuses": [
       204,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -29,6 +31,7 @@
     "documented_statuses": [
       204,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -90,6 +93,7 @@
     "documented_statuses": [
       204,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -102,6 +106,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -114,6 +119,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -138,6 +144,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -150,6 +157,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -162,6 +170,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -186,6 +195,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -198,6 +208,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -210,6 +221,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -233,6 +245,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -281,6 +294,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -329,6 +343,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -388,6 +403,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -708,6 +724,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1041,6 +1058,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "200",
@@ -1053,6 +1071,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "200",
@@ -1065,6 +1084,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1077,6 +1097,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1087,8 +1108,7 @@
     "operation": "GET /api/v1/rates",
     "mode": "DIRECT",
     "documented_statuses": [
-      200,
-      400
+      200
     ],
     "observed_status": "200",
     "result": "PASS",
@@ -1123,6 +1143,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "200,401",
@@ -1147,6 +1168,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1302,6 +1324,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1314,6 +1337,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1326,6 +1350,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1338,6 +1363,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "200,401",
@@ -1350,6 +1376,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "200",
@@ -1362,6 +1389,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1374,6 +1402,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1386,6 +1415,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1398,6 +1428,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1410,6 +1441,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1422,6 +1454,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1434,6 +1467,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1446,6 +1480,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1456,8 +1491,7 @@
     "operation": "GET /health",
     "mode": "DIRECT",
     "documented_statuses": [
-      200,
-      400
+      200
     ],
     "observed_status": "200",
     "result": "PASS",
@@ -1492,6 +1526,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1504,6 +1539,7 @@
     "documented_statuses": [
       201,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1539,6 +1575,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1551,6 +1588,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1575,6 +1613,7 @@
     "documented_statuses": [
       201,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1587,6 +1626,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1599,6 +1639,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1611,6 +1652,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1635,6 +1677,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1793,6 +1836,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1829,6 +1873,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "200,422",
@@ -1901,6 +1946,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1950,6 +1996,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1962,6 +2009,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -1974,6 +2022,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2010,6 +2059,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2046,6 +2096,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2106,6 +2157,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2226,6 +2278,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2274,6 +2327,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2286,6 +2340,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2406,6 +2461,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2418,6 +2474,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2430,6 +2487,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2442,6 +2500,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2454,6 +2513,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2461,11 +2521,25 @@
     "source": "Swagger probe scan"
   },
   {
+    "operation": "POST /api/v1/orders/{order_id}/customer-rating",
+    "mode": "DIRECT",
+    "documented_statuses": [
+      200,
+      401,
+      404,
+      422
+    ],
+    "observed_status": "200,401,422",
+    "result": "PASS",
+    "source": "ORD-INT-011, ORD-INT-012, ORD-INT-013"
+  },
+  {
     "operation": "POST /api/v1/orders/{order_id}/delivery-otp/send",
     "mode": "DIRECT",
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "200",
@@ -2478,6 +2552,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2490,6 +2565,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2502,6 +2578,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "200",
@@ -2514,6 +2591,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2526,6 +2604,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2538,6 +2617,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2550,6 +2630,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2562,6 +2643,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2574,6 +2656,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2586,6 +2669,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2598,6 +2682,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2610,6 +2695,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2646,6 +2732,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2658,6 +2745,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2682,6 +2770,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2718,6 +2807,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2754,6 +2844,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2778,6 +2869,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2790,6 +2882,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2838,6 +2931,7 @@
     "documented_statuses": [
       201,
       401,
+      404,
       422
     ],
     "observed_status": "201,422",
@@ -2850,6 +2944,7 @@
     "documented_statuses": [
       201,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2862,6 +2957,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2874,6 +2970,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2886,6 +2983,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2898,6 +2996,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2910,6 +3009,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2922,6 +3022,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2934,6 +3035,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2946,6 +3048,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2958,6 +3061,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2970,6 +3074,7 @@
     "documented_statuses": [
       201,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2982,6 +3087,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -2994,6 +3100,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3006,6 +3113,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3018,6 +3126,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3030,6 +3139,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3042,6 +3152,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3054,6 +3165,7 @@
     "documented_statuses": [
       201,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3066,6 +3178,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3078,6 +3191,7 @@
     "documented_statuses": [
       201,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3090,6 +3204,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3102,6 +3217,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3114,6 +3230,7 @@
     "documented_statuses": [
       201,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3126,6 +3243,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3138,6 +3256,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3150,6 +3269,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3162,6 +3282,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3174,6 +3295,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3186,6 +3308,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3198,6 +3321,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3210,6 +3334,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3222,6 +3347,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3246,6 +3372,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3270,6 +3397,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3346,6 +3474,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3358,6 +3487,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3370,6 +3500,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3382,6 +3513,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3394,6 +3526,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3406,6 +3539,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3418,6 +3552,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3430,6 +3565,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3442,6 +3578,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3454,6 +3591,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3466,6 +3604,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3478,6 +3617,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "200",
@@ -3502,6 +3642,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3514,6 +3655,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3526,6 +3668,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3538,6 +3681,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3562,6 +3706,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3574,6 +3719,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3586,6 +3732,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3598,6 +3745,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
@@ -3610,6 +3758,7 @@
     "documented_statuses": [
       200,
       401,
+      404,
       422
     ],
     "observed_status": "401",
