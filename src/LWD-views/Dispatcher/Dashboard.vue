@@ -102,6 +102,22 @@
 
                     <!-- Driver markers — color-coded by live status -->
                     <l-marker v-for="driver in activeDrivers" :key="driver.driver_id" :lat-lng="[driver.latitude, driver.longitude]" :icon="getDriverIcon(getActiveDriverStatusColor(driver))">
+                        <l-tooltip :permanent="false" direction="top">
+                            <div class="text-xs min-w-[160px]">
+                                <div class="font-bold flex items-center gap-1 mb-1">
+                                    <span class="material-symbols-outlined text-[13px] text-green-500">local_shipping</span>
+                                    {{ driver.driver_name }}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-green-600 font-semibold">
+                                        ✓ {{ driverDeliveryMetrics.get(String(driver.driver_id))?.delivered ?? 0 }} Delivered
+                                    </span>
+                                    <span class="text-amber-500 font-semibold">
+                                        ⏳ {{ driverDeliveryMetrics.get(String(driver.driver_id))?.pending ?? 0 }} Pending
+                                    </span>
+                                </div>
+                            </div>
+                        </l-tooltip>
                         <l-popup>
                             <div class="text-xs p-1">
                                 <div class="font-bold flex items-center gap-1 mb-1">
@@ -1204,6 +1220,19 @@ const driverOrderContextMap = computed(() => {
     }
 
     return mapped
+})
+
+const driverDeliveryMetrics = computed(() => {
+    const metrics = new Map()
+    for (const order of activeOrders.value) {
+        if (!order.driverId) continue
+        const id = String(order.driverId)
+        if (!metrics.has(id)) metrics.set(id, { delivered: 0, pending: 0 })
+        const m = metrics.get(id)
+        if (String(order.status || '').toUpperCase() === 'DELIVERED') m.delivered++
+        else m.pending++
+    }
+    return metrics
 })
 
 const routeHistoryTrails = computed(() => {

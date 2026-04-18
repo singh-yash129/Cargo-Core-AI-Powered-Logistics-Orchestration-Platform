@@ -188,6 +188,7 @@ def _shipment(
         assigned_vehicle_id=order.assigned_vehicle_id,
         assigned_vehicle_code=vehicle_code,
         cargo_type=order.cargo_type,
+        cargo_weight_kg=order.cargo_weight_kg,
         vehicle_type=order.vehicle_type,
         payment_mode=order.payment_mode,
         payment_status=order.payment_status,
@@ -427,6 +428,7 @@ def _bulk_upload_response(upload: VendorBulkUpload) -> VendorBulkUploadResponse:
         orders=upload.orders,
         status=upload.status,
         errors=upload.errors,
+        scheduled_for=upload.scheduled_for,
     )
 
 

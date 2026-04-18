@@ -370,6 +370,8 @@ def _to_order_response(
         poc_signature=order.poc_signature,
         job_rating=order.job_rating,
         job_feedback=order.job_feedback,
+        customer_rating=order.customer_rating,
+        customer_feedback=order.customer_feedback,
         customer_name=customer_name,
         customer_phone=customer_phone,
         escalated=escalated,
@@ -549,19 +551,43 @@ async def create_order(db: AsyncSession, data: OrderCreate, user: User) -> Order
         db.add(order)
         await db.flush()
 
+    # Auto-deduct wallet for Prepaid vendor orders
+    if order_type == "VENDOR" and (data.payment_mode or "").strip().lower() == "prepaid":
+        prepaid_amount = float(order.total_amount or 0.0)
+        if prepaid_amount > 0:
+            from app.services import wallet_service as _ws
+            balance = await _ws.get_wallet_balance(db, user.id)
+            if balance < prepaid_amount:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Insufficient wallet balance for Prepaid order. Required: ₹{prepaid_amount:.2f}, Available: ₹{balance:.2f}. Please top up your wallet first.",
+                )
+            await _ws.apply_wallet_payment(db, order=order, user=user, amount=prepaid_amount)
+
     initial_payment_amount = min(float(data.initial_payment_amount or 0.0), float(order.total_amount or 0.0))
     if initial_payment_amount > 0:
-        from app.services import finance_service
+        if (data.initial_payment_mode or "").upper() == "WALLET":
+            from app.services import wallet_service
 
-        await finance_service.record_order_payment(
-            db=db,
-            order_id=order.id,
-            amount=initial_payment_amount,
-            payment_mode=data.initial_payment_mode or "ONLINE",
-            payment_method=data.initial_payment_method,
-            payment_ref=data.initial_payment_ref,
-            notes="Initial payment captured during order booking",
-        )
+            # Validates balance and raises HTTP 400 if insufficient — rolls back the order
+            await wallet_service.apply_wallet_payment(
+                db,
+                order=order,
+                user=user,
+                amount=initial_payment_amount,
+            )
+        else:
+            from app.services import finance_service
+
+            await finance_service.record_order_payment(
+                db=db,
+                order_id=order.id,
+                amount=initial_payment_amount,
+                payment_mode=data.initial_payment_mode or "ONLINE",
+                payment_method=data.initial_payment_method,
+                payment_ref=data.initial_payment_ref,
+                notes="Initial payment captured during order booking",
+            )
 
     await db.refresh(order, attribute_names=["items"])
 
@@ -2394,6 +2420,47 @@ async def submit_job_rating(
 
     order.job_rating = rating
     order.job_feedback = feedback or None
+    db.add(order)
+    await db.flush()
+    await db.refresh(order, attribute_names=["items"])
+    dn, vc, cn, cp = await _resolve_names(db, [order])
+    return _to_order_response(
+        order,
+        driver_name=dn.get(order.assigned_driver_id),
+        vehicle_code=vc.get(order.assigned_vehicle_id),
+        customer_name=cn.get(order.customer_id),
+        customer_phone=cp.get(order.customer_id),
+    )
+
+
+async def submit_customer_rating(
+    db: AsyncSession,
+    order_id: UUID,
+    user: User,
+    *,
+    rating: int,
+    feedback: str | None = None,
+):
+    """Store customer/vendor rating (1–5) of the driver for a completed order."""
+    order = await _get_order(db, order_id)
+
+    if user.role.name in {"INDIVIDUAL", "VENDOR"} and order.customer_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+    if order.status != "DELIVERED":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Rating can only be submitted for delivered orders",
+        )
+
+    if not 1 <= rating <= 5:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Rating must be between 1 and 5",
+        )
+
+    order.customer_rating = rating
+    order.customer_feedback = feedback or None
     db.add(order)
     await db.flush()
     await db.refresh(order, attribute_names=["items"])

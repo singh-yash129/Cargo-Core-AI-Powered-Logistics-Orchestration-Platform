@@ -11,6 +11,7 @@ class WarehouseCreate(BaseModel):
     lng: float | None = None
     manager_id: UUID | None = None
     capacity_limit: int | None = Field(default=None, ge=0)
+    hub_status: str | None = None
 
 
 class WarehouseUpdate(BaseModel):
@@ -21,6 +22,7 @@ class WarehouseUpdate(BaseModel):
     manager_id: UUID | None = None
     capacity_limit: int | None = Field(default=None, ge=0)
     is_active: bool | None = None
+    hub_status: str | None = None
 
 
 class FloorPlanUpdate(BaseModel):

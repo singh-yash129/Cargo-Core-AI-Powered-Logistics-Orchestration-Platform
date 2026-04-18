@@ -204,6 +204,8 @@ export const useVendorStore = defineStore('vendor', () => {
             })),
             autoDebitNote: raw.auto_debit_note || null,
             paidAmount: Number(raw.paid_amount || 0),
+            customerRating: raw.customer_rating ?? null,
+            customerFeedback: raw.customer_feedback ?? null,
             declaredValue: Number(raw.declared_value || 0),
             cost: {
                 base: Number(raw.cost?.base || 0),
@@ -909,13 +911,63 @@ export const useVendorStore = defineStore('vendor', () => {
         await fetchRecurringRules()
     }
 
+    async function createBulkOrders(rows) {
+        const results = { created: 0, failed: 0 }
+        for (const row of rows) {
+            try {
+                const declaredValue = Number(row.declared_value || row.declaredValue || 0)
+                const weight = Number(row.weight_kg || row.weight || 0)
+                const baseAmount = declaredValue > 0 ? Math.round(declaredValue * 0.02) : 850
+                const packingAmount = Math.round(baseAmount * 0.1) || 100
+                const total = baseAmount + packingAmount + Math.round((baseAmount + packingAmount) * 0.18)
+                const res = await fetch(`${API_BASE}/orders`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(true),
+                    body: JSON.stringify({
+                        order_type: 'VENDOR',
+                        warehouse_id: null,
+                        pickup_addr: row.pickup_address || row.pickupAddress || 'Origin Hub',
+                        pickup_type: 'doorstep',
+                        delivery_addr: row.delivery_address || row.deliveryAddress || row.destination || 'Destination',
+                        cargo_type: row.cargo_type || row.item_description || 'Commercial Shipment',
+                        vehicle_type: 'commercial',
+                        priority: 'NORMAL',
+                        labor_count: 0,
+                        cargo_weight_kg: weight || null,
+                        cargo_volume_m3: null,
+                        base_amount: baseAmount,
+                        vehicle_amount: 0,
+                        labor_amount: 0,
+                        materials_amount: 0,
+                        packing_amount: packingAmount,
+                        platform_fee: 0,
+                        tax_amount: Math.round((baseAmount + packingAmount) * 0.18),
+                        total_amount: total,
+                        declared_value: declaredValue,
+                        payment_mode: row.payment_mode || row.paymentMode || 'Invoice',
+                        payment_status: 'pending',
+                        service_time_block: null,
+                        scheduled_at: null,
+                        delivery_lat: null,
+                        delivery_lng: null,
+                    }),
+                })
+                if (res.ok) results.created++
+                else results.failed++
+            } catch {
+                results.failed++
+            }
+        }
+        return results
+    }
+
     async function addBulkUpload(upload) {
         const response = await fetch(`${API_BASE}/vendor/bulk-uploads`, {
             method: 'POST',
             headers: getAuthHeaders(true),
             body: JSON.stringify({
                 filename: upload.filename || upload.fileName || 'upload.csv',
-                file_size_kb: Number(upload.fileSizeKb || 0),
+                file_size_kb: Math.round(Number(upload.fileSizeKb || 0)),
                 orders: Number(upload.orders || 0),
                 status: upload.status || 'Processed',
                 errors: Number(upload.errors || 0),
@@ -925,7 +977,11 @@ export const useVendorStore = defineStore('vendor', () => {
 
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}))
-            throw new Error(errData.detail || 'Failed to save bulk upload.')
+            const detail = errData.detail
+            const msg = Array.isArray(detail)
+                ? detail.map(e => e.msg || JSON.stringify(e)).join(', ')
+                : (typeof detail === 'string' ? detail : 'Failed to save bulk upload.')
+            throw new Error(msg)
         }
 
         await fetchBulkUploads()
@@ -1079,6 +1135,29 @@ export const useVendorStore = defineStore('vendor', () => {
         } catch (e) { /* best-effort */ }
     }
 
+    async function submitCustomerRating(backendId, rating, feedback = null) {
+        try {
+            const response = await fetch(`${API_BASE}/orders/${backendId}/customer-rating`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ rating, feedback }),
+            })
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}))
+                return { success: false, message: errData.detail || 'Failed to submit rating.' }
+            }
+            const updated = await response.json()
+            const idx = shipments.value.findIndex(s => s.backendId === backendId)
+            if (idx !== -1) {
+                shipments.value[idx].customerRating = updated.customer_rating
+                shipments.value[idx].customerFeedback = updated.customer_feedback
+            }
+            return { success: true }
+        } catch {
+            return { success: false, message: 'Error connecting to the server.' }
+        }
+    }
+
     return {
         initialized,
         loading,
@@ -1123,6 +1202,7 @@ export const useVendorStore = defineStore('vendor', () => {
         updateShipmentAddress,
         rescheduleShipment,
         cancelShipment,
+        submitCustomerRating,
         payInvoice,
         recordCODPayment,
         reportDamage,
@@ -1133,6 +1213,7 @@ export const useVendorStore = defineStore('vendor', () => {
         updateRecurringRule,
         toggleRecurringRule,
         deleteRecurringRule,
+        createBulkOrders,
         addBulkUpload,
         updateBulkUpload,
         calculateQuote,

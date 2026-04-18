@@ -163,7 +163,10 @@ async def apply_wallet_payment(
         applied = min(applied, available)
 
     if applied <= 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient wallet balance")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Insufficient Cargo Core Wallet balance. Available: ₹{available:.2f}, Required: ₹{requested:.2f}. Please top up your wallet and try again.",
+        )
 
     await _record_wallet_transaction(
         db,

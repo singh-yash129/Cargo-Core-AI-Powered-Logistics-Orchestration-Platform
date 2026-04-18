@@ -616,6 +616,28 @@ async def submit_job_rating(
     )
 
 
+class CustomerRatingRequest(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+    feedback: str | None = None
+
+
+@router.post("/{order_id}/customer-rating", response_model=OrderResponse)
+async def submit_customer_rating(
+    order_id: UUID,
+    data: CustomerRatingRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    """Submit customer/vendor rating (1–5 stars) of the driver for a completed order."""
+    return await orders_service.submit_customer_rating(
+        db,
+        order_id,
+        user,
+        rating=data.rating,
+        feedback=data.feedback,
+    )
+
+
 class PackingReturnItem(BaseModel):
     name: str
     sku: str | None = None

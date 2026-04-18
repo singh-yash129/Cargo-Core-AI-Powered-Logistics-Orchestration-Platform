@@ -118,6 +118,7 @@ LEGAL_THREAT_PATTERNS = (
 )
 
 SELF_SERVICE_ROLES = {"VENDOR", "INDIVIDUAL"}
+MIN_PROACTIVE_ESCALATION_TURNS = 3  # Minimum customer exchanges before sentiment-based handover fires
 WAREHOUSE_CONTEXTS = {"warehouse_management", "smart_wms", "warehouse_ai"}
 LOGISTIC_MANAGER_CONTEXTS = {"logistic_manager", "ai_intelligence", "logistics_intelligence"}
 DISPATCHER_CONTEXTS = {"dispatcher", "smart_dispatcher", "dispatch_ai"}
@@ -734,7 +735,11 @@ async def _gemini_support_health_score(msg: str) -> int:
         return _support_health_score(msg)
 
 
-async def _handoff_reason_for_message(msg: str, db_settings=None) -> str | None:
+async def _handoff_reason_for_message(
+    msg: str,
+    db_settings=None,
+    conversation_turns: int = 0,
+) -> str | None:
     if _has_legal_threat(msg):
         return "Legal escalation risk detected. Human support is required."
     if _is_human_handoff_request(msg):
@@ -742,9 +747,13 @@ async def _handoff_reason_for_message(msg: str, db_settings=None) -> str | None:
     if (
         db_settings
         and getattr(db_settings, "proactive_human_handover", False)
+        and conversation_turns >= MIN_PROACTIVE_ESCALATION_TURNS
         and await _gemini_support_health_score(msg) < int(getattr(db_settings, "sentiment_threshold", 80) or 80)
     ):
-        return "Conversation sentiment dropped below the support handoff threshold."
+        return (
+            f"The AI was unable to resolve this issue after {conversation_turns} exchanges "
+            "and the customer's sentiment remains negative. A human support agent will take over."
+        )
     return None
 
 
@@ -2403,6 +2412,10 @@ async def chat(
     if _is_dispatcher_chat_context(user, chat_context):
         dispatcher_snapshot = await _build_dispatcher_snapshot(ro_db)
 
+    logistic_manager_snapshot = None
+    if _is_logistic_manager_chat_context(user, chat_context):
+        logistic_manager_snapshot = await _build_logistics_manager_snapshot(ro_db)
+
     warehouse_shortcut = await _try_handle_warehouse_shortcuts(
         db=db,
         ro_db=ro_db,
@@ -2462,6 +2475,7 @@ async def chat(
     # ── Step 1: Load conversation history ─────────────────────────────────
     history = await _load_conversation_history(db, session_id, user.id)
     gemini_history = _build_gemini_history(history)
+    _conversation_turns = sum(1 for m in history if m.role == "user")
 
     # ── Step 2: Load admin-configured settings (tone, system prompt, etc.) ─
     from app.models.ai_support_settings import AISupportSettings as _AISupportSettings
@@ -2475,7 +2489,7 @@ async def chat(
         and _role_name(user) in SELF_SERVICE_ROLES
         and await _session_has_resolved_handoff(db, session_id, user.id)
     ):
-        resolved_handoff_reason = await _handoff_reason_for_message(msg, _db_settings)
+        resolved_handoff_reason = await _handoff_reason_for_message(msg, _db_settings, _conversation_turns)
         if resolved_handoff_reason:
             return await _create_closed_handoff_response(
                 db=db,
@@ -2485,7 +2499,7 @@ async def chat(
                 linked_order=linked_order,
             )
 
-    handoff_reason = await _handoff_reason_for_message(msg, _db_settings)
+    handoff_reason = await _handoff_reason_for_message(msg, _db_settings, _conversation_turns)
     if handoff_reason:
         return await _create_human_handoff_response(
             db=db,
@@ -2556,7 +2570,7 @@ async def chat(
         contents = gemini_history + [
             types.Content(
                 role="user",
-                parts=[types.Part.from_text(text=_contextualize_user_message(effective_user_message, chat_context, warehouse_snapshot, dispatcher_snapshot))],
+                parts=[types.Part.from_text(text=_contextualize_user_message(effective_user_message, chat_context, warehouse_snapshot, dispatcher_snapshot, logistic_manager_snapshot))],
             )
         ]
 
@@ -3261,24 +3275,24 @@ async def _try_handle_self_service_shortcuts(
             sql_generated=None,
         )
 
-    if role == "VENDOR":
-        if _is_wallet_balance_question(msg):
-            base_message = await _vendor_wallet_message(ro_db, user)
-            assistant_message = await _answer_with_grounded_ai(
-                user=user,
-                user_message=user_message,
-                fallback_message=base_message,
-                grounding_facts=[base_message],
-            )
-            await _persist_message(db, session_id, user.id, "user", user_message, "db_query")
-            await _persist_message(db, session_id, user.id, "assistant", assistant_message, "db_query")
-            return ChatResponse(
-                session_id=session_id,
-                message=assistant_message,
-                intent="db_query",
-                sql_generated=None,
-            )
+    if _is_wallet_balance_question(msg):
+        base_message = await _vendor_wallet_message(ro_db, user)
+        assistant_message = await _answer_with_grounded_ai(
+            user=user,
+            user_message=user_message,
+            fallback_message=base_message,
+            grounding_facts=[base_message],
+        )
+        await _persist_message(db, session_id, user.id, "user", user_message, "db_query")
+        await _persist_message(db, session_id, user.id, "assistant", assistant_message, "db_query")
+        return ChatResponse(
+            session_id=session_id,
+            message=assistant_message,
+            intent="db_query",
+            sql_generated=None,
+        )
 
+    if role == "VENDOR":
         if _is_analytics_section_question(msg):
             base_message = await _vendor_analytics_message(ro_db, user)
             assistant_message = await _answer_with_grounded_ai(
@@ -3692,7 +3706,9 @@ async def _local_fallback_response(
         return "A quote is the estimated cost shown before you confirm a booking, based on route, volume, labor, and packing."
     if "what is recurring" in msg or "what are recurring" in msg:
         return "Recurring shipments let you schedule automatic repeat deliveries on a weekly or monthly basis."
-    if "wallet" in msg and not _is_wallet_balance_question(msg):
+    if _is_wallet_balance_question(msg):
+        return await _vendor_wallet_message(ro_db, user)
+    if "wallet" in msg:
         return "Your wallet balance is shown in the header. You can top it up by clicking the balance amount. It is used to pay for orders automatically."
     if any(k in msg for k in ["how to track", "where to track", "tracking"]):
         return f"Track your {noun}s from the Orders/Shipments section in your dashboard. Click any {noun} to see live status updates."
@@ -3743,6 +3759,7 @@ def _contextualize_user_message(
     chat_context: str | None,
     warehouse_snapshot: dict | None = None,
     dispatcher_snapshot: dict | None = None,
+    logistic_manager_snapshot: dict | None = None,
 ) -> str:
     normalized = (chat_context or "").strip().lower()
 
@@ -3760,6 +3777,15 @@ def _contextualize_user_message(
         return (
             "Smart Dispatcher context.\n"
             "Current dispatch grounding facts:\n"
+            + "\n".join(f"- {fact}" for fact in snapshot_facts)
+            + f"\n\nUser question: {user_message}"
+        )
+
+    if normalized in LOGISTIC_MANAGER_CONTEXTS and logistic_manager_snapshot:
+        snapshot_facts = logistic_manager_snapshot.get("facts", [])[:16]
+        return (
+            "Reports & Command Center context.\n"
+            "Live network operational grounding facts:\n"
             + "\n".join(f"- {fact}" for fact in snapshot_facts)
             + f"\n\nUser question: {user_message}"
         )

@@ -570,7 +570,8 @@ def _build_profile_stats(
     total_orders = len(orders)
     completed_orders = len([order for order in orders if _is_completed_order(order)])
     on_time_percent = round((completed_orders / total_orders) * 100) if total_orders else 0
-    rating = round(min(5.0, 3.8 + (profile.efficiency_score / 100)), 1)
+    rated_orders = [o for o in orders if o.customer_rating is not None]
+    rating = round(sum(o.customer_rating for o in rated_orders) / len(rated_orders), 1) if rated_orders else 0.0
     badge = "Pro Driver" if completed_orders >= 25 else "Field Driver" if completed_orders >= 5 else "Driver"
     tier = "Level 3 - Field Execution" if profile.efficiency_score >= 85 else "Level 2 - Route Ops"
     return {
@@ -1810,13 +1811,26 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
     total_expenses = float(finance_summary.get("total_expenses", 0.0) or 0.0)
     total_pending_cod = float(finance_summary.get("pending_cod", 0.0) or 0.0)
 
-    # ── Per-driver earnings from EXPENSE_DRIVER rows in LogisticsTransaction ──
-    # Count assigned (and beyond) orders per driver as a proxy for shifts served
-    driver_order_counts: dict = {}
+    # ── Per-driver order stats computed from real order data ──
+    driver_order_counts: dict = {}       # total non-draft orders
+    driver_delivered_counts: dict = {}   # delivered orders
+    driver_cancelled_counts: dict = {}   # cancelled orders
+    driver_rating_sums: dict = {}        # sum of customer_rating values
+    driver_rating_counts: dict = {}      # count of orders with customer_rating
     for order in orders:
-        if order.assigned_driver_id and order.status not in {"DRAFT", "CANCELLED"}:
-            key = str(order.assigned_driver_id)
-            driver_order_counts[key] = driver_order_counts.get(key, 0) + 1
+        if not order.assigned_driver_id:
+            continue
+        key = str(order.assigned_driver_id)
+        if order.status == "DRAFT":
+            continue
+        driver_order_counts[key] = driver_order_counts.get(key, 0) + 1
+        if order.status == "DELIVERED":
+            driver_delivered_counts[key] = driver_delivered_counts.get(key, 0) + 1
+        if order.status == "CANCELLED":
+            driver_cancelled_counts[key] = driver_cancelled_counts.get(key, 0) + 1
+        if order.customer_rating is not None:
+            driver_rating_sums[key] = driver_rating_sums.get(key, 0) + order.customer_rating
+            driver_rating_counts[key] = driver_rating_counts.get(key, 0) + 1
 
     # EXPENSE_DRIVER rows in LogisticsTransaction sum gives total earned per driver session
     expense_driver_rows = [tx for tx in transactions if tx.transaction_type == "EXPENSE_DRIVER"]
@@ -1830,7 +1844,8 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
         hub_orders = [order for order in orders if order.warehouse_id == warehouse.id]
         hub_vehicles = [vehicle for vehicle in vehicles if vehicle.warehouse_id == warehouse.id]
         capacity = int((len(hub_orders) / max(warehouse.capacity_limit or 10, 10)) * 100)
-        status = "Optimal" if capacity < 70 else ("High Load" if capacity < 90 else "Congested")
+        computed_status = "Optimal" if capacity < 70 else ("High Load" if capacity < 90 else "Congested")
+        status = warehouse.hub_status if warehouse.hub_status else computed_status
         efficiency = min(99, max(72, 82 + len(hub_orders) * 3))
         fallback_manager = next(
             (
@@ -1885,20 +1900,23 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
             continue
         assigned_vehicle = vehicle_by_driver.get(user.id)
         uid_str = str(user.id)
-        # Rating: derived from efficiency score (50–100 → 2.5–5.0)
-        driver_rating = round(min(5.0, max(1.0, profile.efficiency_score / 20)), 1)
-        # Safety incidents: alert count mentioning this driver, plus shifts with status issues
+        # Rating: avg of customer_rating from delivered orders; 0.0 if none yet
+        r_count = driver_rating_counts.get(uid_str, 0)
+        driver_rating = round(driver_rating_sums.get(uid_str, 0) / r_count, 1) if r_count else 0.0
+        # Efficiency: delivery completion rate from real orders; fall back to stored score
+        total_trips = driver_order_counts.get(uid_str, 0)
+        delivered_trips = driver_delivered_counts.get(uid_str, 0)
+        driver_efficiency = round((delivered_trips / total_trips) * 100) if total_trips else profile.efficiency_score
+        # Safety incidents: alert count mentioning this driver
         driver_incidents = driver_alert_counts.get(uid_str, 0)
         # Fuel efficiency: from assigned vehicle or a computed estimate
         if assigned_vehicle and assigned_vehicle.fuel_efficiency:
             fuel_eff = str(assigned_vehicle.fuel_efficiency)
         else:
-            # Estimate from efficiency score: higher score = better fuel use
-            mpg = round(6.0 + (profile.efficiency_score / 100) * 6, 1)
+            mpg = round(6.0 + (driver_efficiency / 100) * 6, 1)
             fuel_eff = f"{mpg} km/l"
-        # Average speed: estimate from orders completed and mileage data
-        driver_trips = driver_order_counts.get(uid_str, 0)
-        avg_spd = f"{min(75, max(35, 40 + driver_trips * 2))} km/h"
+        # Average speed: estimate from trips
+        avg_spd = f"{min(75, max(35, 40 + total_trips * 2))} km/h"
         drivers.append(
             LogisticsDriverItem(
                 id=user.id,
@@ -1907,7 +1925,7 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
                 status=profile.status,
                 location=profile.current_location,
                 vehicle=assigned_vehicle.code if assigned_vehicle else None,
-                efficiency=profile.efficiency_score,
+                efficiency=driver_efficiency,
                 rating=driver_rating,
                 safety_incidents=driver_incidents,
                 fuel_efficiency_score=fuel_eff,
@@ -2410,7 +2428,21 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
         hubs=hubs,
         alerts=[LogisticsAlertItem(id=alert.id, type=alert.alert_type, title=alert.title, description=alert.description, severity=alert.severity, icon=alert.icon, timestamp=alert.created_at.strftime("%I:%M %p"), location=alert.location, recommendation=alert.recommendation, impact=alert.impact_json) for alert in alerts],
         drivers=drivers,
-        top_drivers=[{"id": str(driver.id), "hubId": driver.hub_id, "name": driver.name, "rating": round(min(5.0, max(4.1, driver.efficiency / 20)), 1), "trips": 100 + driver.efficiency, "ontime": min(99, driver.efficiency + 5), "avatar": f"https://i.pravatar.cc/150?u={driver.id}"} for driver in sorted(drivers, key=lambda item: item.efficiency, reverse=True)[:5]],
+        top_drivers=[
+            {
+                "id": str(driver.id),
+                "hubId": driver.hub_id,
+                "name": driver.name,
+                "rating": driver.rating,
+                "trips": driver_order_counts.get(str(driver.id), 0),
+                "ontime": (
+                    round(driver_delivered_counts.get(str(driver.id), 0) / driver_order_counts.get(str(driver.id), 1) * 100)
+                    if driver_order_counts.get(str(driver.id), 0) > 0 else 0
+                ),
+                "avatar": f"https://i.pravatar.cc/150?u={driver.id}",
+            }
+            for driver in sorted(drivers, key=lambda item: driver_order_counts.get(str(item.id), 0), reverse=True)[:5]
+        ],
         vehicles=vehicles_payload,
         maintenance=[LogisticsMaintenanceItem(id=vehicle.id, hub_id=vehicle.warehouse_id, issue=vehicle.maintenance_issue or "Scheduled Maintenance", status=vehicle.status, status_class=_status_badge_class(vehicle.status)) for vehicle in vehicles if vehicle.status != "Active"],
         transactions=[

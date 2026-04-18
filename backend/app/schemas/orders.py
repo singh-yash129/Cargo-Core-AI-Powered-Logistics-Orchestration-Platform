@@ -157,6 +157,8 @@ class OrderResponse(BaseModel):
     poc_signature: str | None = None
     job_rating: int | None = None
     job_feedback: str | None = None
+    customer_rating: int | None = None
+    customer_feedback: str | None = None
     packing_return_data: dict | None = None
     customer_name: str | None = None
     customer_phone: str | None = None

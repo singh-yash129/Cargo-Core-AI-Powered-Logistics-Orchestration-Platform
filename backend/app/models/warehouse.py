@@ -19,6 +19,7 @@ class Warehouse(Base):
     manager_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     floor_plan_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     capacity_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    hub_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
