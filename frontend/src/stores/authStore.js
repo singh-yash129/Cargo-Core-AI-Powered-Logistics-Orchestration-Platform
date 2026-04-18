@@ -254,7 +254,8 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = ''
 
     try {
-      const response = await fetch(apiUrl('api/v1/auth/send-otp'), {
+      const endpoint = pendingFlow.value === 'signup' ? 'api/v1/auth/send-otp' : 'api/v1/auth/send-login-otp'
+      const response = await fetch(apiUrl(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: target }),
@@ -337,8 +338,8 @@ export const useAuthStore = defineStore('auth', () => {
         return { success: true, redirect: ROLE_DASHBOARD_MAP[registeredUser.role] || '/individual/dashboard' }
       }
 
-      // OTP login flow: just verify OTP and get token
-      const response = await fetch(apiUrl('api/v1/auth/verify-otp'), {
+      // OTP login flow: verify OTP and get JWT tokens
+      const response = await fetch(apiUrl('api/v1/auth/verify-login-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: otpTarget.value, otp: code }),
