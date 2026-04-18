@@ -1159,6 +1159,7 @@ export const useLogisticStore = defineStore('logistic', () => {
                 name: hubData.name,
                 address: hubData.location,
                 capacity_limit: hubData.capacity || 1000,
+                hub_status: hubData.status || null,
             }),
         })
         await refresh()
@@ -1173,6 +1174,7 @@ export const useLogisticStore = defineStore('logistic', () => {
                 address: hubData.location,
                 capacity_limit: hubData.capacity || 1000,
                 is_active: hubData.status !== 'Inactive',
+                hub_status: hubData.status || null,
             }),
         })
         await refresh()

@@ -48,6 +48,7 @@ class VendorShipmentSummary(BaseModel):
     assigned_vehicle_id: UUID | None = None
     assigned_vehicle_code: str | None = None
     cargo_type: str | None = None
+    cargo_weight_kg: float | None = None
     vehicle_type: str | None = None
     payment_mode: str | None = None
     payment_status: str
@@ -220,6 +221,7 @@ class VendorBulkUploadResponse(BaseModel):
     orders: int
     status: str
     errors: int
+    scheduled_for: str | None = None
 
 
 class VendorSupportTicketCreate(BaseModel):

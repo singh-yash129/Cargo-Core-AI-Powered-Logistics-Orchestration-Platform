@@ -63,6 +63,8 @@ class Order(Base):
     poc_signature: Mapped[str | None] = mapped_column(Text, nullable=True)  # House-shift customer sign-off
     job_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)   # Driver self-rating 1-5
     job_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)    # Driver feedback note
+    customer_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)   # Customer/vendor rating of driver 1-5
+    customer_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)    # Customer/vendor feedback note
     packing_return_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)  # Driver packing asset return submission
 
     # Picking timestamps

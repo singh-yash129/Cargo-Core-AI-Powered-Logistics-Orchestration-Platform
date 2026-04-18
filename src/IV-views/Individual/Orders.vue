@@ -172,6 +172,23 @@
                                     <span class="material-symbols-outlined text-sm">report</span> Report Damage
                                 </router-link>
                             </div>
+                            <!-- Driver Rating (optional, delivered orders only) -->
+                            <div v-if="order.status === 'delivered'" class="pt-2 border-t border-gray-200 dark:border-white/5">
+                                <div v-if="order.customerRating" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <span class="font-medium">Your rating:</span>
+                                    <span v-for="n in 5" :key="n" class="text-base" :class="n <= order.customerRating ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'">★</span>
+                                    <span v-if="order.customerFeedback" class="text-xs italic truncate max-w-[160px]">"{{ order.customerFeedback }}"</span>
+                                </div>
+                                <div v-else class="flex flex-wrap items-center gap-2">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Rate driver (optional):</span>
+                                    <span v-for="n in 5" :key="n"
+                                        @click="openRatingModal(order, n)"
+                                        class="text-xl cursor-pointer transition-colors"
+                                        :class="(ratingHover[order.backendId] || 0) >= n ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'"
+                                        @mouseenter="ratingHover[order.backendId] = n"
+                                        @mouseleave="ratingHover[order.backendId] = 0">★</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </transition>
@@ -265,6 +282,34 @@
             </BaseModal>
         </Teleport>
 
+        <!-- Driver Rating Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="ratingModal.show" @close="ratingModal.show = false">
+                <template #title>Rate Your Driver</template>
+                <div class="space-y-4 text-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">How was your experience? (optional)</p>
+                    <div class="flex justify-center gap-2">
+                        <span v-for="n in 5" :key="n"
+                            @click="ratingModal.selected = n"
+                            @mouseenter="ratingModal.hover = n"
+                            @mouseleave="ratingModal.hover = 0"
+                            class="text-4xl cursor-pointer transition-colors select-none"
+                            :class="(ratingModal.hover || ratingModal.selected) >= n ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'">★</span>
+                    </div>
+                    <textarea v-model="ratingModal.feedback" rows="2" placeholder="Leave a comment (optional)"
+                        class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-400/50 outline-none resize-none" />
+                </div>
+                <template #footer>
+                    <div class="flex gap-3 w-full">
+                        <button @click="submitRatingModal" :disabled="!ratingModal.selected"
+                            class="flex-1 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-bold disabled:opacity-40">Submit Rating</button>
+                        <button @click="ratingModal.show = false"
+                            class="flex-1 py-2 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white rounded-lg text-sm">Skip</button>
+                    </div>
+                </template>
+            </BaseModal>
+        </Teleport>
+
         <!-- Toast -->
         <Teleport to="body">
             <transition enter-active-class="transition duration-300 ease-out" enter-from-class="translate-y-4 opacity-0"
@@ -295,6 +340,7 @@ const { openSlipWithData } = useSlipPrinter()
 const search = ref('')
 const statusFilter = ref('all')
 const expandedOrder = ref(null)
+const ratingHover = ref({})
 
 const filteredOrders = computed(() => {
     return store.orders.filter(o => {
@@ -320,6 +366,22 @@ function statusBg(st) { return { 'delivered': 'bg-green-500/20 text-green-500', 
 function statusBadge(st) { return { 'delivered': 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400', 'in-transit': 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', 'dispatched': 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400', 'pending': 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400', 'cancelled': 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' }[st] || '' }
 function damageStatusLabel(st) { return { reported: 'Damage Reported', inspected: 'Under Review', resolved: 'Resolved', rejected: 'Rejected' }[String(st || '').toLowerCase()] || 'Damage Reported' }
 function damageStatusBadge(st) { return { reported: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400', inspected: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', resolved: 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400', rejected: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' }[String(st || '').toLowerCase()] || 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' }
+
+// Driver Rating
+const ratingModal = reactive({ show: false, order: null, selected: 0, hover: 0, feedback: '' })
+function openRatingModal(order, initialStar = 0) {
+    Object.assign(ratingModal, { show: true, order, selected: initialStar, hover: 0, feedback: '' })
+}
+async function submitRatingModal() {
+    if (!ratingModal.selected || !ratingModal.order?.backendId) return
+    const result = await store.submitCustomerRating(ratingModal.order.backendId, ratingModal.selected, ratingModal.feedback || null)
+    ratingModal.show = false
+    if (result.success) {
+        showToast('Thanks for rating your driver!', 'success')
+    } else {
+        showToast(result.message || 'Failed to submit rating.', 'error')
+    }
+}
 
 // Cancel
 const cancelModal = reactive({ show: false, order: null })

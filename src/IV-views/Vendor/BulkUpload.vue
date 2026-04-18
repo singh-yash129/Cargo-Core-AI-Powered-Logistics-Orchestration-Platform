@@ -147,6 +147,7 @@
                                     :class="uploadStatusClass(u.status)">{{ u.status }}</span>
                                 <span v-if="u.errors" class="ml-1 text-[10px] text-red-400">({{ u.errors }}
                                     errors)</span>
+                                <div v-if="u.status === 'Scheduled' && u.scheduled_for" class="text-[10px] text-purple-400 mt-0.5">{{ u.scheduled_for }}</div>
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <button @click="viewUploadDetail(u)"
@@ -193,6 +194,7 @@
                         All {{ viewingUpload.orders }} shipments were created and queued for dispatch.
                     </div>
                     <div class="text-xs text-gray-500">Uploaded on {{ viewingUpload.date }}</div>
+                    <div v-if="viewingUpload.scheduled_for" class="text-xs text-purple-400">Scheduled for {{ viewingUpload.scheduled_for }}</div>
                 </div>
                 <template #footer>
                     <button @click="viewingUpload = null" class="px-4 py-2 text-gray-500 text-sm">Close</button>
@@ -363,6 +365,7 @@ const pendingUpload = ref({
     detectedRows: 0,
     validRows: 0,
     warningRows: 0,
+    parsedRows: [],
 })
 
 const uploadQuote = computed(() => {
@@ -419,7 +422,6 @@ function handleDrop(e) {
     if (e.dataTransfer.files.length) selectedFile.value = e.dataTransfer.files[0]
 }
 
-// Real browser-side file parser — counts rows and detects basic validation issues
 function parseFile(file) {
     return new Promise((resolve) => {
         const ext = file.name.split('.').pop().toLowerCase()
@@ -429,31 +431,34 @@ function parseFile(file) {
             reader.onload = (e) => {
                 try {
                     const data = JSON.parse(e.target.result)
-                    const rows = Array.isArray(data) ? data.length
-                               : (data && typeof data === 'object') ? Object.keys(data).length : 0
-                    resolve({ rows, warnings: 0 })
+                    const parsedRows = Array.isArray(data) ? data : []
+                    resolve({ rows: parsedRows.length, warnings: 0, parsedRows })
                 } catch {
-                    resolve({ rows: 0, warnings: 1 })
+                    resolve({ rows: 0, warnings: 1, parsedRows: [] })
                 }
             }
             reader.readAsText(file)
         } else if (ext === 'csv') {
             reader.onload = (e) => {
                 const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean)
-                const dataRows = lines.length > 1 ? lines.length - 1 : 0
-                const headerCols = lines[0] ? lines[0].split(',').length : 0
-                // Count rows with missing columns or empty required cells
-                const warnings = lines.slice(1).filter(l => {
-                    const cols = l.split(',')
-                    return cols.length < headerCols || cols.some(c => !c.trim())
-                }).length
-                resolve({ rows: dataRows, warnings })
+                if (lines.length < 2) { resolve({ rows: 0, warnings: 0, parsedRows: [] }); return }
+                const headers = lines[0].split(',').map(h => h.trim())
+                const parsedRows = []
+                let warnings = 0
+                for (const line of lines.slice(1)) {
+                    const cols = line.split(',').map(c => c.trim())
+                    if (cols.length < headers.length || cols.some(c => !c)) { warnings++; continue }
+                    const row = {}
+                    headers.forEach((h, i) => { row[h] = cols[i] })
+                    parsedRows.push(row)
+                }
+                resolve({ rows: lines.length - 1, warnings, parsedRows })
             }
             reader.readAsText(file)
         } else {
-            // XLSX — no library available, estimate from file size
+            // XLSX — no library, estimate from file size, no row data
             const estimated = Math.max(1, Math.floor(file.size / 150))
-            resolve({ rows: estimated, warnings: 0 })
+            resolve({ rows: estimated, warnings: 0, parsedRows: [] })
         }
     })
 }
@@ -462,13 +467,14 @@ async function processUpload() {
     if (!selectedFile.value) return
     uploading.value = true
     try {
-        const { rows, warnings } = await parseFile(selectedFile.value)
+        const { rows, warnings, parsedRows } = await parseFile(selectedFile.value)
         pendingUpload.value = {
             filename: selectedFile.value.name,
             fileSize: (selectedFile.value.size / 1024).toFixed(1),
             detectedRows: rows,
             validRows: rows - warnings,
             warningRows: warnings,
+            parsedRows,
         }
         showConfirmModal.value = true
         showSchedulePicker.value = false
@@ -483,32 +489,35 @@ async function confirmCreateNow() {
     saving.value = true
     const snapshot = { ...pendingUpload.value }
     try {
-        // Record as Processing first so the user sees live status
         await store.addBulkUpload({
             filename: snapshot.filename,
             orders: snapshot.detectedRows,
             status: 'Processing',
             errors: snapshot.warningRows,
-            fileSizeKb: Number(snapshot.fileSize || 0),
+            fileSizeKb: Math.round(Number(snapshot.fileSize || 0)),
         })
         showConfirmModal.value = false
         selectedFile.value = null
         showToast(`Processing ${snapshot.detectedRows} shipments…`)
 
-        // Resolve to final status after a short delay
         const latestId = store.bulkUploads[0]?.id
-        if (latestId) {
-            setTimeout(async () => {
-                const finalStatus = snapshot.warningRows > 0 ? 'Failed' : 'Processed'
-                await store.updateBulkUpload(latestId, {
-                    status: finalStatus,
-                    errors: snapshot.warningRows,
-                })
-                showToast(finalStatus === 'Processed'
-                    ? `✓ ${snapshot.validRows} shipments created successfully!`
-                    : `Upload completed with ${snapshot.warningRows} row error(s) — check details to retry`)
-            }, 2500)
+
+        // Create real orders from parsed rows
+        let created = 0, failed = snapshot.warningRows
+        if (snapshot.parsedRows.length > 0) {
+            const result = await store.createBulkOrders(snapshot.parsedRows)
+            created = result.created
+            failed += result.failed
         }
+
+        const finalStatus = failed > 0 && created === 0 ? 'Failed' : 'Processed'
+        if (latestId) {
+            await store.updateBulkUpload(latestId, { status: finalStatus, errors: failed })
+        }
+        await store.fetchShipments()
+        showToast(finalStatus === 'Processed'
+            ? `✓ ${created} shipments created! Check Orders page.`
+            : `Completed with ${failed} error(s) — check details to retry`)
     } catch (e) {
         showToast('Upload failed: ' + (e.message || 'Please try again'))
     } finally {
@@ -528,7 +537,7 @@ async function confirmScheduleLater() {
             orders: pendingUpload.value.detectedRows,
             status: 'Scheduled',
             errors: 0,
-            fileSizeKb: Number(pendingUpload.value.fileSize || 0),
+            fileSizeKb: Math.round(Number(pendingUpload.value.fileSize || 0)),
             scheduledFor: `${scheduleDate.value} ${scheduleTime.value}`,
         })
         showConfirmModal.value = false

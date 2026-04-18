@@ -34,6 +34,8 @@ function resolveApiBase() {
 
 const API_BASE = resolveApiBase()
 const ACCESS_TOKEN_STORAGE_KEY = 'cargo-core:driver-access-token'
+const SESSION_EXPIRY_KEY = 'cargo-core:driver-session-expiry'
+const SESSION_DURATION_MS = 12 * 60 * 60 * 1000 // 12 hours — full shift
 
 // FastAPI validation errors return detail as an array of {loc, msg, type} objects.
 // This helper always returns a plain string regardless of the shape of the error body.
@@ -82,6 +84,13 @@ async function fetchWithNetworkHelp(path, options, timeoutMs = 10000) {
 
 function readStoredToken() {
     try {
+        const expiry = parseInt(window.localStorage.getItem(SESSION_EXPIRY_KEY) || '0', 10)
+        if (expiry && Date.now() > expiry) {
+            window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
+            window.localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY)
+            window.localStorage.removeItem(SESSION_EXPIRY_KEY)
+            return null
+        }
         return window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)
     } catch {
         return null
@@ -91,6 +100,7 @@ function readStoredToken() {
 function writeStoredToken(token) {
     try {
         window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token)
+        window.localStorage.setItem(SESSION_EXPIRY_KEY, String(Date.now() + SESSION_DURATION_MS))
     } catch {
         // Ignore storage failures on constrained devices.
     }
@@ -99,6 +109,7 @@ function writeStoredToken(token) {
 function removeStoredToken() {
     try {
         window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
+        window.localStorage.removeItem(SESSION_EXPIRY_KEY)
     } catch {
         // Ignore storage failures on constrained devices.
     }

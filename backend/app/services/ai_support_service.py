@@ -569,7 +569,7 @@ async def _get_or_create_support_settings(db: AsyncSession) -> AISupportSettings
         autonomous_replies=True,
         legal_threat_detection=True,
         real_time_sentiment_analysis=True,
-        proactive_human_handover=False,
+        proactive_human_handover=True,
     )
     db.add(settings_row)
     await db.flush()

@@ -390,6 +390,8 @@ export const useIndividualStore = defineStore('individual', () => {
             isDummyPayment: false,
             rating: null,
             feedback: '',
+            customerRating: order.customer_rating ?? null,
+            customerFeedback: order.customer_feedback ?? null,
             createdAt: order.created_at,
             deliveredAt: order.delivered_at || null,
             declaredValue: Number(order.declared_value || 0),
@@ -704,6 +706,8 @@ export const useIndividualStore = defineStore('individual', () => {
             isDummyPayment: false,
             rating: null,
             feedback: '',
+            customerRating: order.customer_rating ?? null,
+            customerFeedback: order.customer_feedback ?? null,
             createdAt: order.created_at,
             deliveredAt: order.delivered_at || null,
             declaredValue: Number(order.declared_value || 0),
@@ -1270,6 +1274,7 @@ export const useIndividualStore = defineStore('individual', () => {
         const initialPaymentAmount = data.paymentMode === 'COD'
             ? 0
             : Math.min(Number(data.paymentAmount || 0), payableBookingTotal)
+        const isWalletPayment = typeof (data.paymentMethod || '') === 'string' && (data.paymentMethod || '').toLowerCase().includes('wallet')
 
         // Prepare order data for backend API
         const orderPayload = {
@@ -1294,7 +1299,7 @@ export const useIndividualStore = defineStore('individual', () => {
             payment_status: 'pending',
             initial_payment_amount: initialPaymentAmount,
             initial_payment_ref: data.paymentRef || null,
-            initial_payment_mode: initialPaymentAmount > 0 ? 'ONLINE' : null,
+            initial_payment_mode: initialPaymentAmount > 0 ? (isWalletPayment ? 'WALLET' : 'ONLINE') : null,
             initial_payment_method: initialPaymentAmount > 0 ? (data.paymentMethod || 'Online') : null,
             service_time_block: data.moveType === 'small-package' ? '30 min' : '2-3 hours',
             scheduled_at: data.date ? new Date(data.date).toISOString() : null,
@@ -1397,6 +1402,8 @@ export const useIndividualStore = defineStore('individual', () => {
 
             // Refresh dashboard summary so recent orders list is up to date
             fetchDashboardSummary()
+            // Refresh wallet balance if paid via Cargo Core Wallet so UI reflects deduction
+            if (isWalletPayment && initialPaymentAmount > 0) fetchWalletBalance()
 
             return normalizedOrder
         } catch (error) {
@@ -1473,6 +1480,33 @@ export const useIndividualStore = defineStore('individual', () => {
                 walletRefund: updated.wallet_refund_amount ?? 0,
             }
         } catch (error) {
+            return { success: false, message: 'Error connecting to the server.' }
+        }
+    }
+
+    async function submitCustomerRating(backendId, rating, feedback = null) {
+        try {
+            const token = localStorage.getItem('auth_token')
+            const response = await fetch(apiUrl(`api/v1/orders/${backendId}/customer-rating`), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ rating, feedback }),
+            })
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}))
+                return { success: false, message: errData.detail || 'Failed to submit rating.' }
+            }
+            const updated = await response.json()
+            const idx = orders.value.findIndex(o => o.backendId === backendId)
+            if (idx !== -1) {
+                orders.value[idx].customerRating = updated.customer_rating
+                orders.value[idx].customerFeedback = updated.customer_feedback
+            }
+            return { success: true }
+        } catch {
             return { success: false, message: 'Error connecting to the server.' }
         }
     }
@@ -1702,7 +1736,7 @@ export const useIndividualStore = defineStore('individual', () => {
         quotes, payments, damageReports,
         notifications, unreadNotificationsCount, fetchNotifications,
         materialsCatalog,
-        createOrder, updateOrder, cancelOrder, rescheduleOrder, rescheduleOrderRemote, submitRating,
+        createOrder, updateOrder, cancelOrder, rescheduleOrder, rescheduleOrderRemote, submitRating, submitCustomerRating,
         addQuote, convertQuoteToOrder, makePayment, reportDamage, calculateQuote,
         markNotificationRead, markAllNotificationsRead, clearNotifications,
         updateProfile, savedAddresses, saveAddress, deleteAddress,

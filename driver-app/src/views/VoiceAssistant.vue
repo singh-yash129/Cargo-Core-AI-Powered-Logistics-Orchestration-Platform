@@ -181,64 +181,68 @@ async function speak(text) {
 function navigateTo(route, keyword) {
     lastCommand.value = `✦ Opening ${keyword}`
     uiStore.showToast(`✦ CargoAI: Opening ${keyword}`, 'success', 1500)
-    
-    // Speak the action
     speak(`Opening ${keyword}`)
-    
     setTimeout(() => router.push(route), 800)
+}
+
+function processVoiceCommand(text) {
+    if (!text) return
+
+    const lower = text.toLowerCase()
+
+    // ETA query — not a navigation route, just show info
+    if (lower.includes('eta') || lower.includes('arrival') || lower.includes('how long')) {
+        handleCommand('What is my ETA?')
+        return
+    }
+
+    const match = findRoute(text)
+    if (!match) {
+        lastCommand.value = `"${text}" - Not recognized`
+        uiStore.showToast(`Not recognized: "${text}"`, 'warning', 2000)
+        speak(`Sorry, I didn't understand ${text}`)
+        return
+    }
+
+    // "navigate" / "next stop" voice commands must use openNextStopNavigation
+    // so maps actually launch, not just push the in-app /navigation route
+    if (match.route === '/navigation') {
+        lastCommand.value = '✦ Navigate to next stop'
+        uiStore.showToast('✦ CargoAI: Navigating to next stop', 'success', 1500)
+        speak('Navigating to next stop')
+        setTimeout(() => openNextStopNavigation(), 800)
+    } else {
+        navigateTo(match.route, match.keyword)
+    }
+}
+
+function stopSpeechRecognition() {
+    try {
+        SpeechRecognition.removeAllListeners()
+        SpeechRecognition.stop().catch(() => {})
+    } catch (e) {}
 }
 
 function processAndStop() {
     const textToProcess = transcript.value
     listening.value = false
-    
-    // Stop speech recognition
-    try {
-        SpeechRecognition.removeAllListeners()
-        SpeechRecognition.stop().catch(() => {})
-    } catch (e) {}
-    
-    // Process command
-    if (textToProcess) {
-        const match = findRoute(textToProcess)
-        if (match) {
-            navigateTo(match.route, match.keyword)
-        } else {
-            lastCommand.value = `"${textToProcess}" - Not recognized`
-            uiStore.showToast(`Not recognized: "${textToProcess}"`, 'warning', 2000)
-            speak(`Sorry, I didn't understand ${textToProcess}`)
-        }
-    }
+    stopSpeechRecognition()
+    processVoiceCommand(textToProcess)
     transcript.value = ''
 }
 
 async function toggleListen() {
     if (listening.value) {
-        // STOP - process transcript immediately
         const textToProcess = transcript.value
         listening.value = false
-        
-        // Stop speech recognition
-        try {
-            SpeechRecognition.removeAllListeners()
-            SpeechRecognition.stop().catch(() => {})
-        } catch (e) {}
-        
-        // Process command
+        stopSpeechRecognition()
         if (textToProcess) {
-            const match = findRoute(textToProcess)
-            if (match) {
-                navigateTo(match.route, match.keyword)
-            } else {
-                lastCommand.value = `"${textToProcess}" - Not recognized`
-                uiStore.showToast(`Not recognized: "${textToProcess}"`, 'warning', 2000)
-            }
+            processVoiceCommand(textToProcess)
         } else {
             uiStore.showToast('No speech detected', 'warning', 2000)
         }
         transcript.value = ''
     } else {
-        // START listening
         await startListening()
     }
 }
@@ -327,8 +331,13 @@ function handleCommand(cmd) {
     } else if (cmd === 'Open manager chat') {
         router.push('/manager-chat')
     } else if (cmd === 'What is my ETA?') {
-        const eta = routeStore.currentStop?.eta || jobStore.currentStop?.eta || 'Unknown'
-        uiStore.showToast(`✦ Your ETA is: ${eta}`, 'info', 3000)
+        const stop = routeStore.currentStop || jobStore.currentStop
+        const eta = stop?.timeWindow?.end
+            || stop?.timeWindow?.start
+            || jobStore.jobData?.deadline
+            || jobStore.jobData?.stops?.[jobStore.currentStopIndex]?.timeWindow?.end
+            || 'Not available'
+        uiStore.showToast(`✦ ETA: ${eta}`, 'info', 4000)
     } else if (cmd === 'Log fuel receipt') {
         router.push('/fuel-receipt')
     } else if (cmd === 'Report route deviation') {
