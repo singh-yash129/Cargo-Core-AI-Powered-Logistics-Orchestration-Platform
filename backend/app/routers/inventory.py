@@ -271,7 +271,11 @@ async def list_material_requests(
     return await inventory_service.list_material_requests(db, status_filter, user)
 
 
-@router.put("/material-requests/{request_id:uuid}/approve", response_model=MaterialRequestResponse)
+@router.put(
+    "/material-requests/{request_id:uuid}/approve",
+    response_model=MaterialRequestResponse,
+    responses={404: {"description": "Material request not found"}},
+)
 async def approve_material_request(
     request_id: UUID,
     data: MaterialRequestApprove,
@@ -282,7 +286,11 @@ async def approve_material_request(
     return await inventory_service.approve_material_request(db, request_id, data, user)
 
 
-@router.put("/material-requests/{request_id:uuid}/reject", response_model=MaterialRequestResponse)
+@router.put(
+    "/material-requests/{request_id:uuid}/reject",
+    response_model=MaterialRequestResponse,
+    responses={404: {"description": "Material request not found"}},
+)
 async def reject_material_request(
     request_id: UUID,
     data: MaterialRequestReject,

@@ -31,6 +31,34 @@ def test_openapi_orders_paths_exist() -> None:
     assert "get" in paths["/api/v1/orders"]
     assert "/api/v1/orders/{order_id}" in paths
     assert "/api/v1/orders/{order_id}/items" in paths
+    assert "/api/v1/orders/{order_id}/customer-rating" in paths
+    assert "post" in paths["/api/v1/orders/{order_id}/customer-rating"]
+
+
+def test_openapi_customer_rating_contract_shape() -> None:
+    data = _load_openapi()
+    paths = data.get("paths", {})
+
+    post_spec = paths["/api/v1/orders/{order_id}/customer-rating"]["post"]
+    request_ref = post_spec["requestBody"]["content"]["application/json"]["schema"]["$ref"]
+    assert request_ref.endswith("/CustomerRatingRequest")
+
+    schemas = data.get("components", {}).get("schemas", {})
+    request_schema = schemas.get("CustomerRatingRequest", {})
+    rating_props = request_schema.get("properties", {}).get("rating", {})
+
+    assert rating_props.get("minimum") == 1
+    assert rating_props.get("maximum") == 5
+
+
+def test_openapi_order_response_has_customer_rating_fields() -> None:
+    data = _load_openapi()
+    schemas = data.get("components", {}).get("schemas", {})
+    order_response = schemas.get("OrderResponse", {})
+    properties = order_response.get("properties", {})
+
+    assert "customer_rating" in properties
+    assert "customer_feedback" in properties
 
 
 @pytest.mark.asyncio

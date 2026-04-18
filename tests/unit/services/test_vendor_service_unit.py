@@ -42,6 +42,7 @@ def _make_order(**overrides) -> SimpleNamespace:
         "assigned_driver_id": None,
         "assigned_vehicle_id": None,
         "cargo_type": "Widgets",
+        "cargo_weight_kg": 12.5,
         "vehicle_type": "Mini Truck",
         "payment_mode": "invoice",
         "payment_status": "pending",

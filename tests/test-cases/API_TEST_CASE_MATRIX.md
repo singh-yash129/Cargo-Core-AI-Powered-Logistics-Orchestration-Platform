@@ -25,6 +25,9 @@ Scope: Repository-level tests only. backend/* is read-only.
 | ORD-INT-008 | Integration | POST /api/v1/orders/{order_id}/items | Upsert order items | 200 list of upserted items | test_orders_upsert_items_success |
 | ORD-INT-009 | Integration | POST /api/v1/orders/{order_id}/delivery-otp/send | Driver sends delivery OTP | 200 otp send payload | test_orders_send_delivery_otp_success_for_driver |
 | ORD-INT-010 | Integration | GET /api/v1/orders/track/{tracking_code} | Unknown tracking code behavior | 404 with tracking not-found detail | test_orders_track_unknown_returns_404 |
+| ORD-INT-011 | Integration | POST /api/v1/orders/{order_id}/customer-rating | Submit valid customer rating | 200 with customer_rating reflected in response | test_orders_customer_rating_success |
+| ORD-INT-012 | Integration | POST /api/v1/orders/{order_id}/customer-rating | Submit invalid rating (>5) | 422 validation error | test_orders_customer_rating_validation_error_422 |
+| ORD-INT-013 | Integration | POST /api/v1/orders/{order_id}/customer-rating | Submit customer rating without authentication | 401 not authenticated | test_orders_customer_rating_requires_authentication |
 | TRK-INT-001 | Integration | GET /api/v1/tracking/drivers | Unauthenticated tracking request | 401 not authenticated | test_tracking_requires_authentication |
 | TRK-INT-002 | Integration | GET /api/v1/tracking/drivers | Authenticated active drivers request | 200 with driver location list | test_tracking_active_drivers_success |
 | TRK-INT-003 | Integration | GET /api/v1/tracking/orders/{order_id}/driver | Authenticated order-driver lookup | 200 with driver location object | test_tracking_order_driver_success |
@@ -40,6 +43,9 @@ Scope: Repository-level tests only. backend/* is read-only.
 | PUB-CON-001 | Contract | OpenAPI global paths | Validate health and tracking declarations | Core paths and version present | test_openapi_global_paths_and_version |
 | PUB-CON-002 | Contract | GET /health | Validate runtime health contract | 200 with {status: ok} | test_health_endpoint_contract |
 | PUB-CON-003 | Contract | GET /api/v1/tracking/drivers | Validate tracking schema declaration + unauth runtime behavior | OpenAPI schema ref exists + runtime 401 | test_tracking_schema_contract_defined |
+| DOC-CON-001 | Contract | OpenAPI metadata extensions | Validate user story and API mapping blocks exist | x-user-stories and x-api-mapping are present and non-empty | test_openapi_has_user_story_mapping_blocks |
+| DOC-CON-002 | Contract | OpenAPI operation documentation | Validate all operations include descriptions | No operations missing description | test_all_operations_have_descriptions |
+| DOC-CON-003 | Contract | OpenAPI secured error responses | Validate secured operations document 401 responses | No secured operation missing 401 response docs | test_secured_operations_document_401_response |
 | UNIT-BLD-001 | Unit | sample_data.make_fake_user | Default fake user generation | LOGISTIC_MANAGER role and stable fields | test_make_fake_user_defaults |
 | UNIT-BLD-002 | Unit | sample_data.make_user_profile_dict | Profile payload shape | Required profile keys exist | test_make_user_profile_dict_shape |
 | UNIT-BLD-003 | Unit | sample_data.make_registration_response | Pending approval registration variant | pending_approval true and null tokens | test_make_registration_response_pending_approval |
@@ -68,3 +74,4 @@ Scope: Repository-level tests only. backend/* is read-only.
 | UNIT-SCH-020 | Unit | warehouse_operations.ConfirmPickItemRequest | Validate quantity_picked > 0 | Zero quantity rejected | test_confirm_pick_item_request_rejects_zero_quantity |
 | UNIT-SCH-021 | Unit | warehouse_operations.AssignTruckRequest | Validate non-empty carrier | Empty carrier rejected | test_assign_truck_request_rejects_empty_carrier |
 | UNIT-SCH-022 | Unit | warehouse_operations.ZoneMetricsCreate | Validate accuracy upper bound <=100 | Accuracy above 100 rejected | test_zone_metrics_create_rejects_accuracy_above_100 |
+| UNIT-SCH-023 | Unit | orders.CustomerRatingRequest | Validate rating range between 1 and 5 | Rating above 5 is rejected | test_customer_rating_request_rejects_out_of_range_rating |

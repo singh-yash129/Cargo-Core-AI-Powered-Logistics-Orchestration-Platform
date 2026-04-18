@@ -320,3 +320,86 @@ async def test_orders_track_unknown_returns_404(
         actual_output={"status_code": response.status_code, "body": body},
         status="PASS",
     )
+
+
+async def test_orders_customer_rating_success(
+    authorized_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+    record_evidence,
+) -> None:
+    order_id = str(uuid4())
+    payload = {"rating": 5, "feedback": "Great service"}
+
+    async def _fake_submit_customer_rating(_db, _order_id, _user, *, rating, feedback=None):
+        assert str(_order_id) == order_id
+        assert rating == 5
+        assert feedback == "Great service"
+        data = make_order_response(status="DELIVERED")
+        data["id"] = order_id
+        data["customer_rating"] = rating
+        data["customer_feedback"] = feedback
+        return data
+
+    monkeypatch.setattr(orders_service, "submit_customer_rating", _fake_submit_customer_rating)
+
+    response = await authorized_client.post(f"{ORDERS_BASE}/{order_id}/customer-rating", json=payload)
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["customer_rating"] == 5
+    assert body["customer_feedback"] == "Great service"
+
+    record_evidence(
+        case_id="ORD-INT-011",
+        endpoint="POST /api/v1/orders/{order_id}/customer-rating",
+        input_data={"path": {"order_id": order_id}, "json": payload},
+        expected_output={"status_code": 200, "customer_rating": 5},
+        actual_output={"status_code": response.status_code, "body": body},
+        status="PASS",
+    )
+
+
+async def test_orders_customer_rating_validation_error_422(
+    authorized_client: AsyncClient,
+    record_evidence,
+) -> None:
+    order_id = str(uuid4())
+    payload = {"rating": 6, "feedback": "Invalid rating"}
+
+    response = await authorized_client.post(f"{ORDERS_BASE}/{order_id}/customer-rating", json=payload)
+    body = response.json()
+
+    assert response.status_code == 422
+    assert "detail" in body
+
+    record_evidence(
+        case_id="ORD-INT-012",
+        endpoint="POST /api/v1/orders/{order_id}/customer-rating",
+        input_data={"path": {"order_id": order_id}, "json": payload},
+        expected_output={"status_code": 422, "error_key": "detail"},
+        actual_output={"status_code": response.status_code, "body": body},
+        status="PASS",
+    )
+
+
+async def test_orders_customer_rating_requires_authentication(
+    client: AsyncClient,
+    record_evidence,
+) -> None:
+    order_id = str(uuid4())
+    payload = {"rating": 5, "feedback": "Great service"}
+
+    response = await client.post(f"{ORDERS_BASE}/{order_id}/customer-rating", json=payload)
+    body = response.json()
+
+    assert response.status_code == 401
+    assert body["detail"] == "Not authenticated"
+
+    record_evidence(
+        case_id="ORD-INT-013",
+        endpoint="POST /api/v1/orders/{order_id}/customer-rating",
+        input_data={"path": {"order_id": order_id}, "json": payload, "authorization": None},
+        expected_output={"status_code": 401, "detail": "Not authenticated"},
+        actual_output={"status_code": response.status_code, "body": body},
+        status="PASS",
+    )

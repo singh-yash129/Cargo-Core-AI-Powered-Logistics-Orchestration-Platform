@@ -31,6 +31,17 @@ def test_openapi_warehouse_operations_paths_exist() -> None:
     assert "/api/v1/warehouses/{warehouse_id}/operations/performance" in paths
 
 
+def test_openapi_warehouse_schemas_include_hub_status() -> None:
+    data = _load_openapi()
+    schemas = data.get("components", {}).get("schemas", {})
+
+    create_props = schemas.get("WarehouseCreate", {}).get("properties", {})
+    update_props = schemas.get("WarehouseUpdate", {}).get("properties", {})
+
+    assert "hub_status" in create_props
+    assert "hub_status" in update_props
+
+
 @pytest.mark.asyncio
 async def test_inbound_overview_contract(
     authorized_client: AsyncClient,

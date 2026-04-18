@@ -50,171 +50,6 @@ info:
   license:
     name: Proprietary
     url: https://quadcoredevs.com/license
-servers:
-- url: /
-  description: Current API host
-x-user-stories:
-- id: US-AUTH-001
-  actor: Individual or Vendor
-  story: As an Individual or Vendor, I want to register and login so that I can access
-    the platform.
-  api_mapping:
-  - path: /api/v1/auth/register
-    method: post
-    operationId: register_api_v1_auth_register_post
-  - path: /api/v1/auth/login
-    method: post
-    operationId: login_api_v1_auth_login_post
-  - path: /api/v1/auth/token
-    method: post
-    operationId: token_login_api_v1_auth_token_post
-- id: US-AUTH-002
-  actor: Any user
-  story: As a user, I want OTP and password reset APIs so that I can recover account
-    access.
-  api_mapping:
-  - path: /api/v1/auth/forgot-password
-    method: post
-    operationId: forgot_password_api_v1_auth_forgot_password_post
-  - path: /api/v1/auth/reset-password
-    method: post
-    operationId: reset_password_api_v1_auth_reset_password_post
-  - path: /api/v1/auth/send-otp
-    method: post
-    operationId: send_otp_api_v1_auth_send_otp_post
-  - path: /api/v1/auth/verify-otp
-    method: post
-    operationId: verify_otp_api_v1_auth_verify_otp_post
-- id: US-GEO-001
-  actor: Customer
-  story: As a customer, I want address search and reverse geocoding so that I can
-    provide accurate pickup/drop data.
-  api_mapping:
-  - path: /api/v1/geocoding/search
-    method: get
-    operationId: search_addresses_api_v1_geocoding_search_get
-  - path: /api/v1/geocoding/reverse
-    method: get
-    operationId: reverse_geocode_api_v1_geocoding_reverse_get
-- id: US-ORD-001
-  actor: Customer
-  story: As a customer, I want to track an order with a tracking code so that I can
-    monitor delivery status.
-  api_mapping:
-  - path: /api/v1/orders/track/{tracking_code}
-    method: get
-    operationId: track_order_api_v1_orders_track__tracking_code__get
-- id: US-RATE-001
-  actor: Logistics manager
-  story: As a logistics manager, I want to read and update rates so that pricing stays
-    current.
-  api_mapping:
-  - path: /api/v1/rates
-    method: get
-    operationId: get_rates_api_v1_rates_get
-  - path: /api/v1/rates
-    method: put
-    operationId: update_rates_api_v1_rates_put
-- id: US-HEALTH-001
-  actor: Platform operator
-  story: As an operator, I want a health endpoint so that uptime can be monitored.
-  api_mapping:
-  - path: /health
-    method: get
-    operationId: health_check_health_get
-- id: US-SUPPORT-001
-  actor: Support manager
-  story: As a support manager, I want dashboard and ticket workflows so that I can
-    manage support workload and human handoffs.
-  api_mapping:
-  - path: /api/v1/ai/support/dashboard
-    method: get
-    operationId: get_support_dashboard_api_v1_ai_support_dashboard_get
-  - path: /api/v1/ai/support/settings
-    method: put
-    operationId: update_support_settings_api_v1_ai_support_settings_put
-  - path: /api/v1/ai/support/analytics
-    method: get
-    operationId: get_support_analytics_api_v1_ai_support_analytics_get
-  - path: /api/v1/ai/tickets
-    method: post
-    operationId: create_ticket_api_v1_ai_tickets_post
-- id: US-DAMAGE-001
-  actor: Customer, Vendor, and support operations
-  story: As operations, I want customer and vendor damage reports plus review APIs
-    so that claims can be reviewed and resolved consistently.
-  api_mapping:
-  - path: /api/v1/customer/damage-reports
-    method: get
-    operationId: get_damage_reports_api_v1_customer_damage_reports_get
-  - path: /api/v1/vendor/damage-reports
-    method: get
-    operationId: get_damage_reports_api_v1_vendor_damage_reports_get
-  - path: /api/v1/damage-reports/{reference_code}/review
-    method: post
-    operationId: review_damage_report_api_v1_damage_reports__reference_code__review_post
-- id: US-DISPATCH-001
-  actor: Dispatcher
-  story: As a dispatcher, I want optimization and assignment intelligence APIs so
-    that dispatch decisions are faster and more reliable.
-  api_mapping:
-  - path: /api/v1/orders/cluster
-    method: post
-    operationId: cluster_orders_api_v1_orders_cluster_post
-  - path: /api/v1/orders/optimize-routes
-    method: post
-    operationId: optimize_routes_api_v1_orders_optimize_routes_post
-  - path: /api/v1/orders/assignment-preview
-    method: get
-    operationId: get_assignment_preview_api_v1_orders_assignment_preview_get
-  - path: /api/v1/orders/ai-driver-suggestions
-    method: get
-    operationId: get_ai_driver_suggestions_api_v1_orders_ai_driver_suggestions_get
-x-api-mapping:
-  Authentication:
-  - post /api/v1/auth/register
-  - post /api/v1/auth/login
-  - post /api/v1/auth/token
-  - post /api/v1/auth/refresh
-  - post /api/v1/auth/forgot-password
-  - post /api/v1/auth/reset-password
-  - post /api/v1/auth/send-otp
-  - post /api/v1/auth/verify-otp
-  - post /api/v1/auth/google-login
-  Geocoding:
-  - get /api/v1/geocoding/search
-  - get /api/v1/geocoding/reverse
-  Orders:
-  - get /api/v1/orders/track/{tracking_code}
-  - post /api/v1/orders/cluster
-  - post /api/v1/orders/optimize-routes
-  - post /api/v1/orders/auto-balance
-  - post /api/v1/orders/batch-assign
-  - get /api/v1/orders/assignment-preview
-  - get /api/v1/orders/ai-driver-suggestions
-  - get /api/v1/orders/return-suggestions
-  AI Support:
-  - get /api/v1/ai/support/dashboard
-  - get /api/v1/ai/support/settings
-  - put /api/v1/ai/support/settings
-  - get /api/v1/ai/support/analytics
-  - post /api/v1/ai/support/analytics/insights/{insight_id}/execute
-  - get /api/v1/ai/support/sessions
-  - post /api/v1/ai/support/sessions/{session_id}/reply
-  - get /api/v1/ai/tickets
-  - post /api/v1/ai/tickets
-  Damage Operations:
-  - get /api/v1/customer/damage-reports
-  - post /api/v1/customer/damage-reports
-  - get /api/v1/vendor/damage-reports
-  - post /api/v1/vendor/damage-reports
-  - get /api/v1/damage-reports
-  - post /api/v1/damage-reports/{reference_code}/review
-  Rates:
-  - get /api/v1/rates
-  - put /api/v1/rates
-  System:
-  - get /health
 paths:
   /api/v1/auth/register:
     post:
@@ -270,7 +105,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-      description: Issue JWT tokens with user profile
+      description: Issue JWT tokens with user profile.
   /api/v1/auth/token:
     post:
       tags:
@@ -324,7 +159,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-      description: Refresh access token
+      description: Refresh access token.
   /api/v1/auth/logout:
     post:
       tags:
@@ -353,7 +188,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-      description: Invalidate access token via Redis blacklist
+      description: Invalidate access token via Redis blacklist.
   /api/v1/auth/me:
     get:
       tags:
@@ -375,7 +210,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get current user profile
+      description: Get current user profile.
     put:
       tags:
       - Authentication
@@ -408,7 +243,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Update current user profile
+      description: Update current user profile.
   /api/v1/auth/change-password:
     post:
       tags:
@@ -442,7 +277,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Change password
+      description: Change password.
   /api/v1/auth/forgot-password:
     post:
       tags:
@@ -468,7 +303,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-      description: Request password reset email
+      description: Request password reset email.
   /api/v1/auth/reset-password:
     post:
       tags:
@@ -494,7 +329,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-      description: Confirm password reset with token
+      description: Confirm password reset with token.
   /api/v1/auth/send-otp:
     post:
       tags:
@@ -520,7 +355,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-      description: Send email verification OTP for signup
+      description: Send email verification OTP for signup.
   /api/v1/auth/verify-otp:
     post:
       tags:
@@ -546,7 +381,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-      description: Verify email OTP before completing signup
+      description: Verify email OTP before completing signup.
   /api/v1/auth/google-login:
     post:
       tags:
@@ -572,7 +407,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-      description: Login or Register with Google
+      description: Login or Register with Google.
   /api/v1/ai/estimate-image:
     post:
       tags:
@@ -671,6 +506,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/ai/sessions:
     get:
       tags:
@@ -733,6 +574,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -814,6 +661,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/ai/contact-submissions/public:
     post:
       tags:
@@ -861,7 +714,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List support contact submissions
+      description: List support contact submissions.
   /api/v1/ai/contact-submissions/{submission_id}:
     put:
       tags:
@@ -903,7 +756,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update a support contact submission
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update a support contact submission.
     delete:
       tags:
       - AI
@@ -934,7 +793,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete a support contact submission
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete a support contact submission.
   /api/v1/ai/contact-submissions/{submission_id}/reply:
     post:
       tags:
@@ -976,7 +841,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Reply to a support contact submission by email
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Reply to a support contact submission by email.
   /api/v1/ai/support/dashboard:
     get:
       tags:
@@ -998,7 +869,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Support dashboard data
+      description: Support dashboard data.
   /api/v1/ai/support/settings:
     get:
       tags:
@@ -1020,7 +891,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: AI support system settings
+      description: AI support system settings.
     put:
       tags:
       - AI
@@ -1053,7 +924,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Update AI support system settings
+      description: Update AI support system settings.
   /api/v1/ai/support/analytics:
     get:
       tags:
@@ -1089,7 +960,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Support analytics for the AI analytics dashboard
+      description: Support analytics for the AI analytics dashboard.
   /api/v1/ai/support/analytics/insights/{insight_id}/execute:
     post:
       tags:
@@ -1131,7 +1002,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Create a follow-up ticket for an analytics insight
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Create a follow-up ticket for an analytics insight.
   /api/v1/ai/support/sessions:
     get:
       tags:
@@ -1168,7 +1045,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List live support sessions for staff
+      description: List live support sessions for staff.
   /api/v1/ai/support/sessions/{session_id}:
     get:
       tags:
@@ -1204,7 +1081,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Get staff view of a conversation session
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Get staff view of a conversation session.
   /api/v1/ai/support/sessions/{session_id}/take-over:
     post:
       tags:
@@ -1240,7 +1123,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Take over a live AI conversation
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Take over a live AI conversation.
   /api/v1/ai/support/sessions/{session_id}/reply:
     post:
       tags:
@@ -1282,7 +1171,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Send a human agent reply in a live conversation
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Send a human agent reply in a live conversation.
   /api/v1/ai/support/sessions/{session_id}/escalate:
     post:
       tags:
@@ -1324,7 +1219,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Escalate a support session from the live conversation view
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Escalate a support session from the live conversation view.
   /api/v1/ai/escalation-center:
     get:
       tags:
@@ -1363,7 +1264,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List enriched escalations for the Escalation Center UI
+      description: List enriched escalations for the Escalation Center UI.
   /api/v1/ai/escalation-center/{escalation_id}/resolve:
     put:
       tags:
@@ -1399,7 +1300,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Resolve an escalation from the Escalation Center
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Resolve an escalation from the Escalation Center.
   /api/v1/ai/tickets:
     get:
       tags:
@@ -1421,7 +1328,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List all support tickets
+      description: List all support tickets.
     post:
       tags:
       - AI
@@ -1454,7 +1361,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create a new support ticket
+      description: Create a new support ticket.
   /api/v1/ai/recovery-tickets/count:
     get:
       tags:
@@ -1475,7 +1382,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Count of open AI-analytics recovery tickets for the Logistics Manager
+      description: Count of open AI-analytics recovery tickets for the Logistics Manager.
   /api/v1/ai/tickets/{ticket_id}:
     put:
       tags:
@@ -1517,7 +1424,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update a support ticket
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update a support ticket.
     delete:
       tags:
       - AI
@@ -1548,7 +1461,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete a support ticket
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete a support ticket.
   /api/v1/ai/tickets/{ticket_id}/reply:
     post:
       tags:
@@ -1590,7 +1509,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Reply to a linked vendor ticket from the support dashboard
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Reply to a linked vendor ticket from the support dashboard.
   /api/v1/ai/support/damage-reports:
     get:
       tags:
@@ -1612,7 +1537,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List all damage reports enriched for AI support staff
+      description: List all damage reports enriched for AI support staff.
     post:
       tags:
       - AI
@@ -1645,7 +1570,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create a damage report on a customer's behalf
+      description: Create a damage report on a customer's behalf.
   /api/v1/ai/support/damage-reports/{report_id}/notes:
     put:
       tags:
@@ -1687,7 +1612,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update support notes on a damage report
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update support notes on a damage report.
   /api/v1/ai/support/damage-reports/{report_id}/message:
     post:
       tags:
@@ -1729,7 +1660,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Send a message to the customer for a damage report case
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Send a message to the customer for a damage report case.
   /api/v1/ai/support/refund-cases:
     get:
       tags:
@@ -1751,7 +1688,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List return cases with refund info for AI support staff
+      description: List return cases with refund info for AI support staff.
   /api/v1/ai/support/refund-cases/{case_id}/urgent:
     put:
       tags:
@@ -1793,7 +1730,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Set or clear urgency flag on a return case
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Set or clear urgency flag on a return case.
   /api/v1/ai/support/customer-history/{user_id}:
     get:
       tags:
@@ -1829,7 +1772,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Get customer history summary for support sidebar
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Get customer history summary for support sidebar.
   /api/v1/ai/knowledge-articles:
     get:
       tags:
@@ -1873,7 +1822,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List all knowledge base articles
+      description: List all knowledge base articles.
     post:
       tags:
       - AI
@@ -1906,7 +1855,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Create a new knowledge base article
+      description: Create a new knowledge base article.
   /api/v1/ai/knowledge-articles/{article_id}:
     get:
       tags:
@@ -1941,7 +1890,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Get a single knowledge base article
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Get a single knowledge base article.
     put:
       tags:
       - AI
@@ -1981,7 +1936,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update a knowledge base article
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update a knowledge base article.
     delete:
       tags:
       - AI
@@ -2011,7 +1972,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete a knowledge base article
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete a knowledge base article.
   /api/v1/ai/knowledge-articles/{article_id}/like:
     post:
       tags:
@@ -2046,7 +2013,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Increment the like count on an article
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Increment the like count on an article.
   /api/v1/customer/dashboard:
     get:
       tags:
@@ -2067,7 +2040,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Dashboard
+      description: Get Dashboard.
   /api/v1/customer/tracking:
     get:
       tags:
@@ -2089,7 +2062,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Tracking
+      description: Get Tracking.
   /api/v1/customer/payments:
     get:
       tags:
@@ -2111,7 +2084,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Payments
+      description: Get Payments.
   /api/v1/customer/profile:
     get:
       tags:
@@ -2133,7 +2106,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Profile
+      description: Get Profile.
   /api/v1/customer/quotes:
     get:
       tags:
@@ -2155,7 +2128,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Quotes
+      description: Get Quotes.
   /api/v1/customer/quotes/{quote_id}/convert:
     post:
       tags:
@@ -2189,7 +2162,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Convert Quote
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Convert Quote.
   /api/v1/customer/damage-reports:
     get:
       tags:
@@ -2211,7 +2190,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Damage Reports
+      description: Get Damage Reports.
     post:
       tags:
       - Customer
@@ -2244,7 +2223,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Damage Report
+      description: Create Damage Report.
   /api/v1/customer/settings:
     get:
       tags:
@@ -2266,7 +2245,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Settings
+      description: Get Settings.
     put:
       tags:
       - Customer
@@ -2299,7 +2278,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Update Settings
+      description: Update Settings.
   /api/v1/customer/account:
     delete:
       tags:
@@ -2321,7 +2300,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Delete Account
+      description: Delete Account.
   /api/v1/customer/wallet:
     get:
       tags:
@@ -2343,7 +2322,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Wallet
+      description: Get Wallet.
   /api/v1/customer/wallet/top-up:
     post:
       tags:
@@ -2377,7 +2356,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Top Up Wallet
+      description: Top Up Wallet.
   /api/v1/customer/wallet/backfill-debits:
     post:
       tags:
@@ -2424,7 +2403,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Notifications
+      description: Get Notifications.
     delete:
       tags:
       - Customer
@@ -2445,7 +2424,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Clear Notifications
+      description: Clear Notifications.
   /api/v1/customer/notifications/{notification_id}:
     put:
       tags:
@@ -2487,7 +2466,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Notification
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Notification.
   /api/v1/customer/notifications/mark-all-read:
     post:
       tags:
@@ -2509,7 +2494,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Mark All Notifications Read
+      description: Mark All Notifications Read.
   /api/v1/damage-reports:
     get:
       tags:
@@ -2557,7 +2542,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List Damage Reports
+      description: List Damage Reports.
   /api/v1/damage-reports/{reference_code}/review:
     post:
       tags:
@@ -2598,7 +2583,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Review Damage Report
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Review Damage Report.
   /api/v1/vendor/dashboard:
     get:
       tags:
@@ -2620,7 +2611,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Dashboard
+      description: Get Dashboard.
   /api/v1/vendor/shipments:
     get:
       tags:
@@ -2642,7 +2633,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Shipments
+      description: Get Shipments.
   /api/v1/vendor/settings:
     get:
       tags:
@@ -2664,7 +2655,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Settings
+      description: Get Settings.
     put:
       tags:
       - Vendor
@@ -2697,7 +2688,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Update Settings
+      description: Update Settings.
   /api/v1/vendor/damage-reports:
     get:
       tags:
@@ -2719,7 +2710,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Damage Reports
+      description: Get Damage Reports.
     post:
       tags:
       - Vendor
@@ -2752,7 +2743,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Damage Report
+      description: Create Damage Report.
   /api/v1/vendor/team-members:
     get:
       tags:
@@ -2777,7 +2768,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Team Members
+      description: List Team Members.
     post:
       tags:
       - Vendor
@@ -2810,7 +2801,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Team Member
+      description: Create Team Member.
   /api/v1/vendor/team-members/{member_id}:
     delete:
       tags:
@@ -2845,7 +2836,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete Team Member
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete Team Member.
   /api/v1/vendor/api-keys:
     get:
       tags:
@@ -2870,7 +2867,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Api Keys
+      description: List Api Keys.
     post:
       tags:
       - Vendor
@@ -2903,7 +2900,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Api Key
+      description: Create Api Key.
   /api/v1/vendor/api-keys/{key_id}/revoke:
     post:
       tags:
@@ -2939,7 +2936,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Revoke Api Key
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Revoke Api Key.
   /api/v1/vendor/recurring-rules:
     get:
       tags:
@@ -2965,7 +2968,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Recurring Rules
+      description: List Recurring Rules.
     post:
       tags:
       - Vendor
@@ -2998,7 +3001,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Recurring Rule
+      description: Create Recurring Rule.
   /api/v1/vendor/recurring-rules/{rule_id}:
     put:
       tags:
@@ -3040,7 +3043,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Recurring Rule
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Recurring Rule.
     delete:
       tags:
       - Vendor
@@ -3074,7 +3083,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete Recurring Rule
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete Recurring Rule.
   /api/v1/vendor/recurring-rules/{rule_id}/toggle:
     post:
       tags:
@@ -3110,7 +3125,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Toggle Recurring Rule
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Toggle Recurring Rule.
   /api/v1/vendor/bulk-uploads:
     get:
       tags:
@@ -3135,7 +3156,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Bulk Uploads
+      description: List Bulk Uploads.
     post:
       tags:
       - Vendor
@@ -3168,7 +3189,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Bulk Upload
+      description: Create Bulk Upload.
   /api/v1/vendor/bulk-uploads/{upload_id}:
     put:
       tags:
@@ -3210,7 +3231,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Bulk Upload
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Bulk Upload.
   /api/v1/vendor/support-tickets:
     get:
       tags:
@@ -3236,7 +3263,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Support Tickets
+      description: List Support Tickets.
     post:
       tags:
       - Vendor
@@ -3269,7 +3296,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Support Ticket
+      description: Create Support Ticket.
   /api/v1/vendor/support-tickets/{ticket_id}/reply:
     post:
       tags:
@@ -3311,7 +3338,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Reply Support Ticket
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Reply Support Ticket.
   /api/v1/vendor/invoices/{order_id}/pay:
     post:
       tags:
@@ -3353,7 +3386,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Pay Invoice
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Pay Invoice.
   /api/v1/vendor/support-tickets/{ticket_id}/resolve:
     post:
       tags:
@@ -3389,7 +3428,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Resolve Support Ticket
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Resolve Support Ticket.
   /api/v1/vendor/wallet:
     get:
       tags:
@@ -3411,7 +3456,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Wallet
+      description: Get Wallet.
   /api/v1/vendor/wallet/top-up:
     post:
       tags:
@@ -3445,7 +3490,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Top Up Wallet
+      description: Top Up Wallet.
   /api/v1/vendor/notifications:
     get:
       tags:
@@ -3470,7 +3515,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Notifications
+      description: Get Notifications.
     delete:
       tags:
       - Vendor
@@ -3491,7 +3536,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Clear Notifications
+      description: Clear Notifications.
   /api/v1/vendor/notifications/{notification_id}:
     put:
       tags:
@@ -3533,7 +3578,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Notification
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Notification.
   /api/v1/vendor/notifications/mark-all-read:
     post:
       tags:
@@ -3555,7 +3606,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Mark All Notifications Read
+      description: Mark All Notifications Read.
   /api/v1/geocoding/search:
     get:
       tags:
@@ -3726,7 +3777,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List Users
+      description: List Users.
     post:
       tags:
       - Users
@@ -3759,7 +3810,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Create User
+      description: Create User.
   /api/v1/users/{user_id}:
     get:
       tags:
@@ -3795,7 +3846,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Get User
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Get User.
     put:
       tags:
       - Users
@@ -3836,7 +3893,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update User
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update User.
     delete:
       tags:
       - Users
@@ -3871,7 +3934,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Soft Delete User
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Soft Delete User.
   /api/v1/users/{user_id}/assign-role:
     post:
       tags:
@@ -3913,7 +3982,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Assign Role
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Assign Role.
   /api/v1/users/{user_id}/assign-warehouse:
     post:
       tags:
@@ -3955,7 +4030,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Assign Warehouse
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Assign Warehouse.
   /api/v1/warehouses:
     get:
       tags:
@@ -4001,7 +4082,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List Warehouses
+      description: List Warehouses.
     post:
       tags:
       - Warehouses
@@ -4034,7 +4115,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Create Warehouse
+      description: Create Warehouse.
   /api/v1/warehouses/{warehouse_id}:
     get:
       tags:
@@ -4070,7 +4151,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Get Warehouse
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Get Warehouse.
     put:
       tags:
       - Warehouses
@@ -4111,7 +4198,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Warehouse
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Warehouse.
     delete:
       tags:
       - Warehouses
@@ -4146,7 +4239,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete Warehouse
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete Warehouse.
   /api/v1/warehouses/{warehouse_id}/floor-plan:
     put:
       tags:
@@ -4188,7 +4287,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Floor Plan
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Floor Plan.
   /api/v1/warehouses/{warehouse_id}/kpis:
     get:
       tags:
@@ -4224,7 +4329,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Warehouse Kpis
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Warehouse Kpis.
   /api/v1/warehouses/{warehouse_id}/dashboard:
     get:
       tags:
@@ -4260,7 +4371,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Warehouse Dashboard
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Warehouse Dashboard.
   /api/v1/warehouses/{warehouse_id}/orders/{order_id}/complete:
     post:
       tags:
@@ -4303,7 +4420,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Mark Order Complete
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Mark Order Complete.
   /api/v1/warehouses/{warehouse_id}/orders/{order_id}/reassign:
     post:
       tags:
@@ -4346,7 +4469,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Reassign Order To Labor
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Reassign Order To Labor.
   /api/v1/warehouses/{warehouse_id}/restock:
     post:
       tags:
@@ -4382,7 +4511,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Process Restock
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Process Restock.
   /api/v1/warehouses/{warehouse_id}/operations/inbound:
     get:
       tags:
@@ -4415,6 +4550,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -4459,6 +4600,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -4512,6 +4659,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/report-damage:
     post:
       tags:
@@ -4561,6 +4714,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/inbound/schedule:
     post:
       tags:
@@ -4599,6 +4758,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -4647,13 +4812,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/receive-inbound:
     post:
       tags:
       - Warehouse Operations
       summary: Receive Inbound
-      description: Mark vendor goods as physically received — transitions AWAITING_INBOUND
-        → AWAITING_PICK.
+      description: "Mark vendor goods as physically received \u2014 transitions AWAITING_INBOUND\
+        \ \u2192 AWAITING_PICK."
       operationId: receive_inbound_api_v1_warehouses__warehouse_id__operations_orders__order_id__receive_inbound_post
       security:
       - OAuth2PasswordBearer: []
@@ -4687,6 +4858,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -4735,6 +4912,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/mark-arrived:
     post:
       tags:
@@ -4775,6 +4958,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -4828,6 +5017,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/revert-picking:
     post:
       tags:
@@ -4871,6 +5066,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/complete-picking:
     post:
       tags:
@@ -4910,6 +5111,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -4963,6 +5170,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/pick-progress:
     get:
       tags:
@@ -5006,6 +5219,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/packing-stations:
     get:
       tags:
@@ -5038,6 +5257,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -5079,6 +5304,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -5132,6 +5363,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/start-packing:
     post:
       tags:
@@ -5181,6 +5418,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/complete-packing:
     post:
       tags:
@@ -5224,6 +5467,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/quality-check:
     post:
       tags:
@@ -5263,6 +5512,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -5312,6 +5567,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/quality-checks/{check_id}:
     get:
       tags:
@@ -5351,6 +5612,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -5403,6 +5670,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/quality-checks/{check_id}/pass:
     post:
       tags:
@@ -5446,6 +5719,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/loading-docks:
     get:
       tags:
@@ -5478,6 +5757,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -5519,6 +5804,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -5572,6 +5863,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/loading-docks/{dock_id}/release:
     post:
       tags:
@@ -5617,6 +5914,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -5667,6 +5970,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -5732,6 +6041,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     post:
       tags:
       - Warehouse Operations
@@ -5769,6 +6084,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -5822,6 +6143,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/returns/{grading_id}/photo:
     post:
       tags:
@@ -5871,6 +6198,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/returns/{grading_id}/complete:
     post:
       tags:
@@ -5910,6 +6243,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -5974,6 +6313,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/warehouses/{warehouse_id}/operations/zones/metrics:
     post:
       tags:
@@ -6012,6 +6357,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -6060,6 +6411,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/orders:
     post:
       tags:
@@ -6093,7 +6450,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Create Order
+      description: Create Order.
     get:
       tags:
       - Orders
@@ -6186,7 +6543,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List Orders
+      description: List Orders.
   /api/v1/orders/assignment-preview:
     get:
       tags:
@@ -6224,7 +6581,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Get Assignment Preview
+      description: Get Assignment Preview.
   /api/v1/orders/ai-driver-suggestions:
     get:
       tags:
@@ -6315,7 +6672,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Cluster Orders
+      description: Cluster Orders.
   /api/v1/orders/optimize-routes:
     post:
       tags:
@@ -6357,7 +6714,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Optimize Routes
+      description: Optimize Routes.
   /api/v1/orders/auto-balance:
     post:
       tags:
@@ -6416,7 +6773,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Batch Assign Orders
+      description: Batch Assign Orders.
   /api/v1/orders/trip-intelligence:
     get:
       tags:
@@ -6456,7 +6813,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List Trip Intelligence
+      description: List Trip Intelligence.
   /api/v1/orders/{order_id}/trip-intelligence:
     get:
       tags:
@@ -6492,7 +6849,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Get Trip Intelligence
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Get Trip Intelligence.
   /api/v1/orders/{order_id}/trip-intelligence/push:
     post:
       tags:
@@ -6537,7 +6900,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Push Trip Command
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Push Trip Command.
   /api/v1/orders/{order_id}/trip-intelligence/deviation:
     post:
       tags:
@@ -6582,7 +6951,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Report Trip Deviation
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Report Trip Deviation.
   /api/v1/orders/{order_id}:
     get:
       tags:
@@ -6618,7 +6993,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Get Order
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Get Order.
     put:
       tags:
       - Orders
@@ -6659,7 +7040,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Order
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Order.
   /api/v1/orders/{order_id}/confirm:
     post:
       tags:
@@ -6695,7 +7082,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Confirm Order
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Confirm Order.
   /api/v1/orders/{order_id}/assign:
     post:
       tags:
@@ -6737,7 +7130,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Assign Order
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Assign Order.
   /api/v1/orders/{order_id}/transition:
     post:
       tags:
@@ -6781,7 +7180,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Transition Order
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Transition Order.
   /api/v1/orders/{order_id}/complete-return:
     post:
       tags:
@@ -6819,6 +7224,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -6864,7 +7275,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Cancel Order
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Cancel Order.
   /api/v1/orders/{order_id}/escalate:
     post:
       tags:
@@ -6906,7 +7323,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Escalate Order
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Escalate Order.
   /api/v1/orders/{order_id}/wallet-pay:
     post:
       tags:
@@ -6948,7 +7371,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Pay Order With Wallet
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Pay Order With Wallet.
   /api/v1/orders/track/{tracking_code}:
     get:
       tags:
@@ -6976,7 +7405,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-      description: Track Order
+      description: Track Order.
   /api/v1/orders/{order_id}/items:
     get:
       tags:
@@ -7015,7 +7444,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Get Order Items
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Get Order Items.
     post:
       tags:
       - Orders
@@ -7062,7 +7497,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Upsert Items
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Upsert Items.
   /api/v1/orders/{order_id}/delivery-otp/send:
     post:
       tags:
@@ -7104,7 +7545,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Send Delivery Otp
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Send Delivery Otp.
   /api/v1/orders/{order_id}/proof-of-delivery:
     post:
       tags:
@@ -7146,7 +7593,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Upload Proof Of Delivery
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Upload Proof Of Delivery.
     get:
       tags:
       - Orders
@@ -7178,6 +7631,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -7219,6 +7678,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -7266,13 +7731,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/orders/{order_id}/job-rating:
     post:
       tags:
       - Orders
       summary: Submit Job Rating
-      description: Submit driver's self-rating (1–5 stars) and optional feedback for
-        a completed job.
+      description: "Submit driver's self-rating (1\u20135 stars) and optional feedback\
+        \ for a completed job."
       operationId: submit_job_rating_api_v1_orders__order_id__job_rating_post
       security:
       - OAuth2PasswordBearer: []
@@ -7305,6 +7776,61 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/orders/{order_id}/customer-rating:
+    post:
+      tags:
+      - Orders
+      summary: Submit Customer Rating
+      description: "Submit customer/vendor rating (1\u20135 stars) of the driver for\
+        \ a completed order."
+      operationId: submit_customer_rating_api_v1_orders__order_id__customer_rating_post
+      security:
+      - OAuth2PasswordBearer: []
+      parameters:
+      - name: order_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Order Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRatingRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -7347,6 +7873,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -7396,6 +7928,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/orders/{order_id}/simulate-arrival:
     post:
       tags:
@@ -7438,6 +7976,12 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -7547,7 +8091,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List Inventory
+      description: List Inventory.
     post:
       tags:
       - Inventory
@@ -7580,7 +8124,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Create Inventory Item
+      description: Create Inventory Item.
   /api/v1/inventory/categories:
     get:
       tags:
@@ -7622,7 +8166,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List Inventory Categories
+      description: List Inventory Categories.
   /api/v1/inventory/movements:
     post:
       tags:
@@ -7656,7 +8200,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Create Inventory Movement
+      description: Create Inventory Movement.
     get:
       tags:
       - Inventory
@@ -7732,7 +8276,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List Inventory Movements
+      description: List Inventory Movements.
   /api/v1/inventory/low-stock:
     get:
       tags:
@@ -7773,7 +8317,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Low Stock
+      description: Low Stock.
   /api/v1/inventory/{item_id}:
     get:
       tags:
@@ -7811,7 +8355,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Get Inventory Item
+      description: Get Inventory Item.
     put:
       tags:
       - Inventory
@@ -7854,7 +8398,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Inventory Item
+      description: Update Inventory Item.
     delete:
       tags:
       - Inventory
@@ -7891,7 +8435,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete Inventory Item
+      description: Delete Inventory Item.
   /api/v1/inventory/pick-list/{order_id}:
     post:
       tags:
@@ -7927,7 +8471,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Pick List
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Pick List.
   /api/v1/inventory/restock-requests:
     post:
       tags:
@@ -7961,7 +8511,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Create Restock Request
+      description: Create Restock Request.
     get:
       tags:
       - Inventory
@@ -8023,7 +8573,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List Restock Requests
+      description: List Restock Requests.
   /api/v1/inventory/restock-requests/{request_id}/status:
     put:
       tags:
@@ -8067,7 +8617,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Restock Request Status
+      description: Update Restock Request Status.
   /api/v1/inventory/restock-requests/{request_id}/escalate:
     post:
       tags:
@@ -8321,7 +8871,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: List Labourers
+      description: List Labourers.
     post:
       tags:
       - Labourers
@@ -8354,7 +8904,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Create Labourer
+      description: Create Labourer.
   /api/v1/labourers/availability:
     get:
       tags:
@@ -8376,7 +8926,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Availability
+      description: Availability.
   /api/v1/labourers/{labourer_id}:
     get:
       tags:
@@ -8412,7 +8962,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Get Labourer
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Get Labourer.
     put:
       tags:
       - Labourers
@@ -8453,7 +9009,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Labourer
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Labourer.
     delete:
       tags:
       - Labourers
@@ -8484,7 +9046,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete Labourer
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete Labourer.
   /api/v1/labourers/{labourer_id}/assign/{order_id}:
     post:
       tags:
@@ -8527,7 +9095,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Assign Labourer
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Assign Labourer.
   /api/v1/labourers/{labourer_id}/check-in:
     post:
       tags:
@@ -8563,7 +9137,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Check In
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Check In.
   /api/v1/labourers/{labourer_id}/check-out:
     post:
       tags:
@@ -8599,7 +9179,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Check Out
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Check Out.
   /api/v1/logistics/bootstrap:
     get:
       tags:
@@ -8621,7 +9207,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Bootstrap
+      description: Bootstrap.
   /api/v1/logistics/escalations/{escalation_id}:
     put:
       tags:
@@ -8663,7 +9249,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Escalation Status
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Escalation Status.
   /api/v1/logistics/ai/query:
     post:
       tags:
@@ -8697,7 +9289,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Ai Query
+      description: Ai Query.
   /api/v1/logistics/vehicles:
     get:
       tags:
@@ -8722,7 +9314,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Vehicles
+      description: List Vehicles.
     post:
       tags:
       - Logistics Manager
@@ -8755,7 +9347,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Vehicle
+      description: Create Vehicle.
   /api/v1/logistics/drivers:
     get:
       tags:
@@ -8780,7 +9372,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Drivers
+      description: List Drivers.
     post:
       tags:
       - Logistics Manager
@@ -8813,7 +9405,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Driver
+      description: Create Driver.
   /api/v1/logistics/drivers/{driver_id}:
     put:
       tags:
@@ -8855,7 +9447,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Driver
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Driver.
   /api/v1/logistics/vehicles/{vehicle_id}:
     put:
       tags:
@@ -8897,7 +9495,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Vehicle
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Vehicle.
   /api/v1/logistics/transactions:
     post:
       tags:
@@ -8931,7 +9535,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Transaction
+      description: Create Transaction.
   /api/v1/logistics/capital-investment:
     post:
       tags:
@@ -8968,7 +9572,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Capital Investment
+      description: Create Capital Investment.
   /api/v1/logistics/returns/{case_id}:
     put:
       tags:
@@ -9010,7 +9614,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Return Case
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Return Case.
   /api/v1/logistics/returns/{case_id}/issue-refund:
     post:
       tags:
@@ -9045,7 +9655,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Issue Return Refund
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Issue Return Refund.
   /api/v1/logistics/returns/{case_id}/schedule-pickup:
     post:
       tags:
@@ -9082,6 +9698,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/logistics/zones:
     get:
       tags:
@@ -9106,7 +9728,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Zones
+      description: List Zones.
     post:
       tags:
       - Logistics Manager
@@ -9139,7 +9761,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Zone
+      description: Create Zone.
   /api/v1/logistics/zones/{zone_id}:
     put:
       tags:
@@ -9181,7 +9803,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Zone
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Zone.
     delete:
       tags:
       - Logistics Manager
@@ -9216,7 +9844,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete Zone
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete Zone.
   /api/v1/logistics/dispatch-contacts:
     get:
       tags:
@@ -9242,7 +9876,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Dispatch Contacts
+      description: Get Dispatch Contacts.
   /api/v1/logistics/chats:
     get:
       tags:
@@ -9267,7 +9901,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Chats
+      description: List Chats.
     post:
       tags:
       - Logistics Manager
@@ -9300,7 +9934,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Chat
+      description: Create Chat.
   /api/v1/logistics/chats/{thread_id}/messages:
     post:
       tags:
@@ -9342,7 +9976,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Add Chat Message
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Add Chat Message.
   /api/v1/logistics/chats/{thread_id}:
     put:
       tags:
@@ -9384,7 +10024,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Chat
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Chat.
     delete:
       tags:
       - Logistics Manager
@@ -9419,7 +10065,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete Chat
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete Chat.
   /api/v1/logistics/meetings:
     get:
       tags:
@@ -9444,7 +10096,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Meetings
+      description: List Meetings.
     post:
       tags:
       - Logistics Manager
@@ -9477,7 +10129,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Meeting
+      description: Create Meeting.
   /api/v1/logistics/meeting-participants:
     get:
       tags:
@@ -9503,7 +10155,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Meeting Participants
+      description: List Meeting Participants.
   /api/v1/logistics/meetings/{meeting_id}:
     put:
       tags:
@@ -9545,7 +10197,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Meeting
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Meeting.
     delete:
       tags:
       - Logistics Manager
@@ -9580,7 +10238,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete Meeting
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete Meeting.
   /api/v1/logistics/tasks:
     get:
       tags:
@@ -9605,7 +10269,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Tasks
+      description: List Tasks.
     post:
       tags:
       - Logistics Manager
@@ -9638,7 +10302,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Task
+      description: Create Task.
   /api/v1/logistics/tasks/{task_id}:
     put:
       tags:
@@ -9680,7 +10344,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Task
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Task.
     delete:
       tags:
       - Logistics Manager
@@ -9715,7 +10385,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Delete Task
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete Task.
   /api/v1/logistics/notifications:
     get:
       tags:
@@ -9740,7 +10416,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Notifications
+      description: Get Notifications.
     delete:
       tags:
       - Logistics Manager
@@ -9761,7 +10437,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Clear Notifications
+      description: Clear Notifications.
   /api/v1/logistics/notifications/{notification_id}:
     put:
       tags:
@@ -9803,7 +10479,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Notification
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Notification.
   /api/v1/logistics/notifications/mark-all-read:
     post:
       tags:
@@ -9825,7 +10507,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Mark All Notifications Read
+      description: Mark All Notifications Read.
   /api/v1/logistics/notifications/broadcast:
     post:
       tags:
@@ -9861,7 +10543,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Send Broadcast
+      description: Send Broadcast.
   /api/v1/logistics/alerts:
     get:
       tags:
@@ -9886,7 +10568,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Alerts
+      description: List Alerts.
     post:
       tags:
       - Logistics Manager
@@ -9923,7 +10605,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Alert
+      description: Create Alert.
   /api/v1/logistics/alerts/{alert_id}/resolve:
     post:
       tags:
@@ -9959,7 +10641,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Resolve Alert
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Resolve Alert.
   /api/v1/logistics/manifests:
     get:
       tags:
@@ -9984,7 +10672,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: List Manifests
+      description: List Manifests.
     post:
       tags:
       - Logistics Manager
@@ -10017,7 +10705,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Manifest
+      description: Create Manifest.
   /api/v1/logistics/manifests/{manifest_id}/push:
     post:
       tags:
@@ -10053,7 +10741,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Push Manifest
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Push Manifest.
   /api/v1/logistics/documents:
     post:
       tags:
@@ -10087,7 +10781,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Create Document
+      description: Create Document.
   /api/v1/logistics/documents/{doc_id}/status:
     put:
       tags:
@@ -10129,7 +10823,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Update Document Status
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Update Document Status.
   /api/v1/logistics/drivers/me/dashboard:
     get:
       tags:
@@ -10151,7 +10851,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Driver Dashboard
+      description: Get Driver Dashboard.
   /api/v1/logistics/drivers/me/shift:
     get:
       tags:
@@ -10173,7 +10873,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Driver Shift
+      description: Get Driver Shift.
   /api/v1/logistics/drivers/me/hos:
     get:
       tags:
@@ -10195,7 +10895,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Driver Hos
+      description: Get Driver Hos.
   /api/v1/logistics/drivers/me/crew:
     get:
       tags:
@@ -10220,7 +10920,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Driver Crew
+      description: Get Driver Crew.
   /api/v1/logistics/drivers/me/crew/{labourer_id}/check-in:
     post:
       tags:
@@ -10256,7 +10956,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: Check In Driver Crew Member
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Check In Driver Crew Member.
   /api/v1/logistics/drivers/me/telemetry:
     get:
       tags:
@@ -10278,7 +10984,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Driver Telemetry
+      description: Get Driver Telemetry.
   /api/v1/logistics/drivers/me/bind-vehicle:
     post:
       tags:
@@ -10312,7 +11018,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Bind Driver Vehicle
+      description: Bind Driver Vehicle.
   /api/v1/logistics/drivers/me/shift/start:
     post:
       tags:
@@ -10337,7 +11043,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Start Shift
+      description: Start Shift.
   /api/v1/logistics/drivers/me/shift/end:
     post:
       tags:
@@ -10361,7 +11067,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: End Shift
+      description: End Shift.
   /api/v1/logistics/drivers/me/return-vehicle:
     post:
       tags:
@@ -10398,7 +11104,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Return Vehicle
+      description: Return Vehicle.
   /api/v1/logistics/drivers/me/location:
     post:
       tags:
@@ -10435,7 +11141,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Update Driver Location
+      description: Update Driver Location.
   /api/v1/logistics/drivers/me/fuel-receipt:
     post:
       tags:
@@ -10472,7 +11178,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Submit Fuel Receipt
+      description: Submit Fuel Receipt.
   /api/v1/logistics/drivers/me/dispatch-thread:
     get:
       tags:
@@ -10494,7 +11200,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Dispatch Thread
+      description: Get Dispatch Thread.
   /api/v1/logistics/drivers/me/dispatch-thread/messages:
     post:
       tags:
@@ -10528,7 +11234,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Send Dispatch Message
+      description: Send Dispatch Message.
   /api/v1/logistics/drivers/me/manager-thread:
     get:
       tags:
@@ -10550,7 +11256,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Manager Thread
+      description: Get Manager Thread.
   /api/v1/logistics/drivers/me/manager-thread/messages:
     post:
       tags:
@@ -10584,7 +11290,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Send Manager Message
+      description: Send Manager Message.
   /api/v1/logistics/drivers/me/audit:
     get:
       tags:
@@ -10610,7 +11316,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Get Driver Audit
+      description: Get Driver Audit.
   /api/v1/logistics/drivers/me/crisis-alert:
     post:
       tags:
@@ -10714,7 +11420,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Request Cashout
+      description: Request Cashout.
   /api/v1/rates:
     get:
       tags:
@@ -10730,13 +11436,7 @@ paths:
                 additionalProperties: true
                 type: object
                 title: Response Get Rates Api V1 Rates Get
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-      description: Get current rate configuration
+      description: Get current rate configuration.
     put:
       tags:
       - Rates
@@ -10773,7 +11473,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
       - OAuth2PasswordBearer: []
-      description: Update rate configuration (LOGISTIC_MANAGER only)
+      description: Update rate configuration (LOGISTIC_MANAGER only).
   /api/v1/rates/inventory-seeded:
     get:
       tags:
@@ -10800,7 +11500,7 @@ paths:
       security:
       - OAuth2PasswordBearer: []
       description: Check if packing materials have been seeded to inventory (LOGISTIC_MANAGER
-        only)
+        only).
   /api/v1/rates/seed-inventory:
     post:
       tags:
@@ -10826,7 +11526,7 @@ paths:
       security:
       - OAuth2PasswordBearer: []
       description: One-time seed packing materials from rate governance to all warehouse
-        inventories (LOGISTIC_MANAGER only)
+        inventories (LOGISTIC_MANAGER only).
   /api/v1/tracking/drivers:
     get:
       tags:
@@ -10896,14 +11596,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/finance/summary:
     get:
       tags:
       - Finance
       summary: Get Finance Summary
-      description: 'Live-computed financial summary.
-
-        Returns ₹0 for all values when the database is empty.'
+      description: "Live-computed financial summary.\nReturns \u20B90 for all values\
+        \ when the database is empty."
       operationId: get_finance_summary_api_v1_finance_summary_get
       security:
       - OAuth2PasswordBearer: []
@@ -10982,11 +11687,12 @@ paths:
       tags:
       - Dev Seed
       summary: Seed Gps Coordinates
-      description: "Inject realistic Bangalore GPS coordinates into:\n  • Up to 8\
-        \ CONFIRMED orders (pickup + delivery coords)\n  • Up to 3 DELIVERED orders\
-        \ from the last 2 hours (for return-trip suggestions)\n  • All active driver\
-        \ profiles (current_location)\n\nSafe to call multiple times — re-seeds existing\
-        \ records rather than\ncreating new ones. Returns a summary of what was updated."
+      description: "Inject realistic Bangalore GPS coordinates into:\n  \u2022 Up\
+        \ to 8 CONFIRMED orders (pickup + delivery coords)\n  \u2022 Up to 3 DELIVERED\
+        \ orders from the last 2 hours (for return-trip suggestions)\n  \u2022 All\
+        \ active driver profiles (current_location)\n\nSafe to call multiple times\
+        \ \u2014 re-seeds existing records rather than\ncreating new ones. Returns\
+        \ a summary of what was updated."
       operationId: seed_gps_coordinates_api_v1_dev_seed_gps_post
       responses:
         '200':
@@ -11035,13 +11741,7 @@ paths:
           content:
             application/json:
               schema: {}
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-      description: Health Check
+      description: Health Check.
 components:
   schemas:
     AgentReplyRequest:
@@ -11221,7 +11921,7 @@ components:
           type: string
           contentMediaType: application/octet-stream
           title: File
-          description: Room photo — JPG or PNG, max 15 MB
+          description: "Room photo \u2014 JPG or PNG, max 15 MB"
       type: object
       required:
       - file
@@ -12046,6 +12746,22 @@ components:
       required:
       - quotes
       title: CustomerQuotesResponse
+    CustomerRatingRequest:
+      properties:
+        rating:
+          type: integer
+          maximum: 5.0
+          minimum: 1.0
+          title: Rating
+        feedback:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Feedback
+      type: object
+      required:
+      - rating
+      title: CustomerRatingRequest
     CustomerSettings:
       properties:
         language:
@@ -13916,7 +14632,7 @@ components:
           - type: string
           - type: 'null'
           title: Id
-          description: Optional slug — auto-generated from title if omitted
+          description: "Optional slug \u2014 auto-generated from title if omitted"
         audience:
           type: string
           pattern: ^(ALL|VENDOR|INDIVIDUAL)$
@@ -17369,6 +18085,16 @@ components:
           - type: string
           - type: 'null'
           title: Job Feedback
+        customer_rating:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Customer Rating
+        customer_feedback:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Customer Feedback
         packing_return_data:
           anyOf:
           - additionalProperties: true
@@ -20925,6 +21651,11 @@ components:
         errors:
           type: integer
           title: Errors
+        scheduled_for:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scheduled For
       type: object
       required:
       - id
@@ -21357,6 +22088,11 @@ components:
           - type: string
           - type: 'null'
           title: Cargo Type
+        cargo_weight_kg:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Cargo Weight Kg
         vehicle_type:
           anyOf:
           - type: string
@@ -21789,6 +22525,11 @@ components:
             minimum: 0.0
           - type: 'null'
           title: Capacity Limit
+        hub_status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Hub Status
       type: object
       required:
       - name
@@ -22022,6 +22763,11 @@ components:
           - type: boolean
           - type: 'null'
           title: Is Active
+        hub_status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Hub Status
       type: object
       title: WarehouseUpdate
     ZoneMetricsCreate:
@@ -22129,12 +22875,12 @@ components:
     ErrorResponse:
       title: ErrorResponse
       type: object
+      required:
+      - detail
       properties:
         detail:
           type: string
           title: Detail
-      required:
-      - detail
   securitySchemes:
     OAuth2PasswordBearer:
       type: oauth2
@@ -22142,3 +22888,454 @@ components:
         password:
           scopes: {}
           tokenUrl: /api/v1/auth/token
+servers:
+- url: /
+  description: Current API host
+x-user-stories:
+- id: US-AUTH-001
+  actor: Individual or Vendor
+  story: As an Individual or Vendor, I want to register and login so that I can access
+    the platform.
+  api_mapping:
+  - path: /api/v1/auth/register
+    method: post
+    operationId: register_api_v1_auth_register_post
+  - path: /api/v1/auth/login
+    method: post
+    operationId: login_api_v1_auth_login_post
+  - path: /api/v1/auth/token
+    method: post
+    operationId: token_login_api_v1_auth_token_post
+- id: US-AUTH-002
+  actor: Any user
+  story: As a user, I want OTP and password reset APIs so that I can recover account
+    access.
+  api_mapping:
+  - path: /api/v1/auth/forgot-password
+    method: post
+    operationId: forgot_password_api_v1_auth_forgot_password_post
+  - path: /api/v1/auth/reset-password
+    method: post
+    operationId: reset_password_api_v1_auth_reset_password_post
+  - path: /api/v1/auth/send-otp
+    method: post
+    operationId: send_otp_api_v1_auth_send_otp_post
+  - path: /api/v1/auth/verify-otp
+    method: post
+    operationId: verify_otp_api_v1_auth_verify_otp_post
+- id: US-GEO-001
+  actor: Customer
+  story: As a customer, I want address search and reverse geocoding so that I can
+    provide accurate pickup/drop data.
+  api_mapping:
+  - path: /api/v1/geocoding/search
+    method: get
+    operationId: search_addresses_api_v1_geocoding_search_get
+  - path: /api/v1/geocoding/reverse
+    method: get
+    operationId: reverse_geocode_api_v1_geocoding_reverse_get
+- id: US-ORD-001
+  actor: Customer
+  story: As a customer, I want to track an order with a tracking code so that I can
+    monitor delivery status.
+  api_mapping:
+  - path: /api/v1/orders/track/{tracking_code}
+    method: get
+    operationId: track_order_api_v1_orders_track__tracking_code__get
+- id: US-RATE-001
+  actor: Logistics manager
+  story: As a logistics manager, I want to read and update rates so that pricing stays
+    current.
+  api_mapping:
+  - path: /api/v1/rates
+    method: get
+    operationId: get_rates_api_v1_rates_get
+  - path: /api/v1/rates
+    method: put
+    operationId: update_rates_api_v1_rates_put
+- id: US-HEALTH-001
+  actor: Platform operator
+  story: As an operator, I want a health endpoint so that uptime can be monitored.
+  api_mapping:
+  - path: /health
+    method: get
+    operationId: health_check_health_get
+- id: US-SUPPORT-001
+  actor: Support manager
+  story: As a support manager, I want dashboard and ticket workflows so that I can
+    manage support workload and human handoffs.
+  api_mapping:
+  - path: /api/v1/ai/support/dashboard
+    method: get
+    operationId: get_support_dashboard_api_v1_ai_support_dashboard_get
+  - path: /api/v1/ai/support/settings
+    method: put
+    operationId: update_support_settings_api_v1_ai_support_settings_put
+  - path: /api/v1/ai/support/analytics
+    method: get
+    operationId: get_support_analytics_api_v1_ai_support_analytics_get
+  - path: /api/v1/ai/tickets
+    method: post
+    operationId: create_ticket_api_v1_ai_tickets_post
+- id: US-DAMAGE-001
+  actor: Customer, Vendor, and support operations
+  story: As operations, I want customer and vendor damage reports plus review APIs
+    so that claims can be reviewed and resolved consistently.
+  api_mapping:
+  - path: /api/v1/customer/damage-reports
+    method: get
+    operationId: get_damage_reports_api_v1_customer_damage_reports_get
+  - path: /api/v1/vendor/damage-reports
+    method: get
+    operationId: get_damage_reports_api_v1_vendor_damage_reports_get
+  - path: /api/v1/damage-reports/{reference_code}/review
+    method: post
+    operationId: review_damage_report_api_v1_damage_reports__reference_code__review_post
+- id: US-DISPATCH-001
+  actor: Dispatcher
+  story: As a dispatcher, I want optimization and assignment intelligence APIs so
+    that dispatch decisions are faster and more reliable.
+  api_mapping:
+  - path: /api/v1/orders/cluster
+    method: post
+    operationId: cluster_orders_api_v1_orders_cluster_post
+  - path: /api/v1/orders/optimize-routes
+    method: post
+    operationId: optimize_routes_api_v1_orders_optimize_routes_post
+  - path: /api/v1/orders/assignment-preview
+    method: get
+    operationId: get_assignment_preview_api_v1_orders_assignment_preview_get
+  - path: /api/v1/orders/ai-driver-suggestions
+    method: get
+    operationId: get_ai_driver_suggestions_api_v1_orders_ai_driver_suggestions_get
+- id: US-ORD-002
+  actor: Customer or Vendor
+  story: As a customer or vendor, I want to rate a completed order so that service
+    quality can be tracked and improved.
+  api_mapping:
+  - path: /api/v1/orders/{order_id}/customer-rating
+    method: post
+    operationId: submit_customer_rating_api_v1_orders__order_id__customer_rating_post
+x-api-mapping:
+  AI:
+  - delete /api/v1/ai/contact-submissions/{submission_id}
+  - delete /api/v1/ai/knowledge-articles/{article_id}
+  - delete /api/v1/ai/tickets/{ticket_id}
+  - get /api/v1/ai/contact-submissions
+  - get /api/v1/ai/conversations/{session_id}
+  - get /api/v1/ai/escalation-center
+  - get /api/v1/ai/escalations
+  - get /api/v1/ai/knowledge-articles
+  - get /api/v1/ai/knowledge-articles/{article_id}
+  - get /api/v1/ai/recovery-tickets/count
+  - get /api/v1/ai/sessions
+  - get /api/v1/ai/support/analytics
+  - get /api/v1/ai/support/customer-history/{user_id}
+  - get /api/v1/ai/support/damage-reports
+  - get /api/v1/ai/support/dashboard
+  - get /api/v1/ai/support/refund-cases
+  - get /api/v1/ai/support/sessions
+  - get /api/v1/ai/support/sessions/{session_id}
+  - get /api/v1/ai/support/settings
+  - get /api/v1/ai/tickets
+  - post /api/v1/ai/chat
+  - post /api/v1/ai/contact-submissions/public
+  - post /api/v1/ai/contact-submissions/{submission_id}/reply
+  - post /api/v1/ai/escalate/{conversation_id}
+  - post /api/v1/ai/estimate-image
+  - post /api/v1/ai/knowledge-articles
+  - post /api/v1/ai/knowledge-articles/{article_id}/like
+  - post /api/v1/ai/support/analytics/insights/{insight_id}/execute
+  - post /api/v1/ai/support/damage-reports
+  - post /api/v1/ai/support/damage-reports/{report_id}/message
+  - post /api/v1/ai/support/sessions/{session_id}/escalate
+  - post /api/v1/ai/support/sessions/{session_id}/reply
+  - post /api/v1/ai/support/sessions/{session_id}/take-over
+  - post /api/v1/ai/tickets
+  - post /api/v1/ai/tickets/{ticket_id}/reply
+  - put /api/v1/ai/contact-submissions/{submission_id}
+  - put /api/v1/ai/escalation-center/{escalation_id}/resolve
+  - put /api/v1/ai/escalations/{escalation_id}/resolve
+  - put /api/v1/ai/knowledge-articles/{article_id}
+  - put /api/v1/ai/support/damage-reports/{report_id}/notes
+  - put /api/v1/ai/support/refund-cases/{case_id}/urgent
+  - put /api/v1/ai/support/settings
+  - put /api/v1/ai/tickets/{ticket_id}
+  Authentication:
+  - get /api/v1/auth/me
+  - post /api/v1/auth/change-password
+  - post /api/v1/auth/forgot-password
+  - post /api/v1/auth/google-login
+  - post /api/v1/auth/login
+  - post /api/v1/auth/logout
+  - post /api/v1/auth/refresh
+  - post /api/v1/auth/register
+  - post /api/v1/auth/reset-password
+  - post /api/v1/auth/send-otp
+  - post /api/v1/auth/token
+  - post /api/v1/auth/verify-otp
+  - put /api/v1/auth/me
+  Customer:
+  - delete /api/v1/customer/account
+  - delete /api/v1/customer/notifications
+  - get /api/v1/customer/damage-reports
+  - get /api/v1/customer/dashboard
+  - get /api/v1/customer/notifications
+  - get /api/v1/customer/payments
+  - get /api/v1/customer/profile
+  - get /api/v1/customer/quotes
+  - get /api/v1/customer/settings
+  - get /api/v1/customer/tracking
+  - get /api/v1/customer/wallet
+  - post /api/v1/customer/damage-reports
+  - post /api/v1/customer/notifications/mark-all-read
+  - post /api/v1/customer/quotes/{quote_id}/convert
+  - post /api/v1/customer/wallet/backfill-debits
+  - post /api/v1/customer/wallet/top-up
+  - put /api/v1/customer/notifications/{notification_id}
+  - put /api/v1/customer/settings
+  Damage Reports:
+  - get /api/v1/damage-reports
+  - post /api/v1/damage-reports/{reference_code}/review
+  Dev Seed:
+  - delete /api/v1/dev/seed-gps
+  - post /api/v1/dev/seed-gps
+  Finance:
+  - get /api/v1/finance/summary
+  - post /api/v1/finance/payroll/run
+  Geocoding:
+  - get /api/v1/geocoding/reverse
+  - get /api/v1/geocoding/search
+  Health:
+  - get /health
+  Inventory:
+  - delete /api/v1/inventory/{item_id}
+  - get /api/v1/inventory
+  - get /api/v1/inventory/categories
+  - get /api/v1/inventory/low-stock
+  - get /api/v1/inventory/material-requests
+  - get /api/v1/inventory/movements
+  - get /api/v1/inventory/packing-catalog
+  - get /api/v1/inventory/restock-requests
+  - get /api/v1/inventory/{item_id}
+  - post /api/v1/inventory
+  - post /api/v1/inventory/material-requests
+  - post /api/v1/inventory/movements
+  - post /api/v1/inventory/pick-list/{order_id}
+  - post /api/v1/inventory/restock-requests
+  - post /api/v1/inventory/restock-requests/{request_id}/escalate
+  - put /api/v1/inventory/material-requests/{request_id}/approve
+  - put /api/v1/inventory/material-requests/{request_id}/reject
+  - put /api/v1/inventory/restock-requests/{request_id}/status
+  - put /api/v1/inventory/{item_id}
+  Labourers:
+  - delete /api/v1/labourers/{labourer_id}
+  - get /api/v1/labourers
+  - get /api/v1/labourers/availability
+  - get /api/v1/labourers/{labourer_id}
+  - post /api/v1/labourers
+  - post /api/v1/labourers/{labourer_id}/assign/{order_id}
+  - post /api/v1/labourers/{labourer_id}/check-in
+  - post /api/v1/labourers/{labourer_id}/check-out
+  - put /api/v1/labourers/{labourer_id}
+  Live Tracking:
+  - get /api/v1/tracking/drivers
+  - get /api/v1/tracking/orders/{order_id}/driver
+  Logistics Manager:
+  - delete /api/v1/logistics/chats/{thread_id}
+  - delete /api/v1/logistics/meetings/{meeting_id}
+  - delete /api/v1/logistics/notifications
+  - delete /api/v1/logistics/tasks/{task_id}
+  - delete /api/v1/logistics/zones/{zone_id}
+  - get /api/v1/logistics/alerts
+  - get /api/v1/logistics/bootstrap
+  - get /api/v1/logistics/chats
+  - get /api/v1/logistics/dispatch-contacts
+  - get /api/v1/logistics/drivers
+  - get /api/v1/logistics/drivers/me/audit
+  - get /api/v1/logistics/drivers/me/crew
+  - get /api/v1/logistics/drivers/me/dashboard
+  - get /api/v1/logistics/drivers/me/dispatch-thread
+  - get /api/v1/logistics/drivers/me/hos
+  - get /api/v1/logistics/drivers/me/manager-thread
+  - get /api/v1/logistics/drivers/me/notifications
+  - get /api/v1/logistics/drivers/me/shift
+  - get /api/v1/logistics/drivers/me/telemetry
+  - get /api/v1/logistics/manifests
+  - get /api/v1/logistics/meeting-participants
+  - get /api/v1/logistics/meetings
+  - get /api/v1/logistics/notifications
+  - get /api/v1/logistics/tasks
+  - get /api/v1/logistics/vehicles
+  - get /api/v1/logistics/zones
+  - post /api/v1/logistics/ai/query
+  - post /api/v1/logistics/alerts
+  - post /api/v1/logistics/alerts/{alert_id}/resolve
+  - post /api/v1/logistics/capital-investment
+  - post /api/v1/logistics/chats
+  - post /api/v1/logistics/chats/{thread_id}/messages
+  - post /api/v1/logistics/documents
+  - post /api/v1/logistics/drivers
+  - post /api/v1/logistics/drivers/me/bind-vehicle
+  - post /api/v1/logistics/drivers/me/cashout
+  - post /api/v1/logistics/drivers/me/crew/{labourer_id}/check-in
+  - post /api/v1/logistics/drivers/me/crisis-alert
+  - post /api/v1/logistics/drivers/me/dispatch-thread/messages
+  - post /api/v1/logistics/drivers/me/fuel-receipt
+  - post /api/v1/logistics/drivers/me/location
+  - post /api/v1/logistics/drivers/me/manager-thread/messages
+  - post /api/v1/logistics/drivers/me/return-vehicle
+  - post /api/v1/logistics/drivers/me/shift/end
+  - post /api/v1/logistics/drivers/me/shift/start
+  - post /api/v1/logistics/manifests
+  - post /api/v1/logistics/manifests/{manifest_id}/push
+  - post /api/v1/logistics/meetings
+  - post /api/v1/logistics/notifications/broadcast
+  - post /api/v1/logistics/notifications/mark-all-read
+  - post /api/v1/logistics/returns/{case_id}/issue-refund
+  - post /api/v1/logistics/returns/{case_id}/schedule-pickup
+  - post /api/v1/logistics/tasks
+  - post /api/v1/logistics/transactions
+  - post /api/v1/logistics/vehicles
+  - post /api/v1/logistics/zones
+  - put /api/v1/logistics/chats/{thread_id}
+  - put /api/v1/logistics/documents/{doc_id}/status
+  - put /api/v1/logistics/drivers/{driver_id}
+  - put /api/v1/logistics/escalations/{escalation_id}
+  - put /api/v1/logistics/meetings/{meeting_id}
+  - put /api/v1/logistics/notifications/{notification_id}
+  - put /api/v1/logistics/returns/{case_id}
+  - put /api/v1/logistics/tasks/{task_id}
+  - put /api/v1/logistics/vehicles/{vehicle_id}
+  - put /api/v1/logistics/zones/{zone_id}
+  Orders:
+  - get /api/v1/orders
+  - get /api/v1/orders/ai-driver-suggestions
+  - get /api/v1/orders/assignment-preview
+  - get /api/v1/orders/return-suggestions
+  - get /api/v1/orders/track/{tracking_code}
+  - get /api/v1/orders/trip-intelligence
+  - get /api/v1/orders/{order_id}
+  - get /api/v1/orders/{order_id}/items
+  - get /api/v1/orders/{order_id}/proof-of-delivery
+  - get /api/v1/orders/{order_id}/trip-intelligence
+  - post /api/v1/orders
+  - post /api/v1/orders/auto-balance
+  - post /api/v1/orders/batch-assign
+  - post /api/v1/orders/cluster
+  - post /api/v1/orders/optimize-routes
+  - post /api/v1/orders/{order_id}/asset-log
+  - post /api/v1/orders/{order_id}/assign
+  - post /api/v1/orders/{order_id}/cancel
+  - post /api/v1/orders/{order_id}/complete-return
+  - post /api/v1/orders/{order_id}/confirm
+  - post /api/v1/orders/{order_id}/customer-rating
+  - post /api/v1/orders/{order_id}/delivery-otp/send
+  - post /api/v1/orders/{order_id}/escalate
+  - post /api/v1/orders/{order_id}/house-shift-signoff
+  - post /api/v1/orders/{order_id}/items
+  - post /api/v1/orders/{order_id}/job-rating
+  - post /api/v1/orders/{order_id}/packing-return
+  - post /api/v1/orders/{order_id}/pay
+  - post /api/v1/orders/{order_id}/proof-of-delivery
+  - post /api/v1/orders/{order_id}/simulate-arrival
+  - post /api/v1/orders/{order_id}/transition
+  - post /api/v1/orders/{order_id}/trip-intelligence/deviation
+  - post /api/v1/orders/{order_id}/trip-intelligence/push
+  - post /api/v1/orders/{order_id}/wallet-pay
+  - put /api/v1/orders/{order_id}
+  Rates:
+  - get /api/v1/rates
+  - get /api/v1/rates/inventory-seeded
+  - post /api/v1/rates/seed-inventory
+  - put /api/v1/rates
+  Users:
+  - delete /api/v1/users/{user_id}
+  - get /api/v1/users
+  - get /api/v1/users/{user_id}
+  - post /api/v1/users
+  - post /api/v1/users/{user_id}/assign-role
+  - post /api/v1/users/{user_id}/assign-warehouse
+  - put /api/v1/users/{user_id}
+  Vendor:
+  - delete /api/v1/vendor/notifications
+  - delete /api/v1/vendor/recurring-rules/{rule_id}
+  - delete /api/v1/vendor/team-members/{member_id}
+  - get /api/v1/vendor/api-keys
+  - get /api/v1/vendor/bulk-uploads
+  - get /api/v1/vendor/damage-reports
+  - get /api/v1/vendor/dashboard
+  - get /api/v1/vendor/notifications
+  - get /api/v1/vendor/recurring-rules
+  - get /api/v1/vendor/settings
+  - get /api/v1/vendor/shipments
+  - get /api/v1/vendor/support-tickets
+  - get /api/v1/vendor/team-members
+  - get /api/v1/vendor/wallet
+  - post /api/v1/vendor/api-keys
+  - post /api/v1/vendor/api-keys/{key_id}/revoke
+  - post /api/v1/vendor/bulk-uploads
+  - post /api/v1/vendor/damage-reports
+  - post /api/v1/vendor/invoices/{order_id}/pay
+  - post /api/v1/vendor/notifications/mark-all-read
+  - post /api/v1/vendor/recurring-rules
+  - post /api/v1/vendor/recurring-rules/{rule_id}/toggle
+  - post /api/v1/vendor/support-tickets
+  - post /api/v1/vendor/support-tickets/{ticket_id}/reply
+  - post /api/v1/vendor/support-tickets/{ticket_id}/resolve
+  - post /api/v1/vendor/team-members
+  - post /api/v1/vendor/wallet/top-up
+  - put /api/v1/vendor/bulk-uploads/{upload_id}
+  - put /api/v1/vendor/notifications/{notification_id}
+  - put /api/v1/vendor/recurring-rules/{rule_id}
+  - put /api/v1/vendor/settings
+  Warehouse Operations:
+  - get /api/v1/warehouses/{warehouse_id}/operations/inbound
+  - get /api/v1/warehouses/{warehouse_id}/operations/loading-docks
+  - get /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/ai-receive-plan
+  - get /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/pick-progress
+  - get /api/v1/warehouses/{warehouse_id}/operations/packing-stations
+  - get /api/v1/warehouses/{warehouse_id}/operations/performance
+  - get /api/v1/warehouses/{warehouse_id}/operations/quality-checks
+  - get /api/v1/warehouses/{warehouse_id}/operations/quality-checks/{check_id}
+  - get /api/v1/warehouses/{warehouse_id}/operations/returns
+  - get /api/v1/warehouses/{warehouse_id}/operations/zones/{zone_id}/metrics
+  - post /api/v1/warehouses/{warehouse_id}/operations/inbound/schedule
+  - post /api/v1/warehouses/{warehouse_id}/operations/loading-docks
+  - post /api/v1/warehouses/{warehouse_id}/operations/loading-docks/{dock_id}/assign
+  - post /api/v1/warehouses/{warehouse_id}/operations/loading-docks/{dock_id}/maintenance
+  - post /api/v1/warehouses/{warehouse_id}/operations/loading-docks/{dock_id}/release
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/accept
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/complete-packing
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/complete-picking
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/generate-take-back
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/mark-arrived
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/pick-item
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/quality-check
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/receive-inbound
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/report-damage
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/report-mismatch
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/revert-picking
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/start-packing
+  - post /api/v1/warehouses/{warehouse_id}/operations/orders/{order_id}/start-picking
+  - post /api/v1/warehouses/{warehouse_id}/operations/packing-stations
+  - post /api/v1/warehouses/{warehouse_id}/operations/quality-checks/{check_id}/pass
+  - post /api/v1/warehouses/{warehouse_id}/operations/returns
+  - post /api/v1/warehouses/{warehouse_id}/operations/returns/{grading_id}/complete
+  - post /api/v1/warehouses/{warehouse_id}/operations/returns/{grading_id}/photo
+  - post /api/v1/warehouses/{warehouse_id}/operations/zones/metrics
+  - put /api/v1/warehouses/{warehouse_id}/operations/packing-stations/{station_id}
+  - put /api/v1/warehouses/{warehouse_id}/operations/quality-checks/{check_id}
+  - put /api/v1/warehouses/{warehouse_id}/operations/returns/{grading_id}
+  Warehouses:
+  - delete /api/v1/warehouses/{warehouse_id}
+  - get /api/v1/warehouses
+  - get /api/v1/warehouses/{warehouse_id}
+  - get /api/v1/warehouses/{warehouse_id}/dashboard
+  - get /api/v1/warehouses/{warehouse_id}/kpis
+  - post /api/v1/warehouses
+  - post /api/v1/warehouses/{warehouse_id}/orders/{order_id}/complete
+  - post /api/v1/warehouses/{warehouse_id}/orders/{order_id}/reassign
+  - post /api/v1/warehouses/{warehouse_id}/restock
+  - put /api/v1/warehouses/{warehouse_id}
+  - put /api/v1/warehouses/{warehouse_id}/floor-plan
