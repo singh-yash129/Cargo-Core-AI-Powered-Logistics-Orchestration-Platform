@@ -241,8 +241,14 @@ function openMaps() {
     ensureRouteContext()
 
     try {
-        openExternalNavigation(currentStop.value)
-        uiStore.showToast('Opening navigation in Maps', 'success', 1600)
+        const brief = tripBrief.value
+        const waypoints =
+            brief?.recommended_route === 'alternate'
+                ? (brief?.alternate_route?.waypoints || [])
+                : []
+        openExternalNavigation(currentStop.value, { waypoints })
+        const label = waypoints.length > 0 ? 'Opening alternate route in Maps' : 'Opening navigation in Maps'
+        uiStore.showToast(label, 'success', 1600)
     } catch (error) {
         uiStore.showToast(error.message || 'Unable to open maps', 'error', 2400)
     }

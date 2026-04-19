@@ -57,7 +57,7 @@ from app.schemas.ai_config import (
     KnowledgeArticleUpdate,
 )
 from app.services import ai_service, ai_support_service
-from app.utils.gemini import GeminiConfigError, get_gemini_client, GEMINI_MODEL
+from app.utils.gemini import GeminiConfigError, get_gemini_client, generate_with_fallback
 from google.genai import types as genai_types
 
 router = APIRouter(prefix="/api/v1/ai", tags=["AI"])
@@ -126,18 +126,12 @@ async def estimate_image(
             detail="Image must be smaller than 15 MB.",
         )
 
-    try:
-        client = get_gemini_client()
-    except GeminiConfigError as e:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
-
     # Build inline image part using the new SDK
     image_part = genai_types.Part.from_bytes(data=raw, mime_type=file.content_type)
     text_part  = genai_types.Part.from_text(text=_VISION_PROMPT)
 
     try:
-        response = await client.aio.models.generate_content(
-            model=GEMINI_MODEL,
+        response = await generate_with_fallback(
             contents=[genai_types.Content(role="user", parts=[image_part, text_part])],
             config=genai_types.GenerateContentConfig(
                 temperature=0.2,

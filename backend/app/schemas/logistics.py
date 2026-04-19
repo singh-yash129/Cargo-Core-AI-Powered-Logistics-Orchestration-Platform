@@ -450,7 +450,7 @@ class LogisticsMeetingCreate(BaseModel):
     topic: str = Field(..., min_length=1, max_length=255)
     description: str = Field(default="", max_length=2000)
     meeting_type: str = Field(default="other", max_length=30)
-    link: str = Field(..., min_length=5, max_length=2000)
+    link: str = Field(default="", max_length=2000)
     date: date_type
     start_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
     end_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")

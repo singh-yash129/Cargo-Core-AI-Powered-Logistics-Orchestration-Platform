@@ -232,6 +232,17 @@
             </div>
         </div>
 
+        <!-- Global Feasibility Toast -->
+        <Teleport to="body">
+            <Transition enter-active-class="transition ease-out duration-300" enter-from-class="translate-y-4 opacity-0" enter-to-class="translate-y-0 opacity-100" leave-active-class="transition ease-in duration-200" leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-4 opacity-0">
+                <div v-if="globalFeasToast" class="fixed bottom-6 right-6 z-[9999] rounded-2xl px-5 py-3 text-sm font-bold shadow-2xl flex items-center gap-2"
+                    :class="globalFeasToastType === 'success' ? 'bg-primary text-black' : globalFeasToastType === 'warn' ? 'bg-yellow-400 text-black' : 'bg-red-500 text-white'">
+                    <span class="material-symbols-outlined text-[18px]">{{ globalFeasToastType === 'success' ? 'verified' : 'warning' }}</span>
+                    {{ globalFeasToast }}
+                </div>
+            </Transition>
+        </Teleport>
+
         <!-- Feasibility Check Modal -->
         <Teleport to="body">
         <div v-if="showFeasibilityModal"
@@ -379,7 +390,7 @@
                         class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
                         <option value="" class="bg-white dark:bg-gray-800">— Select Driver —</option>
                         <option v-for="d in assignDrivers" :key="d.id" :value="d.id" class="bg-white dark:bg-gray-800">
-                            {{ d.name }} ({{ d.status }}){{ d.vehicle ? ' · ' + d.vehicle : '' }}
+                            {{ d.name }} ({{ d.status }})
                         </option>
                     </select>
                     <p v-if="assignDriversLoading" class="text-xs text-gray-400 mt-1">Loading drivers...</p>
@@ -512,6 +523,15 @@ const assignError = ref('')
 const assignSuccess = ref('')
 const showBatchConfirm = ref(false)
 const batchToast = ref('')
+const globalFeasToast = ref('')
+const globalFeasToastType = ref('success')
+
+function showGlobalFeasToast(message, type = 'success') {
+    globalFeasToast.value = message
+    globalFeasToastType.value = type
+    window.clearTimeout(showGlobalFeasToast._timer)
+    showGlobalFeasToast._timer = window.setTimeout(() => { globalFeasToast.value = '' }, 3200)
+}
 
 const warehouses = computed(() => store.hubs.map(h => h.name))
 
@@ -728,6 +748,23 @@ function runGlobalFeasibilityCheck() {
         o.feasibility = next.feasibility
         o.failReason = next.failReason
     })
+    const feasible = pendingOrders.value.filter(o => o.feasibility === 'feasible').length
+    const infeasible = pendingOrders.value.filter(o => o.feasibility === 'infeasible').length
+    const unchecked = pendingOrders.value.filter(o => o.feasibility === 'unchecked').length
+    const total = pendingOrders.value.length
+    if (total === 0) {
+        showGlobalFeasToast('No pending orders to check', 'warn')
+    } else if (infeasible === 0 && unchecked === 0) {
+        showGlobalFeasToast(`All ${feasible} order${feasible > 1 ? 's' : ''} feasible`, 'success')
+    } else if (feasible === 0 && unchecked === 0) {
+        showGlobalFeasToast(`${infeasible} order${infeasible > 1 ? 's' : ''} not feasible`, 'error')
+    } else {
+        const parts = []
+        if (feasible) parts.push(`${feasible} feasible`)
+        if (infeasible) parts.push(`${infeasible} blocked`)
+        if (unchecked) parts.push(`${unchecked} unchecked`)
+        showGlobalFeasToast(parts.join(' · '), infeasible > 0 ? 'warn' : 'success')
+    }
 }
 
 function approveAndAssign() {

@@ -141,18 +141,6 @@
                                     <span class="material-symbols-outlined text-sm">{{ order.status === 'delivered' ? 'route' : 'gps_fixed' }}</span>
                                     {{ order.status === 'delivered' ? 'Route Blueprint' : 'Track' }}
                                 </router-link>
-                                <button @click="openSlipWithData('bookingConfirmation', order, authStore.currentUser)"
-                                    class="px-4 py-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-sm font-bold rounded-lg hover:bg-indigo-500/20 transition-colors flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-sm">receipt_long</span> Booking Slip
-                                </button>
-                                <button v-if="order.status === 'delivered'" @click="openSlipWithData('proofOfDelivery', order, authStore.currentUser)"
-                                    class="px-4 py-2 bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-bold rounded-lg hover:bg-green-500/20 transition-colors flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-sm">verified</span> PoD
-                                </button>
-                                <button v-if="order.status === 'delivered'" @click="openSlipWithData('finalTaxInvoice', order, authStore.currentUser)"
-                                    class="px-4 py-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-sm font-bold rounded-lg hover:bg-blue-500/20 transition-colors flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-sm">request_quote</span> Invoice
-                                </button>
                                 <button v-if="order.status === 'pending'" @click="showRescheduleModal(order)"
                                     class="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-sm">schedule</span> Reschedule
@@ -171,6 +159,111 @@
                                     class="px-4 py-2 bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-bold rounded-lg hover:bg-red-500/20 transition-colors flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-sm">report</span> Report Damage
                                 </router-link>
+                            </div>
+
+                            <!-- Order Documents -->
+                            <div class="pt-4 border-t border-gray-200 dark:border-white/5">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="material-symbols-outlined text-gray-400 text-[18px]">folder_open</span>
+                                    <span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Order Documents</span>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+                                    <!-- Booking Slip -->
+                                    <div class="flex flex-col gap-3 p-4 rounded-xl border border-indigo-100 dark:border-indigo-500/20 bg-gradient-to-br from-indigo-50/60 to-white dark:from-indigo-500/5 dark:to-transparent hover:border-indigo-200 dark:hover:border-indigo-400/30 transition-all">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center shrink-0">
+                                                <span class="material-symbols-outlined text-indigo-600 dark:text-indigo-400 text-[22px]">receipt_long</span>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-bold text-gray-800 dark:text-white leading-tight">Booking Slip</div>
+                                                <div class="text-[11px] text-gray-400 mt-0.5">Confirmation document</div>
+                                            </div>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button @click="openSlipWithData('bookingConfirmation', order, authStore.currentUser)"
+                                                class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all">
+                                                <span class="material-symbols-outlined text-[15px]">download</span> Download
+                                            </button>
+                                            <button @click="printSlipWithData('bookingConfirmation', order, authStore.currentUser)"
+                                                title="Print"
+                                                class="flex items-center justify-center px-3 py-2 rounded-lg text-xs font-bold bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 active:scale-95 transition-all">
+                                                <span class="material-symbols-outlined text-[15px]">print</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Proof of Delivery -->
+                                    <div class="flex flex-col gap-3 p-4 rounded-xl transition-all"
+                                        :class="order.status === 'delivered'
+                                            ? 'border border-green-100 dark:border-green-500/20 bg-gradient-to-br from-green-50/60 to-white dark:from-green-500/5 dark:to-transparent hover:border-green-200 dark:hover:border-green-400/30'
+                                            : 'border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] opacity-50'">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                                                :class="order.status === 'delivered' ? 'bg-green-100 dark:bg-green-500/20' : 'bg-gray-100 dark:bg-white/5'">
+                                                <span class="material-symbols-outlined text-[22px]"
+                                                    :class="order.status === 'delivered' ? 'text-green-600 dark:text-green-400' : 'text-gray-400'">verified</span>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-bold text-gray-800 dark:text-white leading-tight">Proof of Delivery</div>
+                                                <div class="text-[11px] mt-0.5" :class="order.status === 'delivered' ? 'text-gray-400' : 'text-gray-400'">
+                                                    {{ order.status === 'delivered' ? 'Delivery confirmed' : 'Available after delivery' }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button @click="openSlipWithData('proofOfDelivery', order, authStore.currentUser)"
+                                                :disabled="order.status !== 'delivered'"
+                                                class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all active:scale-95"
+                                                :class="order.status === 'delivered' ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-200 dark:bg-white/10 text-gray-400 cursor-not-allowed'">
+                                                <span class="material-symbols-outlined text-[15px]">download</span> Download
+                                            </button>
+                                            <button @click="printSlipWithData('proofOfDelivery', order, authStore.currentUser)"
+                                                :disabled="order.status !== 'delivered'"
+                                                title="Print"
+                                                class="flex items-center justify-center px-3 py-2 rounded-lg text-xs font-bold transition-all active:scale-95"
+                                                :class="order.status === 'delivered' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-500/30' : 'bg-gray-200 dark:bg-white/10 text-gray-400 cursor-not-allowed'">
+                                                <span class="material-symbols-outlined text-[15px]">print</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tax Invoice -->
+                                    <div class="flex flex-col gap-3 p-4 rounded-xl transition-all"
+                                        :class="order.status === 'delivered'
+                                            ? 'border border-blue-100 dark:border-blue-500/20 bg-gradient-to-br from-blue-50/60 to-white dark:from-blue-500/5 dark:to-transparent hover:border-blue-200 dark:hover:border-blue-400/30'
+                                            : 'border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] opacity-50'">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                                                :class="order.status === 'delivered' ? 'bg-blue-100 dark:bg-blue-500/20' : 'bg-gray-100 dark:bg-white/5'">
+                                                <span class="material-symbols-outlined text-[22px]"
+                                                    :class="order.status === 'delivered' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'">request_quote</span>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-bold text-gray-800 dark:text-white leading-tight">Tax Invoice</div>
+                                                <div class="text-[11px] mt-0.5" :class="order.status === 'delivered' ? 'text-gray-400' : 'text-gray-400'">
+                                                    {{ order.status === 'delivered' ? 'Official tax document' : 'Available after delivery' }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button @click="openSlipWithData('finalTaxInvoice', order, authStore.currentUser)"
+                                                :disabled="order.status !== 'delivered'"
+                                                class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all active:scale-95"
+                                                :class="order.status === 'delivered' ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 dark:bg-white/10 text-gray-400 cursor-not-allowed'">
+                                                <span class="material-symbols-outlined text-[15px]">download</span> Download
+                                            </button>
+                                            <button @click="printSlipWithData('finalTaxInvoice', order, authStore.currentUser)"
+                                                :disabled="order.status !== 'delivered'"
+                                                title="Print"
+                                                class="flex items-center justify-center px-3 py-2 rounded-lg text-xs font-bold transition-all active:scale-95"
+                                                :class="order.status === 'delivered' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-500/30' : 'bg-gray-200 dark:bg-white/10 text-gray-400 cursor-not-allowed'">
+                                                <span class="material-symbols-outlined text-[15px]">print</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
                             </div>
                             <!-- Driver Rating (optional, delivered orders only) -->
                             <div v-if="order.status === 'delivered'" class="pt-2 border-t border-gray-200 dark:border-white/5">
@@ -336,7 +429,7 @@ import BaseModal from '@/components/BaseModal.vue'
 
 const store = useIndividualStore()
 const authStore = useAuthStore()
-const { openSlipWithData } = useSlipPrinter()
+const { openSlipWithData, printSlipWithData } = useSlipPrinter()
 const search = ref('')
 const statusFilter = ref('all')
 const expandedOrder = ref(null)

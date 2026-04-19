@@ -161,7 +161,7 @@ const emergencyActions = [
 
 const contacts = [
     { name: 'Dispatch Control', role: 'Operations Hotline', phone: '18001234567' },
-    { name: 'Fleet Manager', role: 'North-East Hub', phone: '9987654321' },
+    { name: 'Warehouse Manager', role: 'North-East Hub', phone: '9987654321' },
     { name: 'Emergency Response', role: '24/7 Available', phone: '112' },
 ]
 

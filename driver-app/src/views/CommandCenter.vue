@@ -198,7 +198,7 @@
                     </div>
                     <div class="ml-auto text-right">
                         <p class="text-xs font-mono" :class="isDark ? 'text-gray-500' : 'text-gray-400'">{{
-                            driverStore.driverId }}</p>
+                            driverStore.driverId ? 'DRV-' + driverStore.driverId.replace(/-/g, '').slice(0, 8).toUpperCase() : '—' }}</p>
                         <div class="flex items-center gap-1 justify-end mt-0.5">
                             <span class="material-icons text-accent-gold text-xs">star</span>
                             <span class="text-sm font-bold">{{ driverStore.driver?.rating ?? '—' }}</span>
@@ -372,7 +372,10 @@ let clockTimer = null
 let assignmentPollTimer = null
 const greeting = computed(() => {
     const h = new Date().getHours()
-    return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'
+    if (h >= 5 && h < 12) return 'Morning'
+    if (h >= 12 && h < 17) return 'Afternoon'
+    if (h >= 17 && h < 21) return 'Evening'
+    return 'Night'
 })
 
 async function loadCurrentJob() {

@@ -5,7 +5,6 @@
             class="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             :class="{ 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white': isOpen }">
             <span class="material-symbols-outlined text-[20px]">calendar_add_on</span>
-            <!-- Active Meetings Badge -->
             <span v-if="upcomingMeetingsCount > 0"
                 class="absolute top-0 right-0 w-4 h-4 bg-primary text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-surface-light dark:border-background-dark">
                 {{ upcomingMeetingsCount }}
@@ -14,110 +13,125 @@
 
         <!-- Popover -->
         <div v-show="isOpen"
-            class="absolute right-0 mt-2 w-96 bg-white dark:bg-card-darker rounded-2xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50 transform origin-top-right transition-all duration-200"
-            :class="isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'">
+            class="absolute right-0 mt-3 w-[420px] rounded-2xl z-50 transition-all duration-200 origin-top-right"
+            :class="isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'"
+            style="background:#ffffff; box-shadow:0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.10);"
+            :style="{ background: isDark ? '#13161f' : '#ffffff', boxShadow: '0 20px 60px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.15)' }">
 
-            <!-- Header -->
-            <div
-                class="p-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-black/20">
-                <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary">video_call</span>
-                    Meetings
-                </h3>
-                <div class="flex items-center gap-2">
-                    <button v-if="!isCreating && !isEditing" @click.stop="startCreating"
-                        class="text-xs font-semibold px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                        + Schedule
-                    </button>
-                    <button v-else @click.stop="cancelEdit"
-                        class="text-xs font-semibold px-2 py-1 rounded-md bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 hover:bg-red-100 transition-colors">
-                        Cancel
-                    </button>
+            <!-- Header bar with gradient accent -->
+            <div class="px-5 pt-5 pb-4" :style="{ background: isDark ? '#1a1e2e' : '#f8faff', borderRadius: '16px 16px 0 0', borderBottom: isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid #e8edf5' }">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg,#6366f1,#8b5cf6)">
+                            <span class="material-symbols-outlined text-white text-[18px]">video_call</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-[15px]" :style="{ color: isDark ? '#f1f5f9' : '#0f172a' }">Meetings</h3>
+                            <p class="text-[11px]" :style="{ color: isDark ? '#64748b' : '#94a3b8' }">
+                                {{ meetings.length > 0 ? `${meetings.length} scheduled` : 'No meetings yet' }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button v-if="!isCreating && !isEditing" @click.stop="startCreating"
+                            class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+                            style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white;">
+                            <span class="material-symbols-outlined text-[14px]">add</span>
+                            Schedule
+                        </button>
+                        <button v-else @click.stop="cancelEdit"
+                            class="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                            :style="{ background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }">
+                            <span class="material-symbols-outlined text-[14px]">close</span>
+                            Cancel
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- VIEW MODE: List of Meetings -->
-            <div v-if="!isCreating && !isEditing" class="max-h-[500px] overflow-y-auto no-scrollbar">
-                <div v-if="isLoadingMeetings" class="p-8 text-center text-gray-500 dark:text-gray-400">
-                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50 animate-pulse">progress_activity</span>
-                    <p class="text-sm">Loading meetings...</p>
+            <!-- VIEW MODE -->
+            <div v-if="!isCreating && !isEditing" class="max-h-[480px] overflow-y-auto no-scrollbar">
+
+                <div v-if="isLoadingMeetings" class="py-12 text-center">
+                    <span class="material-symbols-outlined text-4xl animate-spin mb-3" :style="{ color: isDark ? '#475569' : '#94a3b8' }">progress_activity</span>
+                    <p class="text-sm" :style="{ color: isDark ? '#475569' : '#94a3b8' }">Loading meetings...</p>
                 </div>
 
-                <div v-else-if="meetingError" class="p-6 text-center text-gray-500 dark:text-gray-400 space-y-3">
-                    <span class="material-symbols-outlined text-4xl mb-1 opacity-60">error</span>
-                    <p class="text-sm">{{ meetingError }}</p>
-                    <button @click="loadMeetings"
-                        class="text-xs font-semibold px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                        Retry
+                <div v-else-if="meetingError" class="py-10 px-5 text-center space-y-3">
+                    <span class="material-symbols-outlined text-4xl" style="color:#ef4444">error_outline</span>
+                    <p class="text-sm" :style="{ color: isDark ? '#94a3b8' : '#64748b' }">{{ meetingError }}</p>
+                    <button @click="loadMeetings" class="text-xs font-semibold px-4 py-1.5 rounded-lg" style="background:rgba(99,102,241,0.1);color:#6366f1">Retry</button>
+                </div>
+
+                <div v-else-if="meetings.length === 0" class="py-14 px-5 text-center">
+                    <div class="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center" :style="{ background: isDark ? 'rgba(99,102,241,0.1)' : '#f0f0ff' }">
+                        <span class="material-symbols-outlined text-3xl" style="color:#6366f1">event_note</span>
+                    </div>
+                    <p class="font-semibold text-sm mb-1" :style="{ color: isDark ? '#e2e8f0' : '#1e293b' }">No meetings scheduled</p>
+                    <p class="text-xs mb-4" :style="{ color: isDark ? '#475569' : '#94a3b8' }">Schedule your first meeting to get started</p>
+                    <button @click.stop="startCreating" class="text-xs font-semibold px-4 py-2 rounded-lg text-white" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+                        + Schedule Meeting
                     </button>
                 </div>
 
-                <div v-else-if="meetings.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400">
-                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">event_busy</span>
-                    <p class="text-sm">No scheduled meetings.</p>
-                </div>
-
-                <div v-else class="divide-y divide-gray-100 dark:divide-white/5">
+                <div v-else class="p-3 space-y-2">
                     <div v-for="meeting in sortedMeetings" :key="meeting.id"
-                        class="p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group relative cursor-pointer select-none"
+                        class="group rounded-xl p-4 cursor-pointer select-none transition-all border"
+                        :style="{ background: isDark ? '#1e2235' : '#f8faff', borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#e8edf5' }"
                         @click.stop="handleMeetingClick($event, meeting)" :title="meetingCardTitle(meeting)">
 
-                        <div class="flex justify-between items-start mb-1">
-                            <h4 class="font-semibold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                                {{ meeting.topic }}
-                                <span v-if="isMeetingLive(meeting)" class="flex h-2 w-2 relative">
-                                    <span
-                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <!-- Live pulse + topic row -->
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span v-if="isMeetingLive(meeting)" class="flex h-2 w-2 shrink-0 relative">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                     <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                                 </span>
-                            </h4>
-                            <span
-                                class="text-[10px] font-medium px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 shrink-0 ml-1">
+                                <h4 class="font-semibold text-sm truncate" :style="{ color: isDark ? '#f1f5f9' : '#0f172a' }">{{ meeting.topic }}</h4>
+                            </div>
+                            <span class="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full" :style="{ background: isDark ? 'rgba(255,255,255,0.08)' : '#e8edf5', color: isDark ? '#94a3b8' : '#64748b' }">
                                 {{ formatDate(meeting.date) }}
                             </span>
                         </div>
 
-                        <!-- Platform badge -->
-                        <div class="flex items-center gap-1.5 mb-2">
+                        <!-- Meta row -->
+                        <div class="flex items-center gap-2 mb-3">
                             <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
                                 :class="getPlatformConfig(getMeetingPlatform(meeting)).badgeClass">
-                                <span class="w-1.5 h-1.5 rounded-full inline-block shrink-0"
-                                    :class="getPlatformConfig(getMeetingPlatform(meeting)).dotClass"></span>
+                                <span class="w-1.5 h-1.5 rounded-full inline-block shrink-0" :class="getPlatformConfig(getMeetingPlatform(meeting)).dotClass"></span>
                                 {{ getPlatformConfig(getMeetingPlatform(meeting)).label }}
                             </span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <span class="text-[11px] flex items-center gap-1" :style="{ color: isDark ? '#64748b' : '#94a3b8' }">
                                 <span class="material-symbols-outlined text-[12px]">schedule</span>
-                                {{ meeting.startTime }} - {{ meeting.endTime }}
+                                {{ meeting.startTime }} – {{ meeting.endTime }}
                             </span>
                         </div>
 
-                        <p class="text-xs text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">
-                            {{ meeting.description }}
-                        </p>
+                        <p v-if="meeting.description" class="text-xs mb-3 line-clamp-1" :style="{ color: isDark ? '#64748b' : '#94a3b8' }">{{ meeting.description }}</p>
 
-                        <div class="flex items-center justify-between mt-2">
-                            <div class="flex -space-x-2 items-center p-1">
-                                <div v-for="uid in meeting.participants.slice(0, 3)" :key="uid"
-                                    class="flex h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-200 items-center justify-center text-[8px] font-bold text-gray-600 hover:z-10 hover:-translate-x-1 hover:-translate-y-1 hover:scale-110 transition-transform duration-200 cursor-pointer shadow-sm hover:shadow-md"
-                                    :title="getUserName(uid)">
-                                    {{ getUserInitials(uid) }}
-                                </div>
-                                <div v-if="meeting.participants.length > 3"
-                                    class="flex h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-100 items-center justify-center text-[8px] font-bold text-gray-500 hover:z-10 hover:-translate-x-1 hover:-translate-y-1 hover:scale-110 transition-transform duration-200 cursor-pointer shadow-sm hover:shadow-md">
-                                    +{{ meeting.participants.length - 3 }}
+                        <!-- Footer: avatars + actions -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex -space-x-1.5">
+                                <div v-for="uid in meeting.participants.slice(0, 4)" :key="uid"
+                                    class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ring-2 ring-white dark:ring-[#1e2235]"
+                                    :style="{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white' }"
+                                    :title="getUserName(uid)">{{ getUserInitials(uid) }}</div>
+                                <div v-if="meeting.participants.length > 4"
+                                    class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ring-2 ring-white dark:ring-[#1e2235]"
+                                    :style="{ background: isDark ? '#2d3348' : '#e8edf5', color: isDark ? '#94a3b8' : '#64748b' }">
+                                    +{{ meeting.participants.length - 4 }}
                                 </div>
                             </div>
-
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-1.5">
                                 <button v-if="canManageMeeting(meeting)" @click.stop="deleteMeeting(meeting.id)"
-                                    class="px-2 py-1 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
-                                    title="Delete Meeting">
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    class="w-7 h-7 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                    :style="{ color: '#ef4444', background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2' }">
+                                    <span class="material-symbols-outlined text-[15px]">delete</span>
                                 </button>
                                 <button @click.stop="joinMeeting(meeting)"
-                                    class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
-                                    :class="getPlatformConfig(getMeetingPlatform(meeting)).joinClass">
-                                    <span class="material-symbols-outlined text-[14px]">videocam</span>
+                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all"
+                                    style="background: linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow: 0 2px 8px rgba(99,102,241,0.35)">
+                                    <span class="material-symbols-outlined text-[13px]">videocam</span>
                                     Join
                                 </button>
                             </div>
@@ -126,138 +140,137 @@
                 </div>
             </div>
 
-            <!-- EDIT/CREATE MODE: Form -->
-            <div v-else class="p-4 max-h-[500px] overflow-y-auto no-scrollbar space-y-4 bg-gray-50/30 dark:bg-white/5">
-                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    {{ isEditing ? 'Edit Meeting' : 'New Meeting' }}
-                </h4>
+            <!-- CREATE / EDIT FORM -->
+            <div v-else class="max-h-[520px] overflow-y-auto no-scrollbar">
+                <div class="p-5 space-y-4">
 
-                <div v-if="meetingError"
-                    class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
-                    {{ meetingError }}
-                </div>
-
-                <!-- 1. Meeting Details -->
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Topic</label>
-                        <input v-model="form.topic" type="text" placeholder="e.g. Weekly Sync"
-                            class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
+                    <div v-if="meetingError" class="rounded-xl px-4 py-3 text-xs font-medium flex items-center gap-2" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2)">
+                        <span class="material-symbols-outlined text-[15px]">error</span>
+                        {{ meetingError }}
                     </div>
 
-                    <!-- Platform Selector -->
+                    <!-- Topic -->
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Platform</label>
-                        <div class="flex gap-2">
+                        <label class="block text-xs font-semibold mb-1.5" :style="{ color: isDark ? '#94a3b8' : '#64748b' }">Meeting Topic</label>
+                        <input v-model="form.topic" type="text" placeholder="e.g. Weekly Sync"
+                            class="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                            :style="{ background: isDark ? '#1e2235' : '#f8faff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', color: isDark ? '#f1f5f9' : '#0f172a' }">
+                    </div>
+
+                    <!-- Platform -->
+                    <div>
+                        <label class="block text-xs font-semibold mb-1.5" :style="{ color: isDark ? '#94a3b8' : '#64748b' }">Platform</label>
+                        <div class="grid grid-cols-2 gap-2">
                             <button v-for="p in platformOptions" :key="p.id"
-                                type="button"
-                                @click="form.meetingType = p.id"
-                                class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border-2 transition-all"
-                                :class="form.meetingType === p.id
-                                    ? p.activeClass
-                                    : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500 bg-transparent hover:border-gray-300 dark:hover:border-white/20'">
-                                <span class="w-2 h-2 rounded-full inline-block shrink-0" :class="p.dotColor"></span>
+                                type="button" @click="form.meetingType = p.id"
+                                class="py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border-2"
+                                :class="form.meetingType === p.id ? p.activeClass : 'border-transparent'"
+                                :style="form.meetingType !== p.id ? { background: isDark ? '#1e2235' : '#f1f5f9', color: isDark ? '#64748b' : '#94a3b8' } : {}">
+                                <span class="w-2 h-2 rounded-full shrink-0" :class="p.dotColor"></span>
                                 {{ p.label }}
                             </button>
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Meeting Link</label>
+                    <!-- Jitsi info / link input -->
+                    <div v-if="form.meetingType === 'jitsi'" class="flex items-start gap-3 rounded-xl px-4 py-3" style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2)">
+                        <span class="material-symbols-outlined text-[18px] mt-0.5 shrink-0" style="color:#8b5cf6">auto_awesome</span>
+                        <p class="text-xs leading-relaxed" style="color:#8b5cf6">
+                            A private video room is <strong>auto-generated and runs inside the app</strong> — no link needed.
+                        </p>
+                    </div>
+                    <div v-else>
+                        <label class="block text-xs font-semibold mb-1.5" :style="{ color: isDark ? '#94a3b8' : '#64748b' }">Meeting Link</label>
                         <input v-model="form.link" type="text" :placeholder="linkPlaceholder"
-                            class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-blue-500 dark:text-blue-400 focus:outline-none focus:border-primary/50 transition-colors">
-                        <p v-if="form.link && getMeetingPlatform(form)" class="text-[10px] mt-1 flex items-center gap-1"
-                            :class="getPlatformConfig(getMeetingPlatform(form)).badgeClass.split(' ')[2]">
-                            <span class="w-1.5 h-1.5 rounded-full inline-block"
-                                :class="getPlatformConfig(getMeetingPlatform(form)).dotClass"></span>
+                            class="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                            :style="{ background: isDark ? '#1e2235' : '#f8faff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', color: '#6366f1' }">
+                        <p v-if="form.link && getMeetingPlatform(form)" class="text-[10px] mt-1.5 flex items-center gap-1.5" :class="getPlatformConfig(getMeetingPlatform(form)).badgeClass.split(' ')[2]">
+                            <span class="w-1.5 h-1.5 rounded-full" :class="getPlatformConfig(getMeetingPlatform(form)).dotClass"></span>
                             Detected: {{ getPlatformConfig(getMeetingPlatform(form)).label }}
                         </p>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
-                        <input v-model="form.date" type="date"
-                            class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
-                    </div>
-
-                    <div class="flex gap-2">
-                        <div class="flex-1">
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Start Time</label>
+                    <!-- Date + Time row -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="col-span-3">
+                            <label class="block text-xs font-semibold mb-1.5" :style="{ color: isDark ? '#94a3b8' : '#64748b' }">Date</label>
+                            <input v-model="form.date" type="date"
+                                class="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
+                                :style="{ background: isDark ? '#1e2235' : '#f8faff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', color: isDark ? '#f1f5f9' : '#0f172a' }">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1.5" :style="{ color: isDark ? '#94a3b8' : '#64748b' }">Start</label>
                             <input v-model="form.startTime" type="time"
-                                class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
+                                class="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none transition-all"
+                                :style="{ background: isDark ? '#1e2235' : '#f8faff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', color: isDark ? '#f1f5f9' : '#0f172a' }">
                         </div>
-                        <div class="flex-1">
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">End Time</label>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-semibold mb-1.5" :style="{ color: isDark ? '#94a3b8' : '#64748b' }">End</label>
                             <input v-model="form.endTime" type="time"
-                                class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
+                                class="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none transition-all"
+                                :style="{ background: isDark ? '#1e2235' : '#f8faff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', color: isDark ? '#f1f5f9' : '#0f172a' }">
                         </div>
                     </div>
 
+                    <!-- Description -->
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                        <label class="block text-xs font-semibold mb-1.5" :style="{ color: isDark ? '#94a3b8' : '#64748b' }">Description <span class="font-normal opacity-60">(optional)</span></label>
                         <textarea v-model="form.description" rows="2" placeholder="Agenda or notes..."
-                            class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors resize-none"></textarea>
-                    </div>
-                </div>
-
-                <!-- 2. Select Participants -->
-                <div class="space-y-3 pt-2 border-t border-gray-100 dark:border-white/5">
-                    <h4
-                        class="text-xs font-bold text-gray-500 uppercase tracking-wider flex justify-between items-center">
-                        Participants
-                        <span
-                            class="text-[10px] font-normal normal-case bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
-                            {{ selectedParticipantCount }} selected
-                        </span>
-                    </h4>
-
-                    <p class="text-[10px] text-gray-500 dark:text-gray-400">
-                        You are included automatically. Add other roles from the list below.
-                    </p>
-
-                    <!-- Filters -->
-                    <div class="flex gap-2">
-                        <select v-model="filters.hub"
-                            class="flex-1 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary/50">
-                            <option value="">All Hubs</option>
-                            <option v-for="hub in store.hubs" :key="hub.id" :value="hub.id">{{ hub.name }}</option>
-                        </select>
-
-                        <select v-model="filters.role"
-                            class="flex-1 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-primary/50">
-                            <option value="">All Roles</option>
-                            <option v-for="role in roleOptions" :key="role" :value="role">{{ role }}</option>
-                        </select>
+                            class="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all resize-none"
+                            :style="{ background: isDark ? '#1e2235' : '#f8faff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', color: isDark ? '#f1f5f9' : '#0f172a' }"></textarea>
                     </div>
 
-                    <!-- User List -->
-                    <div
-                        class="max-h-40 overflow-y-auto border border-gray-200 dark:border-white/10 rounded-lg bg-gray-50/50 dark:bg-black/20 divide-y divide-gray-100 dark:divide-white/5">
-                        <div v-if="filteredUsers.length === 0" class="p-3 text-center text-xs text-gray-500">
-                            No users found matching filters.
+                    <!-- Participants -->
+                    <div class="rounded-xl overflow-hidden" :style="{ border: isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid #e2e8f0' }">
+                        <div class="px-4 py-3 flex items-center justify-between" :style="{ background: isDark ? '#1a1e2e' : '#f8faff' }">
+                            <span class="text-xs font-semibold" :style="{ color: isDark ? '#94a3b8' : '#64748b' }">Participants</span>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" style="background:rgba(99,102,241,0.12);color:#6366f1">
+                                {{ selectedParticipantCount }} added
+                            </span>
                         </div>
-                        <label v-for="user in filteredUsers" :key="user.id"
-                            class="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer transition-colors">
-                            <input type="checkbox" :value="user.id" v-model="form.participants"
-                                class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ user.name }}</div>
-                                <div class="text-[10px] text-gray-500 flex items-center gap-2">
-                                    <span>{{ user.role }}</span>
-                                    <span class="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
-                                    <span>{{ getHubName(user.hubId) }}</span>
+                        <div class="px-4 py-2 flex gap-2" :style="{ borderTop: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #f1f5f9' }">
+                            <select v-model="filters.hub" class="flex-1 rounded-lg px-2 py-1.5 text-xs focus:outline-none"
+                                :style="{ background: isDark ? '#1e2235' : '#f1f5f9', color: isDark ? '#94a3b8' : '#64748b', border: 'none' }">
+                                <option value="">All Hubs</option>
+                                <option v-for="hub in store.hubs" :key="hub.id" :value="hub.id">{{ hub.name }}</option>
+                            </select>
+                            <select v-model="filters.role" class="flex-1 rounded-lg px-2 py-1.5 text-xs focus:outline-none"
+                                :style="{ background: isDark ? '#1e2235' : '#f1f5f9', color: isDark ? '#94a3b8' : '#64748b', border: 'none' }">
+                                <option value="">All Roles</option>
+                                <option v-for="role in roleOptions" :key="role" :value="role">{{ role }}</option>
+                            </select>
+                        </div>
+                        <div class="max-h-36 overflow-y-auto divide-y" :style="{ borderTop: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #f1f5f9', divideColor: isDark ? 'rgba(255,255,255,0.04)' : '#f1f5f9' }">
+                            <div v-if="filteredUsers.length === 0" class="p-4 text-center text-xs" :style="{ color: isDark ? '#475569' : '#94a3b8' }">No users found.</div>
+                            <label v-for="user in filteredUsers" :key="user.id"
+                                class="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors"
+                                :style="{ borderBottom: isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid #f8faff' }"
+                                :class="isDark ? 'hover:bg-white/5' : 'hover:bg-indigo-50/50'">
+                                <input type="checkbox" :value="user.id" v-model="form.participants"
+                                    class="w-4 h-4 rounded accent-indigo-500">
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium truncate" :style="{ color: isDark ? '#e2e8f0' : '#1e293b' }">{{ user.name }}</div>
+                                    <div class="text-[10px] flex items-center gap-1.5" :style="{ color: isDark ? '#475569' : '#94a3b8' }">
+                                        <span>{{ user.role }}</span>
+                                        <span class="w-1 h-1 rounded-full" :style="{ background: isDark ? '#334155' : '#cbd5e1' }"></span>
+                                        <span>{{ getHubName(user.hubId) }}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        </label>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Footer ACTIONS -->
-                <div class="pt-4 border-t border-gray-100 dark:border-white/5 flex justify-end gap-2">
+                <!-- Sticky footer -->
+                <div class="px-5 pb-5">
                     <button @click="saveMeeting"
-                        class="w-full px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="w-full py-3 rounded-xl text-sm font-bold text-white transition-all"
+                        :style="isValid && !isSaving ? 'background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 4px 14px rgba(99,102,241,0.4)' : 'background:#94a3b8;cursor:not-allowed'"
                         :disabled="!isValid || isSaving">
-                        {{ isSaving ? (isEditing ? 'Updating...' : 'Scheduling...') : (isEditing ? 'Update Schedule' : 'Schedule Meeting') }}
+                        <span class="flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-[16px]">{{ isSaving ? 'hourglass_top' : (isEditing ? 'edit_calendar' : 'event_available') }}</span>
+                            {{ isSaving ? (isEditing ? 'Updating...' : 'Scheduling...') : (isEditing ? 'Update Schedule' : 'Schedule Meeting') }}
+                        </span>
                     </button>
                 </div>
             </div>
@@ -275,6 +288,8 @@ import { useAuthStore } from '@/stores/authStore'
 
 const store = useLogisticStore()
 const dispatchStore = useDispatcherStore()
+
+const isDark = computed(() => document.documentElement.classList.contains('dark'))
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
@@ -293,9 +308,20 @@ const participantOptions = ref([])
 const detectPlatform = (url) => {
     if (!url) return 'other'
     const lower = url.toLowerCase()
+    if (lower.includes('meet.jit.si')) return 'jitsi'
     if (lower.includes('meet.google.com')) return 'gmeet'
     if (lower.includes('zoom.us') || lower.includes('zoom.com')) return 'zoom'
     return 'other'
+}
+
+const generateJitsiUrl = (topic) => {
+    const slug = (topic || 'meeting')
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .substring(0, 30)
+    const id = Math.random().toString(36).substring(2, 8)
+    return `https://meet.jit.si/logistics-${slug}-${id}`
 }
 
 const normalizeMeetingUrl = (value) => {
@@ -309,6 +335,12 @@ const normalizeMeetingUrl = (value) => {
 }
 
 const platformOptions = [
+    {
+        id: 'jitsi',
+        label: 'Video Call (In-App)',
+        dotColor: 'bg-violet-500',
+        activeClass: 'border-violet-500 bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400'
+    },
     {
         id: 'gmeet',
         label: 'Google Meet',
@@ -331,6 +363,12 @@ const platformOptions = [
 
 const getPlatformConfig = (type) => {
     const configs = {
+        jitsi: {
+            label: 'Video Call',
+            badgeClass: 'bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-400',
+            dotClass: 'bg-violet-500',
+            joinClass: 'bg-violet-600 hover:bg-violet-700 text-white'
+        },
         gmeet: {
             label: 'Google Meet',
             badgeClass: 'bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400',
@@ -366,7 +404,7 @@ const normalizeMeeting = (meeting) => {
     if (!meeting || typeof meeting !== 'object') return null
 
     const explicitType = String(meeting.meetingType || meeting.meeting_type || '').toLowerCase()
-    const meetingType = ['gmeet', 'zoom', 'other'].includes(explicitType)
+    const meetingType = ['gmeet', 'zoom', 'jitsi', 'other'].includes(explicitType)
         ? explicitType
         : detectPlatform(meeting.link)
 
@@ -394,7 +432,7 @@ const meetings = ref([])
 const defaultForm = {
     topic: '',
     link: '',
-    meetingType: 'other',
+    meetingType: 'jitsi',
     date: '',
     startTime: '',
     endTime: '',
@@ -495,9 +533,10 @@ const filteredUsers = computed(() => {
 })
 
 const isValid = computed(() => {
+    const linkOk = form.value.meetingType === 'jitsi' || Boolean(form.value.link.trim())
     return Boolean(
         form.value.topic.trim() &&
-        form.value.link.trim() &&
+        linkOk &&
         form.value.date &&
         form.value.startTime &&
         form.value.endTime &&
@@ -508,6 +547,7 @@ const isValid = computed(() => {
 
 const linkPlaceholder = computed(() => {
     const map = {
+        jitsi: 'Room auto-created — no link needed',
         gmeet: 'Paste Google Meet URL',
         zoom: 'Paste Zoom meeting URL',
         other: 'Paste meeting URL'
@@ -632,11 +672,15 @@ const saveMeeting = async () => {
     isSaving.value = true
     meetingError.value = ''
 
+    const resolvedLink = form.value.meetingType === 'jitsi'
+        ? generateJitsiUrl(form.value.topic)
+        : normalizeMeetingUrl(form.value.link)
+
     const payload = {
         topic: form.value.topic.trim(),
         description: form.value.description.trim(),
         meeting_type: form.value.meetingType,
-        link: normalizeMeetingUrl(form.value.link),
+        link: resolvedLink,
         date: form.value.date,
         start_time: form.value.startTime,
         end_time: form.value.endTime,

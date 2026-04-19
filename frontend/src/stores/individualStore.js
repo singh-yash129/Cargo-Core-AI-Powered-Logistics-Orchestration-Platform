@@ -459,9 +459,11 @@ export const useIndividualStore = defineStore('individual', () => {
         const log = []
         const createdTime = order.created_at ? new Date(order.created_at).toLocaleString() : 'N/A'
 
-        // Direct transport orders (packing_amount == 0) skip all warehouse steps —
-        // the driver goes straight to the customer's location.
-        const isDirectTransport = Number(order.packing_amount ?? 0) === 0
+        // Direct transport orders skip all warehouse steps — the driver goes straight
+        // to the customer's location. Only treat as direct if there is truly no
+        // warehouse assigned to the order.
+        const hasWarehouse = !!(order.warehouse_id || order.warehouse_name || order.warehouse_address)
+        const isDirectTransport = Number(order.packing_amount ?? 0) === 0 && !hasWarehouse
 
         // Order created
         log.push({ event: 'Order created', time: createdTime, icon: 'receipt_long', color: 'blue' })

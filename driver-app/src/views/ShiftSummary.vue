@@ -45,6 +45,40 @@
                 </div>
             </div>
 
+            <!-- Completed Orders -->
+            <div class="rounded-2xl border p-5"
+                :class="isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold">Completed Orders</h3>
+                    <span class="text-xs px-2 py-1 rounded-full bg-primary/15 text-primary font-semibold">
+                        {{ completedOrders.length }} orders
+                    </span>
+                </div>
+                <div v-if="completedOrders.length === 0" class="text-center py-4">
+                    <span class="material-icons text-3xl" :class="isDark ? 'text-gray-600' : 'text-gray-300'">receipt_long</span>
+                    <p class="text-sm mt-2" :class="isDark ? 'text-gray-500' : 'text-gray-400'">No completed orders found</p>
+                </div>
+                <div v-else class="space-y-3">
+                    <div v-for="order in completedOrders" :key="order.id"
+                        class="flex items-start gap-3 pb-3 border-b last:border-b-0 last:pb-0"
+                        :class="isDark ? 'border-white/5' : 'border-gray-100'">
+                        <div class="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="material-icons text-primary text-sm">check_circle</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold truncate">{{ order.tracking_code || order.id }}</p>
+                            <p class="text-xs truncate" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                                {{ order.customer_name || 'Customer' }}
+                            </p>
+                            <p class="text-xs truncate" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+                                {{ order.delivery_addr || order.destination_addr || '—' }}
+                            </p>
+                        </div>
+                        <span class="text-xs font-semibold text-primary flex-shrink-0">Done</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Today's Earnings -->
             <div class="rounded-2xl border p-5"
                 :class="isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-white border-gray-100 shadow-sm'">
@@ -87,7 +121,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
@@ -110,8 +144,16 @@ const jobType = computed(() =>
 const isHouseShift = computed(() => jobType.value === 'HOUSE_SHIFT')
 const isDelivery = computed(() => jobType.value === 'PARCEL_DELIVERY')
 
-onMounted(() => {
+const completedOrders = ref([])
+
+onMounted(async () => {
     driverStore.refreshDashboard()
+    try {
+        const orders = await api.getCompletedOrders()
+        completedOrders.value = Array.isArray(orders) ? orders : []
+    } catch {
+        completedOrders.value = []
+    }
 })
 
 async function endShift() {

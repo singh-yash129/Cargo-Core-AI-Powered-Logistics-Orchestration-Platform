@@ -186,11 +186,16 @@ CREATE TABLE vendor_support_tickets (
 
 # ── Model constants ───────────────────────────────────────────────────────────
 # Primary: most capable model. Fallback: fast model used when Pro hits rate limits.
-GEMINI_PRO_MODEL = "gemini-2.5-pro-preview-05-06"
+GEMINI_PRO_MODEL = "gemini-2.5-pro"
 GEMINI_FLASH_MODEL = "gemini-2.0-flash"
 
 # Default model used for general chat sessions.
 GEMINI_MODEL = GEMINI_PRO_MODEL
+
+
+def _is_model_not_found_error(exc: Exception) -> bool:
+    err = str(exc).upper()
+    return "404" in err or "NOT_FOUND" in err or "MODEL" in err and "NOT" in err
 
 
 def _is_rate_limit_error(exc: Exception) -> bool:
@@ -230,9 +235,9 @@ async def generate_with_fallback(
                 logger.info("Gemini Flash used as fallback (Pro was rate-limited)")
             return response
         except Exception as exc:
-            if model == GEMINI_PRO_MODEL and _is_rate_limit_error(exc):
+            if model == GEMINI_PRO_MODEL and (_is_rate_limit_error(exc) or _is_model_not_found_error(exc)):
                 logger.warning(
-                    f"Gemini Pro rate-limited, falling back to Flash: {type(exc).__name__}"
+                    f"Gemini Pro unavailable, falling back to Flash: {type(exc).__name__}: {exc}"
                 )
                 continue
             raise

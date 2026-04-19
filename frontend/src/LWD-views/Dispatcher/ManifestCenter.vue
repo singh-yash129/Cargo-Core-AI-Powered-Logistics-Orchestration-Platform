@@ -269,7 +269,18 @@
                                             class="w-16 text-center bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-gray-900 dark:text-white text-xs focus:outline-none focus:border-primary/60 transition-colors">
                                     </td>
                                     <td class="p-3 text-center">
-                                        <input type="number" v-model.number="item.returned" min="0" :max="item.sentOut"
+                                        <!-- Read-only when driver submitted their count -->
+                                        <div v-if="selectedTrip && getDriverReturn(selectedTrip.id)" class="flex flex-col items-center gap-0.5">
+                                            <span class="inline-block w-16 text-center rounded-lg px-2 py-1.5 text-xs font-bold"
+                                                :class="item.sentOut > 0 && item.returned < item.sentOut
+                                                    ? 'bg-red-500/10 text-red-400'
+                                                    : 'bg-primary/10 text-primary'">
+                                                {{ item.returned }}
+                                            </span>
+                                            <span class="text-[9px] text-gray-500">Driver reported</span>
+                                        </div>
+                                        <!-- Editable when no driver submission -->
+                                        <input v-else type="number" v-model.number="item.returned" min="0" :max="item.sentOut"
                                             @input="onAssetChange"
                                             class="w-16 text-center border rounded-lg px-2 py-1.5 text-xs focus:outline-none transition-colors"
                                             :class="item.sentOut > 0 && item.returned < item.sentOut
@@ -880,9 +891,7 @@ async function refreshTrips() {
 onMounted(async () => {
     prefetchSlips(['tripManifest', 'assetCheckout']).catch(() => {})
     loadAllAssetLogs()
-    if (store.activeOrders.length === 0) {
-        await refreshTrips()
-    }
+    await refreshTrips()
 })
 </script>
 

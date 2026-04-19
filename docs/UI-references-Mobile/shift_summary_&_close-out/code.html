@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Shift Summary &amp; Close-out</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#44e996",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#112119",
+                        "surface-dark": "#1a2e24",
+                        "surface-darker": "#0d1a13",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                    boxShadow: {
+                        'neon': '0 0 20px -5px rgba(68, 233, 150, 0.3)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom utilities for that Tesla-like premium feel */
+        .glass-panel {
+            background: rgba(26, 46, 36, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(68, 233, 150, 0.1);
+        }
+        
+        .text-glow {
+            text-shadow: 0 0 15px rgba(68, 233, 150, 0.4);
+        }
+
+        /* Hide scrollbar for clean look */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        
+        body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-white min-h-screen flex items-center justify-center p-4">
+<!-- Mobile Container -->
+<div class="w-full max-w-md bg-background-light dark:bg-surface-darker h-[850px] relative overflow-hidden rounded-[2.5rem] shadow-2xl border-4 border-slate-200 dark:border-[#1F332A] flex flex-col">
+<!-- Status Bar Placeholder (Visual only) -->
+<div class="px-6 pt-5 pb-2 flex justify-between items-center text-xs font-medium text-slate-400 dark:text-emerald-500/60 uppercase tracking-widest">
+<span>9:41 PM</span>
+<div class="flex gap-1.5">
+<span class="material-icons-round text-sm">signal_cellular_alt</span>
+<span class="material-icons-round text-sm">wifi</span>
+<span class="material-icons-round text-sm">battery_full</span>
+</div>
+</div>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col px-6 pt-4 pb-8 overflow-y-auto">
+<!-- Header Section -->
+<header class="mb-8 mt-2">
+<h1 class="text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">End Shift?</h1>
+<div class="flex items-center gap-3 text-slate-500 dark:text-emerald-400/60 font-medium">
+<span class="flex items-center gap-1.5 bg-slate-200 dark:bg-emerald-900/20 px-3 py-1 rounded-full text-xs tracking-wide uppercase">
+<span class="material-icons-round text-sm">calendar_today</span>
+                        Tue, Oct 24
+                    </span>
+<span class="flex items-center gap-1.5 bg-slate-200 dark:bg-emerald-900/20 px-3 py-1 rounded-full text-xs tracking-wide uppercase">
+<span class="material-icons-round text-sm">timer</span>
+                        8h 12m Active
+                    </span>
+</div>
+</header>
+<!-- Map Visualization (Subtle Context) -->
+<div class="relative w-full h-32 rounded-xl overflow-hidden mb-6 opacity-80 border border-slate-200 dark:border-emerald-500/20">
+<div class="absolute inset-0 bg-gradient-to-t from-background-light dark:from-surface-darker to-transparent z-10"></div>
+<img alt="Abstract map route visualization" class="w-full h-full object-cover filter saturate-0 dark:invert" data-alt="Abstract map route visualization with dark tones" data-location="Abstract City Map" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_QkAVCdnfWDct3-SPKodER-mKAntC6sAXZxmXO_L6TfENr0DLQm_kD6kdV0wexvn5t7r13OIUcOdIJdEBNrY5mYwDTBFJ6j6_zWwVitKiBuE93AgLisX8vTnp-pEU4PxBg9rci00T9JTYGsWQ0U_smiBDq2ZpAHrmth__l2pcGcx3LkzjwGKOmp38-LDJN4g4XpINScjDi8DAvia6qQYS8AJB-h9NqQXT5zh0q6UAvLSbJE0NIDXoHpvUWPK-kyKASWBraqopfcQ"/>
+<div class="absolute bottom-3 left-4 z-20 flex items-center gap-2">
+<span class="material-icons-round text-primary text-sm">near_me</span>
+<span class="text-xs font-semibold tracking-wider uppercase text-slate-600 dark:text-emerald-100">Route Complete</span>
+</div>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-2 gap-4 mb-6">
+<!-- Card 1: Deliveries -->
+<div class="glass-panel p-5 rounded-xl flex flex-col justify-between h-36 relative group">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-slate-100 dark:bg-emerald-500/10 rounded-lg text-slate-400 dark:text-primary">
+<span class="material-icons-round">inventory_2</span>
+</div>
+</div>
+<div>
+<div class="text-3xl font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">14</div>
+<div class="text-xs uppercase tracking-wider font-semibold text-slate-500 dark:text-emerald-400/50 mt-1">Deliveries</div>
+</div>
+</div>
+<!-- Card 2: Distance -->
+<div class="glass-panel p-5 rounded-xl flex flex-col justify-between h-36 group">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-slate-100 dark:bg-emerald-500/10 rounded-lg text-slate-400 dark:text-primary">
+<span class="material-icons-round">moving</span>
+</div>
+</div>
+<div>
+<div class="text-3xl font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">128</div>
+<div class="text-xs uppercase tracking-wider font-semibold text-slate-500 dark:text-emerald-400/50 mt-1">Miles Driven</div>
+</div>
+</div>
+<!-- Card 3: Fuel -->
+<div class="glass-panel p-5 rounded-xl flex flex-col justify-between h-36 group">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-slate-100 dark:bg-emerald-500/10 rounded-lg text-slate-400 dark:text-primary">
+<span class="material-icons-round">local_gas_station</span>
+</div>
+</div>
+<div>
+<div class="text-3xl font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">4.2</div>
+<div class="text-xs uppercase tracking-wider font-semibold text-slate-500 dark:text-emerald-400/50 mt-1">Gallons Used</div>
+</div>
+</div>
+<!-- Card 4: Earnings (Highlighted) -->
+<div class="glass-panel p-5 rounded-xl flex flex-col justify-between h-36 border border-primary/30 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-16 h-16 bg-primary/10 rounded-bl-full -mr-4 -mt-4"></div>
+<div class="flex justify-between items-start relative z-10">
+<div class="p-2 bg-primary/20 rounded-lg text-primary text-glow">
+<span class="material-icons-round">attach_money</span>
+</div>
+</div>
+<div class="relative z-10">
+<div class="text-3xl font-bold text-primary text-glow">$285.50</div>
+<div class="text-xs uppercase tracking-wider font-semibold text-primary/70 mt-1">Est. Earnings</div>
+</div>
+</div>
+</div>
+<!-- AI Summary Section -->
+<div class="bg-slate-100 dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-emerald-500/10 relative overflow-hidden mb-6">
+<!-- AI Decorative Elements -->
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-icons-round text-6xl text-primary">auto_awesome</span>
+</div>
+<div class="flex items-center gap-2 mb-3">
+<span class="material-icons-round text-primary text-sm animate-pulse">auto_awesome</span>
+<h3 class="text-xs font-bold uppercase tracking-widest text-primary">Performance Insight</h3>
+</div>
+<p class="text-sm leading-relaxed text-slate-600 dark:text-slate-300 font-light">
+<span class="text-slate-900 dark:text-white font-medium">Smooth route execution today.</span> You maintained a <span class="text-primary">98% on-time arrival rate</span> and optimized your fuel usage significantly during the afternoon sector. Great efficiency, John.
+                </p>
+</div>
+<!-- Spacer to push button to bottom if content is short -->
+<div class="flex-grow"></div>
+<!-- Action Area -->
+<div class="mt-4">
+<button class="group relative w-full h-16 bg-surface-dark dark:bg-[#1a2e24] rounded-lg overflow-hidden border border-primary/30 active:scale-[0.98] transition-transform duration-200">
+<!-- Progress Fill Animation (simulated hover/active state visual) -->
+<div class="absolute inset-0 bg-primary w-0 group-hover:w-full group-active:w-full transition-all duration-700 ease-out opacity-20"></div>
+<div class="absolute inset-0 flex items-center justify-center gap-3 z-10">
+<span class="text-primary font-bold tracking-[0.2em] text-lg group-hover:text-white group-hover:text-glow transition-colors">CLOSE SHIFT</span>
+<span class="material-icons-round text-primary group-hover:text-white transition-colors">arrow_forward</span>
+</div>
+<!-- Scanline effect for high-tech feel -->
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
+</button>
+<p class="text-center text-[10px] uppercase tracking-widest text-slate-400 dark:text-emerald-500/30 mt-4">
+                    Data synced • Version 2.4.1
+                </p>
+</div>
+</div>
+</div>
+<script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    keyframes: {
+                        shimmer: {
+                            '0%': { transform: 'translateX(-100%) skewX(-12deg)' },
+                            '100%': { transform: 'translateX(200%) skewX(-12deg)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</body></html>

@@ -5,7 +5,7 @@
             <div class="text-gray-500 dark:text-gray-400">Loading dashboard data...</div>
         </div>
 
-        <div v-else>
+        <div v-else class="space-y-6">
             <!-- Top KPI Cards -->
             <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div class="glass-panel p-4 rounded-xl flex flex-col justify-between h-32 relative overflow-hidden group">

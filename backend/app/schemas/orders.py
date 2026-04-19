@@ -287,6 +287,11 @@ class TripRouteSignal(BaseModel):
     severity: str
 
 
+class TripRouteWaypoint(BaseModel):
+    lat: float
+    lng: float
+
+
 class TripRouteOption(BaseModel):
     route_id: str
     label: str
@@ -296,6 +301,7 @@ class TripRouteOption(BaseModel):
     delta_minutes: int = 0
     summary: str
     recommended: bool = False
+    waypoints: list[TripRouteWaypoint] = Field(default_factory=list)
 
 
 class OrderTripIntelligenceItem(BaseModel):
@@ -308,6 +314,12 @@ class OrderTripIntelligenceItem(BaseModel):
     vehicle_code: str | None = None
     pickup_addr: str
     delivery_addr: str
+    pickup_lat: float | None = None
+    pickup_lng: float | None = None
+    delivery_lat: float | None = None
+    delivery_lng: float | None = None
+    origin_lat: float | None = None
+    origin_lng: float | None = None
     priority: str = "NORMAL"
     trip_stage: str
     route_status: str

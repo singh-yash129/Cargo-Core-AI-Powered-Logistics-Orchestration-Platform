@@ -335,6 +335,20 @@ export async function getAssignedOrders() {
     }
 }
 
+export async function getCompletedOrders() {
+    try {
+        const res = await fetchWithNetworkHelp(
+            `/api/v1/orders?status_filter=DELIVERED&page_size=50`,
+            { headers: { 'Content-Type': 'application/json', ...authHeaders() } }
+        )
+        if (!res.ok) return []
+        const payload = await res.json()
+        return Array.isArray(payload) ? payload : (payload.items || [])
+    } catch {
+        return []
+    }
+}
+
 export async function getTripIntelligence(orderId) {
     const res = await fetchWithAuth(`/api/v1/orders/${orderId}/trip-intelligence`, {
         headers: { 'Content-Type': 'application/json' },

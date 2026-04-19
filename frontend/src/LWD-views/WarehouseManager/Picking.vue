@@ -2055,22 +2055,13 @@ async function fetchPickingData() {
                 warehouse_substatus: 'AWAITING_PICK'
             }))
 
-            // Direct transport order (packing_amount == 0) routing logic:
-            //
-            // Case A — normal WM flow: WM assigned a vehicle first → keep in picking
-            //   (vehicle already set means WM owns this order; dispatcher will be called later)
-            //
-            // Case B — dispatcher-direct flow: CONFIRMED + no vehicle → WM has nothing to do yet.
-            //   Remove from WM Picking; dispatcher handles driver assignment via Order Clustering.
+            // All awaitingPickOrders already have warehouse_substatus === 'AWAITING_PICK',
+            // meaning the WM explicitly accepted them — show all of them regardless of packing_amount.
+            // Case B (no packing + no vehicle → dispatcher-direct) only applies to un-accepted orders;
+            // once the WM accepts, they own the order and it must appear in the picking queue.
             //
             // Case C — dispatcher already assigned driver (ASSIGNED status, no vehicle):
             //   Surface as an info-only card so WM knows a driver is inbound but no action is needed.
-            const warehousePickOrders = awaitingPickOrders.filter(o => Number(o.packing_amount ?? 0) > 0)
-            const wmOwnedDirectTransport = awaitingPickOrders.filter(o =>
-                Number(o.packing_amount ?? 0) === 0 && o.assigned_vehicle_id != null
-            )
-            // Case C orders are surfaced as notification banners, NOT picking cards.
-            // We update the ref here so the banner stays visible across refreshes.
             const dispatcherAssignedDirect = warehouseOrders.filter(order =>
                 order.status === 'ASSIGNED' &&
                 Number(order.packing_amount ?? 0) === 0 &&
@@ -2086,7 +2077,6 @@ async function fetchPickingData() {
                     pickupAddr: order.pickup_addr || '',
                     value: order.total_amount || 0,
                 }))
-            awaitingPickOrders = [...warehousePickOrders, ...wmOwnedDirectTransport]
             pickingOrders = warehouseOrders.filter(order => order.status !== 'CANCELLED' && getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKING')
                 .map(order => ({ ...order, warehouse_substatus: 'PICKING' }))
             pickedOrders = warehouseOrders.filter(order => order.status !== 'CANCELLED' && getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKED')
@@ -2341,46 +2331,40 @@ async function handleWaveAction(wave) {
     }
 
     if (wave.status === 'PACKING') {
-        // Check if this order has real packing materials that need issuance.
-        // Cross-reference order items against actual WM inventory to avoid
-        // phantom items from old default form values (boxes:10, blankets:4, etc.)
+        // Check if this order has packing materials that need issuance before completing packing.
         try {
-            const [catalogRes, orderItemsRes] = await Promise.all([
-                fetch(apiUrl('api/v1/inventory/packing-catalog'), { headers }),
-                fetch(apiUrl(`api/v1/orders/${wave.rawId}/items`), { headers })
-            ])
+            const orderItemsRes = await fetch(apiUrl(`api/v1/orders/${wave.rawId}/items`), { headers })
 
-            if (catalogRes.ok && orderItemsRes.ok) {
-                const catalog = await catalogRes.json()
-                const realSkus = new Set(catalog.map(c => c.sku).filter(Boolean))
-
+            if (orderItemsRes.ok) {
                 const orderItems = await orderItemsRes.json()
-                // Only items whose SKU actually exists in this WM's inventory count
-                const realMaterialItems = (orderItems || []).filter(i =>
-                    i.quantity > 0 && realSkus.has(i.sku)
-                )
+                const hasPackingItems = (orderItems || []).some(i => i.quantity > 0)
 
-                if (realMaterialItems.length > 0) {
-                    // Customer selected real materials — verify they were issued
+                if (hasPackingItems) {
+                    // Customer selected packing materials — verify they were issued
                     const movRes = await fetch(
                         apiUrl(`api/v1/inventory/movements?reference_order_id=${wave.rawId}&page_size=50`),
                         { headers }
                     )
-                    if (movRes.ok) {
-                        const movements = await movRes.json()
-                        const issued = movements.filter(m =>
-                            (m.movement_type || '').toUpperCase() === 'ISSUE'
-                        )
-                        if (issued.length === 0) {
-                            actionToast.value = '⚠ Packing materials not issued! Go to Packing Materials → Issue to Order before completing packing.'
-                            setTimeout(() => { actionToast.value = '' }, 6000)
-                            return false
-                        }
+                    if (!movRes.ok) {
+                        actionToast.value = '⚠ Could not verify packing material issuance. Please try again.'
+                        setTimeout(() => { actionToast.value = '' }, 6000)
+                        return false
+                    }
+                    const movements = await movRes.json()
+                    const issued = (Array.isArray(movements) ? movements : (movements.items || [])).filter(m =>
+                        (m.movement_type || '').toUpperCase() === 'ISSUE'
+                    )
+                    if (issued.length === 0) {
+                        actionToast.value = '⚠ Packing materials not issued! Go to Packing Materials → Issue to Order before completing packing.'
+                        setTimeout(() => { actionToast.value = '' }, 6000)
+                        return false
                     }
                 }
             }
         } catch (e) {
-            // Network error — allow to proceed
+            actionToast.value = '⚠ Could not verify packing materials. Please try again.'
+            setTimeout(() => { actionToast.value = '' }, 6000)
+            return false
         }
 
         return updateWaveStatus(wave, 'PACKED', {

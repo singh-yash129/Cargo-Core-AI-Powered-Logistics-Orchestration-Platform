@@ -285,7 +285,7 @@ function fixAssetPaths(html) {
     .replace(/(src|href)="assets\//g, '$1="/html-slips/assets/')
 }
 
-function openBlobHtml(html, targetWindow = null) {
+function openBlobHtml(html, targetWindow = null, autoPrint = false) {
   // Store in localStorage so the slip survives browser refresh.
   // Blob URLs cannot be refreshed in Chrome (ERR_FILE_NOT_FOUND).
   const key = '__cargo_slip_' + Date.now()
@@ -297,11 +297,12 @@ function openBlobHtml(html, targetWindow = null) {
       if (Date.now() - ts > 2 * 60 * 60 * 1000) localStorage.removeItem(k)
     }
     localStorage.setItem(key, html)
+    const url = `/slip-preview?k=${key}${autoPrint ? '&print=1' : ''}`
     if (targetWindow && !targetWindow.closed) {
-      targetWindow.location.href = `/slip-preview?k=${key}`
+      targetWindow.location.href = url
       return
     }
-    window.open(`/slip-preview?k=${key}`, '_blank')
+    window.open(url, '_blank')
   } catch {
     // localStorage full — fall back to blob (no refresh support)
     const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
@@ -959,5 +960,18 @@ export function useSlipPrinter() {
     return true
   }
 
-  return { openSlip, openSlipWithData, prefetchSlips, SLIP_LABELS, SLIP_ICONS }
+  async function printSlipWithData(key, order, user = {}) {
+    const cached = _htmlCache.has(key)
+    const pendingWindow = cached ? null : window.open('', '_blank')
+    const html = cached ? _htmlCache.get(key) : await fetchSlipHtml(key)
+    if (!html) {
+      if (pendingWindow && !pendingWindow.closed) pendingWindow.close()
+      return false
+    }
+    const replacements = getReplacements(key, order, user)
+    openBlobHtml(applyReplacements(fixAssetPaths(html), replacements), pendingWindow, true)
+    return true
+  }
+
+  return { openSlip, openSlipWithData, printSlipWithData, prefetchSlips, SLIP_LABELS, SLIP_ICONS }
 }
