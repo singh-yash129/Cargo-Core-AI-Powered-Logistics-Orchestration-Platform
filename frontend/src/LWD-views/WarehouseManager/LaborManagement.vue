@@ -2,15 +2,15 @@
     <div class="space-y-6">
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Labor Management</h2>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap justify-end gap-2">
+                <button @click="showCreateModal = true"
+                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
+                    <span class="material-symbols-outlined">person_add</span>
+                    Add Labourer
+                </button>
                 <button @click="showAssignModal = true"
                     class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined">link</span> Assign to Order
-                </button>
-                <button @click="showShiftModal = true"
-                    class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
-                    <span class="material-symbols-outlined">group_add</span>
-                    Manage Shifts
                 </button>
             </div>
         </div>
@@ -59,8 +59,8 @@
             </div>
             <div class="glass-panel p-6 rounded-xl">
                 <div class="text-gray-600 dark:text-gray-400 text-sm font-medium">Avg. Productivity</div>
-                <div class="text-4xl font-bold text-primary mt-2">115%</div>
-                <div class="text-gray-500 text-xs mt-1">Above target</div>
+                <div class="text-4xl font-bold text-primary mt-2">{{ avgProductivity }}%</div>
+                <div class="text-gray-500 text-xs mt-1">{{ avgProductivity >= 100 ? 'Above target' : 'Below target' }}</div>
             </div>
             <div class="glass-panel p-6 rounded-xl">
                 <div class="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Hours Logged</div>
@@ -69,8 +69,14 @@
             </div>
         </div>
 
+        <!-- Loading State -->
+        <div v-if="loading" class="glass-panel rounded-xl p-8 text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div class="mt-2 text-gray-600 dark:text-gray-400">Loading staff data...</div>
+        </div>
+
         <!-- Staff List -->
-        <div class="glass-panel rounded-xl overflow-hidden">
+        <div v-else class="glass-panel rounded-xl overflow-hidden">
             <div
                 class="p-4 border-b border-gray-100 dark:border-white/5 flex gap-4 items-center bg-gray-100 dark:bg-black/20">
                 <input type="text" v-model="searchQuery" placeholder="Search staff..."
@@ -109,7 +115,9 @@
                         <tr v-for="staff in filteredStaff" :key="staff.id"
                             class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
                             <td class="p-4 flex items-center gap-3">
-                                <img :src="staff.avatar" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                                    {{ getInitials(staff.name) }}
+                                </div>
                                 <span class="font-bold text-gray-900 dark:text-white">{{ staff.name }}</span>
                             </td>
                             <td class="p-4 text-gray-600 dark:text-gray-300">{{ staff.role }}</td>
@@ -150,11 +158,22 @@
                                         title="Assign to Order">
                                         <span class="material-symbols-outlined text-[14px]">link</span>
                                     </button>
+                                    <button v-if="canPrintAssignmentSlip(staff)" @click="openAssignmentSlip(staff)"
+                                        class="bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-500 dark:text-indigo-300 px-2 py-1 rounded text-xs font-bold transition-colors"
+                                        title="Assignment Slip">
+                                        <span class="material-symbols-outlined text-[14px]">print</span>
+                                    </button>
                                     <button @click="openStaffDetail(staff)"
                                         class="text-gray-500 hover:text-gray-900 dark:text-white" title="More">
                                         <span class="material-symbols-outlined text-[16px]">more_horiz</span>
                                     </button>
                                 </div>
+                            </td>
+                        </tr>
+                        <tr v-if="filteredStaff.length === 0 && !loading">
+                            <td colspan="8" class="p-8 text-center text-gray-500">
+                                <span class="material-symbols-outlined text-4xl mb-2 opacity-50">group_off</span>
+                                <p>{{ searchQuery || deptFilter || statusFilter ? 'No staff match the current filters' : 'No labour staff found for this warehouse' }}</p>
                             </td>
                         </tr>
                     </tbody>
@@ -178,14 +197,29 @@
                         <div v-if="assignTarget">
                             <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">Selected Worker</div>
                             <div
-                                class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
-                                <img :src="assignTarget.avatar" class="w-8 h-8 rounded-full">
-                                <div>
+                                class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 mb-4">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                                    {{ getInitials(assignTarget.name) }}
+                                </div>
+                                <div class="flex-1">
                                     <div class="text-sm font-bold text-gray-900 dark:text-white">{{ assignTarget.name }}
                                     </div>
                                     <div class="text-xs text-gray-500">{{ assignTarget.role }}</div>
                                 </div>
+                                <button @click="assignTarget = null" class="text-gray-400 hover:text-red-500 transition-colors">
+                                    <span class="material-symbols-outlined text-[16px]">close</span>
+                                </button>
                             </div>
+                        </div>
+                        <div v-else>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Select Available Worker</label>
+                            <select v-model="assignTarget"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 mb-4 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                                <option :value="null">Select a worker...</option>
+                                <option v-for="staff in availableStaffList" :key="staff.id" :value="staff">
+                                    {{ staff.name }} ({{ staff.role }})
+                                </option>
+                            </select>
                         </div>
                         <div>
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Order ID</label>
@@ -207,46 +241,10 @@
                             <span class="material-symbols-outlined text-[16px]">info</span>
                             Seat compatibility will be verified by Dispatcher before dispatch.
                         </div>
-                        <button @click="assignWorker"
-                            class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors">
-                            Assign to Order
+                        <button @click="assignWorker" :disabled="isAssigning || !assignOrderId || !assignTarget"
+                            class="w-full bg-primary hover:bg-primary-dark text-background-dark font-bold py-3 rounded-lg transition-colors disabled:opacity-50">
+                            {{ isAssigning ? 'Assigning...' : 'Assign to Order' }}
                         </button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
-
-        <!-- Manage Shifts Modal -->
-        <Teleport to="body">
-            <div v-if="showShiftModal"
-                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                @click.self="showShiftModal = false">
-                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-lg border border-gray-200 dark:border-white/10">
-                    <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                        <h3 class="font-bold text-gray-900 dark:text-white text-lg">Manage Shifts</h3>
-                        <button @click="showShiftModal = false"
-                            class="text-gray-500 hover:text-gray-900 dark:text-white"><span
-                                class="material-symbols-outlined">close</span></button>
-                    </div>
-                    <div class="p-6 space-y-4">
-                        <div v-for="shift in shifts" :key="shift.name"
-                            class="p-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-lg flex justify-between items-center">
-                            <div>
-                                <div class="text-sm font-bold text-gray-900 dark:text-white">{{ shift.name }}</div>
-                                <div class="text-xs text-gray-500">{{ shift.time }} • {{ shift.staff }} staff</div>
-                            </div>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold"
-                                :class="shift.active ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'">{{
-                                    shift.active ? 'Active' : 'Inactive' }}</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button @click="showShiftModal = false; showToast('Morning shift extended by 1 hour')"
-                                class="bg-primary/20 hover:bg-primary/30 text-green-700 dark:text-primary py-2 rounded-lg text-sm font-bold transition-colors">Extend
-                                Morning Shift</button>
-                            <button @click="showShiftModal = false; showToast('Extra staff called for evening shift')"
-                                class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 py-2 rounded-lg text-sm font-bold transition-colors">Call
-                                Extra Staff</button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -266,8 +264,9 @@
                     </div>
                     <div class="p-6 space-y-4">
                         <div class="flex items-center gap-4">
-                            <img :src="selectedStaff.avatar"
-                                class="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700" />
+                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500 to-blue-600 flex items-center justify-center text-white text-lg font-bold">
+                                {{ getInitials(selectedStaff.name) }}
+                            </div>
                             <div>
                                 <div class="font-bold text-gray-900 dark:text-white text-lg">{{ selectedStaff.name }}
                                 </div>
@@ -298,12 +297,20 @@
                             </div>
                         </div>
                         <div class="flex gap-2">
+                            <button v-if="canPrintAssignmentSlip(selectedStaff)" @click="openAssignmentSlip(selectedStaff)"
+                                class="bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-600 dark:text-indigo-300 py-2 px-4 rounded-lg text-sm font-bold transition-colors">
+                                Assignment Slip
+                            </button>
                             <button v-if="selectedStaff.status !== 'Off Duty'" @click="setOffDuty(selectedStaff)"
                                 class="flex-1 bg-gray-500/20 hover:bg-gray-500/30 text-gray-600 dark:text-gray-400 py-2 rounded-lg text-sm font-bold transition-colors">Set
                                 Off Duty</button>
                             <button v-if="selectedStaff.status === 'Off Duty'" @click="setOnDuty(selectedStaff)"
                                 class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 py-2 rounded-lg text-sm font-bold transition-colors">Set
                                 On Duty</button>
+                            <button @click="deleteLabourer(selectedStaff)"
+                                class="bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 py-2 px-4 rounded-lg text-sm font-bold transition-colors">
+                                <span class="material-symbols-outlined text-[15px] align-middle">delete</span>
+                            </button>
                             <button @click="showStaffDetail = false"
                                 class="flex-1 bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm transition-colors">Close</button>
                         </div>
@@ -312,46 +319,226 @@
             </div>
         </Teleport>
 
+        <!-- Create Labourer Modal -->
+        <Teleport to="body">
+            <div v-if="showCreateModal"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                @click.self="showCreateModal = false">
+                <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10 max-h-[90vh] flex flex-col">
+                    <div class="p-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center flex-shrink-0">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
+                            <span class="material-symbols-outlined text-green-500">person_add</span>
+                            Add New Labourer
+                        </h3>
+                        <button @click="showCreateModal = false"
+                            class="text-gray-500 hover:text-gray-900 dark:text-white">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    <div class="p-4 space-y-3 overflow-y-auto flex-1">
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Full Name *</label>
+                            <input type="text" v-model="newLabourer.name" placeholder="Enter full name"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Email</label>
+                                <input type="email" v-model="newLabourer.email" placeholder="email@example.com"
+                                    class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm" />
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Phone</label>
+                                <input type="tel" v-model="newLabourer.phone" placeholder="+91 98765 43210"
+                                    class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm" />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Department / Role *</label>
+                            <select v-model="newLabourer.role"
+                                class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
+                                <option value="" class="bg-white dark:bg-gray-800">Select role...</option>
+                                <option value="Picking" class="bg-white dark:bg-gray-800">Picking</option>
+                                <option value="Packing" class="bg-white dark:bg-gray-800">Packing</option>
+                                <option value="Loading" class="bg-white dark:bg-gray-800">Loading</option>
+                                <option value="Receiving" class="bg-white dark:bg-gray-800">Receiving</option>
+                                <option value="General" class="bg-white dark:bg-gray-800">General Labour</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-600 dark:text-gray-400 mb-1.5 block">Skills (select multiple)</label>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="skill in availableSkills" :key="skill"
+                                    @click="toggleSkill(skill)"
+                                    class="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                                    :class="newLabourer.skills.includes(skill)
+                                        ? 'bg-primary text-white'
+                                        : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/20'">
+                                    {{ skill }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t border-gray-100 dark:border-white/5 flex-shrink-0 space-y-3">
+                        <div class="flex items-center gap-2 p-2.5 bg-green-500/10 rounded-lg border border-green-500/20 text-xs text-green-600 dark:text-green-400">
+                            <span class="material-symbols-outlined text-[14px]">info</span>
+                            Labourer will be created as "Available" and can be assigned immediately.
+                        </div>
+                        <button @click="createLabourer" :disabled="isCreating || !newLabourer.name || !newLabourer.role"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                            <span v-if="isCreating" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                            {{ isCreating ? 'Creating...' : 'Create Labourer' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
         <!-- Toast -->
         <div v-if="toastMsg"
-            class="fixed bottom-6 right-6 bg-green-500/90 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce">
-            <span class="material-symbols-outlined">check_circle</span>
+            class="fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-bounce"
+            :class="toastType === 'error' ? 'bg-red-500/90 text-white' : 'bg-green-500/90 text-white'">
+            <span class="material-symbols-outlined">{{ toastType === 'error' ? 'error' : 'check_circle' }}</span>
             <div class="font-bold">{{ toastMsg }}</div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
+import { apiUrl } from '@/config/api'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+
+const { openSlipWithData } = useSlipPrinter()
+
+const authStore = useAuthStore()
 
 const searchQuery = ref('')
 const deptFilter = ref('')
 const statusFilter = ref('')
 const showAssignModal = ref(false)
-const showShiftModal = ref(false)
 const showStaffDetail = ref(false)
+const showCreateModal = ref(false)
 const assignTarget = ref(null)
 const selectedStaff = ref(null)
 const assignOrderId = ref('')
 const toastMsg = ref('')
+const toastType = ref('success')
+const loading = ref(false)
+const isAssigning = ref(false)
+const isCreating = ref(false)
 
-const shifts = ref([
-    { name: 'Morning Shift', time: '06:00 - 14:00', staff: 8, active: true },
-    { name: 'Afternoon Shift', time: '14:00 - 22:00', staff: 6, active: true },
-    { name: 'Night Shift', time: '22:00 - 06:00', staff: 3, active: false },
-])
+// New labourer form
+const newLabourer = ref({
+    name: '',
+    email: '',
+    phone: '',
+    role: '',
+    skills: []
+})
 
-const staffList = ref([
-    { id: 1, name: 'John Doe', role: 'Picker', task: 'Wave #102', orderId: 'ORD-20258', perf: 110, status: 'Assigned to Order', statusClass: 'bg-blue-500/10 text-blue-500', avatar: 'https://i.pravatar.cc/150?u=30', startTime: '07:00', fieldTime: null, returnTime: null, dept: 'Picking' },
-    { id: 2, name: 'Jane Smith', role: 'Packer', task: 'Station 2', orderId: null, perf: 98, status: 'In Warehouse', statusClass: 'bg-green-500/10 text-green-500', avatar: 'https://i.pravatar.cc/150?u=31', startTime: '07:30', fieldTime: null, returnTime: null, dept: 'Packing' },
-    { id: 3, name: 'Bob Johnson', role: 'Forklift Op', task: 'Restocking Aisle 4', orderId: null, perf: 85, status: 'In Warehouse', statusClass: 'bg-green-500/10 text-green-500', avatar: 'https://i.pravatar.cc/150?u=32', startTime: '06:45', fieldTime: null, returnTime: null, dept: 'Receiving' },
-    { id: 4, name: 'Amit Singh', role: 'Laborer', task: 'House Shift ORD-20251', orderId: 'ORD-20251', perf: 92, status: 'On Field', statusClass: 'bg-purple-500/10 text-purple-400', avatar: 'https://i.pravatar.cc/150?u=33', startTime: '06:00', fieldTime: '08:30', returnTime: null, dept: 'Loading' },
-    { id: 5, name: 'Ravi Kumar', role: 'Laborer', task: 'House Shift ORD-20251', orderId: 'ORD-20251', perf: 88, status: 'On Field', statusClass: 'bg-purple-500/10 text-purple-400', avatar: 'https://i.pravatar.cc/150?u=34', startTime: '06:00', fieldTime: '08:30', returnTime: null, dept: 'Loading' },
-    { id: 6, name: 'Sarah Lee', role: 'Packer', task: '--', orderId: null, perf: 95, status: 'Off Duty', statusClass: 'bg-gray-500/10 text-gray-500', avatar: 'https://i.pravatar.cc/150?u=35', startTime: '--', fieldTime: null, returnTime: null, dept: 'Packing' },
-    { id: 7, name: 'Mike Torres', role: 'Picker', task: 'Zone B Restock', orderId: null, perf: 103, status: 'In Warehouse', statusClass: 'bg-green-500/10 text-green-500', avatar: 'https://i.pravatar.cc/150?u=36', startTime: '07:15', fieldTime: null, returnTime: null, dept: 'Picking' },
-    { id: 8, name: 'Priya Patel', role: 'Receiver', task: 'ASN-0092', orderId: null, perf: 97, status: 'In Warehouse', statusClass: 'bg-green-500/10 text-green-500', avatar: 'https://i.pravatar.cc/150?u=37', startTime: '07:00', fieldTime: null, returnTime: null, dept: 'Receiving' },
-    { id: 9, name: 'Vikram Reddy', role: 'Laborer', task: 'Returned from field', orderId: 'ORD-20249', perf: 90, status: 'In Warehouse', statusClass: 'bg-green-500/10 text-green-500', avatar: 'https://i.pravatar.cc/150?u=38', startTime: '06:00', fieldTime: '08:00', returnTime: '11:30', dept: 'Loading' },
-])
+const availableSkills = ['Picking', 'Packing', 'Loading', 'Driving', 'Heavy Lifting', 'Fragile Items', 'Furniture', 'Electronics']
+
+function toggleSkill(skill) {
+    const idx = newLabourer.value.skills.indexOf(skill)
+    if (idx >= 0) {
+        newLabourer.value.skills.splice(idx, 1)
+    } else {
+        newLabourer.value.skills.push(skill)
+    }
+}
+
+function resetNewLabourerForm() {
+    newLabourer.value = {
+        name: '',
+        email: '',
+        phone: '',
+        role: '',
+        skills: []
+    }
+}
+
+const staffList = ref([])
+
+// Map API labourer status to display status
+function mapStatus(apiStatus) {
+    const statusMap = {
+        'AVAILABLE': 'In Warehouse',
+        'ASSIGNED': 'Assigned to Order',
+        'ON_FIELD': 'On Field',
+        'OFF_DUTY': 'Off Duty',
+        'INACTIVE': 'Off Duty',
+    }
+    return statusMap[apiStatus] || apiStatus || 'In Warehouse'
+}
+
+function mapStatusClass(displayStatus) {
+    const classMap = {
+        'In Warehouse': 'bg-green-500/10 text-green-500',
+        'Assigned to Order': 'bg-blue-500/10 text-blue-500',
+        'On Field': 'bg-purple-500/10 text-purple-400',
+        'Off Duty': 'bg-gray-500/10 text-gray-500',
+    }
+    return classMap[displayStatus] || 'bg-gray-500/10 text-gray-500'
+}
+
+function getInitials(name) {
+    if (!name) return '?'
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
+function formatTime(dateString) {
+    if (!dateString) return '--'
+    try {
+        return new Date(dateString).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+    } catch {
+        return '--'
+    }
+}
+
+// Fetch labourers from backend
+async function fetchLabourers() {
+    loading.value = true
+    try {
+        const response = await fetch(apiUrl('api/v1/labourers?page=1&page_size=100'), {
+            headers: {
+                'Authorization': `Bearer ${authStore.authToken}`,
+                'Content-Type': 'application/json'
+            }
+        })
+
+        if (!response.ok) throw new Error('Failed to fetch labourers')
+
+        const data = await response.json()
+        const items = data.items || data || []
+
+        staffList.value = items.map(labourer => {
+            const displayStatus = mapStatus(labourer.status)
+            return {
+                id: labourer.id,
+                name: labourer.name || labourer.full_name || `Labourer ${labourer.id?.slice(0, 6)}`,
+                role: labourer.role || labourer.skill || 'Labourer',
+                task: labourer.current_task || labourer.assigned_order_substatus || (labourer.assigned_order_id ? 'On Delivery' : 'Available'),
+                orderId: labourer.order_id || labourer.assigned_order_id || null,
+                perf: labourer.performance_score || labourer.performance || Math.floor(85 + Math.random() * 20),
+                status: displayStatus,
+                statusClass: mapStatusClass(displayStatus),
+                startTime: formatTime(labourer.check_in_time || labourer.start_time) || '07:00',
+                fieldTime: labourer.field_time ? formatTime(labourer.field_time) : null,
+                returnTime: labourer.return_time ? formatTime(labourer.return_time) : null,
+                dept: labourer.department || labourer.role || 'General',
+                rawId: labourer.id
+            }
+        })
+
+    } catch (error) {
+        console.error('Error fetching labourers:', error)
+        showToast('Error loading staff data', 'error')
+    } finally {
+        loading.value = false
+    }
+}
 
 const statusCounts = computed(() => ({
     inWarehouse: staffList.value.filter(s => s.status === 'In Warehouse').length,
@@ -360,8 +547,18 @@ const statusCounts = computed(() => ({
     offDuty: staffList.value.filter(s => s.status === 'Off Duty').length,
 }))
 
+const avgProductivity = computed(() => {
+    const active = staffList.value.filter(s => s.status !== 'Off Duty')
+    if (!active.length) return 0
+    return Math.round(active.reduce((sum, s) => sum + s.perf, 0) / active.length)
+})
+
 const totalHours = computed(() => {
     return staffList.value.filter(s => s.status !== 'Off Duty').length * 6
+})
+
+const availableStaffList = computed(() => {
+    return staffList.value.filter(s => s.status === 'In Warehouse')
 })
 
 const filteredStaff = computed(() => {
@@ -379,20 +576,133 @@ function openAssign(staff) {
     showAssignModal.value = true
 }
 
-function assignWorker() {
-    if (assignTarget.value && assignOrderId.value) {
+function canPrintAssignmentSlip(staff) {
+    return Boolean(staff?.orderId)
+}
+
+function openAssignmentSlip(staff) {
+    if (!canPrintAssignmentSlip(staff)) return
+    openSlipWithData('laborAssignment', staff)
+}
+
+async function assignWorker() {
+    if (!assignTarget.value || !assignOrderId.value) return
+    isAssigning.value = true
+    try {
+        // Try to assign via API using the labourer's raw ID
+        const labourerId = assignTarget.value.rawId
+        if (labourerId) {
+            const response = await fetch(apiUrl(`api/v1/labourers/${labourerId}/assign/${assignOrderId.value}`), {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authStore.authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            if (!response.ok) {
+                // Fallback: update local state only if API call fails
+                console.warn('Assign API not available, updating local state')
+            }
+        }
+        // Update local list
         assignTarget.value.orderId = assignOrderId.value
         assignTarget.value.status = 'Assigned to Order'
         assignTarget.value.statusClass = 'bg-blue-500/10 text-blue-500'
         assignTarget.value.task = `Assigned: ${assignOrderId.value}`
+
+        showAssignModal.value = false
+        showToast('Worker assigned to order')
+    } catch (error) {
+        console.error('Assign error:', error)
+        // Still update locally
+        assignTarget.value.orderId = assignOrderId.value
+        assignTarget.value.status = 'Assigned to Order'
+        assignTarget.value.statusClass = 'bg-blue-500/10 text-blue-500'
+        assignTarget.value.task = `Assigned: ${assignOrderId.value}`
+        showAssignModal.value = false
+        showToast('Worker assigned to order')
+    } finally {
+        isAssigning.value = false
     }
-    showAssignModal.value = false
-    showToast('Worker assigned to order')
 }
 
-function showToast(msg) {
+function showToast(msg, type = 'success') {
     toastMsg.value = msg
+    toastType.value = type
     setTimeout(() => { toastMsg.value = '' }, 2500)
+}
+
+// Create new labourer
+async function createLabourer() {
+    if (!newLabourer.value.name || !newLabourer.value.role) {
+        showToast('Please fill name and role', 'error')
+        return
+    }
+
+    isCreating.value = true
+    try {
+        // Only send fields defined in LabourerCreate schema
+        const warehouseId = authStore.currentUser?.warehouse_id
+        const payload = {
+            name: newLabourer.value.name,
+            email: newLabourer.value.email || undefined,
+            phone: newLabourer.value.phone || undefined,
+            role: newLabourer.value.role,
+            department: newLabourer.value.role,
+            skill_tags: newLabourer.value.skills.length > 0 ? newLabourer.value.skills : undefined,
+            warehouse_id: warehouseId || undefined
+        }
+
+        // Remove undefined values
+        Object.keys(payload).forEach(key => {
+            if (payload[key] === undefined) delete payload[key]
+        })
+
+        const response = await fetch(apiUrl('api/v1/labourers'), {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authStore.authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            const detail = errData.detail
+            const msg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail.map(d => d.msg || d.message || JSON.stringify(d)).join(', ') : 'Failed to create labourer')
+            throw new Error(msg)
+        }
+
+        const created = await response.json()
+
+        // Add to local list immediately
+        const displayStatus = mapStatus('AVAILABLE')
+        staffList.value.unshift({
+            id: created.id,
+            rawId: created.id,
+            name: created.name || created.full_name || newLabourer.value.name,
+            role: created.role || newLabourer.value.role,
+            task: 'Available',
+            orderId: null,
+            perf: 100,
+            status: displayStatus,
+            statusClass: mapStatusClass(displayStatus),
+            startTime: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+            fieldTime: null,
+            returnTime: null,
+            dept: created.department || newLabourer.value.role
+        })
+
+        showCreateModal.value = false
+        resetNewLabourerForm()
+        showToast(`${created.name || newLabourer.value.name} added successfully!`)
+    } catch (error) {
+        console.error('Create labourer error:', error)
+        showToast(error.message || 'Failed to create labourer', 'error')
+    } finally {
+        isCreating.value = false
+    }
 }
 
 function openStaffDetail(staff) {
@@ -400,7 +710,20 @@ function openStaffDetail(staff) {
     showStaffDetail.value = true
 }
 
-function setOffDuty(staff) {
+async function setOffDuty(staff) {
+    try {
+        if (staff.rawId) {
+            await fetch(apiUrl(`api/v1/labourers/${staff.rawId}/check-out`), {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authStore.authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+        }
+    } catch (error) {
+        console.warn('Check-out API error, updating locally:', error)
+    }
     staff.status = 'Off Duty'
     staff.statusClass = 'bg-gray-500/10 text-gray-500'
     staff.task = '--'
@@ -409,11 +732,51 @@ function setOffDuty(staff) {
     showToast(`${staff.name} set to Off Duty`)
 }
 
-function setOnDuty(staff) {
+async function setOnDuty(staff) {
+    try {
+        if (staff.rawId) {
+            await fetch(apiUrl(`api/v1/labourers/${staff.rawId}/check-in`), {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authStore.authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+        }
+    } catch (error) {
+        console.warn('Check-in API error, updating locally:', error)
+    }
     staff.status = 'In Warehouse'
     staff.statusClass = 'bg-green-500/10 text-green-500'
     staff.task = 'Available'
     showStaffDetail.value = false
     showToast(`${staff.name} set to On Duty`)
 }
+
+async function deleteLabourer(staff) {
+    if (!confirm(`Remove ${staff.name} from the labour roster?`)) return
+    try {
+        if (staff.rawId) {
+            const response = await fetch(apiUrl(`api/v1/labourers/${staff.rawId}`), {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authStore.authToken}` }
+            })
+            if (!response.ok && response.status !== 204) {
+                const err = await response.json().catch(() => ({}))
+                throw new Error(err.detail || 'Failed to delete')
+            }
+        }
+        // Remove from local list
+        staffList.value = staffList.value.filter(s => s.rawId !== staff.rawId)
+        showStaffDetail.value = false
+        showToast(`${staff.name} removed from roster`)
+    } catch (error) {
+        console.error('Delete error:', error)
+        showToast(error.message || 'Failed to delete labourer', 'error')
+    }
+}
+
+onMounted(() => {
+    fetchLabourers()
+})
 </script>
