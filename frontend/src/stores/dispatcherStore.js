@@ -451,6 +451,7 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
             cargoType: o.cargo_type || '',
             vehicleType: o.vehicle_type || '',
             totalAmount: o.total_amount || 0,
+            packingAmount: o.packing_amount || 0,
             warehouseId: o.warehouse_id || null,
             customerName: o.customer_name || null,
             customerPhone: o.customer_phone || null,

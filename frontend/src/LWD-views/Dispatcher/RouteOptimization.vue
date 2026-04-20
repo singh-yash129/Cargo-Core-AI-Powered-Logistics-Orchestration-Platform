@@ -333,107 +333,140 @@ function clearMap() {
     mapLayers = []
 }
 
-function ensureMap() {
-    if (mapInstance || !mapContainer.value) return
-    mapInstance = L.map(mapContainer.value, { zoomControl: true }).setView([12.9716, 77.5946], 11)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 18,
-    }).addTo(mapInstance)
+function hubCoords() {
+    const hub = logisticStore.hubs.find((item) => item.id === logisticStore.activeWarehouse)
+        || logisticStore.hubs[0]
+    if (!hub) return null
+    if (hub.lat != null && hub.lng != null) return [hub.lat, hub.lng]
+    return null
 }
 
-function drawSelectedTrip() {
+// Returns perpendicular offset midpoint so alternate route takes visually distinct roads
+function altMidpoint(pickup, delivery) {
+    const midLat = (pickup[0] + delivery[0]) / 2
+    const midLng = (pickup[1] + delivery[1]) / 2
+    const dlat = delivery[0] - pickup[0]
+    const dlng = delivery[1] - pickup[1]
+    const len = Math.sqrt(dlat * dlat + dlng * dlng)
+    if (len < 1e-9) return [midLat, midLng]
+    const offset = 0.022 // ~2.4 km perpendicular offset
+    return [midLat + (-dlng / len) * offset, midLng + (dlat / len) * offset]
+}
+
+async function fetchRoadRoute(waypoints) {
+    try {
+        const coords = waypoints.map(([lat, lng]) => `${lng},${lat}`).join(';')
+        const res = await fetch(
+            `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`,
+            { signal: AbortSignal.timeout(6000) }
+        )
+        const data = await res.json()
+        if (data.code === 'Ok' && data.routes?.[0]) {
+            return data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng])
+        }
+    } catch (_) { /* network/timeout — fall back to straight line */ }
+    return waypoints
+}
+
+function ensureMap() {
+    if (mapInstance || !mapContainer.value) return
+    mapInstance = L.map(mapContainer.value, { zoomControl: true }).setView([12.9716, 77.5946], 13)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+    }).addTo(mapInstance)
+    mapInstance.invalidateSize()
+}
+
+async function drawSelectedTrip() {
     if (!mapInstance) return
     clearMap()
+    mapInstance.invalidateSize()
 
     const trip = selectedTrip.value
 
-    // Use origin (driver live loc or pickup) → delivery from trip intelligence payload
     const fromLat = trip?.pickup_lat ?? trip?.origin_lat ?? selectedOrder.value?.pickupLat ?? null
     const fromLng = trip?.pickup_lng ?? trip?.origin_lng ?? selectedOrder.value?.pickupLng ?? null
     const deliveryLat = trip?.delivery_lat ?? selectedOrder.value?.deliveryLat ?? null
     const deliveryLng = trip?.delivery_lng ?? selectedOrder.value?.deliveryLng ?? null
 
-    // If pickup is missing but origin (driver location) is available, use that as "from"
-    const effectiveFromLat = fromLat ?? trip?.origin_lat ?? null
-    const effectiveFromLng = fromLng ?? trip?.origin_lng ?? null
-
-    const pickup = effectiveFromLat != null && effectiveFromLng != null ? [effectiveFromLat, effectiveFromLng] : null
+    const rawPickup = fromLat != null && fromLng != null ? [fromLat, fromLng] : null
     const delivery = deliveryLat != null && deliveryLng != null ? [deliveryLat, deliveryLng] : null
 
+    const hub = hubCoords()
+    let pickup = rawPickup
+    if (!pickup && delivery) pickup = hub || [12.9716, 77.5946]
+    const pickupIsHub = !rawPickup && pickup != null
+
     if (!pickup && !delivery) {
-        const hub = logisticStore.activeWarehouse && store.hubs.find((item) => item.id === logisticStore.activeWarehouse)
-        const coords = Array.isArray(hub?.coordinates)
-            ? hub.coordinates
-            : typeof hub?.coordinates === 'string'
-                ? hub.coordinates.split(',').map(Number)
-                : [12.9716, 77.5946]
-        mapInstance.setView(coords, 11)
+        mapInstance.setView(hub || [12.9716, 77.5946], 12)
         return
     }
 
     const bounds = []
 
+    if (pickup && delivery) {
+        // Fetch both routes in parallel — alternate goes via a perpendicular bypass point
+        const backendAltWaypoints = (trip?.alternate_route?.waypoints || []).map(wp => [wp.lat, wp.lng])
+        const altVia = backendAltWaypoints.length > 0 ? backendAltWaypoints : [altMidpoint(pickup, delivery)]
+
+        const [primaryRoad, altRoad] = await Promise.all([
+            fetchRoadRoute([pickup, delivery]),
+            fetchRoadRoute([pickup, ...altVia, delivery]),
+        ])
+
+        // Alternate corridor drawn first (under primary) — solid orange
+        mapLayers.push(L.polyline(altRoad, {
+            color: '#ff6b00',
+            weight: 5,
+            opacity: trip?.recommended_route === 'alternate' ? 1.0 : 0.85,
+            lineCap: 'round',
+            lineJoin: 'round',
+        }).bindPopup('<b>Alternate Corridor</b><br>AI-computed bypass route').addTo(mapInstance))
+
+        // Primary corridor — single solid bright green line, no outline layers
+        mapLayers.push(L.polyline(primaryRoad, {
+            color: '#00e676',
+            weight: 7,
+            opacity: trip?.recommended_route === 'alternate' ? 0.55 : 1.0,
+            lineCap: 'round',
+            lineJoin: 'round',
+        }).bindPopup(`<b>Primary Corridor</b><br>${pickupIsHub ? 'Hub origin → Destination' : 'Pickup → Destination'}`).addTo(mapInstance))
+
+        bounds.push(pickup, delivery)
+        if (backendAltWaypoints.length > 0) bounds.push(...backendAltWaypoints)
+    }
+
     // Pickup marker
     if (pickup) {
-        const pickupIcon = L.divIcon({
-            className: '',
-            html: `<div style="background:#1CE783;width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(28,231,131,0.7)"></div>`,
-            iconAnchor: [7, 7],
-        })
-        const fromLabel = trip?.pickup_lat != null ? 'Pickup' : 'Driver Location'
-        mapLayers.push(L.marker(pickup, { icon: pickupIcon }).bindPopup(`<b>${fromLabel}</b><br>${trip?.pickup_addr || ''}`).addTo(mapInstance))
-        bounds.push(pickup)
-    }
-
-    // Delivery marker
-    if (delivery) {
-        const deliveryIcon = L.divIcon({
-            className: '',
-            html: `<div style="background:#ef4444;width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(239,68,68,0.7)"></div>`,
-            iconAnchor: [7, 7],
-        })
-        mapLayers.push(L.marker(delivery, { icon: deliveryIcon }).bindPopup(`<b>Destination</b><br>${trip?.delivery_addr || 'Destination'}`).addTo(mapInstance))
-        bounds.push(delivery)
-    }
-
-    if (pickup && delivery) {
-        const altWaypoints = trip?.alternate_route?.waypoints || []
-
-        // Primary corridor — solid green
-        mapLayers.push(L.polyline([pickup, delivery], {
-            color: '#1CE783',
-            weight: 4,
-            opacity: trip?.recommended_route === 'alternate' ? 0.4 : 0.9,
-        }).bindPopup('<b>Primary Corridor</b><br>Default operational route').addTo(mapInstance))
-
-        // Alternate corridor — amber dashed, routes through bypass waypoint if present
-        const altPath = altWaypoints.length > 0
-            ? [pickup, ...altWaypoints.map(wp => [wp.lat, wp.lng]), delivery]
-            : [pickup, delivery]
-        mapLayers.push(L.polyline(altPath, {
-            color: '#f59e0b',
-            weight: 4,
-            opacity: trip?.recommended_route === 'alternate' ? 0.9 : 0.45,
-            dashArray: '10 8',
-        }).bindPopup('<b>Alternate Corridor</b><br>AI-recommended reroute').addTo(mapInstance))
-
-        // Bypass waypoint marker
-        if (altWaypoints.length > 0) {
-            const wpIcon = L.divIcon({
+        const fromLabel = trip?.pickup_lat != null ? 'Pickup' : trip?.origin_lat != null ? 'Driver Location' : 'Hub / Origin'
+        mapLayers.push(L.marker(pickup, {
+            icon: L.divIcon({
                 className: '',
-                html: `<div style="background:#f59e0b;width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 5px rgba(245,158,11,0.8)"></div>`,
-                iconAnchor: [5, 5],
-            })
-            altWaypoints.forEach(wp => {
-                mapLayers.push(L.marker([wp.lat, wp.lng], { icon: wpIcon }).bindPopup('<b>Bypass Point</b><br>Avoids restricted zone').addTo(mapInstance))
-                bounds.push([wp.lat, wp.lng])
-            })
-        }
+                html: `<div style="background:#1CE783;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>`,
+                iconAnchor: [8, 8],
+            }),
+        }).bindPopup(`<b>${fromLabel}</b><br>${trip?.pickup_addr || ''}`).addTo(mapInstance))
+        if (!bounds.some(b => b === pickup)) bounds.push(pickup)
     }
 
-    if (bounds.length === 1) mapInstance.setView(bounds[0], 12)
-    if (bounds.length > 1) mapInstance.fitBounds(L.latLngBounds(bounds).pad(0.25))
+    // Delivery marker — flag pin style
+    if (delivery) {
+        mapLayers.push(L.marker(delivery, {
+            icon: L.divIcon({
+                className: '',
+                html: `<div style="position:relative;width:22px;height:30px">
+                    <div style="background:#ef4444;width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>
+                    <div style="position:absolute;bottom:0;left:7px;width:3px;height:12px;background:#ef4444;border-radius:2px"></div>
+                </div>`,
+                iconAnchor: [9, 30],
+            }),
+        }).bindPopup(`<b>Destination</b><br>${trip?.delivery_addr || 'Delivery point'}`).addTo(mapInstance))
+        if (!bounds.some(b => b === delivery)) bounds.push(delivery)
+    }
+
+    if (bounds.length === 1) mapInstance.setView(bounds[0], 14)
+    if (bounds.length > 1) mapInstance.fitBounds(L.latLngBounds(bounds).pad(0.2))
 }
 
 watch(selectedTrip, async (trip) => {
@@ -441,7 +474,7 @@ watch(selectedTrip, async (trip) => {
     dispatcherNote.value = trip.driver_message || ''
     await nextTick()
     ensureMap()
-    drawSelectedTrip()
+    await drawSelectedTrip()
 }, { immediate: true })
 
 
@@ -449,7 +482,7 @@ onMounted(async () => {
     await loadTripIntelligence()
     await nextTick()
     ensureMap()
-    drawSelectedTrip()
+    await drawSelectedTrip()
 })
 
 onBeforeUnmount(() => {

@@ -252,7 +252,7 @@ const activeDrivers = computed(() =>
 )
 
 const unassignedOrders = computed(() =>
-    store.pendingOrders.filter(o => !o.driverId)
+    store.pendingOrders.filter(o => !o.driverId && !o.packingAmount)
 )
 
 // ── Fetch AI suggestions ──────────────────────────────────────────────────────
