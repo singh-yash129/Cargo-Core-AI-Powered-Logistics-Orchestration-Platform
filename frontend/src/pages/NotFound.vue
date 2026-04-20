@@ -13,7 +13,7 @@
           class="flex justify-center mb-8"
         >
           <img
-            src="/a-standalone-vector-logo-icon-based-exac_VyOETc4yR5-IePoBy-7pGw_etxGKfs2SfKMsgaJ3OD4CQ_sd.jpeg"
+            src="/cargo-core-logo.png"
             alt="Cargo Core Logo"
             class="h-16 w-auto opacity-70"
           />

@@ -78,7 +78,7 @@
                     <component :is="role.icon" class="w-10 h-10 drop-shadow-lg" :style="{ color: role.color, filter: 'drop-shadow(0 0 8px currentColor)' }" />
                   </div>
                   <img
-                    src="/a-standalone-vector-logo-icon-based-exac_VyOETc4yR5-IePoBy-7pGw_etxGKfs2SfKMsgaJ3OD4CQ_sd.jpeg"
+                    src="/cargo-core-logo.png"
                     alt="Cargo Core"
                     class="h-10 w-auto opacity-40 group-hover:opacity-100 transition-all duration-300 drop-shadow-md"
                   />
@@ -160,7 +160,7 @@
                     <component :is="role.icon" class="w-7 h-7 drop-shadow-lg" :style="{ color: role.color, filter: 'drop-shadow(0 0 8px currentColor)' }" />
                   </div>
                   <img
-                    src="/a-standalone-vector-logo-icon-based-exac_VyOETc4yR5-IePoBy-7pGw_etxGKfs2SfKMsgaJ3OD4CQ_sd.jpeg"
+                    src="/cargo-core-logo.png"
                     alt="Cargo Core"
                     class="h-8 w-auto opacity-40 group-hover:opacity-100 transition-all duration-300 drop-shadow-md"
                   />

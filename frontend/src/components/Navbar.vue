@@ -8,7 +8,7 @@
         :enter="{ opacity: 1, x: 0, transition: { duration: 500 } }"
       >
         <img
-          src="/a-standalone-vector-logo-icon-based-exac_VyOETc4yR5-IePoBy-7pGw_etxGKfs2SfKMsgaJ3OD4CQ_sd.jpeg"
+          src="/cargo-core-logo.png"
           alt="Cargo Core Logo"
           class="h-[80px] w-auto cursor-pointer hover:opacity-90 transition-opacity duration-300"
           @click="router.push('/')"

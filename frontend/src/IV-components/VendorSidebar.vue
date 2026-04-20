@@ -5,7 +5,7 @@
   >
     <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200 dark:border-white/5">
       <div class="flex items-center gap-3">
-        <img src="/a-standalone-vector-logo-icon-based-exac_VyOETc4yR5-IePoBy-7pGw_etxGKfs2SfKMsgaJ3OD4CQ_sd.jpeg" alt="Cargo Core Logo" class="h-8 w-8 rounded-md object-cover">
+        <img src="/cargo-core-logo.png" alt="Cargo Core Logo" class="h-8 w-8 rounded-md object-cover">
         <div class="text-xl font-bold text-primary">Cargo-Core</div>
       </div>
       <button class="lg:hidden text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white" @click="$emit('close')">

@@ -17,7 +17,7 @@
               v-motion
               :initial="{ scale: 0.8, opacity: 0 }"
               :enter="{ scale: 1, opacity: 1, transition: { delay: 200, type: 'spring', stiffness: 200 } }"
-              src="/a-standalone-vector-logo-icon-based-exac_VyOETc4yR5-IePoBy-7pGw_etxGKfs2SfKMsgaJ3OD4CQ_sd.jpeg"
+              src="/cargo-core-logo.png"
               alt="Cargo Core Logo"
               class="h-20 w-auto"
             />
