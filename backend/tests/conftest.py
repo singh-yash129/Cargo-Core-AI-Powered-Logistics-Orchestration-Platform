@@ -5,6 +5,8 @@ Shared pytest fixtures for the entire test suite.
 Requires a running PostgreSQL instance (or use a local SQLite file for unit tests).
 For CI, a separate test database is used: logistics_db_test.
 """
+pytest_plugins = ("tests.api_suite_fixtures",)
+
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock
 
