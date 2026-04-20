@@ -480,6 +480,180 @@ class TestConversationPersistence:
         ).scalar_one()
         assert "human support" in escalation.reason.lower()
 
+        ticket = (
+            await db_session.execute(
+                select(SupportTicket).where(
+                    SupportTicket.notes.contains(f"[meta:linked_session_id={payload['session_id']}]")
+                )
+            )
+        ).scalar_one()
+        assert ticket.status == "new"
+        assert "[meta:source=ai_handoff]" in (ticket.notes or "")
+
+    async def test_resolving_ai_handoff_escalation_resolves_linked_ticket(
+        self,
+        client: AsyncClient,
+        db_session,
+        registered_user_tokens: dict,
+    ):
+        token = registered_user_tokens["access_token"]
+        user = (
+            await db_session.execute(
+                select(User).where(User.email == REGISTER_PAYLOAD["email"])
+            )
+        ).scalar_one()
+
+        handoff_resp = await client.post(
+            "/api/v1/ai/chat",
+            json={"message": "Please connect me to a human support agent."},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert handoff_resp.status_code == 200
+        session_id = handoff_resp.json()["session_id"]
+
+        ai_agent_role = (
+            await db_session.execute(select(Role).where(Role.name == "AI_AGENT"))
+        ).scalar_one()
+        user.role_id = ai_agent_role.id
+        await db_session.commit()
+
+        escalation = (
+            await db_session.execute(
+                select(Escalation)
+                .join(AIConversation, Escalation.conversation_id == AIConversation.id)
+                .where(AIConversation.session_id == uuid.UUID(session_id))
+            )
+        ).scalar_one()
+
+        resolve_resp = await client.put(
+            f"/api/v1/ai/escalation-center/{escalation.id}/resolve",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resolve_resp.status_code == 200
+
+        ticket = (
+            await db_session.execute(
+                select(SupportTicket).where(
+                    SupportTicket.notes.contains(f"[meta:linked_session_id={session_id}]")
+                )
+            )
+        ).scalar_one()
+        assert ticket.status == "resolved"
+        assert ticket.resolved_at is not None
+
+    async def test_severe_negative_support_message_creates_escalation_and_ticket(
+        self,
+        client: AsyncClient,
+        db_session,
+        registered_user_tokens: dict,
+    ):
+        token = registered_user_tokens["access_token"]
+        user = (
+            await db_session.execute(
+                select(User).where(User.email == REGISTER_PAYLOAD["email"])
+            )
+        ).scalar_one()
+
+        resp = await client.post(
+            "/api/v1/ai/chat",
+            json={
+                "message": "This is terrible service and I am very angry. This is unacceptable.",
+                "context": "support_chat",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["intent"] == "handover"
+        assert payload["requires_human"] is True
+        assert "negative" in payload["human_handoff_reason"].lower()
+
+        escalation = (
+            await db_session.execute(
+                select(Escalation)
+                .join(AIConversation, Escalation.conversation_id == AIConversation.id)
+                .where(
+                    AIConversation.user_id == user.id,
+                    AIConversation.session_id == uuid.UUID(payload["session_id"]),
+                    Escalation.status == "OPEN",
+                )
+            )
+        ).scalar_one()
+        assert "negative" in escalation.reason.lower()
+
+        ticket = (
+            await db_session.execute(
+                select(SupportTicket).where(
+                    SupportTicket.notes.contains(f"[meta:linked_session_id={payload['session_id']}]")
+                )
+            )
+        ).scalar_one()
+        assert ticket.status == "new"
+        assert ticket.category == "general"
+        assert "[meta:source=ai_handoff]" in (ticket.notes or "")
+
+    async def test_resolving_ai_handoff_ticket_resolves_escalation_and_closes_chat(
+        self,
+        client: AsyncClient,
+        db_session,
+        registered_user_tokens: dict,
+    ):
+        token = registered_user_tokens["access_token"]
+        user = (
+            await db_session.execute(
+                select(User).where(User.email == REGISTER_PAYLOAD["email"])
+            )
+        ).scalar_one()
+
+        handoff_resp = await client.post(
+            "/api/v1/ai/chat",
+            json={"message": "I need human help with this issue."},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert handoff_resp.status_code == 200
+        session_id = handoff_resp.json()["session_id"]
+
+        ticket = (
+            await db_session.execute(
+                select(SupportTicket).where(
+                    SupportTicket.notes.contains(f"[meta:linked_session_id={session_id}]")
+                )
+            )
+        ).scalar_one()
+
+        ai_agent_role = (
+            await db_session.execute(select(Role).where(Role.name == "AI_AGENT"))
+        ).scalar_one()
+        user.role_id = ai_agent_role.id
+        await db_session.commit()
+
+        resolve_resp = await client.put(
+            f"/api/v1/ai/tickets/{ticket.id}",
+            json={"status": "resolved"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resolve_resp.status_code == 200
+
+        escalation = (
+            await db_session.execute(
+                select(Escalation)
+                .join(AIConversation, Escalation.conversation_id == AIConversation.id)
+                .where(AIConversation.session_id == uuid.UUID(session_id))
+            )
+        ).scalar_one()
+        assert escalation.status == "RESOLVED"
+        assert escalation.resolved_at is not None
+
+        close_message = (
+            await db_session.execute(
+                select(AIConversation).where(
+                    AIConversation.session_id == uuid.UUID(session_id),
+                    AIConversation.intent == "support_session_closed",
+                )
+            )
+        ).scalar_one_or_none()
+        assert close_message is not None
+
 
 # ── Test: Gemini unconfigured ─────────────────────────────────────────────────
 
@@ -586,10 +760,14 @@ class TestSupportAnalytics:
         )
         await db_session.commit()
 
-        resp = await client.get(
-            "/api/v1/ai/support/analytics?range=7D",
-            headers={"Authorization": f"Bearer {token}"},
-        )
+        with patch(
+            "app.services.ai_support_service.get_gemini_client",
+            side_effect=AssertionError("Support analytics should not call Gemini"),
+        ):
+            resp = await client.get(
+                "/api/v1/ai/support/analytics?range=7D",
+                headers={"Authorization": f"Bearer {token}"},
+            )
 
         assert resp.status_code == 200
         data = resp.json()

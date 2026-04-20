@@ -179,10 +179,11 @@ function redirectToLogin(message) {
 }
 
 export async function authenticatedJsonRequest(path, options = {}) {
+  const { timeoutMs, signal, ...fetchOptions } = options;
   const requestUrl = apiUrl(path);
-  const requestHeaders = new Headers(options.headers || {});
-  const hasBody = options.body !== undefined && options.body !== null;
-  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const requestHeaders = new Headers(fetchOptions.headers || {});
+  const hasBody = fetchOptions.body !== undefined && fetchOptions.body !== null;
+  const isFormData = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData;
 
   if (hasBody && !isFormData && !requestHeaders.has('Content-Type')) {
     requestHeaders.set('Content-Type', 'application/json');
@@ -194,10 +195,45 @@ export async function authenticatedJsonRequest(path, options = {}) {
       headers.set('Authorization', `Bearer ${token}`);
     }
 
-    return fetch(requestUrl, {
-      ...options,
-      headers,
-    });
+    if (!timeoutMs) {
+      return fetch(requestUrl, {
+        ...fetchOptions,
+        signal,
+        headers,
+      });
+    }
+
+    const controller = new AbortController();
+    let timedOut = false;
+    const abortRequest = () => controller.abort();
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+
+    if (signal) {
+      if (signal.aborted) {
+        controller.abort();
+      } else {
+        signal.addEventListener('abort', abortRequest, { once: true });
+      }
+    }
+
+    try {
+      return await fetch(requestUrl, {
+        ...fetchOptions,
+        signal: controller.signal,
+        headers,
+      });
+    } catch (error) {
+      if (timedOut) {
+        throw new Error('Request timed out. Please check that the backend is running and try again.');
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeoutId);
+      signal?.removeEventListener?.('abort', abortRequest);
+    }
   };
 
   let response = await execute(getStoredAccessToken());

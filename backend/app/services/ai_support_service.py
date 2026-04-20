@@ -77,6 +77,11 @@ SUPPORT_MANAGER_ROLE_NAME = "LOGISTIC_MANAGER"
 SUPPORT_SESSION_OWNER_ROLE_NAMES = {"INDIVIDUAL", "VENDOR"}
 HUMAN_ASSISTANT_INTENTS = {"agent_reply", "handover"}
 TRACKING_CODE_PATTERN = re.compile(r"\b[A-Z]{2,6}-[A-Z0-9]{3,}\b", re.IGNORECASE)
+SUPPORT_SESSION_CLOSED_INTENT = "support_session_closed"
+SUPPORT_SESSION_CLOSED_MESSAGE = (
+    "This human support session has been closed by the Support Manager. "
+    "You can continue with AI help here, but to request human support again you need to start a fresh support chat."
+)
 
 NEGATIVE_KEYWORDS = {
     "refund",
@@ -460,6 +465,28 @@ async def _sentiment_label(text: str | None) -> str:
     except Exception:
         label = _keyword_sentiment_label(text)
 
+    if len(_SENTIMENT_CACHE) >= _SENTIMENT_CACHE_MAX:
+        keys = list(_SENTIMENT_CACHE.keys())
+        for k in keys[: _SENTIMENT_CACHE_MAX // 2]:
+            del _SENTIMENT_CACHE[k]
+    _SENTIMENT_CACHE[cache_key] = label
+    return label
+
+
+def _analytics_sentiment_label(text: str | None) -> str:
+    """Fast local sentiment for dashboard aggregation.
+
+    The analytics endpoint may score many messages at once, so it should never
+    block on an external LLM call just to render charts.
+    """
+    if not text or not text.strip():
+        return "Neutral"
+
+    cache_key = f"analytics:{text[:500]}"
+    if cache_key in _SENTIMENT_CACHE:
+        return _SENTIMENT_CACHE[cache_key]
+
+    label = _keyword_sentiment_label(text)
     if len(_SENTIMENT_CACHE) >= _SENTIMENT_CACHE_MAX:
         keys = list(_SENTIMENT_CACHE.keys())
         for k in keys[: _SENTIMENT_CACHE_MAX // 2]:
@@ -945,7 +972,7 @@ def _message_author_name(message: AIConversation, owner: User | None) -> tuple[s
         return (message.author_user.name, "agent")
     if message.intent == "handover":
         return ("Support Manager", "agent")
-    if message.intent == "support_session_closed":
+    if message.intent == SUPPORT_SESSION_CLOSED_INTENT:
         return ("Support Manager", "agent")
     return ("Cargo-Core AI", "ai")
 
@@ -1231,6 +1258,7 @@ async def take_over_support_session(
         )
         await db.flush()
 
+    await mark_ai_handoff_ticket_in_progress(db, session_id=session_id, agent=agent)
     return await get_support_session_detail(db, session_id)
 
 
@@ -1253,6 +1281,7 @@ async def reply_to_support_session(
         )
     )
     await db.flush()
+    await mark_ai_handoff_ticket_in_progress(db, session_id=session_id, agent=agent)
     return await get_support_session_detail(db, session_id)
 
 
@@ -1494,7 +1523,7 @@ async def _build_support_analytics(
         session["last_message_at"] = max(session["last_message_at"], message.created_at)
         if message.role == "user":
             session["first_user_at"] = session["first_user_at"] or message.created_at
-            session["latest_user_sentiment"] = await _sentiment_label(message.message)
+            session["latest_user_sentiment"] = _analytics_sentiment_label(message.message)
         if message.role == "assistant":
             session["first_response_at"] = session["first_response_at"] or message.created_at
             if _is_human_authored_support_message(message):
@@ -2009,6 +2038,16 @@ def _linked_order_uuid_from_ticket(ticket: SupportTicket) -> uuid.UUID | None:
         return None
 
 
+def _linked_session_uuid_from_ticket(ticket: SupportTicket) -> uuid.UUID | None:
+    session_id_raw = _ticket_source_metadata(ticket).get("linked_session_id")
+    if not session_id_raw:
+        return None
+    try:
+        return uuid.UUID(session_id_raw)
+    except ValueError:
+        return None
+
+
 async def _linked_order_tracking_map(
     db: AsyncSession,
     tickets: list[SupportTicket],
@@ -2117,7 +2156,7 @@ def _ticket_response(
             if source == "vendor_portal"
             else "Warehouse / Vendor"
             if source == "warehouse_inbound"
-            else "Customer"
+            else metadata.get("requester_type", "Customer")
             if source == "ai_handoff"
             else None
         ),
@@ -2163,6 +2202,149 @@ async def _next_ticket_reference(db: AsyncSession) -> str:
     match = re.search(r"(\d+)$", latest)
     next_number = int(match.group(1)) + 1 if match else 1
     return f"TK-{next_number:03d}"
+
+
+async def _find_ai_handoff_ticket_for_session(
+    db: AsyncSession,
+    session_id: uuid.UUID,
+) -> SupportTicket | None:
+    return (
+        await db.execute(
+            select(SupportTicket)
+            .options(joinedload(SupportTicket.assigned_to_user))
+            .where(
+                SupportTicket.notes.contains("[meta:source=ai_handoff]"),
+                SupportTicket.notes.contains(f"[meta:linked_session_id={session_id}]"),
+            )
+            .order_by(SupportTicket.created_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+
+async def _close_support_session_once(
+    db: AsyncSession,
+    session_id: uuid.UUID,
+) -> None:
+    already_closed = (
+        await db.execute(
+            select(AIConversation.id)
+            .where(
+                AIConversation.session_id == session_id,
+                AIConversation.intent == SUPPORT_SESSION_CLOSED_INTENT,
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if already_closed:
+        return
+
+    messages = (
+        await db.execute(
+            select(AIConversation)
+            .where(AIConversation.session_id == session_id)
+            .order_by(AIConversation.created_at.desc())
+        )
+    ).scalars().all()
+    if not messages:
+        return
+
+    linked_order_meta = None
+    for message in messages:
+        if isinstance(message.query_result, dict) and message.query_result.get("linked_order_id"):
+            linked_order_meta = {
+                "linked_order_id": str(message.query_result.get("linked_order_id")),
+                "linked_order_tracking_code": str(
+                    message.query_result.get("linked_order_tracking_code") or ""
+                ),
+            }
+            break
+
+    db.add(
+        AIConversation(
+            session_id=session_id,
+            user_id=messages[0].user_id,
+            role="assistant",
+            message=SUPPORT_SESSION_CLOSED_MESSAGE,
+            intent=SUPPORT_SESSION_CLOSED_INTENT,
+            query_result=linked_order_meta,
+        )
+    )
+
+
+async def mark_ai_handoff_ticket_in_progress(
+    db: AsyncSession,
+    *,
+    session_id: uuid.UUID,
+    agent: User | None = None,
+) -> None:
+    ticket = await _find_ai_handoff_ticket_for_session(db, session_id)
+    if not ticket or ticket.status == "resolved":
+        return
+    if ticket.status == "new":
+        ticket.status = "in_progress"
+    if agent is not None:
+        ticket.assigned_to_user_id = agent.id
+    db.add(ticket)
+    await db.flush()
+
+
+async def resolve_ai_handoff_ticket_for_session(
+    db: AsyncSession,
+    *,
+    session_id: uuid.UUID,
+    actor: User | None = None,
+) -> SupportTicket | None:
+    ticket = await _find_ai_handoff_ticket_for_session(db, session_id)
+    if not ticket:
+        return None
+    if ticket.status != "resolved":
+        ticket.status = "resolved"
+        ticket.resolved_at = _utc_now()
+    if actor is not None:
+        ticket.assigned_to_user_id = actor.id
+    db.add(ticket)
+    await db.flush()
+    return ticket
+
+
+async def resolve_ai_handoff_escalations_for_ticket(
+    db: AsyncSession,
+    *,
+    ticket: SupportTicket,
+    actor: User | None = None,
+) -> None:
+    metadata = _ticket_source_metadata(ticket)
+    if metadata.get("source") != "ai_handoff":
+        return
+
+    session_id = _linked_session_uuid_from_ticket(ticket)
+    if not session_id:
+        return
+
+    escalations = (
+        await db.execute(
+            select(Escalation)
+            .options(selectinload(Escalation.conversation))
+            .join(AIConversation, Escalation.conversation_id == AIConversation.id)
+            .where(
+                AIConversation.session_id == session_id,
+                Escalation.status == "OPEN",
+            )
+            .order_by(Escalation.escalated_at.desc())
+        )
+    ).scalars().all()
+
+    resolved_at = _utc_now()
+    for escalation in escalations:
+        escalation.status = "RESOLVED"
+        escalation.resolved_at = resolved_at
+        if actor is not None:
+            escalation.escalated_to_user_id = actor.id
+        db.add(escalation)
+
+    await _close_support_session_once(db, session_id)
+    await db.flush()
 
 
 async def create_ticket(
@@ -2278,6 +2460,9 @@ async def sync_ai_handoff_ticket(
         "source": "ai_handoff",
         "linked_session_id": str(session_id),
         "linked_user_id": str(user.id),
+        "requester_type": "Vendor"
+        if getattr(getattr(user, "role", None), "name", None) == "VENDOR"
+        else "Customer",
     }
 
     display_name = (user.name or user.email or "Customer").strip()
@@ -2367,6 +2552,7 @@ async def update_ticket(
     metadata, visible_notes = _split_ticket_notes(ticket.notes)
     source = metadata.get("source", "manual")
     current_resolution_action = (metadata.get("resolution_action") or "").strip().lower()
+    should_resolve_linked_ai_handoff = False
 
     if data.status is not None:
         s = data.status.strip().lower()
@@ -2388,6 +2574,7 @@ async def update_ticket(
                 )
         ticket.status = s
         ticket.resolved_at = _utc_now() if s == "resolved" else None
+        should_resolve_linked_ai_handoff = source == "ai_handoff" and s == "resolved"
     if data.priority is not None:
         p = data.priority.strip().lower()
         if p not in TICKET_PRIORITY_VALUES:
@@ -2473,6 +2660,9 @@ async def update_ticket(
                                 ),
                                 notification_type="info",
                             )
+
+    if should_resolve_linked_ai_handoff:
+        await resolve_ai_handoff_escalations_for_ticket(db, ticket=ticket, actor=actor)
 
     await db.flush()
     await db.refresh(ticket)

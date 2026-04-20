@@ -116,6 +116,28 @@ LEGAL_THREAT_PATTERNS = (
     "lawsuit",
     "legal action",
 )
+SEVERE_NEGATIVE_SENTIMENT_PATTERNS = (
+    "angry",
+    "very angry",
+    "frustrated",
+    "very frustrated",
+    "furious",
+    "useless",
+    "worst service",
+    "terrible service",
+    "pathetic",
+    "unacceptable",
+    "rude",
+    "stupid",
+    "idiot",
+    "scam",
+    "fraud",
+    "cheat",
+    "cheated",
+    "hate this",
+    "damn",
+    "hell",
+)
 
 SELF_SERVICE_ROLES = {"VENDOR", "INDIVIDUAL"}
 MIN_PROACTIVE_ESCALATION_TURNS = 3  # Minimum customer exchanges before sentiment-based handover fires
@@ -662,6 +684,18 @@ def _has_legal_threat(msg: str) -> bool:
     return any(pattern in msg for pattern in LEGAL_THREAT_PATTERNS)
 
 
+def _has_severe_negative_sentiment(msg: str) -> bool:
+    normalized = (msg or "").strip().lower()
+    if not normalized:
+        return False
+    if any(
+        re.search(rf"\b{re.escape(pattern)}\b", normalized)
+        for pattern in SEVERE_NEGATIVE_SENTIMENT_PATTERNS
+    ):
+        return True
+    return _support_health_score(normalized) <= 45
+
+
 def _support_health_score(msg: str) -> int:
     """Keyword-based fallback health scorer (used when Gemini is unavailable)."""
     score = 100
@@ -744,6 +778,8 @@ async def _handoff_reason_for_message(
         return "Legal escalation risk detected. Human support is required."
     if _is_human_handoff_request(msg):
         return "Customer requested a human support reply."
+    if _has_severe_negative_sentiment(msg):
+        return "Severe negative customer sentiment detected. Human support is required."
     if (
         db_settings
         and getattr(db_settings, "proactive_human_handover", False)
@@ -2352,7 +2388,7 @@ async def chat(
     # We use the raw user_message here so the tracking code injection can't interfere.
     msg = (user_message or "").strip().lower()
     if chat_context == SUPPORT_CHAT_CONTEXT and _role_name(user) in SELF_SERVICE_ROLES:
-        if _is_human_handoff_request(msg) or _has_legal_threat(msg):
+        if _is_human_handoff_request(msg) or _has_legal_threat(msg) or _has_severe_negative_sentiment(msg):
             from app.models.ai_support_settings import AISupportSettings as _AISupportSettingsEarly
             from sqlalchemy import select as _selectEarly
             _early_settings = (
@@ -4388,6 +4424,12 @@ async def resolve_escalation(
                 intent=SUPPORT_SESSION_CLOSED_INTENT,
                 query_result=linked_order_meta,
             )
+        )
+        from app.services import ai_support_service
+
+        await ai_support_service.resolve_ai_handoff_ticket_for_session(
+            db=db,
+            session_id=conversation.session_id,
         )
     await db.flush()
     return escalation

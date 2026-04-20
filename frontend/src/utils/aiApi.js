@@ -139,13 +139,17 @@ export async function updateSupportSettings(payload) {
 
 export async function fetchSupportAnalytics(timeRange = '7D') {
   const query = `?range=${encodeURIComponent(timeRange)}`
-  return authenticatedJsonRequest(`${BASE}/support/analytics${query}`, { method: 'GET' })
+  return authenticatedJsonRequest(`${BASE}/support/analytics${query}`, {
+    method: 'GET',
+    timeoutMs: 20000,
+  })
 }
 
 export async function executeSupportAnalyticsInsight(insightId, timeRange = '7D') {
   const query = `?range=${encodeURIComponent(timeRange)}`
   return authenticatedJsonRequest(`${BASE}/support/analytics/insights/${insightId}/execute${query}`, {
     method: 'POST',
+    timeoutMs: 20000,
   })
 }
 
