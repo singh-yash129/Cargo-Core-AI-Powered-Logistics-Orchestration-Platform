@@ -1,34 +1,35 @@
 {
-  "name": "frontend",
+  "name": "@figma/my-make-file",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "dev": "vite"
   },
   "dependencies": {
-    "@splinetool/runtime": "^1.12.62",
-    "@splinetool/viewer": "^1.12.62",
-    "@types/marked": "^5.0.2",
-    "axios": "^1.13.6",
+    "@splinetool/viewer": "^1.12.69",
+    "@vue-leaflet/vue-leaflet": "^0.10.1",
+    "@vueuse/motion": "^2.2.6",
     "chart.js": "^4.5.1",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
     "gsap": "^3.14.2",
-    "marked": "^17.0.3",
-    "pinia": "^3.0.4",
+    "leaflet": "^1.9.4",
+    "lucide-vue-next": "^0.487.0",
+    "pinia": "^2.3.0",
     "qrcode.vue": "^3.8.0",
-    "uuid": "^13.0.0",
-    "vue": "^3.5.25",
+    "tailwind-merge": "3.2.0",
+    "vue": "^3.5.13",
     "vue-chartjs": "^5.3.3",
-    "vue-router": "^5.0.2"
+    "vue-leaflet": "^0.1.0",
+    "vue-router": "^4.5.0",
+    "vue3-google-login": "^2.0.37"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.2",
-    "autoprefixer": "^10.4.24",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.19",
-    "vite": "^7.3.1",
-    "vite-plugin-pwa": "^1.2.0"
+    "@tailwindcss/vite": "4.1.12",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "tailwindcss": "4.1.12",
+    "vite": "^6.0.0"
   }
 }

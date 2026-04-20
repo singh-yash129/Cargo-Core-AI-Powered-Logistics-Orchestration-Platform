@@ -1,52 +1,49 @@
-import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
+import path from 'path'
+import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
-import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'fs'
 
-// https://vite.dev/config/
+// Serve html-slips/ as static files under /html-slips/ during dev & build
+function htmlSlipsPlugin() {
+  let outDir = path.join(__dirname, 'dist')
+  return {
+    name: 'html-slips-static',
+    configResolved(config) {
+      outDir = path.resolve(config.root, config.build.outDir)
+    },
+    configureServer(server) {
+      server.middlewares.use('/html-slips', (req, res, next) => {
+        const filePath = path.join(__dirname, 'html-slips', req.url.replace(/^\//, ''))
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+          const ext = path.extname(filePath)
+          const mime = ext === '.html' ? 'text/html' : ext === '.png' ? 'image/png' : ext === '.jpeg' || ext === '.jpg' ? 'image/jpeg' : 'application/octet-stream'
+          res.setHeader('Content-Type', mime)
+          fs.createReadStream(filePath).pipe(res)
+        } else {
+          next()
+        }
+      })
+    },
+    writeBundle() {
+      const srcDir = path.join(__dirname, 'html-slips')
+      const destDir = path.join(outDir, 'html-slips')
+      fs.mkdirSync(destDir, { recursive: true })
+      fs.cpSync(srcDir, destDir, { recursive: true })
+    }
+  }
+}
+
 export default defineConfig({
   plugins: [
-    vue({
-      template: {
-        compilerOptions: {
-          isCustomElement: (tag) => tag.includes('spline-')
-        }
-      }
-    }),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['cargo-core-logo.png'],
-      manifest: {
-        name: 'Cargo-Core Logistics Platform',
-        short_name: 'Cargo-Core',
-        description: 'Moving What Matters - Advanced Logistics Management',
-        theme_color: '#0F1115',
-        background_color: '#0F1115',
-        display: 'standalone',
-        icons: [
-          {
-            src: 'cargo-core-logo.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'cargo-core-logo.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
-        ]
-      },
-      workbox: {
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024 // 4MB
-      },
-      devOptions: {
-        enabled: true
-      }
-    })
+    vue(),
+    tailwindcss(),
+    htmlSlipsPlugin(),
   ],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
-  }
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  assetsInclude: ['**/*.svg', '**/*.csv'],
 })

@@ -15,17 +15,35 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         start = time.perf_counter()
 
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            import traceback
+            logger.error(
+                f"UNHANDLED EXCEPTION {request.method} {request.url.path}\n"
+                + traceback.format_exc()
+            )
+            raise
 
         duration_ms = round((time.perf_counter() - start) * 1000, 2)
 
-        logger.info(
-            {
-                "method": request.method,
-                "path": request.url.path,
-                "status_code": response.status_code,
-                "duration_ms": duration_ms,
-                "client": request.client.host if request.client else "unknown",
-            }
-        )
+        if response.status_code >= 500:
+            logger.error(
+                {
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": response.status_code,
+                    "duration_ms": duration_ms,
+                }
+            )
+        else:
+            logger.info(
+                {
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": response.status_code,
+                    "duration_ms": duration_ms,
+                    "client": request.client.host if request.client else "unknown",
+                }
+            )
         return response

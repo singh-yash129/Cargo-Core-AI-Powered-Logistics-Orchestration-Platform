@@ -284,8 +284,10 @@
 
 <script setup>
 import { reactive, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore.js'
 
+const router = useRouter()
 const auth = useAuthStore()
 const currentStep = ref(1)
 const submitted = ref(false)
@@ -340,7 +342,9 @@ async function handleNext() {
     else if (currentStep.value === 3 && validateStep3()) {
         auth.clearError()
         const result = await auth.register({ ...form })
-        if (result.success) submitted.value = true
+        if (result.success) {
+            router.push('/verify-otp?mode=registration')
+        }
     }
 }
 

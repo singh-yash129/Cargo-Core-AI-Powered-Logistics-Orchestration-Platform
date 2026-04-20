@@ -80,6 +80,13 @@
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
                             </div>
                             <div>
+                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Estimated Volume
+                                    (m³)</label>
+                                <input v-model.number="form.volume" type="number" min="0" step="0.01"
+                                    placeholder="e.g. 12.5"
+                                    class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
                                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Declared Value
                                     (₹)</label>
                                 <input v-model.number="form.declaredValue" type="number" placeholder="e.g. 50000"
@@ -91,7 +98,7 @@
                                 <select v-model="form.insuranceRequired"
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
                                     <option value="no" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">No</option>
-                                    <option value="yes" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Yes (3% of value)</option>
+                                    <option value="yes" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Yes ({{ rates.insurancePct ?? 3 }}% of value)</option>
                                 </select>
                             </div>
                             <div class="sm:col-span-2">
@@ -131,22 +138,28 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div v-if="form.pickupType === 'hub'">
-                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Pickup Hub
-                                    *</label>
+                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                                    Drop-off Hub *
+                                    <span class="text-gray-400 font-normal normal-case">(you bring goods here)</span>
+                                </label>
                                 <select v-model="form.pickupHub"
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
-                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Mumbai Hub</option>
-                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delhi Hub</option>
-                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pune Hub</option>
-                                    <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Bangalore Hub</option>
+                                    <option value="" disabled class="bg-white dark:bg-gray-800 text-gray-400">Select a warehouse...</option>
+                                    <option v-for="w in store.warehouses" :key="w.id" :value="w.name"
+                                        class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                                        {{ w.name }}
+                                    </option>
                                 </select>
                             </div>
                             <div v-else class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div class="sm:col-span-2">
-                                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Pickup Address
-                                        *</label>
-                                    <input v-model="form.pickupAddress" type="text" placeholder="Shop/Warehouse address"
-                                        class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Pickup Address *</label>
+                                    <button type="button" @click="openMapPicker('pickup')"
+                                        class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-left flex items-center justify-between gap-2 hover:border-blue-500 transition-colors focus:outline-none focus:border-blue-500"
+                                        :class="form.pickupAddress ? 'text-gray-900 dark:text-white' : 'text-gray-400'">
+                                        <span class="truncate">{{ form.pickupAddress || 'Select your pickup location on map...' }}</span>
+                                        <span class="material-symbols-outlined text-[20px] text-gray-400 flex-shrink-0">map</span>
+                                    </button>
                                 </div>
                                 <div>
                                     <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Pickup City
@@ -175,10 +188,13 @@
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Destination Address
-                                    *</label>
-                                <input v-model="form.destination" type="text" placeholder="Full delivery address"
-                                    class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Destination Address *</label>
+                                <button type="button" @click="openMapPicker('destination')"
+                                    class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-sm text-left flex items-center justify-between gap-2 hover:border-blue-500 transition-colors focus:outline-none focus:border-blue-500"
+                                    :class="form.destination ? 'text-gray-900 dark:text-white' : 'text-gray-400'">
+                                    <span class="truncate">{{ form.destination || 'Select destination on map...' }}</span>
+                                    <span class="material-symbols-outlined text-[20px] text-gray-400 flex-shrink-0">map</span>
+                                </button>
                             </div>
                             <div>
                                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Destination City
@@ -243,7 +259,7 @@
                                 </div>
                                 <div>
                                     <div class="font-medium text-sm text-gray-900 dark:text-white">Packing Service</div>
-                                    <div class="text-xs text-gray-500">+₹200 flat fee</div>
+                                    <div class="text-xs text-gray-500">+₹{{ (rates.customerPackingFee ?? 200).toLocaleString() }} flat fee</div>
                                 </div>
                             </label>
                             <label
@@ -257,7 +273,7 @@
                                 </div>
                                 <div>
                                     <div class="font-medium text-sm text-gray-900 dark:text-white">Labor Helpers</div>
-                                    <div class="text-xs text-gray-500">+₹250 per helper</div>
+                                    <div class="text-xs text-gray-500">+₹{{ (rates.customerLaborRate ?? 250).toLocaleString() }} per helper</div>
                                 </div>
                             </label>
                         </div>
@@ -300,6 +316,12 @@
                             <span class="material-symbols-outlined text-blue-400 text-[18px]">calculate</span>
                             Live Quotation
                         </h3>
+                        <div v-if="distanceKm" class="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+                            <span class="material-symbols-outlined text-blue-500 text-sm">route</span>
+                            <span class="text-xs font-bold text-blue-700 dark:text-blue-400">{{ distanceKm }} km</span>
+                            <span class="text-xs text-gray-500">(road distance · ₹{{ rates.perKmRate ?? 12 }}/km)</span>
+                            <span v-if="distanceLoading" class="ml-auto text-xs text-gray-400 animate-pulse">calculating...</span>
+                        </div>
                         <div class="space-y-2 mb-4">
                             <div class="flex justify-between text-xs"><span class="text-gray-500">Base
                                     Transport</span><span class="text-gray-900 dark:text-white">₹{{
@@ -443,14 +465,14 @@
                 <div class="glass-panel p-6 rounded-xl">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-4 text-sm">Category Comparison (Bar)</h3>
                     <div class="h-64 w-full relative">
-                        <Bar :data="barChartData" :options="barChartOptions" />
+                        <BarChart :data="barChartData" :options="barChartOptions" />
                     </div>
                 </div>
                 <div class="glass-panel p-6 rounded-xl">
                     <h3 class="font-bold text-gray-900 dark:text-white mb-4 text-sm">Category Distribution (Doughnut)
                     </h3>
                     <div class="h-64 w-full relative">
-                        <Doughnut :data="doughnutChartData" :options="doughnutChartOptions" />
+                        <DoughnutChart :data="doughnutChartData" :options="doughnutChartOptions" />
                     </div>
                 </div>
             </div>
@@ -731,12 +753,32 @@
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Booking Confirmed!</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Your shipment has been created successfully
                     </p>
-                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-4">
                         <span class="text-xs text-gray-500 dark:text-gray-400">Order ID:</span>
                         <span class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ confirmedOrderId }}</span>
                     </div>
+                    <div class="flex gap-2 justify-center flex-wrap">
+                        <button @click="openSlipWithData('bookingConfirmation', confirmedOrder, authStore.currentUser)" class="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors">
+                            <span class="material-symbols-outlined text-[16px]">receipt_long</span> Booking Slip
+                        </button>
+                        <button @click="openSlipWithData('instantQuotation', confirmedOrder, authStore.currentUser)" class="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-bold transition-colors">
+                            <span class="material-symbols-outlined text-[16px]">calculate</span> Quotation
+                        </button>
+                    </div>
                 </div>
             </BaseModal>
+
+            <!-- Razorpay Checkout for Full Payment -->
+            <RazorpayCheckout
+                v-model="showPayModal"
+                :amount="pendingPayOrder ? pendingPayOrder.amount : 0"
+                :order-id="pendingPayOrder?.id || ''"
+                description="Full Payment for Shipment"
+                :name="authStore.currentUser?.name || ''"
+                :email="authStore.currentUser?.email || ''"
+                :wallet-balance="store.walletBalance"
+                @success="onRazorpaySuccess"
+            />
 
             <!-- Custom Edit Modal with adjustable width -->
             <div v-if="showEditModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -849,10 +891,11 @@
                                             Hub</label>
                                         <select v-model="editingEntry.pickupHub"
                                             class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Mumbai Hub</option>
-                                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delhi Hub</option>
-                                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pune Hub</option>
-                                            <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Bangalore Hub</option>
+                                            <option value="" disabled class="bg-white dark:bg-gray-800 text-gray-400">Select a warehouse...</option>
+                                            <option v-for="w in store.warehouses" :key="w.id" :value="w.name"
+                                                class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                                                {{ w.name }}
+                                            </option>
                                         </select>
                                     </div>
                                     <div class="grid grid-cols-2 gap-4">
@@ -956,21 +999,71 @@
                 </div>
             </BaseModal>
         </Teleport>
+
+        <!-- Map Picker -->
+        <MapPicker
+            v-if="showMapPicker"
+            :isOpen="showMapPicker"
+            :title="mapPickerTitle"
+            @close="showMapPicker = false"
+            @select="handleMapSelect"
+        />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, watch, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import { useVendorStore } from '@/stores/vendorStore'
+import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
-import { Bar, Doughnut } from 'vue-chartjs'
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js'
+import RazorpayCheckout from '@/components/RazorpayCheckout.vue'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+import { fetchRoadDistanceKm } from '@/composables/useOsrmDistance'
+import { useRates } from '@/composables/useRates'
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement)
+const { openSlip, openSlipWithData } = useSlipPrinter()
+
+const MapPicker = defineAsyncComponent(() => import('@/components/MapPicker.vue'))
+
+let chartLibraryPromise = null
+let chartsRegistered = false
+
+function loadChartComponent(componentName) {
+    if (!chartLibraryPromise) {
+        chartLibraryPromise = Promise.all([
+            import('chart.js'),
+            import('vue-chartjs'),
+        ]).then(([chartJs, vueChartJs]) => {
+            if (!chartsRegistered) {
+                chartJs.Chart.register(
+                    chartJs.CategoryScale,
+                    chartJs.LinearScale,
+                    chartJs.BarElement,
+                    chartJs.Title,
+                    chartJs.Tooltip,
+                    chartJs.Legend,
+                    chartJs.ArcElement,
+                )
+                chartsRegistered = true
+            }
+            return vueChartJs
+        })
+    }
+
+    return chartLibraryPromise.then((vueChartJs) => vueChartJs[componentName])
+}
+
+const BarChart = defineAsyncComponent(() => loadChartComponent('Bar'))
+const DoughnutChart = defineAsyncComponent(() => loadChartComponent('Doughnut'))
 
 const store = useVendorStore()
+const authStore = useAuthStore()
+const { rates } = useRates()
+const confirmedOrder = ref(null)
 const activeTab = ref('new')
 const showConfirmModal = ref(false)
+const showPayModal = ref(false)
+const pendingPayOrder = ref(null)
 const showEditModal = ref(false)
 const showUploadModal = ref(false)
 const confirmedOrderId = ref('')
@@ -982,6 +1075,34 @@ const shipmentStatusFilter = ref('all')
 const editingEntry = ref(null)
 const isDark = ref(false)
 const showSampleData = ref(false)
+let themeObserver = null
+
+// ── Map Picker ────────────────────────────────────────────────────────
+const showMapPicker = ref(false)
+const mapPickerType = ref('destination') // 'destination' | 'pickup'
+const mapPickerTitle = computed(() =>
+    mapPickerType.value === 'destination' ? 'Select Delivery Destination' : 'Select Pickup Location'
+)
+function openMapPicker(type) {
+    mapPickerType.value = type
+    showMapPicker.value = true
+}
+function handleMapSelect(data) {
+    if (mapPickerType.value === 'destination') {
+        form.destination = data.address
+        form.destLat = data.lat
+        form.destLng = data.lon
+    } else {
+        form.pickupAddress = data.address
+        form.pickupLat = data.lat
+        form.pickupLng = data.lon
+    }
+    showMapPicker.value = false
+}
+
+// Road distance via OSRM — recalculates quote whenever both coords are set
+const distanceKm = ref(null)
+const distanceLoading = ref(false)
 const expandedSample = ref(null)
 
 const categories = [
@@ -994,15 +1115,26 @@ const handlingOptions = ['Fragile', 'Cold Storage', 'Hazardous', 'Oversize', 'Hi
 
 const form = reactive({
     category: 'commercial',
-    description: '', hsnCode: '', palletCount: 1, weight: 100, declaredValue: 0, insuranceRequired: 'no',
+    description: '', hsnCode: '', palletCount: 1, weight: 100, volume: null, declaredValue: 0, insuranceRequired: 'no',
     customerName: '', customerPhone: '',
-    pickupType: 'hub', pickupAddress: '', pickupCity: '', pickupPincode: '',
-    handling: [], pickupHub: 'Mumbai Hub', destination: '', destinationCity: '', pincode: '',
+    pickupType: 'hub', pickupAddress: '', pickupCity: '', pickupPincode: '', pickupLat: null, pickupLng: null,
+    handling: [], pickupHub: '', destination: '', destinationCity: '', pincode: '', destLat: null, destLng: null,
     pickupDate: '', deliveryDate: '', timeWindow: '08:00 AM - 12:00 PM', priority: 'Standard',
     packingRequired: false, laborRequired: false, laborCount: 1, paymentMode: 'Invoice',
 })
 
-const quote = ref({ baseTransport: 220, laborCharges: 0, packingFee: 0, insurance: 0, total: 220 })
+watch(
+    () => [form.pickupLat, form.pickupLng, form.destLat, form.destLng],
+    async ([pLat, pLng, dLat, dLng]) => {
+        if (!pLat || !pLng || !dLat || !dLng) { distanceKm.value = null; recalculate(); return }
+        distanceLoading.value = true
+        distanceKm.value = await fetchRoadDistanceKm(pLat, pLng, dLat, dLng)
+        distanceLoading.value = false
+        recalculate()
+    }
+)
+
+const quote = ref({ baseTransport: 500, laborCharges: 0, packingFee: 0, insurance: 0, total: 500 })
 
 const bulkUploads = ref([
     {
@@ -1046,18 +1178,46 @@ const doughnutChartOptions = computed(() => ({
 }))
 
 function recalculate() {
-    let base = 220 + (form.weight || 0) * 0.5
+    const r = rates.value
+    const km = distanceKm.value || 0
+    const distCharge = Math.round(km * (r.perKmRate ?? 12))
+    let base = (r.baseBookingFee ?? 220) + (form.weight || 0) * 0.5 + distCharge
     if (form.category === 'palletized') {
         base += (form.palletCount || 0) * 15
     }
     if (form.pickupType === 'doorstep') {
         base += 150 // Pickup charge
     }
-    let labor = form.laborRequired ? form.laborCount * 250 : 0
-    let packing = form.packingRequired ? 200 : 0
-    let insurance = form.insuranceRequired === 'yes' && form.declaredValue ? (form.declaredValue * 0.03) : 0
-    quote.value = { baseTransport: Math.round(base), laborCharges: labor, packingFee: packing, insurance: Math.round(insurance), total: Math.round(base + labor + packing + insurance) }
+    if (form.priority === 'Express') {
+        base *= (r.expressMultiplier ?? 1.5)
+    } else if (form.priority === 'Urgent') {
+        base *= (r.dynamic?.emergency ?? r.expressMultiplier ?? 1.5)
+    }
+    base = Math.max(base, r.minimumCharge ?? 500)
+    let labor = form.laborRequired ? form.laborCount * (r.customerLaborRate ?? 250) : 0
+    let packing = form.packingRequired ? (r.customerPackingFee ?? 200) : 0
+    let insurance = form.insuranceRequired === 'yes' && form.declaredValue ? (form.declaredValue * ((r.insurancePct ?? 3) / 100)) : 0
+    quote.value = { baseTransport: Math.round(base), laborCharges: labor, packingFee: packing, insurance: Math.round(insurance), distanceKm: km, total: Math.round(base + labor + packing + insurance) }
 }
+
+watch(
+    () => [
+        rates.value,
+        distanceKm.value,
+        form.category,
+        form.weight,
+        form.palletCount,
+        form.pickupType,
+        form.priority,
+        form.packingRequired,
+        form.laborRequired,
+        form.laborCount,
+        form.declaredValue,
+        form.insuranceRequired,
+    ],
+    () => recalculate(),
+    { deep: true, immediate: true }
+)
 
 const validationErrors = computed(() => {
     const e = []
@@ -1099,10 +1259,28 @@ const filteredShipments = computed(() => {
     return list
 })
 
-function submitShipment() {
+async function submitShipment() {
     if (!formValid.value) return
-    const s = store.createShipment({ ...form, quotedPrice: quote.value.total })
+    const s = await store.createShipment({ ...form, quotedPrice: quote.value.total, quoteBreakdown: { ...quote.value } })
     confirmedOrderId.value = s.id
+    confirmedOrder.value = s
+    if (form.paymentMode === 'Full Payment') {
+        pendingPayOrder.value = s
+        showPayModal.value = true
+    } else {
+        showConfirmModal.value = true
+    }
+}
+
+async function onRazorpaySuccess({ payment_id, method, amount }) {
+    showPayModal.value = false
+    if (pendingPayOrder.value) {
+        const invoice = store.invoices.find(inv => inv.orderId === pendingPayOrder.value.id)
+        if (invoice) {
+            await store.payInvoice(invoice.id, amount, method)
+        }
+        pendingPayOrder.value = null
+    }
     showConfirmModal.value = true
 }
 
@@ -1116,19 +1294,53 @@ function saveDraft() {
 
 function resetForm() {
     Object.assign(form, {
-        category: 'commercial', description: '', hsnCode: '', palletCount: 1, weight: 100, declaredValue: 0, insuranceRequired: 'no', customerName: '', customerPhone: '',
+        category: 'commercial', description: '', hsnCode: '', palletCount: 1, weight: 100, volume: null, declaredValue: 0, insuranceRequired: 'no', customerName: '', customerPhone: '',
         pickupType: 'hub', pickupAddress: '', pickupCity: '', pickupPincode: '',
-        handling: [], pickupHub: 'Mumbai Hub', destination: '', destinationCity: '', pincode: '', pickupDate: '', deliveryDate: '', timeWindow: '08:00 AM - 12:00 PM', priority: 'Standard', packingRequired: false, laborRequired: false, laborCount: 1, paymentMode: 'Invoice'
+        handling: [], pickupHub: store.warehouses[0]?.name || '', destination: '', destinationCity: '', pincode: '', pickupDate: '', deliveryDate: '', timeWindow: '08:00 AM - 12:00 PM', priority: 'Standard', packingRequired: false, laborRequired: false, laborCount: 1, paymentMode: 'Invoice'
     })
     recalculate()
 }
 
+const CSV_TEMPLATES = {
+    commercial: {
+        filename: 'commercial_b2b_template.csv',
+        rows: [
+            'reference_id,pickup_address,delivery_address,cargo_type,weight_kg,pallets,declared_value,payment_mode',
+            'ORD-001,Mumbai Warehouse MIDC Andheri,Delhi Central Hub Okhla,Electronics,500,5,50000,Invoice',
+            'ORD-002,Pune Factory Pimpri,Bangalore Depot Whitefield,Machinery,1200,12,120000,Prepaid',
+        ]
+    },
+    palletized: {
+        filename: 'palletized_template.csv',
+        rows: [
+            'reference_id,pickup_address,delivery_address,pallets,weight_kg,pallet_type,declared_value,payment_mode',
+            'ORD-001,Pune Factory Pimpri,Bangalore Depot Whitefield,10,2000,Standard EUR,100000,Invoice',
+            'ORD-002,Chennai Port Trust,Hyderabad JNPC Hub,4,800,Heat-Treated,40000,Prepaid',
+        ]
+    },
+    b2c: {
+        filename: 'b2c_shipment_template.csv',
+        rows: [
+            'reference_id,customer_name,customer_phone,pickup_address,delivery_address,item_description,weight_kg,declared_value',
+            'ORD-001,Rahul Sharma,9876543210,Seller Hub Mumbai,123 Main St Bangalore,Smart TV 55 inch,12,25000',
+            'ORD-002,Priya Patel,9123456789,Retail Store Ahmedabad,Plot 45 Surat,Home Appliances Set,35,15000',
+        ]
+    }
+}
+
 function downloadTemplate(category) {
-    const tooltip = document.createElement('div')
-    tooltip.className = 'fixed top-4 right-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
-    tooltip.textContent = `Downloading ${category} template...`
-    document.body.appendChild(tooltip)
-    setTimeout(() => tooltip.remove(), 2500)
+    const t = CSV_TEMPLATES[category]
+    if (!t) return
+    const content = t.rows.join('\r\n') + '\r\n'
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = t.filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
 }
 
 function toggleSample(category) {
@@ -1205,12 +1417,30 @@ function deleteEntry(uploadId, orderId) {
     if (upload) upload.entries = upload.entries.filter(e => e.orderId !== orderId)
 }
 
-onMounted(() => {
-    isDark.value = document.documentElement.classList.contains('dark')
-    const observer = new MutationObserver(() => {
+// Auto-select first warehouse once loaded
+watch(() => store.warehouses, (list) => {
+    if (!form.pickupHub && list.length) form.pickupHub = list[0].name
+}, { immediate: true })
+
+onMounted(async () => {
+    if (typeof document !== 'undefined') {
         isDark.value = document.documentElement.classList.contains('dark')
-    })
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    }
+
+    if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined') {
+        themeObserver = new MutationObserver(() => {
+            isDark.value = document.documentElement.classList.contains('dark')
+        })
+        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    }
+
+    // Always re-fetch warehouses when page loads so new hubs are visible immediately
+    await store.fetchWarehouses()
+})
+
+onBeforeUnmount(() => {
+    themeObserver?.disconnect()
+    themeObserver = null
 })
 
 recalculate()

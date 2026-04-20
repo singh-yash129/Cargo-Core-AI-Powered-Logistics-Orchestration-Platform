@@ -20,6 +20,26 @@ async def test_register_success(client: AsyncClient):
     assert "access_token" in body
     assert "refresh_token" in body
     assert body["token_type"] == "bearer"
+    assert body["pending_approval"] is False
+
+
+async def test_vendor_register_requires_approval(client: AsyncClient):
+    payload = {
+        **REGISTER_PAYLOAD,
+        "email": "vendor@example.com",
+        "role": "VENDOR",
+        "company_name": "Acme Supplies",
+        "contact_person": "Vendor Contact",
+        "business_email": "ops@acme.test",
+        "business_phone": "9000000000",
+        "tax_id": "GST12345",
+    }
+    response = await client.post("/api/v1/auth/register", json=payload)
+    assert response.status_code == 201
+    body = response.json()
+    assert body["pending_approval"] is True
+    assert body["access_token"] is None
+    assert body["user"]["approval_status"] == "PENDING"
 
 
 async def test_register_duplicate_email(client: AsyncClient, registered_user_tokens):
@@ -70,6 +90,19 @@ async def test_login_success(client: AsyncClient, registered_user_tokens):
     assert "access_token" in response.json()
 
 
+async def test_token_login_success_for_swagger_authorize(client: AsyncClient, registered_user_tokens):
+    response = await client.post(
+        "/api/v1/auth/token",
+        data={"username": REGISTER_PAYLOAD["email"], "password": REGISTER_PAYLOAD["password"]},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert "access_token" in body
+    assert "refresh_token" in body
+    assert body["token_type"] == "bearer"
+
+
 async def test_login_wrong_password(client: AsyncClient, registered_user_tokens):
     response = await client.post(
         "/api/v1/auth/login",
@@ -84,6 +117,24 @@ async def test_login_nonexistent_email(client: AsyncClient):
         json={"email": "ghost@example.com", "password": "SomePass123"},
     )
     assert response.status_code == 401
+
+
+async def test_pending_vendor_login_is_forbidden(client: AsyncClient):
+    payload = {
+        **REGISTER_PAYLOAD,
+        "email": "awaiting-vendor@example.com",
+        "role": "VENDOR",
+        "company_name": "Awaiting Vendor",
+    }
+    register_response = await client.post("/api/v1/auth/register", json=payload)
+    assert register_response.status_code == 201
+
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": payload["email"], "password": payload["password"]},
+    )
+    assert response.status_code == 403
+    assert "waiting for Logistics Manager approval" in response.json()["detail"]
 
 
 # ── POST /refresh ─────────────────────────────────────────────────────────────

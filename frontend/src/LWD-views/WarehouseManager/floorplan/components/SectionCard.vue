@@ -8,7 +8,7 @@
             <span class="material-symbols-outlined text-[20px] opacity-60"
                 :style="{ color: groupColor }">inventory_2</span>
             <span :style="{ color: groupColor }">{{ section.label }}</span>
-            <span class="text-[8px] opacity-50" :style="{ color: groupColor }">{{ groupName }}</span>
+            <span class="text-[8px] opacity-50" :style="{ color: groupColor }">{{ categoryName }}</span>
 
             <!-- Rack count badge -->
             <span class="absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded font-bold"
@@ -61,7 +61,7 @@ import { computed } from 'vue'
 const props = defineProps({
     section: { type: Object, required: true },
     groupColor: { type: String, default: '#6b7280' },
-    groupName: { type: String, default: '' },
+    categoryName: { type: String, default: '' },
     rackCount: { type: Number, default: 0 },
     productCount: { type: Number, default: 0 },
     isSelected: { type: Boolean, default: false },

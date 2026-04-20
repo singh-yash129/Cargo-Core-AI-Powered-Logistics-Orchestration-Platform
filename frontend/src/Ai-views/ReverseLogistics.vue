@@ -1,219 +1,114 @@
 <template>
     <div class="space-y-6">
+
+        <!-- Page Header -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Reverse Logistics & Returns</h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage returns, pickups and warehouse
-                    notifications</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Customer intake and damage report status
+                    tracking</p>
             </div>
-            <div class="flex gap-2">
-                <div class="relative hidden sm:block">
-                    <input v-model="searchQuery" type="text" placeholder="Search returns or customers..."
-                        class="w-64 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-purple-500 transition-colors shadow-sm">
-                    <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-lg">search</span>
+            <div class="flex items-center gap-2">
+                <div class="relative">
+                    <input v-model="search" type="text" placeholder="Search reports..."
+                        class="w-52 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors" />
+                    <span class="material-symbols-outlined absolute left-2.5 top-2 text-gray-400 text-[18px]">search</span>
                 </div>
-                <button @click="showNewReturnModal = true"
-                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg flex items-center gap-2 transition-colors shadow-sm text-sm">
-                    <span class="material-symbols-outlined text-sm">add</span> <span class="hidden sm:inline">New
-                        Return</span>
+                <button @click="openRaiseCase"
+                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg flex items-center gap-2 transition-colors text-sm">
+                    <span class="material-symbols-outlined text-sm">add</span>
+                    <span class="hidden sm:inline">Raise Case</span>
                 </button>
             </div>
         </div>
 
-        <!-- Action Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div
-                class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 p-6 rounded-xl border-l-4 border-l-purple-500 shadow-sm flex flex-col justify-between">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <div class="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-1">
-                            Pending Review</div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ pendingReviewCount }}</div>
-                    </div>
-                    <div class="p-2 bg-purple-50 dark:bg-purple-500/10 rounded-lg">
-                        <span
-                            class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-2xl">assignment_late</span>
-                    </div>
+        <!-- Stats Strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            <div v-for="stat in statCards" :key="stat.label"
+                class="bg-white dark:bg-card-darker rounded-xl border border-gray-100 dark:border-white/5 p-4 flex items-center gap-3 shadow-sm">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" :class="stat.bg">
+                    <span class="material-symbols-outlined text-[20px]" :class="stat.iconColor">{{ stat.icon }}</span>
                 </div>
-                <button @click="showProcessModal = true"
-                    class="w-full py-2 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 rounded-lg text-sm font-bold hover:bg-purple-600 hover:text-white transition-colors flex items-center justify-center gap-2 mt-2">
-                    <span class="material-symbols-outlined text-sm">fact_check</span> Process Requests
-                </button>
-            </div>
-
-            <div
-                class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 p-6 rounded-xl border-l-4 border-l-blue-500 shadow-sm flex flex-col justify-between">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <div class="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-1">
-                            Pickups Needed</div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ pickupsNeededCount }}</div>
-                    </div>
-                    <div class="p-2 bg-blue-50 dark:bg-blue-500/10 rounded-lg">
-                        <span
-                            class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-2xl">local_shipping</span>
-                    </div>
+                <div>
+                    <div class="text-2xl font-black text-gray-900 dark:text-white">{{ stat.value }}</div>
+                    <div class="text-[11px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">{{
+                        stat.label }}</div>
                 </div>
-                <button @click="showAutoAssignModal = true"
-                    class="w-full py-2 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-bold hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-center gap-2 mt-2">
-                    <span class="material-symbols-outlined text-sm">smart_toy</span> AI Auto-Assign
-                </button>
-            </div>
-
-            <div
-                class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 p-6 rounded-xl border-l-4 border-l-orange-500 shadow-sm flex flex-col justify-between">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <div class="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-1">In
-                            Transit</div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ inTransitCount }}</div>
-                    </div>
-                    <div class="p-2 bg-orange-50 dark:bg-orange-500/10 rounded-lg">
-                        <span
-                            class="material-symbols-outlined text-orange-600 dark:text-orange-400 text-2xl">transfer_within_a_station</span>
-                    </div>
-                </div>
-                <div
-                    class="w-full h-8 bg-gray-50 dark:bg-white/5 rounded-lg flex items-center justify-center text-xs text-gray-500 dark:text-gray-400 font-medium mt-2">
-                    Monitoring {{ inTransitCount }} vehicles
-                </div>
-            </div>
-
-            <div
-                class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 p-6 rounded-xl border-l-4 border-l-green-500 shadow-sm flex flex-col justify-between">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <div class="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-1">
-                            Completed</div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-white">156</div>
-                    </div>
-                    <div class="p-2 bg-green-50 dark:bg-green-500/10 rounded-lg">
-                        <span
-                            class="material-symbols-outlined text-green-600 dark:text-green-400 text-2xl">warehouse</span>
-                    </div>
-                </div>
-                <button @click="showReportModal = true"
-                    class="w-full py-2 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded-lg text-sm font-bold hover:bg-green-600 hover:text-white transition-colors flex items-center justify-center gap-2 mt-2">
-                    <span class="material-symbols-outlined text-sm">bar_chart</span> View Report
-                </button>
             </div>
         </div>
 
-        <!-- Returns List -->
-        <div
-            class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-xl overflow-hidden shadow-sm">
-            <div
-                class="p-4 sm:p-6 border-b border-gray-100 dark:border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50 dark:bg-white/5">
-                <h3 class="font-bold text-gray-900 dark:text-white">Active Return Requests</h3>
+        <!-- Filter Tabs -->
+        <div class="flex gap-1 bg-white dark:bg-black/20 p-1 rounded-lg border border-gray-200 dark:border-white/10 w-fit flex-wrap">
+            <button v-for="tab in filterTabs" :key="tab.id" @click="activeTab = tab.id"
+                class="px-3 py-1.5 rounded-md text-xs font-bold transition-all"
+                :class="activeTab === tab.id ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'">
+                {{ tab.label }}
+            </button>
+        </div>
 
-                <!-- Filter Tabs -->
-                <div
-                    class="flex bg-gray-200 dark:bg-white/10 rounded-lg p-1 overflow-x-auto no-scrollbar w-full sm:w-auto">
-                    <button v-for="filter in ['All', 'Pending Review', 'Approved', 'Pickup Scheduled', 'In Transit']"
-                        :key="filter" @click="activeListFilter = filter"
-                        class="px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap"
-                        :class="activeListFilter === filter ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'">
-                        {{ filter }}
-                    </button>
-                </div>
-            </div>
+        <!-- Loading / Error -->
+        <div v-if="store.loading"
+            class="rounded-xl border border-gray-100 dark:border-white/5 bg-white dark:bg-card-darker p-6 text-sm text-gray-500 dark:text-gray-400">
+            Loading damage reports...
+        </div>
+        <div v-else-if="store.error"
+            class="rounded-xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
+            {{ store.error }}
+        </div>
 
+        <!-- Table -->
+        <div v-else class="bg-white dark:bg-card-darker rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm min-w-[1000px]">
-                    <thead
-                        class="bg-gray-50 dark:bg-black/40 text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider font-bold">
-                        <tr>
-                            <th class="p-4 pl-6">Return Info</th>
-                            <th class="p-4">Customer details</th>
-                            <th class="p-4">Item & Reason</th>
-                            <th class="p-4">Status</th>
-                            <th class="p-4">Warehouse</th>
-                            <th class="p-4 text-right pr-6">Action</th>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/2">
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ref</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Order</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Flow</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Sentiment</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">Created</th>
+                            <th class="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                        <tr v-for="item in filteredReturns" :key="item.id"
-                            class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer"
-                            @click.self="openReturnDetail(item)">
-
-                            <td class="p-4 pl-6" @click="openReturnDetail(item)">
-                                <div
-                                    class="font-mono text-xs font-bold px-2 py-1 rounded bg-gray-100 dark:bg-white/10 inline-block text-gray-800 dark:text-gray-200 mb-1">
-                                    {{ item.id }}
-                                </div>
-                                <div class="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[12px]">schedule</span> {{
-                                        item.dateAdded }}
-                                </div>
-                            </td>
-
-                            <td class="p-4" @click="openReturnDetail(item)">
-                                <div class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                    <div
-                                        class="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-[10px]">
-                                        {{ item.customerInitials }}
-                                    </div>
-                                    {{ item.customer }}
-                                </div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 truncate mt-1 max-w-[150px]">{{
-                                    item.address }}</div>
-                            </td>
-
-                            <td class="p-4" @click="openReturnDetail(item)">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-200">{{ item.item }}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[12px] text-red-400"
-                                        v-if="item.reason.includes('Defect') || item.reason.includes('Damaged')">warning</span>
-                                    {{ item.reason }}
-                                </div>
-                            </td>
-
-                            <td class="p-4" @click="openReturnDetail(item)">
-                                <span class="px-2.5 py-1 rounded-full text-xs font-bold border"
-                                    :class="item.statusClass">
-                                    {{ item.status }}
-                                </span>
-                            </td>
-
-                            <td class="p-4" @click="openReturnDetail(item)">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2.5 h-2.5 rounded-full shadow-sm"
-                                        :class="item.warehouseStatus === 'Notified' ? 'bg-green-500' : (item.warehouseStatus === 'Received' ? 'bg-blue-500' : 'bg-gray-400 dark:bg-gray-600')"></span>
-                                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{
-                                        item.warehouseStatus }}</span>
-                                </div>
-                            </td>
-
-                            <td class="p-4 pr-6">
-                                <div class="flex justify-end gap-2 relative">
-                                    <button @click.stop="openReturnDetail(item)"
-                                        class="p-2 bg-gray-100 dark:bg-white/5 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors tooltip-trigger">
-                                        <span class="material-symbols-outlined text-sm">visibility</span>
-                                        <span class="tooltip">View Details</span>
-                                    </button>
-
-                                    <button v-if="item.status === 'Approved'" @click.stop="schedulePickup(item)"
-                                        class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1 shadow-sm">
-                                        <span class="material-symbols-outlined text-[14px]">calendar_add_on</span>
-                                        Schedule
-                                    </button>
-
-                                    <button v-if="item.status === 'Pending Review'"
-                                        @click.stop="showProcessModal = true"
-                                        class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1 shadow-sm">
-                                        <span class="material-symbols-outlined text-[14px]">fact_check</span> Review
-                                    </button>
-                                </div>
+                    <tbody>
+                        <tr v-if="filtered.length === 0">
+                            <td colspan="8" class="text-center py-16 text-gray-400 dark:text-gray-600">
+                                <span class="material-symbols-outlined text-4xl mb-2 block">inbox</span>
+                                No damage reports found
                             </td>
                         </tr>
-
-                        <tr v-if="filteredReturns.length === 0">
-                            <td colspan="6" class="p-8 text-center text-gray-500 dark:text-gray-400">
-                                <div class="flex flex-col items-center justify-center">
-                                    <span
-                                        class="material-symbols-outlined text-4xl mb-2 text-gray-300 dark:text-gray-600">inbox</span>
-                                    <p>No returns found matching your criteria.</p>
-                                </div>
+                        <tr v-for="row in filtered" :key="row.id"
+                            class="border-b border-gray-50 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+                            @click="openDetail(row)">
+                            <td class="px-5 py-3.5">
+                                <span class="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded">{{ row.reference_code }}</span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <div class="font-medium text-gray-900 dark:text-white text-sm">{{ row.customer_name }}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-500">{{ row.customer_email }}</div>
+                            </td>
+                            <td class="px-5 py-3.5 hidden md:table-cell">
+                                <span v-if="row.order_tracking_code" class="font-mono text-xs text-blue-600 dark:text-blue-400">{{ row.order_tracking_code }}</span>
+                                <span v-else class="text-gray-400 text-xs">—</span>
+                            </td>
+                            <td class="px-5 py-3.5 hidden lg:table-cell">
+                                <span class="text-xs font-medium px-2 py-0.5 rounded-full" :class="flowStyle(row.flow_type)">{{ flowLabel(row.flow_type) }}</span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="statusStyle(row.status)">{{ row.status }}</span>
+                            </td>
+                            <td class="px-5 py-3.5 hidden lg:table-cell">
+                                <span v-if="row.sentiment" class="text-xs font-medium px-2 py-0.5 rounded-full" :class="sentimentStyle(row.sentiment)">{{ row.sentiment }}</span>
+                                <span v-else class="text-gray-400 text-xs">—</span>
+                            </td>
+                            <td class="px-5 py-3.5 hidden xl:table-cell text-xs text-gray-500 dark:text-gray-500">{{ formatTime(row.created_at) }}</td>
+                            <td class="px-5 py-3.5 text-right" @click.stop>
+                                <button @click="openDetail(row)" title="View"
+                                    class="p-1.5 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-500/10 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                                    <span class="material-symbols-outlined text-[18px]">open_in_new</span>
+                                </button>
                             </td>
                         </tr>
                     </tbody>
@@ -221,769 +116,411 @@
             </div>
         </div>
 
-        <!-- Detail Modal -->
+        <!-- ── Case Detail Drawer ─────────────────────────────────────────── -->
         <Teleport to="body">
-            <div v-if="showDetailModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
-                @click.self="showDetailModal = false">
-                <div
-                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
-                    <div
-                        class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-start bg-gray-50 dark:bg-white/5">
-                        <div>
-                            <div class="flex items-center gap-3 mb-2">
-                                <div
-                                    class="font-mono text-sm font-bold bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 px-2 py-1 rounded inline-block text-gray-800 dark:text-gray-200">
-                                    {{ selectedReturn?.id }}
-                                </div>
-                                <span class="px-2.5 py-1 rounded-full text-xs font-bold border"
-                                    :class="selectedReturn?.statusClass">
-                                    {{ selectedReturn?.status }}
-                                </span>
-                            </div>
-                            <h3 class="text-xl font-bold text-gray-900 dark:text-white mt-1">Return Details</h3>
-                        </div>
-                        <button @click="showDetailModal = false"
-                            class="text-gray-400 hover:text-gray-600 dark:hover:text-white bg-white dark:bg-black/20 p-2 rounded-full border border-gray-200 dark:border-white/10 transition-colors">
-                            <span class="material-symbols-outlined text-sm">close</span>
-                        </button>
-                    </div>
+            <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0"
+                enter-to-class="opacity-100" leave-active-class="transition-all duration-200"
+                leave-from-class="opacity-100" leave-to-class="opacity-0">
+                <div v-if="selected"
+                    class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-end"
+                    @click.self="selected = null">
+                    <div class="w-full max-w-2xl h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto flex flex-col">
 
-                    <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-black/10 space-y-6">
-                        <!-- Customer & Product Info -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div
-                                class="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-white/5">
-                                <h4
-                                    class="text-xs uppercase font-bold text-gray-400 tracking-wider mb-3 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[14px]">person</span> Customer
-                                    Information
-                                </h4>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500">Name</span>
-                                        <span class="text-sm font-bold text-gray-900 dark:text-white">{{
-                                            selectedReturn?.customer }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500">Phone</span>
-                                        <span class="text-sm text-gray-900 dark:text-gray-200">{{ selectedReturn?.phone
-                                            || '+1 (555) 123-4567' }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500">Address</span>
-                                        <span
-                                            class="text-sm text-gray-900 dark:text-gray-200 text-right max-w-[150px] truncate"
-                                            :title="selectedReturn?.address">{{ selectedReturn?.address }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                class="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-white/5">
-                                <h4
-                                    class="text-xs uppercase font-bold text-gray-400 tracking-wider mb-3 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[14px]">inventory_2</span> Product
-                                    Details
-                                </h4>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500">Item Name</span>
-                                        <span
-                                            class="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[150px]"
-                                            :title="selectedReturn?.item">{{ selectedReturn?.item }}</span>
-                                    </div>
-                                    <div
-                                        class="flex justify-between border-t border-gray-200 dark:border-white/10 pt-2 mt-2">
-                                        <span class="text-sm text-gray-500">Reason</span>
-                                        <span class="text-sm text-red-600 dark:text-red-400 font-medium">{{
-                                            selectedReturn?.reason }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500">Condition reported</span>
-                                        <span class="text-sm text-gray-900 dark:text-gray-300">{{
-                                            selectedReturn?.condition || 'Used/Opened' }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Logistics Status -->
-                        <div
-                            class="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-white/5">
-                            <h4
-                                class="text-xs uppercase font-bold text-gray-400 tracking-wider mb-4 flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[14px]">local_shipping</span> Logistics
-                                Trail
-                            </h4>
-
-                            <!-- Timeline -->
-                            <div
-                                class="relative pl-6 space-y-4 before:absolute before:inset-y-0 before:left-[4px] before:w-[2px] before:bg-gray-200 dark:before:bg-gray-700">
-                                <!-- Step 1 -->
-                                <div class="relative">
-                                    <div
-                                        class="absolute -left-[24.5px] top-1.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900 shadow">
-                                    </div>
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <div class="text-sm font-bold text-gray-900 dark:text-white">Request
-                                                Submitted</div>
-                                            <div class="text-xs text-gray-500">Customer initiated return via app</div>
-                                        </div>
-                                        <div class="text-[10px] text-gray-400">{{ selectedReturn?.dateAdded }}</div>
-                                    </div>
-                                </div>
-
-                                <!-- Step 2 -->
-                                <div class="relative">
-                                    <div class="absolute -left-[24.5px] top-1.5 w-3 h-3 rounded-full border-2 border-white dark:border-gray-900 shadow"
-                                        :class="['Approved', 'Pickup Scheduled', 'In Transit'].includes(selectedReturn?.status) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'">
-                                    </div>
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <div class="text-sm font-bold"
-                                                :class="['Approved', 'Pickup Scheduled', 'In Transit'].includes(selectedReturn?.status) ? 'text-gray-900 dark:text-white' : 'text-gray-400'">
-                                                Request Approved</div>
-                                            <div class="text-xs text-gray-500"
-                                                v-if="['Approved', 'Pickup Scheduled', 'In Transit'].includes(selectedReturn?.status)">
-                                                Automated check passed</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Step 3 -->
-                                <div class="relative">
-                                    <div class="absolute -left-[24.5px] top-1.5 w-3 h-3 rounded-full border-2 border-white dark:border-gray-900 shadow"
-                                        :class="['Pickup Scheduled', 'In Transit'].includes(selectedReturn?.status) ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'">
-                                    </div>
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <div class="text-sm font-bold"
-                                                :class="['Pickup Scheduled', 'In Transit'].includes(selectedReturn?.status) ? 'text-gray-900 dark:text-white' : 'text-gray-400'">
-                                                Pickup Scheduled</div>
-                                            <div class="text-xs text-gray-500" v-if="selectedReturn?.driver">Assigned
-                                                to: {{ selectedReturn?.driver }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Step 4 -->
-                                <div class="relative">
-                                    <div class="absolute -left-[24.5px] top-1.5 w-3 h-3 rounded-full border-2 border-white dark:border-gray-900 shadow"
-                                        :class="selectedReturn?.warehouseStatus === 'Received' ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'">
-                                    </div>
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <div class="text-sm font-bold"
-                                                :class="selectedReturn?.warehouseStatus === 'Received' ? 'text-gray-900 dark:text-white' : 'text-gray-400'">
-                                                Warehouse Received</div>
-                                            <div class="text-xs text-gray-500">Pending physical inspection</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- AI Insight -->
-                        <div
-                            class="bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 rounded-xl p-4 flex items-start gap-3">
-                            <span
-                                class="material-symbols-outlined text-purple-600 dark:text-purple-400 mt-0.5">smart_toy</span>
+                        <!-- Drawer Header -->
+                        <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-white/10 px-6 py-4 flex items-center justify-between z-10">
                             <div>
-                                <h4 class="text-sm font-bold text-purple-900 dark:text-purple-300">AI Fraud Risk
-                                    Assessment</h4>
-                                <p class="text-xs text-purple-700 dark:text-purple-400 mt-1">
-                                    Risk Score: <strong class="text-green-600 dark:text-green-400">Low (12%)</strong>.
-                                    Customer has a high lifetime value and valid return history. Recommend instant
-                                    approval to maintain satisfaction.
-                                </p>
+                                <span class="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded">{{ selected.reference_code }}</span>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white mt-1 truncate max-w-[24rem]">{{ selected.description }}</h3>
                             </div>
-                        </div>
-
-                    </div>
-
-                    <div class="p-6 border-t border-gray-100 dark:border-white/5 flex gap-3 bg-gray-50 dark:bg-white/5">
-                        <button @click="showDetailModal = false"
-                            class="px-6 py-2.5 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors shadow-sm">
-                            Close
-                        </button>
-                        <div class="flex-1 flex justify-end gap-2">
-                            <button v-if="selectedReturn?.status === 'Pending Review'"
-                                @click="rejectReturn(selectedReturn); showDetailModal = false"
-                                class="px-6 py-2.5 bg-red-100 hover:bg-red-200 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-red-700 dark:text-red-400 font-bold rounded-xl transition-colors">
-                                Reject
-                            </button>
-                            <button v-if="selectedReturn?.status === 'Pending Review'"
-                                @click="approveReturn(selectedReturn); showDetailModal = false"
-                                class="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2">
-                                <span class="material-symbols-outlined text-sm">thumb_up</span> Approve Request
-                            </button>
-                            <button v-if="selectedReturn?.status === 'Approved'" @click="schedulePickup(selectedReturn)"
-                                class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2">
-                                <span class="material-symbols-outlined text-sm">calendar_add_on</span> Schedule Pickup
+                            <button @click="selected = null"
+                                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 transition-colors">
+                                <span class="material-symbols-outlined">close</span>
                             </button>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
 
-        <!-- Process Modal -->
-        <Teleport to="body">
-            <div v-if="showProcessModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-                @click.self="showProcessModal = false">
-                <div
-                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 dark:border-white/5 bg-purple-50 dark:bg-purple-900/10">
-                        <div class="flex items-center gap-3">
-                            <span
-                                class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-3xl">fact_check</span>
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Batch Process Requests</h3>
-                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ pendingReviewCount }}
-                                    requests pending your review.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="p-6 space-y-3 max-h-[50vh] overflow-y-auto custom-scrollbar">
-                        <div v-for="ret in returns.filter(r => r.status === 'Pending Review')" :key="ret.id"
-                            class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5 gap-4">
-                            <div>
-                                <div class="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                                    {{ ret.customer }}
-                                    <span
-                                        class="text-[10px] bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded font-mono">{{
-                                            ret.id }}</span>
+                        <!-- Drawer Body: two-column layout -->
+                        <div class="flex-1 p-6 flex gap-6">
+
+                            <!-- Left: main content -->
+                            <div class="flex-1 space-y-6 min-w-0">
+
+                                <!-- Badges -->
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="text-xs font-bold px-2.5 py-1 rounded-full" :class="statusStyle(selected.status)">{{ selected.status }}</span>
+                                    <span class="text-xs font-medium px-2.5 py-1 rounded-full" :class="flowStyle(selected.flow_type)">{{ flowLabel(selected.flow_type) }}</span>
+                                    <span v-if="selected.sentiment" class="text-xs font-medium px-2.5 py-1 rounded-full" :class="sentimentStyle(selected.sentiment)">{{ selected.sentiment }}</span>
                                 </div>
-                                <div class="text-xs text-gray-500 mt-1">{{ ret.item }}</div>
-                                <div class="text-[10px] text-red-500 mt-1 font-medium">Reason: {{ ret.reason }}</div>
-                            </div>
-                            <div class="flex gap-2 shrink-0">
-                                <button @click="approveReturn(ret)"
-                                    class="flex-1 sm:flex-none px-3 py-1.5 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 text-xs font-bold rounded-lg hover:bg-green-200 dark:hover:bg-green-500/30 border border-green-200 dark:border-green-500/30 transition-colors flex items-center justify-center gap-1">
-                                    <span class="material-symbols-outlined text-[14px]">check</span> Approve
-                                </button>
-                                <button @click="rejectReturn(ret)"
-                                    class="flex-1 sm:flex-none px-3 py-1.5 bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 text-xs font-bold rounded-lg hover:bg-red-200 dark:hover:bg-red-500/30 border border-red-200 dark:border-red-500/30 transition-colors flex items-center justify-center gap-1">
-                                    <span class="material-symbols-outlined text-[14px]">close</span> Reject
-                                </button>
-                            </div>
-                        </div>
-                        <div v-if="pendingReviewCount === 0"
-                            class="text-center text-gray-500 dark:text-gray-400 py-8 flex flex-col items-center">
-                            <span
-                                class="material-symbols-outlined text-4xl mb-2 text-gray-300 dark:text-gray-600">done_all</span>
-                            <p>All requests processed. Great job!</p>
-                        </div>
-                    </div>
-                    <div class="p-6 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5 flex gap-3">
-                        <button @click="approveAllPending" v-if="pendingReviewCount > 0"
-                            class="flex-1 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white text-sm font-bold rounded-xl transition-colors">
-                            Approve All
-                        </button>
-                        <button @click="showProcessModal = false"
-                            class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
-                            Done Reviewing
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
 
-        <!-- Pickup Modal -->
-        <Teleport to="body">
-            <div v-if="showPickupModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-                @click.self="showPickupModal = false">
-                <div
-                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/10">
-                        <div class="flex items-center gap-3">
-                            <span
-                                class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-3xl">edit_calendar</span>
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Schedule Pickup</h3>
-                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Assign driver and slot</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="p-6 bg-gray-50 dark:bg-black/10 border-b border-gray-100 dark:border-white/5">
-                        <div class="flex items-center gap-4 mb-2">
-                            <div
-                                class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold shrink-0">
-                                {{ selectedReturn?.customerInitials }}
-                            </div>
-                            <div>
-                                <div class="font-bold text-gray-900 dark:text-white">{{ selectedReturn?.customer }}
+                                <!-- Info Grid -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Customer</div>
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ selected.customer_name }}</div>
+                                        <div class="text-xs text-gray-500">{{ selected.customer_email }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Order</div>
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-white font-mono">{{ selected.order_tracking_code || '—' }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Filed</div>
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ formatFull(selected.created_at) }}</div>
+                                    </div>
+                                    <div v-if="selected.session_id" class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">AI Session</div>
+                                        <a class="text-xs text-purple-500 hover:underline truncate block" href="#">View Conversation</a>
+                                    </div>
                                 </div>
-                                <div class="text-xs text-gray-500 font-mono">{{ selectedReturn?.id }}</div>
-                            </div>
-                        </div>
-                        <div
-                            class="text-sm text-gray-600 dark:text-gray-300 mt-3 p-3 bg-white dark:bg-black/20 rounded-lg border border-gray-200 dark:border-white/5">
-                            <span class="font-bold block mb-1">Pickup Item:</span>
-                            {{ selectedReturn?.item }}
-                        </div>
-                        <div class="text-xs text-gray-500 mt-2 flex gap-1 items-start">
-                            <span class="material-symbols-outlined text-[14px]">location_on</span>
-                            <span>{{ selectedReturn?.address }}</span>
-                        </div>
-                    </div>
 
-                    <div class="p-6 space-y-4">
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Assigned
-                                Driver</label>
-                            <div class="relative">
-                                <select v-model="pickupDriver"
-                                    class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors appearance-none">
-                                    <option>Auto-Assign (AI Optimized)</option>
-                                    <option>David Miller (Zone A)</option>
-                                    <option>Sarah Jenkins (Zone B)</option>
-                                    <option>Mike Chen (Heavy Freight)</option>
-                                </select>
-                                <span
-                                    class="material-symbols-outlined absolute right-3 top-3 text-gray-400 pointer-events-none">expand_more</span>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label
-                                    class="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Pickup
-                                    Date</label>
-                                <input type="date" v-model="pickupDate"
-                                    class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-colors">
-                            </div>
-                            <div>
-                                <label
-                                    class="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Time
-                                    Window</label>
-                                <select v-model="pickupTimeWindow"
-                                    class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 transition-colors">
-                                    <option>Morning (8A - 12P)</option>
-                                    <option>Afternoon (12P - 4P)</option>
-                                    <option>Evening (4P - 8P)</option>
-                                </select>
-                            </div>
-                        </div>
+                                <!-- Description -->
+                                <div>
+                                    <div class="text-xs font-bold text-gray-500 uppercase mb-2">Description</div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ selected.description }}</div>
+                                </div>
 
-                        <div v-if="pickupDriver.includes('Auto-Assign')"
-                            class="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-lg flex items-start gap-2 border border-blue-100 dark:border-blue-500/20 text-xs text-blue-800 dark:text-blue-300">
-                            <span class="material-symbols-outlined text-[16px] mt-0.5">auto_awesome</span>
-                            <p>AI will automatically assign the best driver based on route density and vehicle capacity
-                                for the selected date.</p>
+                                <!-- Photos -->
+                                <div v-if="selected.photos && selected.photos.length > 0">
+                                    <div class="text-xs font-bold text-gray-500 uppercase mb-2">Customer Photos</div>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <div v-for="(photo, idx) in selected.photos" :key="idx"
+                                            class="aspect-square bg-gray-100 dark:bg-white/5 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-purple-500 transition-all"
+                                            @click="zoomPhoto(photo)">
+                                            <img :src="photo" class="w-full h-full object-cover" :alt="'Photo ' + (idx + 1)" loading="lazy" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else-if="selected.photos !== undefined">
+                                    <div class="text-xs font-bold text-gray-500 uppercase mb-2">Customer Photos</div>
+                                    <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-xl text-xs text-gray-400 text-center">No photos submitted</div>
+                                </div>
+
+                                <!-- Internal Notes -->
+                                <div class="border-t border-gray-100 dark:border-white/10 pt-5">
+                                    <div class="text-xs font-bold text-gray-500 uppercase mb-2">Internal Support Notes</div>
+                                    <textarea v-model="notesValue" rows="3" placeholder="Add internal notes (visible to WM and LM)..."
+                                        class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition resize-none"></textarea>
+                                    <button @click="saveNotes"
+                                        :disabled="savingNotes"
+                                        class="mt-2 px-4 py-2 bg-gray-800 dark:bg-white/10 hover:bg-gray-900 dark:hover:bg-white/20 text-white font-bold rounded-lg text-xs transition-colors disabled:opacity-50">
+                                        {{ savingNotes ? 'Saving…' : 'Save Notes' }}
+                                    </button>
+                                </div>
+
+                                <!-- Customer Communication Panel -->
+                                <div class="border-t border-gray-100 dark:border-white/10 pt-5">
+                                    <div class="text-xs font-bold text-gray-500 uppercase mb-2">Message to Customer</div>
+                                    <!-- Sent message thread -->
+                                    <div v-if="selected.support_messages && selected.support_messages.length > 0"
+                                        class="mb-3 space-y-2 max-h-40 overflow-y-auto">
+                                        <div v-for="(msg, idx) in selected.support_messages" :key="idx"
+                                            class="p-2.5 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20">
+                                            <div class="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-0.5">{{ msg.sent_by }}</div>
+                                            <div class="text-sm text-gray-800 dark:text-gray-200">{{ msg.text }}</div>
+                                            <div class="text-[10px] text-gray-400 mt-1">{{ formatFull(msg.sent_at) }}</div>
+                                        </div>
+                                    </div>
+                                    <textarea v-model="customerMessage" rows="2" placeholder="Type a message to send to the customer..."
+                                        class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition resize-none"></textarea>
+                                    <div v-if="sendMessageError" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ sendMessageError }}</div>
+                                    <button @click="sendCustomerMessage"
+                                        :disabled="sendingMessage || !customerMessage.trim()"
+                                        class="mt-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-lg text-xs transition-colors flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[14px]">send</span>
+                                        {{ sendingMessage ? 'Sending...' : 'Send' }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Right: Customer History Sidebar -->
+                            <div class="w-44 flex-shrink-0 space-y-3">
+                                <div class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer History</div>
+                                <div v-if="loadingHistory" class="text-xs text-gray-400">Loading…</div>
+                                <template v-else-if="customerHistory">
+                                    <div v-for="item in customerHistoryCards" :key="item.label"
+                                        class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 text-center">
+                                        <div class="text-xl font-black" :class="item.color">{{ item.value }}</div>
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">{{ item.label }}</div>
+                                    </div>
+                                    <div v-if="customerHistory.last_sentiment"
+                                        class="p-3 rounded-xl border text-center text-xs font-bold"
+                                        :class="sentimentStyle(customerHistory.last_sentiment)">
+                                        {{ customerHistory.last_sentiment }}
+                                    </div>
+                                </template>
+                                <div v-else class="text-xs text-gray-400">N/A</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="p-6 border-t border-gray-100 dark:border-white/5 flex gap-3 bg-gray-50 dark:bg-white/5">
-                        <button @click="showPickupModal = false"
-                            class="flex-1 py-2.5 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors shadow-sm">
-                            Cancel
-                        </button>
-                        <button @click="confirmPickup" :disabled="!pickupDate"
-                            class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined text-sm">schedule_send</span> Confirm
-                        </button>
                     </div>
                 </div>
+            </Transition>
+        </Teleport>
+
+        <!-- ── Photo Zoom Modal ───────────────────────────────────────────── -->
+        <Teleport to="body">
+            <div v-if="zoomedPhoto"
+                class="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4"
+                @click="zoomedPhoto = null">
+                <img :src="zoomedPhoto" class="max-h-[90vh] max-w-full rounded-xl shadow-2xl object-contain" />
             </div>
         </Teleport>
 
-        <!-- New Return Modal -->
+        <!-- ── Raise Case Modal ───────────────────────────────────────────── -->
         <Teleport to="body">
-            <div v-if="showNewReturnModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-                @click.self="showNewReturnModal = false">
-                <div
-                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 dark:border-white/5">
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Create Return Request</h3>
-                        <p class="text-xs text-gray-500 mt-1">Manually initiate a return process.</p>
-                    </div>
-                    <div class="p-6 space-y-4">
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Customer
-                                Name</label>
-                            <input type="text" placeholder="John Doe"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors">
+            <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 scale-95"
+                enter-to-class="opacity-100 scale-100">
+                <div v-if="showRaiseModal"
+                    class="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                    @click.self="showRaiseModal = false">
+                    <div class="w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white">Raise Case on Customer's Behalf</h3>
+                            <button @click="showRaiseModal = false" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500">
+                                <span class="material-symbols-outlined text-[18px]">close</span>
+                            </button>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="p-6 space-y-4">
+                            <!-- Duplicate Warning -->
+                            <div v-if="duplicateWarning"
+                                class="p-3 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-xl text-xs text-yellow-800 dark:text-yellow-300 flex items-start gap-2">
+                                <span class="material-symbols-outlined text-[16px] flex-shrink-0 mt-0.5">warning</span>
+                                <span>A damage report already exists for this order: <strong>{{ duplicateWarning.reference_code }}</strong> ({{ duplicateWarning.status }}). Are you sure you want to create another?</span>
+                            </div>
+
                             <div>
-                                <label
-                                    class="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Order
-                                    / Invoice ID</label>
-                                <input type="text" placeholder="INV-2024..."
-                                    class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors">
+                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Customer ID</label>
+                                <input v-model="raiseForm.customer_id" type="text" placeholder="UUID of the customer..."
+                                    class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
                             </div>
                             <div>
-                                <label
-                                    class="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Return
-                                    Reason</label>
-                                <select
-                                    class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors">
-                                    <option>Defective Product</option>
-                                    <option>Wrong Item Sent</option>
-                                    <option>Customer Changed Mind</option>
-                                    <option>Damaged in shipping</option>
+                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Order ID <span class="text-gray-400 font-normal">(optional)</span></label>
+                                <input v-model="raiseForm.order_id" type="text" placeholder="UUID of the order..."
+                                    @blur="checkDuplicate"
+                                    class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Flow Type</label>
+                                <select v-model="raiseForm.flow_type" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition">
+                                    <option value="photo_review">Photo Review</option>
+                                    <option value="pickup_inspection">Pickup Inspection</option>
                                 </select>
                             </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Description</label>
+                                <textarea v-model="raiseForm.description" rows="3" placeholder="Describe the damage or issue..."
+                                    class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition resize-none"></textarea>
+                            </div>
+                            <div v-if="raiseError" class="text-sm text-red-600 dark:text-red-400">{{ raiseError }}</div>
                         </div>
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Item
-                                Details</label>
-                            <textarea rows="2" placeholder="Describe the item being returned..."
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors resize-none"></textarea>
-                        </div>
-                    </div>
-                    <div class="p-6 border-t border-gray-100 dark:border-white/5 flex gap-3 bg-gray-50 dark:bg-white/5">
-                        <button @click="showNewReturnModal = false"
-                            class="flex-1 py-2.5 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors shadow-sm">
-                            Cancel
-                        </button>
-                        <button @click="showNewReturnModal = false"
-                            class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-colors shadow-sm">
-                            Submit Request
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
-
-        <!-- Auto Assign Modal -->
-        <Teleport to="body">
-            <div v-if="showAutoAssignModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-                @click.self="showAutoAssignModal = false">
-                <div
-                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden text-center">
-                    <div class="p-8 pb-4">
-                        <div
-                            class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center mx-auto mb-4 relative">
-                            <span
-                                class="material-symbols-outlined text-4xl text-blue-600 dark:text-blue-400">smart_toy</span>
-                            <span
-                                class="absolute top-0 right-0 w-4 h-4 rounded-full bg-blue-500 border-2 border-white dark:border-gray-900 animate-ping"></span>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">AI Auto-Assign</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                            Our AI will map all <strong class="text-gray-900 dark:text-white">{{ pickupsNeededCount
-                                }}</strong> pending pickups to the most efficient driver routes to save time and fuel.
-                        </p>
-                    </div>
-                    <div class="p-6 bg-gray-50 dark:bg-white/5 border-t border-gray-100 dark:border-white/5">
-                        <div class="flex gap-3">
-                            <button @click="showAutoAssignModal = false"
-                                class="flex-1 py-2.5 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors">
+                        <div class="px-6 py-4 border-t border-gray-100 dark:border-white/10 flex justify-end gap-2">
+                            <button @click="showRaiseModal = false"
+                                class="px-4 py-2 rounded-lg border border-gray-200 dark:border-white/10 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                 Cancel
                             </button>
-                            <button @click="runAutoAssign"
-                                class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined text-sm">rocket_launch</span> Optimize
+                            <button @click="submitRaiseCase" :disabled="raisingCase"
+                                class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-sm transition-colors disabled:opacity-50">
+                                {{ raisingCase ? 'Creating…' : 'Create Report' }}
                             </button>
                         </div>
                     </div>
                 </div>
-            </div>
+            </Transition>
         </Teleport>
-
-        <!-- View Report Modal -->
-        <Teleport to="body">
-            <div v-if="showReportModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
-                @click.self="showReportModal = false">
-                <div
-                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
-                    <div
-                        class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-start bg-green-50 dark:bg-green-900/10">
-                        <div class="flex items-center gap-3">
-                            <span
-                                class="material-symbols-outlined text-green-600 dark:text-green-400 text-3xl">bar_chart</span>
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Returns & Logistics Report
-                                </h3>
-                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Summary of all completed
-                                    returns over the last 30 days.</p>
-                            </div>
-                        </div>
-                        <button @click="showReportModal = false"
-                            class="text-gray-400 hover:text-gray-600 dark:hover:text-white bg-white dark:bg-black/20 p-2 rounded-full border border-gray-200 dark:border-white/10 transition-colors">
-                            <span class="material-symbols-outlined text-sm">close</span>
-                        </button>
-                    </div>
-
-                    <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-black/10 space-y-6">
-                        <!-- Key Metrics -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div
-                                class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/5">
-                                <div class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Total Returns
-                                </div>
-                                <div class="text-2xl font-bold text-gray-900 dark:text-white">156</div>
-                                <div class="text-xs text-green-500 mt-1 flex items-center gap-1 font-bold"><span
-                                        class="material-symbols-outlined text-[12px]">trending_down</span> 4% vs last mo
-                                </div>
-                            </div>
-                            <div
-                                class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/5">
-                                <div class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Avg
-                                    Resolution</div>
-                                <div class="text-2xl font-bold text-gray-900 dark:text-white">2.4 <span
-                                        class="text-base text-gray-500">Days</span></div>
-                                <div class="text-xs text-green-500 mt-1 flex items-center gap-1 font-bold"><span
-                                        class="material-symbols-outlined text-[12px]">trending_down</span> 1.2d faster
-                                </div>
-                            </div>
-                            <div
-                                class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/5">
-                                <div class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Recovery Kate
-                                </div>
-                                <div class="text-2xl font-bold text-gray-900 dark:text-white">82%</div>
-                                <div class="text-xs text-green-500 mt-1 flex items-center gap-1 font-bold"><span
-                                        class="material-symbols-outlined text-[12px]">trending_up</span> 2% improvement
-                                </div>
-                            </div>
-                            <div
-                                class="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/5">
-                                <div class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Total Cost
-                                </div>
-                                <div class="text-2xl font-bold text-gray-900 dark:text-white">$4.2k</div>
-                                <div class="text-xs text-red-500 mt-1 flex items-center gap-1 font-bold"><span
-                                        class="material-symbols-outlined text-[12px]">trending_up</span> 8% higher</div>
-                            </div>
-                        </div>
-
-                        <!-- Top Return Reasons -->
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3">Top Return Reasons</h4>
-                            <div
-                                class="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl p-4 space-y-3">
-                                <div>
-                                    <div class="flex justify-between text-xs mb-1">
-                                        <span class="font-bold text-gray-700 dark:text-gray-300">Defective /
-                                            Damaged</span>
-                                        <span class="text-gray-500">45% (70 items)</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                                        <div class="bg-red-500 h-1.5 rounded-full" style="width: 45%"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="flex justify-between text-xs mb-1">
-                                        <span class="font-bold text-gray-700 dark:text-gray-300">Wrong Size/Fit</span>
-                                        <span class="text-gray-500">30% (47 items)</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                                        <div class="bg-yellow-500 h-1.5 rounded-full" style="width: 30%"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="flex justify-between text-xs mb-1">
-                                        <span class="font-bold text-gray-700 dark:text-gray-300">Changed Mind</span>
-                                        <span class="text-gray-500">15% (23 items)</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                                        <div class="bg-blue-500 h-1.5 rounded-full" style="width: 15%"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="flex justify-between text-xs mb-1">
-                                        <span class="font-bold text-gray-700 dark:text-gray-300">Other</span>
-                                        <span class="text-gray-500">10% (16 items)</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                                        <div class="bg-gray-500 h-1.5 rounded-full" style="width: 10%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        class="p-6 border-t border-gray-100 dark:border-white/5 flex gap-3 bg-gray-50 dark:bg-white/5 justify-between items-center">
-                        <button
-                            class="px-4 py-2 text-sm font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 hover:bg-green-100 dark:hover:bg-green-500/20 rounded-lg transition-colors flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[16px]">download</span> Export CSV
-                        </button>
-                        <button @click="showReportModal = false"
-                            class="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold rounded-xl transition-colors">
-                            Close Report
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
-
-
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useReverseLogisticsStore } from '@/stores/reverseLogisticsStore'
+import { sendSupportMessage } from '@/utils/aiApi'
 
-const showProcessModal = ref(false)
-const showPickupModal = ref(false)
-const showDetailModal = ref(false)
-const showNewReturnModal = ref(false)
-const showAutoAssignModal = ref(false)
-const showReportModal = ref(false)
+const store = useReverseLogisticsStore()
 
-const selectedReturn = ref(null)
-const pickupDriver = ref('Auto-Assign (AI Optimized)')
-const pickupDate = ref(new Date().toISOString().split('T')[0])
-const pickupTimeWindow = ref('Morning (8A - 12P)')
-
-const searchQuery = ref('')
-const activeListFilter = ref('All')
-
-// Richer mock data
-const returns = ref([
-    {
-        id: 'RET-8821', customer: 'Alice Smith', customerInitials: 'AS', phone: '+1 (555) 302-1044',
-        address: '124 Maple St, Springfield, IL 62704',
-        dateAdded: 'Oct 24, 2024',
-        item: 'Ergonomic Office Chair (Black)',
-        reason: 'Defective Wheels - they don\'t turn smoothly and scratch floor',
-        status: 'Approved',
-        statusClass: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20',
-        warehouseStatus: 'Notified'
-    },
-    {
-        id: 'RET-8824', customer: 'Bob Jones', customerInitials: 'BJ', phone: '+1 (555) 891-2309',
-        address: '990 Oak Dr, Apt 4B, Chicago, IL 60614',
-        dateAdded: 'Oct 23, 2024',
-        item: 'Dual Monitor Stand Component',
-        reason: 'Wrong Size - ordered for 27" but received 24" max size',
-        status: 'Pending Review',
-        statusClass: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20',
-        warehouseStatus: 'Pending'
-    },
-    {
-        id: 'RET-8899', customer: 'Charlie Day', customerInitials: 'CD', phone: '+1 (555) 441-9011',
-        address: '42 Paddy\'s Pub Rd, Philadelphia, PA 19104',
-        dateAdded: 'Oct 22, 2024',
-        item: 'Mechanical Keyboard (Red Switches)',
-        reason: 'Changed Mind - too loud for office environment',
-        status: 'Pickup Scheduled', driver: 'Sarah Jenkins',
-        statusClass: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20',
-        warehouseStatus: 'Notified'
-    },
-    {
-        id: 'RET-8902', customer: 'Diana Prince', customerInitials: 'DP', phone: '+1 (555) 777-8888',
-        address: '1 Amazon Ave, Washington, DC 20001',
-        dateAdded: 'Oct 21, 2024',
-        item: 'Golden Lasso Prop Replica',
-        reason: 'Damaged in transit - box was crushed on arrival',
-        status: 'In Transit', driver: 'Mike Chen',
-        statusClass: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20',
-        warehouseStatus: 'Awaiting Arrival'
-    },
-    {
-        id: 'RET-8711', customer: 'Evan Wright', customerInitials: 'EW', phone: '+1 (555) 222-3344',
-        address: '777 Tech Blvd, Austin, TX 78701',
-        dateAdded: 'Oct 20, 2024',
-        item: 'Wireless Noise Cancelling Headphones',
-        reason: 'Defective - left ear cup has no sound',
-        status: 'Pending Review',
-        statusClass: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20',
-        warehouseStatus: 'Pending'
-    }
-])
-
-const filteredReturns = computed(() => {
-    let result = returns.value
-
-    // Status Filter
-    if (activeListFilter.value !== 'All') {
-        result = result.filter(r => r.status === activeListFilter.value)
-    }
-
-    // Text Search
-    if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase()
-        result = result.filter(r =>
-            r.id.toLowerCase().includes(q) ||
-            r.customer.toLowerCase().includes(q) ||
-            r.item.toLowerCase().includes(q)
-        )
-    }
-    return result
+onMounted(async () => {
+    try { await store.load() } catch { /* error shown in template */ }
 })
 
-const pendingReviewCount = computed(() => returns.value.filter(r => r.status === 'Pending Review').length)
-const pickupsNeededCount = computed(() => returns.value.filter(r => r.status === 'Approved').length)
-const inTransitCount = computed(() => returns.value.filter(r => r.status === 'In Transit').length)
+// ── Tabs & Filters ────────────────────────────────────────────────────────────
+const search = ref('')
+const activeTab = ref('all')
 
-function openReturnDetail(item) {
-    selectedReturn.value = item
-    showDetailModal.value = true
-}
+const filterTabs = [
+    { id: 'all', label: 'All' },
+    { id: 'photo_review', label: 'Photo Review' },
+    { id: 'pickup_inspection', label: 'Pickup Inspection' },
+    { id: 'reported', label: 'Reported' },
+    { id: 'under_review', label: 'Under Review' },
+]
 
-function schedulePickup(item) {
-    selectedReturn.value = item
-    showPickupModal.value = true
-    showDetailModal.value = false
-}
+const filtered = computed(() => {
+    let list = store.reports
+    if (activeTab.value === 'photo_review') list = list.filter((r) => r.flow_type === 'photo_review')
+    else if (activeTab.value === 'pickup_inspection') list = list.filter((r) => r.flow_type === 'pickup_inspection')
+    else if (activeTab.value === 'reported') list = list.filter((r) => r.status === 'reported')
+    else if (activeTab.value === 'under_review') list = list.filter((r) => ['under_review', 'Under Review'].includes(r.status))
 
-function approveReturn(ret) {
-    ret.status = 'Approved'
-    ret.statusClass = 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20'
-    ret.warehouseStatus = 'Notified'
-}
-
-function rejectReturn(ret) {
-    ret.status = 'Rejected'
-    ret.statusClass = 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
-    ret.warehouseStatus = 'Cancelled'
-}
-
-function approveAllPending() {
-    returns.value.forEach(r => {
-        if (r.status === 'Pending Review') {
-            approveReturn(r)
-        }
-    })
-    showProcessModal.value = false
-}
-
-function confirmPickup() {
-    if (selectedReturn.value) {
-        selectedReturn.value.status = 'Pickup Scheduled'
-        selectedReturn.value.statusClass = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20'
-
-        let driverName = pickupDriver.value;
-        if (driverName.includes('Auto-Assign')) driverName = 'AI Auto-Assigned Driver';
-        else driverName = driverName.split(' (')[0]; // strip out the zone string
-
-        selectedReturn.value.driver = driverName;
+    const q = search.value.toLowerCase()
+    if (q) {
+        list = list.filter((r) =>
+            (r.reference_code || '').toLowerCase().includes(q) ||
+            (r.customer_name || '').toLowerCase().includes(q) ||
+            (r.customer_email || '').toLowerCase().includes(q) ||
+            (r.order_tracking_code || '').toLowerCase().includes(q),
+        )
     }
-    showPickupModal.value = false
+    return list
+})
+
+// ── Stats Strip ───────────────────────────────────────────────────────────────
+const statCards = computed(() => [
+    { label: 'Total', value: store.reports.length, icon: 'assignment', bg: 'bg-gray-100 dark:bg-white/5', iconColor: 'text-gray-600 dark:text-gray-400' },
+    { label: 'Reported', value: store.reportedCount, icon: 'pending_actions', bg: 'bg-orange-100 dark:bg-orange-500/10', iconColor: 'text-orange-600 dark:text-orange-400' },
+    { label: 'Photo Review', value: store.photoReviewCount, icon: 'photo_camera', bg: 'bg-blue-100 dark:bg-blue-500/10', iconColor: 'text-blue-600 dark:text-blue-400' },
+    { label: 'Pickup Inspect.', value: store.pickupInspectionCount, icon: 'local_shipping', bg: 'bg-purple-100 dark:bg-purple-500/10', iconColor: 'text-purple-600 dark:text-purple-400' },
+    { label: 'Under Review', value: store.underReviewCount, icon: 'rate_review', bg: 'bg-teal-100 dark:bg-teal-500/10', iconColor: 'text-teal-600 dark:text-teal-400' },
+])
+
+// ── Detail Drawer ─────────────────────────────────────────────────────────────
+const selected = ref(null)
+const notesValue = ref('')
+const savingNotes = ref(false)
+const customerMessage = ref('')
+const sendingMessage = ref(false)
+const sendMessageError = ref('')
+const customerHistory = ref(null)
+const loadingHistory = ref(false)
+const zoomedPhoto = ref(null)
+
+const customerHistoryCards = computed(() => {
+    if (!customerHistory.value) return []
+    return [
+        { label: 'Total Orders', value: customerHistory.value.total_orders, color: 'text-blue-600 dark:text-blue-400' },
+        { label: 'Damage Reports', value: customerHistory.value.damage_reports_count, color: 'text-orange-600 dark:text-orange-400' },
+        { label: 'Escalations', value: customerHistory.value.escalations_count, color: 'text-red-600 dark:text-red-400' },
+    ]
+})
+
+async function openDetail(row) {
+    selected.value = { ...row }
+    notesValue.value = row.support_notes || ''
+    customerMessage.value = ''
+    customerHistory.value = null
+    if (row.customer_id) {
+        loadingHistory.value = true
+        customerHistory.value = await store.loadCustomerHistory(row.customer_id)
+        loadingHistory.value = false
+    }
 }
 
-function runAutoAssign() {
-    returns.value.forEach(r => {
-        if (r.status === 'Approved') {
-            r.status = 'Pickup Scheduled'
-            r.statusClass = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20'
-            r.driver = 'AI Auto-Assigned Driver'
-        }
-    })
-    showAutoAssignModal.value = false
+async function saveNotes() {
+    if (!selected.value) return
+    savingNotes.value = true
+    try {
+        const updated = await store.updateNotes(selected.value.id, notesValue.value)
+        selected.value = { ...updated }
+    } finally {
+        savingNotes.value = false
+    }
 }
+
+async function sendCustomerMessage() {
+    const text = customerMessage.value.trim()
+    if (!text || !selected.value) return
+    sendingMessage.value = true
+    sendMessageError.value = ''
+    try {
+        const updated = await sendSupportMessage(selected.value.id, text)
+        selected.value = { ...updated }
+        customerMessage.value = ''
+        // Sync in the store list too
+        const idx = store.reports.findIndex((r) => r.id === updated.id)
+        if (idx !== -1) store.reports.splice(idx, 1, updated)
+    } catch (err) {
+        sendMessageError.value = err.message || 'Failed to send message'
+    } finally {
+        sendingMessage.value = false
+    }
+}
+
+function zoomPhoto(url) {
+    zoomedPhoto.value = url
+}
+
+// ── Raise Case Modal ──────────────────────────────────────────────────────────
+const showRaiseModal = ref(false)
+const raisingCase = ref(false)
+const raiseError = ref('')
+const duplicateWarning = ref(null)
+const raiseForm = ref({ customer_id: '', order_id: '', flow_type: 'photo_review', description: '' })
+
+function openRaiseCase() {
+    raiseForm.value = { customer_id: '', order_id: '', flow_type: 'photo_review', description: '' }
+    raiseError.value = ''
+    duplicateWarning.value = null
+    showRaiseModal.value = true
+}
+
+function checkDuplicate() {
+    if (!raiseForm.value.order_id) { duplicateWarning.value = null; return }
+    duplicateWarning.value = store.findDuplicate(raiseForm.value.order_id)
+}
+
+async function submitRaiseCase() {
+    raiseError.value = ''
+    if (!raiseForm.value.customer_id.trim()) { raiseError.value = 'Customer ID is required'; return }
+    if (!raiseForm.value.description.trim()) { raiseError.value = 'Description is required'; return }
+    raisingCase.value = true
+    try {
+        await store.createReport({
+            customer_id: raiseForm.value.customer_id.trim(),
+            order_id: raiseForm.value.order_id.trim() || undefined,
+            flow_type: raiseForm.value.flow_type,
+            description: raiseForm.value.description.trim(),
+        })
+        showRaiseModal.value = false
+    } catch (err) {
+        raiseError.value = err.message || 'Failed to create report'
+    } finally {
+        raisingCase.value = false
+    }
+}
+
+// ── Style Helpers ─────────────────────────────────────────────────────────────
+const flowStyle = (f) => ({
+    photo_review: 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',
+    pickup_inspection: 'bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400',
+}[f] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400')
+
+const flowLabel = (f) => ({ photo_review: 'Photo Review', pickup_inspection: 'Pickup Inspection' }[f] || f || '—')
+
+const statusStyle = (s) => {
+    const map = {
+        reported: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400',
+        under_review: 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',
+        'Under Review': 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',
+        'Claims Reviewed': 'bg-teal-100 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400',
+        closed: 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400',
+        Closed: 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400',
+    }
+    return map[s] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400'
+}
+
+const sentimentStyle = (s) => ({
+    Positive: 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400',
+    Negative: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400',
+    Neutral: 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400',
+}[s] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400')
+
+const formatTime = (iso) => {
+    if (!iso) return '—'
+    const d = new Date(iso)
+    const now = new Date()
+    const diff = Math.floor((now - d) / 1000)
+    if (diff < 60) return `${diff}s ago`
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+    return `${Math.floor(diff / 86400)}d ago`
+}
+
+const formatFull = (iso) =>
+    new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 </script>
-
-<style scoped>
-/* Tooltip styling */
-.tooltip-trigger .tooltip {
-    @apply absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 whitespace-nowrap pointer-events-none transition-opacity;
-    z-index: 50;
-}
-
-.tooltip-trigger:hover .tooltip {
-    @apply opacity-100;
-}
-</style>

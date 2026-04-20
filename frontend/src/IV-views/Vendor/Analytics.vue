@@ -29,9 +29,9 @@
                 <div class="text-[10px] text-green-500 mt-1">↓ 0.5 Days</div>
             </div>
             <div class="glass-panel p-5 rounded-xl">
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Cost / Mile</div>
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">₹{{ store.analyticsData.costPerMile }}</div>
-                <div class="text-[10px] text-gray-400 mt-1">Stable</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg Order Value</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">₹{{ store.analyticsData.costPerMile.toLocaleString() }}</div>
+                <div class="text-[10px] text-gray-400 mt-1">Derived from live orders</div>
             </div>
         </div>
 
@@ -136,12 +136,22 @@ const trendChartData = computed(() => ({
     }]
 }))
 
-const topRoutes = [
-    { name: 'Mumbai → Delhi', count: 42, pct: 100, color: 'bg-blue-500' },
-    { name: 'Chennai → Bangalore', count: 35, pct: 83, color: 'bg-green-500' },
-    { name: 'Pune → Hyderabad', count: 28, pct: 67, color: 'bg-purple-500' },
-    { name: 'Kolkata → Patna', count: 18, pct: 43, color: 'bg-yellow-500' },
-]
+const topRoutes = computed(() => {
+    const routeCounts = new Map()
+    store.shipments.forEach((shipment) => {
+        const route = shipment.route || `${shipment.origin} → ${shipment.destination}`
+        routeCounts.set(route, (routeCounts.get(route) || 0) + 1)
+    })
+    const entries = [...routeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4)
+    const maxCount = entries[0]?.[1] || 1
+    const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-yellow-500']
+    return entries.map(([name, count], index) => ({
+        name,
+        count,
+        pct: Math.max(20, Math.round((count / maxCount) * 100)),
+        color: colors[index] || 'bg-blue-500',
+    }))
+})
 
 const barOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { ticks: { color: '#9ca3af' }, grid: { display: false } } } }
 const doughnutOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af', boxWidth: 12, padding: 12 } } }, cutout: '60%' }

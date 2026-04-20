@@ -14,7 +14,7 @@ from app.models.user import User
 from app.services import auth_service
 from app.utils.redis import get_redis
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 
 async def get_current_user(

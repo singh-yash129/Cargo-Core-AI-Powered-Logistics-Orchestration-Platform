@@ -124,12 +124,12 @@
             <div
                 class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer transition-colors relative z-10">
                 <div
-                    class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center ring-1 ring-purple-500/30">
-                    <span class="material-symbols-outlined text-white text-sm">smart_toy</span>
+                    class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center ring-1 ring-purple-500/30 text-white text-xs font-bold shrink-0">
+                    {{ userInitials }}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="text-sm font-medium text-gray-900 dark:text-white truncate">AI Admin</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-500 truncate">System Manager</div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ authStore.userName || 'User' }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-500 truncate">{{ authStore.userRoleLabel }}</div>
                 </div>
                 <span class="material-symbols-outlined text-gray-500 dark:text-gray-400">more_vert</span>
             </div>
@@ -139,16 +139,16 @@
     <!-- Profile Modal -->
     <Teleport to="body">
         <BaseModal :isOpen="showProfileModal" @close="showProfileModal = false">
-            <template #title>AI Admin Profile</template>
+            <template #title>My Profile</template>
             <div class="space-y-6">
                 <div class="flex items-center gap-4">
                     <div
-                        class="w-20 h-20 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                        <span class="material-symbols-outlined text-white text-4xl">smart_toy</span>
+                        class="w-20 h-20 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20 text-white text-3xl font-bold">
+                        {{ userInitials }}
                     </div>
                     <div>
-                        <h4 class="text-xl font-bold text-gray-900 dark:text-white">AI Admin</h4>
-                        <p class="text-gray-500">System Manager</p>
+                        <h4 class="text-xl font-bold text-gray-900 dark:text-white">{{ authStore.userName }}</h4>
+                        <p class="text-gray-500">{{ authStore.userRoleLabel }}</p>
                         <div
                             class="mt-2 text-xs bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
@@ -158,28 +158,28 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
-                        <div class="text-xs text-gray-500 mb-1">System ID</div>
-                        <div class="font-medium text-sm text-gray-900 dark:text-white">AI-SYS-001</div>
+                        <div class="text-xs text-gray-500 mb-1">User ID</div>
+                        <div class="font-medium text-sm text-gray-900 dark:text-white font-mono">{{ authStore.user?.id || '—' }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                         <div class="text-xs text-gray-500 mb-1">Email Address</div>
-                        <div class="font-medium text-sm text-gray-900 dark:text-white">ai.admin@cargocore.com</div>
+                        <div class="font-medium text-sm text-gray-900 dark:text-white break-all">{{ authStore.userEmail || '—' }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                         <div class="text-xs text-gray-500 mb-1">Role</div>
-                        <div class="font-medium text-sm text-gray-900 dark:text-white">Internal Support AI</div>
+                        <div class="font-medium text-sm text-gray-900 dark:text-white">{{ authStore.userRoleLabel }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
-                        <div class="text-xs text-gray-500 mb-1">Last Active</div>
-                        <div class="font-medium text-sm text-gray-900 dark:text-white">Just Now</div>
+                        <div class="text-xs text-gray-500 mb-1">Phone</div>
+                        <div class="font-medium text-sm text-gray-900 dark:text-white">{{ authStore.user?.phone || '—' }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
-                        <div class="text-xs text-gray-500 mb-1">Tickets Resolved</div>
-                        <div class="font-bold text-sm text-purple-600 dark:text-purple-400">4,821</div>
+                        <div class="text-xs text-gray-500 mb-1">Member Since</div>
+                        <div class="font-medium text-sm text-gray-900 dark:text-white">{{ memberSince }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
-                        <div class="text-xs text-gray-500 mb-1">Accuracy Score</div>
-                        <div class="font-bold text-sm text-green-600 dark:text-green-400">94.8%</div>
+                        <div class="text-xs text-gray-500 mb-1">Open Escalations</div>
+                        <div class="font-bold text-sm text-red-600 dark:text-red-400">{{ aiSupportStore.dashboard?.stats?.open_escalations ?? 0 }}</div>
                     </div>
                 </div>
             </div>
@@ -238,12 +238,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseModal from '@/components/BaseModal.vue'
 import IdCard from '@/components/IdCard.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useAuthStore } from '@/stores/authStore'
+import { useAiSupportStore } from '@/stores/aiSupportStore'
 
 defineProps({
     isOpen: Boolean
@@ -252,6 +253,7 @@ defineEmits(['close'])
 
 const router = useRouter()
 const authStore = useAuthStore()
+const aiSupportStore = useAiSupportStore()
 
 // Menu & Modal State
 const isMenuOpen = ref(false)
@@ -272,29 +274,48 @@ onMounted(() => {
         attributes: true,
         attributeFilter: ['class']
     })
+    aiSupportStore.loadDashboard().catch(() => {})
+    aiSupportStore.loadSessions().catch(() => {})
 })
 
 onUnmounted(() => {
     if (themeObserver) themeObserver.disconnect()
 })
 
-// AI Card Data
-const aiCardData = {
-    name: 'AI Admin',
-    id: 'AI-SYS-001',
-    designation: 'System Manager',
-    department: 'Internal AI Support',
-    address: 'Cargo-Core HQ, Server Room 1',
-    phone: '+00 0000000000',
-    email: 'ai.admin@cargocore.com',
-    joinDate: '01 January 2025',
+// User initials helper
+const userInitials = computed(() => {
+    return (authStore.userName || 'U')
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(p => p[0]?.toUpperCase() || '')
+        .join('')
+})
+
+// Member since formatted
+const memberSince = computed(() => {
+    const raw = authStore.user?.created_at
+    if (!raw) return '—'
+    return new Date(raw).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+})
+
+// ID Card — real user data
+const aiCardData = computed(() => ({
+    name: authStore.userName || 'User',
+    id: authStore.user?.id ? String(authStore.user.id) : '—',
+    designation: authStore.userRoleLabel,
+    department: 'Cargo-Core AI Support',
+    address: authStore.user?.address || 'Cargo-Core HQ',
+    phone: authStore.user?.phone || '—',
+    email: authStore.userEmail || '—',
+    joinDate: memberSince.value,
     validUntil: '31 December 2027',
     emergencyContact: {
         name: 'IT Support',
         relation: 'System Administrator',
         phone: '+00 0000000001'
     }
-}
+}))
 
 const handleLogout = async () => {
     showLogoutConfirm.value = false
@@ -304,18 +325,21 @@ const handleLogout = async () => {
 }
 
 // AI Live Metrics for sidebar
-const aiMetrics = ref([
-    { id: 'm1', name: 'Tickets', value: '124', color: 'text-purple-600 dark:text-purple-400' },
-    { id: 'm2', name: 'Pending', value: '12', color: 'text-yellow-600 dark:text-yellow-400' },
-    { id: 'm3', name: 'Resolved', value: '4.8K', color: 'text-green-600 dark:text-green-400' },
-    { id: 'm4', name: 'Escalated', value: '3', color: 'text-red-600 dark:text-red-400' },
-])
+const aiMetrics = computed(() => {
+    const stats = aiSupportStore.dashboard?.stats
+    return [
+        { id: 'm1', name: 'Sessions', value: String(stats?.total_sessions ?? 0), color: 'text-purple-600 dark:text-purple-400' },
+        { id: 'm2', name: 'Open Forms', value: String(stats?.open_contact_forms ?? 0), color: 'text-yellow-600 dark:text-yellow-400' },
+        { id: 'm3', name: 'Human', value: String(stats?.human_engaged_sessions ?? 0), color: 'text-green-600 dark:text-green-400' },
+        { id: 'm4', name: 'Escalated', value: String(stats?.open_escalations ?? 0), color: 'text-red-600 dark:text-red-400' },
+    ]
+})
 
-const menuItems = [
+const menuItems = computed(() => [
     { label: 'Dashboard', icon: 'dashboard', route: '/ai/dashboard' },
     { label: 'Contact Forms', icon: 'contact_mail', route: '/ai/contact-forms' },
-    { label: 'Live Conversations', icon: 'chat', route: '/ai/live-conversations', badge: '3' },
-    { label: 'Escalations', icon: 'warning', route: '/ai/escalations', badge: '1' },
+    { label: 'Live Conversations', icon: 'chat', route: '/ai/live-conversations', badge: aiSupportStore.sessions.length ? String(aiSupportStore.sessions.length) : '' },
+    { label: 'Escalations', icon: 'warning', route: '/ai/escalations', badge: aiSupportStore.dashboard?.stats?.open_escalations ? String(aiSupportStore.dashboard.stats.open_escalations) : '' },
     { label: 'Tickets', icon: 'confirmation_number', route: '/ai/tickets' },
     { label: 'Reverse Logistics', icon: 'assignment_return', route: '/ai/reverse-logistics' },
     { label: 'Refund Center', icon: 'currency_exchange', route: '/ai/refund-center' },
@@ -323,5 +347,5 @@ const menuItems = [
     { label: 'Knowledge Base', icon: 'menu_book', route: '/ai/knowledge-base' },
     { label: 'Legal & Rules', icon: 'gavel', route: '/ai/legal' },
     { label: 'Settings', icon: 'settings', route: '/ai/settings' },
-]
+])
 </script>

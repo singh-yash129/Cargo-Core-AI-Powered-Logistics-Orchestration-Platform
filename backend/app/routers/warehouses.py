@@ -10,6 +10,7 @@ from app.schemas.auth import MessageResponse
 from app.schemas.warehouse import (
     FloorPlanUpdate,
     WarehouseCreate,
+    WarehouseDashboardResponse,
     WarehouseKPIResponse,
     WarehouseListResponse,
     WarehouseResponse,
@@ -23,7 +24,7 @@ router = APIRouter(prefix="/api/v1/warehouses", tags=["Warehouses"])
 @router.get("", response_model=WarehouseListResponse)
 async def list_warehouses(
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "VENDOR", "INDIVIDUAL"))],
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
 ):
@@ -85,3 +86,44 @@ async def warehouse_kpis(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
 ):
     return await warehouse_service.get_warehouse_kpis(db, warehouse_id)
+
+
+@router.get("/{warehouse_id}/dashboard", response_model=WarehouseDashboardResponse)
+async def warehouse_dashboard(
+    warehouse_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("WAREHOUSE_MANAGER"))],
+):
+    return await warehouse_service.get_warehouse_dashboard(db, warehouse_id)
+
+
+@router.post("/{warehouse_id}/orders/{order_id}/complete", response_model=MessageResponse)
+async def mark_order_complete(
+    warehouse_id: UUID,
+    order_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("WAREHOUSE_MANAGER"))],
+):
+    await warehouse_service.mark_order_complete(db, warehouse_id, order_id)
+    return MessageResponse(message="Order marked as complete")
+
+
+@router.post("/{warehouse_id}/orders/{order_id}/reassign", response_model=MessageResponse)
+async def reassign_order_to_labor(
+    warehouse_id: UUID,
+    order_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("WAREHOUSE_MANAGER"))],
+):
+    await warehouse_service.reassign_order(db, warehouse_id, order_id)
+    return MessageResponse(message="Order reassigned")
+
+
+@router.post("/{warehouse_id}/restock", response_model=MessageResponse)
+async def process_restock(
+    warehouse_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("WAREHOUSE_MANAGER"))],
+):
+    await warehouse_service.process_restock(db, warehouse_id)
+    return MessageResponse(message="Restock processed successfully")

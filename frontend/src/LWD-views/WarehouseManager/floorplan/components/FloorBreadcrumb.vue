@@ -16,7 +16,7 @@
                     {{ sectionLabel }}
                 </button>
                 <span class="text-[10px] px-1.5 py-0.5 rounded ml-1"
-                    :style="{ background: sectionColor + '20', color: sectionColor }">{{ groupName || 'Ungrouped'
+                    :style="{ background: sectionColor + '20', color: sectionColor }">{{ categoryName || 'Uncategorized'
                     }}</span>
             </template>
             <template v-if="level === 'RACK' && rackLabel">
@@ -39,7 +39,7 @@ defineProps({
     floorLabel: { type: String, default: 'Floor' },
     sectionLabel: { type: String, default: '' },
     sectionColor: { type: String, default: '#6b7280' },
-    groupName: { type: String, default: '' },
+    categoryName: { type: String, default: '' },
     rackLabel: { type: String, default: '' },
 })
 

@@ -73,7 +73,9 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useAuthStore } from '../stores/authStore.js'
 
+const auth = useAuthStore()
 const email = ref('')
 const error = ref('')
 const loading = ref(false)
@@ -98,17 +100,24 @@ const startCooldown = () => {
 const sendReset = async () => {
     if (!validate()) return
     loading.value = true
-    await new Promise(r => setTimeout(r, 1000)) // replace with API call
+    auth.clearError()
+    const result = await auth.sendPasswordResetOTP(email.value)
     loading.value = false
-    step.value = 2
-    startCooldown()
+    if (result.success) {
+        step.value = 2
+        startCooldown()
+    } else {
+        error.value = auth.error || 'Failed to send reset link.'
+    }
 }
 
 const resend = async () => {
     loading.value = true
-    await new Promise(r => setTimeout(r, 800))
+    auth.clearError()
+    const result = await auth.sendPasswordResetOTP(email.value)
     loading.value = false
-    startCooldown()
+    if (result.success) startCooldown()
+    else error.value = auth.error || 'Failed to resend.'
 }
 </script>
 

@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 class UserAdminCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
+    username: str | None = Field(default=None, min_length=3, max_length=64)
     email: EmailStr
     phone: str | None = Field(default=None, max_length=20)
     password: str = Field(..., min_length=8)
@@ -17,6 +18,8 @@ class UserAdminUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=255)
     phone: str | None = Field(default=None, max_length=20)
     is_active: bool | None = None
+    approval_status: str | None = Field(default=None, max_length=20)
+    approval_note: str | None = None
 
 
 class AssignRoleRequest(BaseModel):
@@ -30,11 +33,21 @@ class AssignWarehouseRequest(BaseModel):
 class UserAdminResponse(BaseModel):
     id: UUID
     name: str
+    username: str
     email: str
     phone: str | None
     role: str
     warehouse_id: UUID | None
     is_active: bool
+    approval_status: str = "APPROVED"
+    approval_note: str | None = None
+    approval_reviewed_at: datetime | None = None
+    company_name: str | None = None
+    tax_id: str | None = None
+    contact_person: str | None = None
+    business_email: str | None = None
+    business_phone: str | None = None
+    last_login: datetime | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

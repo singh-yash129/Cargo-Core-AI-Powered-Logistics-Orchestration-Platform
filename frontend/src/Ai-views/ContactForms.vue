@@ -46,8 +46,16 @@
             </div>
         </div>
 
+        <div v-if="contactStore.loading" class="rounded-xl border border-gray-100 dark:border-white/5 bg-white dark:bg-card-darker p-6 text-sm text-gray-500 dark:text-gray-400">
+            Loading contact submissions...
+        </div>
+
+        <div v-else-if="contactStore.error" class="rounded-xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
+            {{ contactStore.error }}
+        </div>
+
         <!-- Table -->
-        <div class="bg-white dark:bg-card-darker rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
+        <div v-else class="bg-white dark:bg-card-darker rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
@@ -58,14 +66,13 @@
                             <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Category</th>
                             <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Priority</th>
                             <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">Assigned To</th>
                             <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Submitted</th>
                             <th class="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="filtered.length === 0">
-                            <td colspan="9" class="text-center py-16 text-gray-400 dark:text-gray-600">
+                            <td colspan="8" class="text-center py-16 text-gray-400 dark:text-gray-600">
                                 <span class="material-symbols-outlined text-4xl mb-2 block">inbox</span>
                                 No submissions found
                             </td>
@@ -74,7 +81,7 @@
                             class="border-b border-gray-50 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
                             @click="openDetail(row)">
                             <td class="px-5 py-3.5">
-                                <span class="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded">{{ row.id }}</span>
+                                <span class="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded">{{ row.reference_code }}</span>
                             </td>
                             <td class="px-5 py-3.5">
                                 <div class="font-medium text-gray-900 dark:text-white text-sm">{{ row.name }}</div>
@@ -98,11 +105,8 @@
                                     {{ statusLabel(row.status) }}
                                 </span>
                             </td>
-                            <td class="px-5 py-3.5 hidden xl:table-cell text-sm text-gray-600 dark:text-gray-400">
-                                {{ row.assignedTo || '—' }}
-                            </td>
                             <td class="px-5 py-3.5 hidden lg:table-cell text-xs text-gray-500 dark:text-gray-500">
-                                {{ formatTime(row.submittedAt) }}
+                                {{ formatTime(row.created_at) }}
                             </td>
                             <td class="px-5 py-3.5 text-right" @click.stop>
                                 <div class="flex items-center justify-end gap-1">
@@ -110,7 +114,7 @@
                                         class="p-1.5 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-500/10 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
                                         <span class="material-symbols-outlined text-[18px]">open_in_new</span>
                                     </button>
-                                    <button @click="contactStore.remove(row.id)" title="Delete"
+                                    <button @click="removeRow(row.id)" title="Delete"
                                         class="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
                                         <span class="material-symbols-outlined text-[18px]">delete</span>
                                     </button>
@@ -135,7 +139,7 @@
                             <!-- Drawer Header -->
                             <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-white/10 px-6 py-4 flex items-center justify-between">
                                 <div>
-                                    <span class="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded">{{ selected.id }}</span>
+                                    <span class="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded">{{ selected.reference_code }}</span>
                                     <h3 class="text-lg font-bold text-gray-900 dark:text-white mt-1">{{ selected.subject }}</h3>
                                 </div>
                                 <button @click="selected = null" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 transition-colors">
@@ -169,7 +173,7 @@
                                     </div>
                                     <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
                                         <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Submitted</div>
-                                        <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ formatFull(selected.submittedAt) }}</div>
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ formatFull(selected.created_at) }}</div>
                                     </div>
                                 </div>
 
@@ -209,22 +213,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- Assign To -->
-                                    <div>
-                                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Assign To Agent</label>
-                                        <div class="flex gap-2">
-                                            <select v-model="assignedTo"
-                                                class="cf-select flex-1" :style="selectStyle">
-                                                <option value="">— Unassigned —</option>
-                                                <option v-for="agent in agents" :key="agent" :value="agent">{{ agent }}</option>
-                                            </select>
-                                            <button @click="updateField('assignedTo', assignedTo)"
-                                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-xs transition-colors">
-                                                Assign
-                                            </button>
-                                        </div>
-                                    </div>
-
                                     <!-- Internal Notes -->
                                     <div>
                                         <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Internal Notes</label>
@@ -235,12 +223,35 @@
                                             Save Notes
                                         </button>
                                     </div>
+
+                                    <!-- Reply -->
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Reply By Email</label>
+                                        <textarea
+                                            v-model="replyMessage"
+                                            rows="5"
+                                            placeholder="Write the reply that should be emailed to this customer..."
+                                            class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition resize-none"
+                                        ></textarea>
+                                        <div class="mt-2 flex items-center justify-between gap-3">
+                                            <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                                                Sends from the existing Cargo Core support mailbox and marks this submission as resolved.
+                                            </p>
+                                            <button
+                                                @click="sendReply"
+                                                :disabled="replying || !replyMessage.trim()"
+                                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 disabled:cursor-not-allowed text-white font-bold rounded-lg text-xs transition-colors whitespace-nowrap"
+                                            >
+                                                {{ replying ? 'Sending...' : 'Send Reply' }}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Drawer Footer -->
                             <div class="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-white/10 px-6 py-4 flex justify-between">
-                                <button @click="contactStore.remove(selected.id); selected = null"
+                                <button @click="removeSelected"
                                     class="px-4 py-2 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold rounded-lg text-sm transition-colors flex items-center gap-2">
                                     <span class="material-symbols-outlined text-[16px]">delete</span> Delete
                                 </button>
@@ -259,18 +270,25 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useToast } from '@/composables/useToast'
 import { useContactStore } from '@/stores/contactStore'
 
 const contactStore = useContactStore()
+const toast = useToast()
 
 // Dark mode detection — drives inline color-scheme on native <select>
 const isDark = ref(document.documentElement.classList.contains('dark'))
 let _observer = null
-onMounted(() => {
+onMounted(async () => {
     _observer = new MutationObserver(() => {
         isDark.value = document.documentElement.classList.contains('dark')
     })
     _observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    try {
+        await contactStore.load()
+    } catch {
+        // store.error is rendered in the template
+    }
 })
 onUnmounted(() => { if (_observer) _observer.disconnect() })
 
@@ -287,24 +305,64 @@ const filterPriority = ref('')
 
 // Selected row for drawer
 const selected = ref(null)
-const assignedTo = ref('')
 const notes = ref('')
-
-const agents = ['CS Agent Priya', 'CS Agent Omar', 'CS Agent Lena', 'CS Agent Dev', 'CS Agent Fatima']
+const replyMessage = ref('')
+const replying = ref(false)
 
 const openDetail = (row) => {
     selected.value = { ...row }
-    assignedTo.value = row.assignedTo || ''
     notes.value = row.notes || ''
+    replyMessage.value = ''
 }
 
-const updateField = (field, value) => {
+const updateField = async (field, value) => {
     if (!selected.value) return
-    contactStore.update(selected.value.id, { [field]: value })
-    // Keep drawer in sync
-    selected.value = { ...contactStore.submissions.find(s => s.id === selected.value.id) }
-    if (field === 'assignedTo') assignedTo.value = value
-    if (field === 'notes') notes.value = value
+    try {
+        const updated = await contactStore.update(selected.value.id, { [field]: value })
+        selected.value = { ...updated }
+        if (field === 'notes') notes.value = value
+    } catch (error) {
+        toast.error(error.message || 'Failed to update submission')
+    }
+}
+
+const removeSelected = async () => {
+    if (!selected.value) return
+    try {
+        await contactStore.remove(selected.value.id)
+        selected.value = null
+        toast.success('Submission deleted')
+    } catch (error) {
+        toast.error(error.message || 'Failed to delete submission')
+    }
+}
+
+const removeRow = async (id) => {
+    try {
+        await contactStore.remove(id)
+        if (selected.value?.id === id) {
+            selected.value = null
+        }
+        toast.success('Submission deleted')
+    } catch (error) {
+        toast.error(error.message || 'Failed to delete submission')
+    }
+}
+
+const sendReply = async () => {
+    if (!selected.value || !replyMessage.value.trim() || replying.value) return
+
+    replying.value = true
+    try {
+        const updated = await contactStore.reply(selected.value.id, replyMessage.value.trim())
+        selected.value = { ...updated }
+        replyMessage.value = ''
+        toast.success(`Reply sent to ${updated.email}`)
+    } catch (error) {
+        toast.error(error.message || 'Failed to send reply')
+    } finally {
+        replying.value = false
+    }
 }
 
 // Stats
@@ -320,7 +378,11 @@ const statCards = computed(() => [
 const filtered = computed(() => {
     return contactStore.submissions.filter(s => {
         const q = search.value.toLowerCase()
-        const matchSearch = !q || s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q) || s.subject.toLowerCase().includes(q) || s.id.toLowerCase().includes(q)
+        const matchSearch = !q
+            || s.name.toLowerCase().includes(q)
+            || s.email.toLowerCase().includes(q)
+            || s.subject.toLowerCase().includes(q)
+            || s.reference_code.toLowerCase().includes(q)
         const matchStatus = !filterStatus.value || s.status === filterStatus.value
         const matchPriority = !filterPriority.value || s.priority === filterPriority.value
         return matchSearch && matchStatus && matchPriority

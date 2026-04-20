@@ -1,0 +1,8 @@
+import asyncio
+from app.main import app
+from starlette.middleware.cors import CORSMiddleware
+
+# Find CORS middleware
+for middleware in app.user_middleware:
+    if middleware.cls == CORSMiddleware:
+        print("CORS ALLOW_ORIGINS: ", middleware.kwargs.get("allow_origins"))

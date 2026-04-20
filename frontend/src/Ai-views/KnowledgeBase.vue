@@ -61,8 +61,14 @@
             </button>
         </div>
 
+        <!-- Loading state -->
+        <div v-if="isLoading" class="flex items-center justify-center py-20 gap-3 text-gray-500 dark:text-gray-400">
+            <span class="material-symbols-outlined animate-spin text-purple-500">progress_activity</span>
+            Loading knowledge base…
+        </div>
+
         <!-- Dynamic Content Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <template v-for="cat in visibleCategories" :key="cat.title">
 
                 <!-- Category Card Header -->
@@ -118,10 +124,10 @@
                             </div>
                             <span class="text-xs text-gray-500 dark:text-gray-400">{{ article.lastUpdated }}</span>
                         </div>
-                        <div
-                            class="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-bold bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded">
+                        <button @click.stop="handleLike(article._id)"
+                            class="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-bold bg-green-50 dark:bg-green-500/10 hover:bg-green-100 dark:hover:bg-green-500/20 px-2 py-1 rounded transition-colors">
                             <span class="material-symbols-outlined text-[14px]">thumb_up</span> {{ article.likes }}
-                        </div>
+                        </button>
                     </div>
                 </div>
             </template>
@@ -198,27 +204,25 @@
                             class="hidden md:block w-64 border-r border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-black/20 p-6 overflow-y-auto">
                             <h4
                                 class="text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-4 tracking-wider">
-                                On this
-                                page</h4>
+                                On this page</h4>
                             <ul class="space-y-3 text-sm font-medium">
-                                <li><a href="#" @click.prevent="scrollToSection('overview')"
+                                <li>
+                                    <a href="#" @click.prevent="scrollToSection('article-overview')"
                                         class="text-purple-600 dark:text-purple-400 flex items-center gap-2">
                                         <div class="w-1.5 h-1.5 rounded-full bg-purple-500"></div> Overview
-                                    </a></li>
-                                <li><a href="#" @click.prevent="scrollToSection('criteria')"
-                                        class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition ml-3">Criteria
-                                        & Rules</a></li>
-                                <li><a href="#" @click.prevent="scrollToSection('actions')"
-                                        class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition ml-3">Action
-                                        Steps</a></li>
-                                <li><a href="#" @click.prevent="scrollToSection('exceptions')"
-                                        class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition ml-3">Exception
-                                        Handling</a></li>
-                                <li><a href="#" @click.prevent="scrollToSection('ai-notes')"
-                                        class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition flex items-center gap-2">
-                                        <div class="w-1.5 h-1.5 rounded-full border border-gray-400"></div> AI
-                                        Integration Notes
-                                    </a></li>
+                                    </a>
+                                </li>
+                                <li v-for="item in tocItems" :key="item.id">
+                                    <a href="#" @click.prevent="scrollToSection(item.id)"
+                                        class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition flex items-center gap-2"
+                                        :class="item.level === 2 ? 'ml-3' : item.level === 3 ? 'ml-6' : ''">
+                                        <div class="w-1 h-1 rounded-full bg-gray-400 shrink-0"></div>
+                                        {{ item.text }}
+                                    </a>
+                                </li>
+                                <li v-if="tocItems.length === 0" class="text-gray-400 dark:text-gray-500 text-xs italic">
+                                    No headings found
+                                </li>
                             </ul>
                         </div>
 
@@ -226,7 +230,7 @@
                         <div id="article-main-content"
                             class="flex-1 overflow-y-auto scroll-smooth p-6 md:p-10 custom-scrollbar bg-white dark:bg-transparent">
                             <div class="max-w-3xl mx-auto pb-10">
-                                <h1 id="overview"
+                                <h1 id="article-overview"
                                     class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white leading-tight mb-4">
                                     {{ selectedArticle?.title }}
                                 </h1>
@@ -326,8 +330,18 @@
                                     class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Category</label>
                                 <select v-model="newArticle.category"
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors shadow-sm font-medium">
-                                    <option v-for="cat in categories.filter(c => c !== 'All')" :key="cat">{{ cat }}
-                                    </option>
+                                    <option v-for="cat in dynamicCategories" :key="cat" :value="cat">{{ cat }}</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Audience</label>
+                                <select v-model="newArticle.audience"
+                                    class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors shadow-sm font-medium">
+                                    <option value="ALL">All Users</option>
+                                    <option value="VENDOR">Vendor Only</option>
+                                    <option value="INDIVIDUAL">Customer Only</option>
                                 </select>
                             </div>
 
@@ -337,13 +351,10 @@
                                     Type</label>
                                 <select v-model="newArticle.type"
                                     class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors shadow-sm font-medium">
-                                    <option>Standard Operating Procedure</option>
-                                    <option>Customer Support Script</option>
-                                    <option>Legal Policy</option>
+                                    <option>SOP</option>
                                     <option>Policy</option>
                                     <option>Script</option>
-                                    <option>Legal Docs</option>
-                                    <option>SOP</option>
+                                    <option>Guide</option>
                                 </select>
                             </div>
 
@@ -429,91 +440,110 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { marked } from 'marked'
+import { ref, computed, onMounted } from 'vue'
+import {
+    fetchKnowledgeArticles,
+    createKnowledgeArticle,
+    updateKnowledgeArticle,
+    deleteKnowledgeArticle,
+    likeKnowledgeArticle,
+} from '@/utils/aiApi'
 
 const searchQuery = ref('')
 const activeCategory = ref('All')
+const isLoading = ref(true)
 
 const showArticleModal = ref(false)
 const showAddArticleModal = ref(false)
+const isSavingArticle = ref(false)
 
 const selectedArticle = ref(null)
 const selectedArticleCat = ref(null)
+const editingArticleId = ref(null)  // null = create mode, string = edit mode
 
 const newArticle = ref({
     title: '',
-    category: 'Customer Support Scripts',
+    category: 'General',
+    audience: 'ALL',
     type: 'SOP',
     excerpt: '',
-    content: ''
+    content: '',
 })
 
-const defaultMarkdownContent = `
-## 1. Criteria & Rules
-Before applying any action defined in this SOP, you must verify the following criteria via the integrated CRM toolset:
-* **Account Standing:** Must not be flagged for fraudulent activity.
-* **Time window:** The request must fall within the 30-day standard policy window.
+// ── Category display metadata ──────────────────────────────────────────────
+const CAT_META = {
+    'Vendor': { icon: 'local_shipping', iconBg: 'bg-purple-100 dark:bg-purple-500/20', iconColor: 'text-purple-600 dark:text-purple-400', desc: 'Vendor-specific policies, shipment SOPs, and platform guides.' },
+    'Customer': { icon: 'support_agent', iconBg: 'bg-blue-100 dark:bg-blue-500/20', iconColor: 'text-blue-600 dark:text-blue-400', desc: 'Customer-facing support scripts, refund policies, and how-to guides.' },
+    'General': { icon: 'menu_book', iconBg: 'bg-green-100 dark:bg-green-500/20', iconColor: 'text-green-600 dark:text-green-400', desc: 'Platform-wide policies available to all user roles.' },
+}
+const DEFAULT_META = { icon: 'folder', iconBg: 'bg-gray-100 dark:bg-white/10', iconColor: 'text-gray-500', desc: 'Knowledge articles.' }
 
-## 2. Action Steps
-1. Acknowledge the customer's frustration using empathy markers.
-2. Confirm order details and shipping address explicitly.
-3. Process action in billing portal.
-4. Send automated email.
+function typeIcon(type) {
+    return { SOP: 'rule', Policy: 'policy', Script: 'forum', Guide: 'auto_stories' }[type] || 'article'
+}
 
-## 3. AI Integration Notes
-The sentiment detection model is highly sensitive to the phrase "regulatory body". When this is parsed, bypass standard queueing and route immediately.
-`
+function relativeTime(iso) {
+    if (!iso) return ''
+    const diff = Date.now() - new Date(iso).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'Just now'
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    const days = Math.floor(hrs / 24)
+    if (days < 30) return `${days}d ago`
+    return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
-const categories = ['All', 'Standard Procedures', 'Customer Support Scripts', 'Legal & Compliance', 'AI Prompts']
+// ── Raw articles from backend ──────────────────────────────────────────────
+const rawArticles = ref([])
 
-const allCategories = ref([
-    {
-        title: 'Customer Support Scripts', icon: 'support_agent',
-        iconBg: 'bg-blue-100 dark:bg-blue-500/20', iconColor: 'text-blue-600 dark:text-blue-400',
-        desc: 'Approved templates and dialogue logic for support agents and AI bot responses.',
-        articles: [
-            { title: 'Refund Eligibility Policy', type: 'Policy', typeIcon: 'policy', excerpt: 'Comprehensive ruleset defining when a customer is entitled to a full, partial, or no refund based on timing and item condition.', content: defaultMarkdownContent, authorInitials: 'JD', lastUpdated: '2 days ago', likes: 145, featured: true },
-            { title: 'Late Delivery Apology Script', type: 'Script', typeIcon: 'forum', excerpt: 'Text and voice scripts to use when acknowledging a missed SLA or late carrier delivery.', content: defaultMarkdownContent, authorInitials: 'AM', lastUpdated: '1 week ago', likes: 89, featured: false },
-            { title: 'Handling Escalations via Phone', type: 'SOP', typeIcon: 'headset_mic', excerpt: 'Step-by-step logic for de-escalating angry callers before passing to a Tier 2 supervisor.', content: defaultMarkdownContent, authorInitials: 'TB', lastUpdated: '3 weeks ago', likes: 42, featured: false }
-        ]
-    },
-    {
-        title: 'Standard Procedures', icon: 'local_shipping',
-        iconBg: 'bg-purple-100 dark:bg-purple-500/20', iconColor: 'text-purple-600 dark:text-purple-400',
-        desc: 'Internal guidelines for operations, logistics execution, and safety protocols.',
-        articles: [
-            { title: 'Contactless Delivery Rules', type: 'SOP', typeIcon: 'rule', excerpt: 'Instructions for drivers executing visual verification and signatureless dropoffs.', content: defaultMarkdownContent, authorInitials: 'LR', lastUpdated: '1 month ago', likes: 210, featured: true },
-            { title: 'RMA Warehouse Processing', type: 'SOP', typeIcon: 'warehouse', excerpt: 'How to receive, log, and inspect a returned item at the central depot.', content: defaultMarkdownContent, authorInitials: 'DK', lastUpdated: '5 days ago', likes: 67, featured: false }
-        ]
-    },
-    {
-        title: 'Legal & Compliance', icon: 'gavel',
-        iconBg: 'bg-green-100 dark:bg-green-500/20', iconColor: 'text-green-600 dark:text-green-400',
-        desc: 'Binding terms of service, privacy protocols, and regulatory requirements.',
-        articles: [
-            { title: 'Data Privacy (GDPR Compliance)', type: 'Policy', typeIcon: 'gavel', excerpt: 'Mandatory rules on how customer PII string data is handled, stored, and purged upon request (Right to be Forgotten).', content: defaultMarkdownContent, authorInitials: 'LF', lastUpdated: '5 months ago', likes: 91, featured: true },
-            { title: 'Liability Waiver 2024 Updates', type: 'Legal Docs', typeIcon: 'description', excerpt: 'Updated vendor liability clauses covering third-party shipping incidents.', content: defaultMarkdownContent, authorInitials: 'LF', lastUpdated: 'Jan 15, 2024', likes: 23, featured: false }
-        ]
-    },
-])
+function mapToDisplay(a) {
+    return {
+        _id: a.id,
+        title: a.title,
+        type: a.article_type,
+        typeIcon: typeIcon(a.article_type),
+        excerpt: a.content.slice(0, 120) + (a.content.length > 120 ? '…' : ''),
+        content: a.content,
+        authorInitials: a.author_initials,
+        lastUpdated: relativeTime(a.updated_at),
+        likes: a.likes,
+        featured: a.likes > 20,
+        audience: a.audience,
+        category: a.category || 'General',
+        is_active: a.is_active,
+    }
+}
+
+// ── Grouped categories for the grid ───────────────────────────────────────
+const allCategories = computed(() => {
+    const groups = {}
+    rawArticles.value.forEach(a => {
+        const cat = a.category || 'General'
+        if (!groups[cat]) groups[cat] = []
+        groups[cat].push(mapToDisplay(a))
+    })
+    return Object.entries(groups).map(([title, articles]) => ({
+        title,
+        articles,
+        ...(CAT_META[title] || DEFAULT_META),
+    }))
+})
+
+const categories = computed(() => ['All', ...Object.keys(
+    rawArticles.value.reduce((acc, a) => { acc[a.category || 'General'] = 1; return acc }, {})
+)])
 
 const visibleCategories = computed(() => {
     let cats = allCategories.value
-
-    // Filter by Tab
-    if (activeCategory.value !== 'All') {
-        cats = cats.filter(c => c.title === activeCategory.value)
-    }
-
-    // Filter by Text Search
+    if (activeCategory.value !== 'All') cats = cats.filter(c => c.title === activeCategory.value)
     if (searchQuery.value) {
         const q = searchQuery.value.toLowerCase()
         cats = cats.map(cat => ({
             ...cat,
             articles: cat.articles.filter(a =>
-                a.title.toLowerCase().includes(q) ||
-                a.excerpt.toLowerCase().includes(q)
+                a.title.toLowerCase().includes(q) || a.excerpt.toLowerCase().includes(q)
             )
         })).filter(cat => cat.articles.length > 0)
     }
@@ -521,78 +551,137 @@ const visibleCategories = computed(() => {
 })
 
 const renderedContent = computed(() => {
-    if (!selectedArticle.value || !selectedArticle.value.content) return '';
-    return marked(selectedArticle.value.content);
-});
+    if (!selectedArticle.value?.content) return ''
+    return renderMarkdown(selectedArticle.value.content)
+})
 
+const tocItems = computed(() => {
+    if (!selectedArticle.value?.content) return []
+    const items = []
+    selectedArticle.value.content.split('\n').forEach(line => {
+        const h3 = line.match(/^###\s+(.+)$/)
+        const h2 = line.match(/^##\s+(.+)$/)
+        const h1 = line.match(/^#\s+(.+)$/)
+        if (h3) {
+            const text = h3[1].trim()
+            items.push({ level: 3, text, id: text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') })
+        } else if (h2) {
+            const text = h2[1].trim()
+            items.push({ level: 2, text, id: text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') })
+        } else if (h1) {
+            const text = h1[1].trim()
+            items.push({ level: 1, text, id: text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') })
+        }
+    })
+    return items
+})
+
+const BUILT_IN_CATEGORIES = ['General', 'Vendor', 'Customer', 'Legal & Compliance', 'Operations']
+const dynamicCategories = computed(() => {
+    const fromArticles = rawArticles.value.map(a => a.category || 'General')
+    return [...new Set([...BUILT_IN_CATEGORIES, ...fromArticles])]
+})
+
+// ── Load articles on mount ─────────────────────────────────────────────────
+async function loadArticles() {
+    isLoading.value = true
+    try {
+        const data = await fetchKnowledgeArticles({ activeOnly: false })
+        rawArticles.value = data.articles || []
+    } catch (err) {
+        console.error('[KnowledgeBase] Failed to load articles:', err)
+    } finally {
+        isLoading.value = false
+    }
+}
+
+onMounted(loadArticles)
+
+// ── CRUD ──────────────────────────────────────────────────────────────────
 function openArticleModal(article, cat) {
     selectedArticle.value = article
     selectedArticleCat.value = cat
     showArticleModal.value = true
 }
 
-function addArticle() {
+async function addArticle() {
     if (!newArticle.value.title) return
-    const cat = allCategories.value.find(c => c.title === newArticle.value.category)
-    if (cat) {
-        cat.articles.unshift({
+    isSavingArticle.value = true
+    try {
+        const payload = {
             title: newArticle.value.title,
-            type: newArticle.value.type,
-            typeIcon: 'edit_document',
-            excerpt: newArticle.value.excerpt || 'Newly drafted article. Pending review.',
-            content: newArticle.value.content || defaultMarkdownContent,
-            authorInitials: 'AI',
-            lastUpdated: 'Just now',
-            likes: 0,
-            featured: false
-        })
+            audience: newArticle.value.audience,
+            category: newArticle.value.category,
+            article_type: newArticle.value.type,
+            content: newArticle.value.content || newArticle.value.excerpt || newArticle.value.title,
+            keywords: [],
+        }
+        if (editingArticleId.value) {
+            await updateKnowledgeArticle(editingArticleId.value, payload)
+        } else {
+            await createKnowledgeArticle(payload)
+        }
+        await loadArticles()
+        newArticle.value = { title: '', category: 'General', audience: 'ALL', type: 'SOP', excerpt: '', content: '' }
+        editingArticleId.value = null
+        showAddArticleModal.value = false
+    } catch (err) {
+        alert('Failed to save: ' + (err.message || 'Unknown error'))
+    } finally {
+        isSavingArticle.value = false
     }
-
-    newArticle.value = { title: '', category: 'Customer Support Scripts', type: 'SOP', excerpt: '', content: '' }
-    showAddArticleModal.value = false
 }
 
 function saveDraftTrigger() {
-    alert("Draft saved to your workspace.");
-    newArticle.value = { title: '', category: 'Customer Support Scripts', type: 'SOP', excerpt: '', content: '' }
-    showAddArticleModal.value = false;
+    addArticle()
 }
 
-function printArticle() {
-    window.print();
-}
+function printArticle() { window.print() }
 
 function editArticle() {
+    if (!selectedArticle.value) return
+    editingArticleId.value = selectedArticle.value._id
     newArticle.value = {
         title: selectedArticle.value.title,
-        category: selectedArticleCat.value.title,
+        category: selectedArticle.value.category || 'General',
+        audience: selectedArticle.value.audience || 'ALL',
         type: selectedArticle.value.type || 'SOP',
         excerpt: selectedArticle.value.excerpt,
-        content: selectedArticle.value.content
+        content: selectedArticle.value.content,
     }
-    showArticleModal.value = false;
-    showAddArticleModal.value = true;
+    showArticleModal.value = false
+    showAddArticleModal.value = true
 }
 
-function unpublishArticle() {
-    if (selectedArticle.value) {
-        selectedArticle.value.type = 'Draft';
-        selectedArticle.value.typeIcon = 'edit_document';
-        alert(`"${selectedArticle.value.title}" has been moved to Drafts.`);
-        showArticleModal.value = false;
+async function unpublishArticle() {
+    if (!selectedArticle.value) return
+    try {
+        await updateKnowledgeArticle(selectedArticle.value._id, { is_active: false })
+        await loadArticles()
+        showArticleModal.value = false
+    } catch (err) {
+        alert('Failed to unpublish: ' + (err.message || 'Unknown error'))
     }
 }
 
-function deleteArticle() {
-    if (confirm(`Are you sure you want to permanently delete "${selectedArticle.value.title}"?`)) {
-        if (selectedArticleCat.value) {
-            const index = selectedArticleCat.value.articles.findIndex(a => a.title === selectedArticle.value.title);
-            if (index > -1) {
-                selectedArticleCat.value.articles.splice(index, 1);
-            }
-        }
-        showArticleModal.value = false;
+async function deleteArticle() {
+    if (!selectedArticle.value) return
+    if (!confirm(`Permanently delete "${selectedArticle.value.title}"?`)) return
+    try {
+        await deleteKnowledgeArticle(selectedArticle.value._id)
+        await loadArticles()
+        showArticleModal.value = false
+    } catch (err) {
+        alert('Failed to delete: ' + (err.message || 'Unknown error'))
     }
+}
+
+async function handleLike(articleId) {
+    try {
+        await likeKnowledgeArticle(articleId)
+        const idx = rawArticles.value.findIndex(a => a.id === articleId)
+        if (idx !== -1) rawArticles.value[idx].likes++
+    } catch { /* ignore */ }
 }
 
 function scrollToSection(id) {
@@ -606,16 +695,82 @@ function scrollToSection(id) {
         });
     }
 }
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+}
+
+function formatInlineMarkdown(line) {
+    return line
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+}
+
+function renderMarkdown(content) {
+    return escapeHtml(content)
+        .split(/\n{2,}/)
+        .map((block) => block.trim())
+        .filter(Boolean)
+        .map((block) => {
+            const lines = block.split('\n').map((line) => line.trim()).filter(Boolean)
+            if (!lines.length) return ''
+
+            if (lines.every((line) => line.startsWith('* '))) {
+                return `<ul>${lines.map((line) => `<li>${formatInlineMarkdown(line.slice(2))}</li>`).join('')}</ul>`
+            }
+
+            if (lines.every((line) => /^\d+\.\s/.test(line))) {
+                return `<ol>${lines.map((line) => `<li>${formatInlineMarkdown(line.replace(/^\d+\.\s/, ''))}</li>`).join('')}</ol>`
+            }
+
+            if (lines.length === 1 && lines[0].startsWith('### ')) {
+                const text = formatInlineMarkdown(lines[0].slice(4))
+                const id = text.replace(/<[^>]+>/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                return `<h3 id="${id}">${text}</h3>`
+            }
+
+            if (lines.length === 1 && lines[0].startsWith('## ')) {
+                const text = formatInlineMarkdown(lines[0].slice(3))
+                const id = text.replace(/<[^>]+>/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                return `<h2 id="${id}">${text}</h2>`
+            }
+
+            if (lines.length === 1 && lines[0].startsWith('# ')) {
+                const text = formatInlineMarkdown(lines[0].slice(2))
+                const id = text.replace(/<[^>]+>/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                return `<h1 id="${id}">${text}</h1>`
+            }
+
+            return `<p>${lines.map(formatInlineMarkdown).join('<br>')}</p>`
+        })
+        .join('')
+}
 </script>
 
 <style scoped>
 /* Tooltip styling */
 .tooltip-trigger .tooltip {
-    @apply absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 whitespace-nowrap pointer-events-none transition-opacity;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background: rgb(17 24 39);
+    color: white;
+    font-size: 10px;
+    border-radius: 0.25rem;
+    opacity: 0;
+    white-space: nowrap;
+    pointer-events: none;
+    transition: opacity 150ms ease;
     z-index: 1000;
 }
 
 .tooltip-trigger:hover .tooltip {
-    @apply opacity-100;
+    opacity: 1;
 }
 </style>

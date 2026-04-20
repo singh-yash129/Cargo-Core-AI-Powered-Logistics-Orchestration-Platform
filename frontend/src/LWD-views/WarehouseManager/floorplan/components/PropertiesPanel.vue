@@ -8,13 +8,13 @@
             <input v-model="element.label"
                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded px-2 py-1.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
         </div>
-        <!-- Group selector (sections only) -->
+        <!-- Category selector (sections only) -->
         <div v-if="isSection">
-            <label class="text-[10px] text-gray-500 block">Group</label>
+            <label class="text-[10px] text-gray-500 block">Category</label>
             <select v-model="element.groupId"
                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded px-2 py-1.5 text-sm text-gray-900 dark:text-white focus:outline-none">
-                <option :value="null" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">None</option>
-                <option v-for="g in groups" :key="g.id" :value="g.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ g.name }}</option>
+                <option :value="null" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Uncategorized</option>
+                <option v-for="category in categories" :key="category.id" :value="category.id" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ category.name }}</option>
             </select>
         </div>
         <!-- Dimensions -->
@@ -52,7 +52,7 @@ import { computed } from 'vue'
 const props = defineProps({
     element: { type: Object, default: null },
     elementType: { type: String, default: 'section' },
-    groups: { type: Array, default: () => [] }
+    categories: { type: Array, default: () => [] }
 })
 
 const isSection = computed(() => props.elementType === 'section')

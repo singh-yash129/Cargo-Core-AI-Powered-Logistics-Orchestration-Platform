@@ -41,6 +41,5 @@ defineProps({
 
 .animate-spotlight {
     animation: spotlight 2s ease .75s 1 forwards;
-    /* Adjust animation to match the React version's feel if needed */
 }
 </style>

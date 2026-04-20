@@ -1,7 +1,7 @@
 <template>
-    <div class="h-[calc(100vh-8rem)] flex flex-col gap-6">
+    <div class="flex flex-col gap-4">
         <!-- Header -->
-        <div class="flex justify-between items-center bg-white dark:bg-card-dark p-4 rounded-xl shadow-sm border border-gray-100 dark:border-white/5">
+        <div class="flex justify-between items-center bg-slate-800/80 p-4 rounded-xl shadow-sm border border-white/10">
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary">account_balance_wallet</span>
@@ -12,7 +12,7 @@
             <div class="flex gap-3">
                 <div class="relative group">
                     <button @click="openPayrollModal" :disabled="!filteredUsers.some(u => u.pending_payout > 0)"
-                        class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                        class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-emerald-400/20">
                         <span class="material-symbols-outlined">payments</span> Pay All Due
                     </button>
                     <div v-if="!filteredUsers.some(u => u.pending_payout > 0)" class="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 bg-black/80 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-center">
@@ -20,78 +20,74 @@
                     </div>
                 </div>
                 <button @click="openBulkActionModal" 
-                    class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                    class="bg-slate-800 hover:bg-slate-700 dark:bg-purple-600 dark:hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-slate-700 dark:border-purple-400/20">
                     <span class="material-symbols-outlined">auto_fix_high</span> Smart Bonus/Deduct
                 </button>
                 <button @click="openTransactionModal" 
-                    class="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                    class="bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-slate-700 dark:border-primary/30">
                     <span class="material-symbols-outlined">add_circle</span> New Record
                 </button>
             </div>
         </div>
 
-        <!-- Dynamic Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-primary/30 transition-colors">
-                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-symbols-outlined text-6xl text-green-500">payments</span>
-                </div>
-                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Total Revenue (MTD)</p>
-                <div class="flex items-end gap-2 z-10 mt-1">
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ totalRevenue.toLocaleString() }}</p>
-                    <span class="text-xs font-bold text-green-500 bg-green-50 dark:bg-green-500/10 px-1.5 py-0.5 rounded flex items-center mb-1">
-                        <span class="material-symbols-outlined text-[10px] mr-0.5">trending_up</span> 12%
-                    </span>
+        <!-- Dynamic Stats Cards — compact single row -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div class="glass-panel px-4 py-3 rounded-xl border border-gray-200 dark:border-white/5 flex items-center gap-3 hover:border-primary/30 transition-colors">
+                <span class="material-symbols-outlined text-2xl text-green-500 shrink-0">payments</span>
+                <div class="min-w-0">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Revenue (MTD)</p>
+                    <p v-if="financeLoaded" class="text-lg font-bold text-gray-900 dark:text-white leading-tight">₹{{ totalRevenue.toLocaleString() }}</p>
+                    <div v-else class="h-6 w-20 bg-white/10 animate-pulse rounded mt-1"></div>
                 </div>
             </div>
-            
-            <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-red-500/30 transition-colors">
-                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-symbols-outlined text-6xl text-red-500">account_balance_wallet</span>
-                </div>
-                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Total Expenses</p>
-                <div class="flex items-end gap-2 z-10 mt-1">
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ Math.abs(totalExpenses).toLocaleString() }}</p>
+            <div class="glass-panel px-4 py-3 rounded-xl border border-gray-200 dark:border-white/5 flex items-center gap-3 hover:border-red-500/30 transition-colors">
+                <span class="material-symbols-outlined text-2xl text-red-500 shrink-0">account_balance_wallet</span>
+                <div class="min-w-0">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Expenses</p>
+                    <p v-if="financeLoaded" class="text-lg font-bold text-gray-900 dark:text-white leading-tight">₹{{ Math.abs(totalExpenses).toLocaleString() }}</p>
+                    <div v-else class="h-6 w-20 bg-white/10 animate-pulse rounded mt-1"></div>
                 </div>
             </div>
-
-            <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-blue-500/30 transition-colors">
-                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-symbols-outlined text-6xl text-blue-500">local_shipping</span>
-                </div>
-                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Pending COD</p>
-                <div class="flex items-end gap-2 z-10 mt-1">
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ pendingCOD.toLocaleString() }}</p>
-                    <button @click="activeTab = 'cod'" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline z-10 ml-auto font-medium">View Detail</button>
+            <div class="glass-panel px-4 py-3 rounded-xl border border-gray-200 dark:border-white/5 flex items-center gap-3 hover:border-blue-500/30 transition-colors">
+                <span class="material-symbols-outlined text-2xl text-blue-500 shrink-0">local_shipping</span>
+                <div class="min-w-0">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Pending COD</p>
+                    <p class="text-lg font-bold text-gray-900 dark:text-white leading-tight">₹{{ pendingCOD.toLocaleString() }}</p>
                 </div>
             </div>
-
-            <div class="glass-panel p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-orange-500/30 transition-colors">
-                <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-symbols-outlined text-6xl text-orange-500">group</span>
+            <div class="glass-panel px-4 py-3 rounded-xl border border-gray-200 dark:border-white/5 flex items-center gap-3 hover:border-orange-500/30 transition-colors">
+                <span class="material-symbols-outlined text-2xl text-orange-500 shrink-0">group</span>
+                <div class="min-w-0">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Payroll Due</p>
+                    <p v-if="financeLoaded" class="text-lg font-bold text-gray-900 dark:text-white leading-tight">₹{{ totalPayrollDue.toLocaleString() }}</p>
+                    <div v-else class="h-6 w-20 bg-white/10 animate-pulse rounded mt-1"></div>
                 </div>
-                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider z-10">Total Payroll Due</p>
-                <div class="flex items-end gap-2 z-10 mt-1">
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ totalPayrollDue.toLocaleString() }}</p>
+            </div>
+            <div class="glass-panel px-4 py-3 rounded-xl border border-purple-200 dark:border-purple-500/20 flex items-center gap-3 hover:border-purple-500/50 transition-colors bg-purple-500/5">
+                <span class="material-symbols-outlined text-2xl text-purple-400 shrink-0">add_card</span>
+                <div class="min-w-0">
+                    <p class="text-[10px] text-purple-400 uppercase font-bold tracking-wider">Capital Inflow</p>
+                    <p v-if="financeLoaded" class="text-lg font-bold text-purple-300 leading-tight">₹{{ capitalInflow.toLocaleString() }}</p>
+                    <div v-else class="h-6 w-20 bg-purple-400/20 animate-pulse rounded mt-1"></div>
                 </div>
             </div>
         </div>
 
         <!-- Tabs Navigation -->
-        <div class="flex gap-1 bg-gray-100 dark:bg-white/5 p-1 rounded-lg self-start border border-gray-200 dark:border-white/10">
+        <div class="flex gap-1 bg-slate-100 dark:bg-slate-800/70 p-1 rounded-lg self-start border border-gray-200 dark:border-white/10 shadow-sm">
             <button v-for="tab in tabs" :key="tab.id"
                 @click="activeTab = tab.id"
-                class="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
-                :class="activeTab === tab.id ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'">
-                <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
+                class="px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5"
+                :class="activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-600 dark:text-white' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5'">
+                <span class="material-symbols-outlined text-[16px]">{{ tab.icon }}</span>
                 {{ tab.label }}
             </button>
         </div>
 
         <!-- Main Content Area -->
-        <div class="flex-1 glass-panel rounded-xl overflow-hidden flex flex-col border border-gray-200 dark:border-white/5 relative">
+        <div class="glass-panel rounded-xl overflow-hidden flex flex-col border border-gray-200 dark:border-white/5 relative" style="height: calc(100vh - 18rem)">
             <!-- Filter Bar -->
-            <div class="p-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-gray-50 dark:bg-white/5">
+            <div class="p-4 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-slate-800/70">
                 <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     {{ activeTabLabel }}
                 </h3>
@@ -99,56 +95,61 @@
                     <div class="relative">
                         <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">search</span>
                         <input v-model="searchQuery" type="text" placeholder="Search records..." 
-                            class="pl-9 pr-4 py-1.5 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-700 dark:text-gray-200 w-64">
+                            class="pl-9 pr-4 py-1.5 bg-white dark:bg-slate-900/80 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 w-64 shadow-sm">
                     </div>
                 </div>
             </div>
             
-            <div class="flex-1 overflow-auto custom-scrollbar bg-white dark:bg-gray-900">
+            <div class="flex-1 overflow-auto custom-scrollbar bg-white dark:bg-slate-900/70">
                 <table class="w-full text-left text-sm border-separate border-spacing-0">
-                    <thead class="bg-gray-50 dark:bg-card-dark sticky top-0 z-10 shadow-sm">
+                    <thead class="bg-slate-100 dark:bg-slate-800 sticky top-0 z-10 shadow-sm">
                         <tr class="text-gray-500 dark:text-gray-400 uppercase tracking-wider text-[10px]">
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10">Ref ID</th>
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10">Date</th>
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10">
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10">Ref ID</th>
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10">Date</th>
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10">
                                 {{ activeTab === 'cod' ? 'Driver / Route' : 'Beneficiary / Description' }}
                             </th>
-                            <th v-if="activeTab !== 'cod'" class="py-3 px-4 font-medium border-b dark:border-white/10">Role/Category</th>
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10 text-right">Amount</th>
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10 text-right">Status</th>
-                            <th class="py-3 px-4 font-medium border-b dark:border-white/10 text-right">Action</th>
+                            <th v-if="activeTab !== 'cod'" class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10">Role/Category</th>
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10 text-right">Amount</th>
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10 text-right">Status</th>
+                            <th class="py-3 px-4 font-medium border-b border-gray-200 dark:border-white/10 text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                         <template v-for="item in filteredItems" :key="item.id">
                             <!-- Main Row -->
-                            <tr @click="toggleRow(item.id)" 
-                                class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer group"
-                                :class="expandedRow === item.id ? 'bg-blue-50/50 dark:bg-blue-500/5' : ''">
-                                <td class="py-3 px-4 font-mono text-gray-600 dark:text-gray-300 text-xs flex items-center gap-2">
+                            <tr @click="toggleRow(item.id)"
+                                class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+                                :class="expandedRow === item.id ? 'bg-primary/5 dark:bg-primary/10' : ''">
+                                <td class="py-4 px-4 font-mono text-gray-600 dark:text-gray-300 text-xs flex items-center gap-2">
                                     <span class="material-symbols-outlined text-gray-400 transition-transform text-sm"
                                         :class="expandedRow === item.id ? 'rotate-90 text-primary' : ''">chevron_right</span>
                                     {{ item.id }}
                                 </td>
-                                <td class="py-3 px-4 text-gray-500 dark:text-gray-400">{{ item.date }}</td>
-                                <td class="py-3 px-4 font-medium text-gray-900 dark:text-white">
+                                <td class="py-4 px-4 text-gray-500 dark:text-gray-400">{{ item.date }}</td>
+                                <td class="py-4 px-4 font-medium text-gray-900 dark:text-white">
                                     <div class="flex items-center gap-2">
-                                        <div v-if="item.avatar" class="w-6 h-6 rounded-full overflow-hidden bg-gray-200">
+                                        <div v-if="item.avatar" class="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0">
                                             <img :src="item.avatar" class="w-full h-full object-cover">
                                         </div>
                                         <span>{{ item.desc || item.name }}</span>
                                     </div>
                                 </td>
-                                <td v-if="activeTab !== 'cod'" class="py-3 px-4">
-                                    <span class="px-2 py-0.5 rounded text-[11px] bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-white/5">
-                                        {{ item.role || item.type }}
+                                <td v-if="activeTab !== 'cod'" class="py-4 px-4">
+                                    <span class="px-2 py-0.5 rounded text-[11px] border"
+                                        :class="item.type === 'REVENUE_REFUND'
+                                            ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                                            : item.type === 'PAYROLL_RUN'
+                                            ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
+                                            : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-white/10 dark:text-slate-300 dark:border-white/10'">
+                                        {{ item.role || txTypeLabel(item.type) }}
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 font-bold font-mono text-right"
+                                <td class="py-4 px-4 font-bold font-mono text-right"
                                     :class="item.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'">
                                     {{ item.amount > 0 ? '+' : '' }}{{ item.amount.toLocaleString() }}
                                 </td>
-                                <td class="py-3 px-4 text-right">
+                                <td class="py-4 px-4 text-right">
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border"
                                         :class="{
                                             'bg-green-50 border-green-200 text-green-600 dark:bg-green-500/10 dark:text-green-400': item.status === 'Completed' || item.status === 'Paid',
@@ -158,7 +159,7 @@
                                         {{ item.status }}
                                     </span>
                                 </td>
-                                <td class="py-3 px-4 text-right">
+                                <td class="py-4 px-4 text-right">
                                     <button v-if="item.status === 'Pending' && activeTab === 'cod'" 
                                         @click.stop="openReconcileModal(item)"
                                         class="text-xs bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded transition-colors shadow-sm">
@@ -178,8 +179,8 @@
                             </tr>
                             
                             <!-- Expanded Detail Row -->
-                            <tr v-if="expandedRow === item.id" class="bg-gray-50/50 dark:bg-white/[0.02]">
-                                <td :colspan="activeTab === 'cod' ? 6 : 7" class="p-4 border-b border-gray-100 dark:border-white/5">
+                            <tr v-if="expandedRow === item.id" class="bg-slate-50/80 dark:bg-white/[0.03]">
+                                <td :colspan="activeTab === 'cod' ? 6 : 7" class="p-4 border-b border-gray-200 dark:border-white/10">
                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm ml-8">
                                         <div class="space-y-2">
                                             <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">Transaction Details</p>
@@ -192,18 +193,18 @@
                                         </div>
                                         <div class="space-y-2">
                                             <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">Breakdown</p>
-                                            <div class="bg-white dark:bg-black/20 p-3 rounded border border-gray-100 dark:border-white/5 space-y-1">
+                                            <div class="bg-white dark:bg-slate-900/80 p-3 rounded border border-gray-200 dark:border-white/10 space-y-1 shadow-sm">
                                                 <div class="flex justify-between text-gray-600 dark:text-gray-400">
                                                     <span>Base Amount</span>
-                                                    <span>${{ Math.abs(item.amount * 0.9).toFixed(2) }}</span>
+                                                    <span>₹{{ Math.abs(item.amount * 0.9).toFixed(2) }}</span>
                                                 </div>
                                                 <div class="flex justify-between text-gray-600 dark:text-gray-400">
                                                     <span>Tax / Deductions</span>
-                                                    <span>${{ Math.abs(item.amount * 0.1).toFixed(2) }}</span>
+                                                    <span>₹{{ Math.abs(item.amount * 0.1).toFixed(2) }}</span>
                                                 </div>
                                                 <div class="border-t border-gray-200 dark:border-white/10 pt-1 mt-1 flex justify-between font-bold text-gray-900 dark:text-white">
                                                     <span>Total</span>
-                                                    <span>${{ Math.abs(item.amount).toLocaleString() }}</span>
+                                                    <span>₹{{ Math.abs(item.amount).toLocaleString() }}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -234,8 +235,8 @@
         <!-- Smart Bonus/Deduct Modal -->
          <Teleport to="body">
             <div v-if="showBulkActionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-scale-in">
-                    <div class="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
+                <div class="bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-scale-in border border-white/10">
+                    <div class="p-6 border-b border-white/10 flex justify-between items-center bg-slate-800/80">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                                 <span class="material-symbols-outlined">auto_fix_high</span>
@@ -255,7 +256,7 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">Target Group</label>
-                                <select v-model="bulkForm.role" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/50">
+                                <select v-model="bulkForm.role" class="w-full bg-slate-950 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/50 text-slate-100">
                                     <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Staff</option>
                                     <option value="Driver" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Drivers Only</option>
                                     <option value="Dispatcher" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Dispatchers Only</option>
@@ -263,57 +264,57 @@
                                 </select>
                             </div>
 
-                            <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg border border-gray-200 dark:border-white/10 space-y-3">
+                            <div class="bg-slate-800/80 p-3 rounded-lg border border-white/10 space-y-3">
                                 <p class="text-xs font-bold text-gray-500 uppercase">Performance Criteria</p>
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox" v-model="bulkForm.filterByRating" class="rounded text-purple-600 focus:ring-purple-500 border-gray-300">
                                     <span class="text-sm text-gray-700 dark:text-gray-300">Rating Above</span>
-                                    <input type="number" step="0.1" max="5" min="0" v-model="bulkForm.minRating" :disabled="!bulkForm.filterByRating" class="w-16 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded px-2 py-1 text-xs">
+                                    <input type="number" step="0.1" max="5" min="0" v-model="bulkForm.minRating" :disabled="!bulkForm.filterByRating" class="w-16 bg-slate-950 border border-white/10 rounded px-2 py-1 text-xs text-slate-100">
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox" v-model="bulkForm.filterByTrips" class="rounded text-purple-600 focus:ring-purple-500 border-gray-300">
                                     <span class="text-sm text-gray-700 dark:text-gray-300">Completed Trips ></span>
-                                    <input type="number" v-model="bulkForm.minTrips" :disabled="!bulkForm.filterByTrips" class="w-16 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded px-2 py-1 text-xs">
+                                    <input type="number" v-model="bulkForm.minTrips" :disabled="!bulkForm.filterByTrips" class="w-16 bg-slate-950 border border-white/10 rounded px-2 py-1 text-xs text-slate-100">
                                 </div>
                             </div>
 
-                            <div class="pt-4 border-t border-gray-200 dark:border-white/10">
+                            <div class="pt-4 border-t border-white/10">
                                 <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">Action Type</label>
                                 <div class="grid grid-cols-2 gap-2 mb-3">
                                     <button @click="bulkForm.type = 'Bonus'" 
                                         class="py-2 rounded-lg text-sm font-bold border transition-colors flex items-center justify-center gap-1"
-                                        :class="bulkForm.type === 'Bonus' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'">
+                                        :class="bulkForm.type === 'Bonus' ? 'bg-green-500/15 text-green-300 border-green-500/30' : 'bg-slate-900 text-slate-300 border-white/10 hover:bg-slate-800'">
                                         <span class="material-symbols-outlined text-[16px]">add_circle</span> Bonus
                                     </button>
                                     <button @click="bulkForm.type = 'Deduction'" 
                                         class="py-2 rounded-lg text-sm font-bold border transition-colors flex items-center justify-center gap-1"
-                                        :class="bulkForm.type === 'Deduction' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'">
+                                        :class="bulkForm.type === 'Deduction' ? 'bg-red-500/15 text-red-300 border-red-500/30' : 'bg-slate-900 text-slate-300 border-white/10 hover:bg-slate-800'">
                                         <span class="material-symbols-outlined text-[16px]">remove_circle</span> Deduct
                                     </button>
                                 </div>
-                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Amount ($)</label>
-                                <input v-model.number="bulkForm.amount" type="number" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/50 font-mono font-bold text-lg">
-                                <input v-model="bulkForm.reason" type="text" placeholder="Reason (e.g. Performance Bonus)" class="w-full mt-2 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/50">
+                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Amount (₹)</label>
+                                <input v-model.number="bulkForm.amount" type="number" class="w-full bg-slate-950 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/50 font-mono font-bold text-lg text-slate-100">
+                                <input v-model="bulkForm.reason" type="text" placeholder="Reason (e.g. Performance Bonus)" class="w-full mt-2 bg-slate-950 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/50 text-slate-100 placeholder:text-slate-400">
                             </div>
                         </div>
 
                         <!-- Right: Preview Users -->
-                        <div class="flex flex-col h-full bg-gray-50 dark:bg-black/20 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
-                            <div class="p-3 border-b border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 flex justify-between items-center">
+                        <div class="flex flex-col h-full bg-slate-800/80 rounded-xl border border-white/10 overflow-hidden">
+                            <div class="p-3 border-b border-white/10 bg-slate-800 flex justify-between items-center">
                                 <span class="text-xs font-bold uppercase text-gray-500">Affected Users ({{ bulkTargetUsers.length }})</span>
                                 <span class="text-xs font-mono font-bold" :class="bulkForm.type === 'Bonus' ? 'text-green-600' : 'text-red-600'">
-                                    Total: ${{ (bulkTargetUsers.length * bulkForm.amount).toLocaleString() }}
+                                    Total: ₹{{ (bulkTargetUsers.length * bulkForm.amount).toLocaleString() }}
                                 </span>
                             </div>
                             <div class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                                <div v-for="user in bulkTargetUsers" :key="user.username" class="flex items-center gap-2 p-2 rounded bg-white dark:bg-card-dark border border-gray-100 dark:border-white/5 transition-all hover:translate-x-1">
+                                <div v-for="user in bulkTargetUsers" :key="user.username" class="flex items-center gap-2 p-2 rounded bg-slate-900 border border-white/10 transition-all hover:translate-x-1">
                                     <img :src="user.avatar" class="w-8 h-8 rounded-full bg-gray-200">
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ user.name }}</p>
                                         <p class="text-[10px] text-gray-500 truncate">{{ user.role }} • Rating: {{ user.rating || 'N/A' }}</p>
                                     </div>
                                     <span class="text-xs font-bold" :class="bulkForm.type === 'Bonus' ? 'text-green-600' : 'text-red-600'">
-                                        {{ bulkForm.type === 'Bonus' ? '+' : '-' }}${{ bulkForm.amount }}
+                                        {{ bulkForm.type === 'Bonus' ? '+' : '-' }}₹{{ bulkForm.amount }}
                                     </span>
                                 </div>
                                 <div v-if="bulkTargetUsers.length === 0" class="h-full flex flex-col items-center justify-center text-gray-400 p-4 text-center">
@@ -324,11 +325,13 @@
                         </div>
                     </div>
 
-                    <div class="p-4 bg-gray-50 dark:bg-white/5 flex justify-end gap-2 border-t border-gray-100 dark:border-white/10">
+                    <div class="p-4 bg-slate-800/80 flex justify-end gap-2 border-t border-white/10">
                         <button @click="showBulkActionModal = false" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900">Cancel</button>
-                        <button @click="applyBulkAction" :disabled="bulkTargetUsers.length === 0 || bulkForm.amount <= 0" 
+                        <button @click="applyBulkAction" :disabled="bulkTargetUsers.length === 0 || bulkForm.amount <= 0 || bulkApplying"
                             class="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg shadow-lg shadow-purple-500/20 transition-all flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[18px]">done_all</span> Apply to {{ bulkTargetUsers.length }} Users
+                            <span v-if="bulkApplying" class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                            <span v-else class="material-symbols-outlined text-[18px]">done_all</span>
+                            {{ bulkApplying ? 'Applying...' : `Apply to ${bulkTargetUsers.length} Users` }}
                         </button>
                     </div>
                 </div>
@@ -364,18 +367,18 @@
                             </div>
                             <div class="flex justify-between items-center py-2">
                                 <span class="text-lg font-bold text-gray-900 dark:text-white">Total Payout</span>
-                                <span class="text-2xl font-mono font-bold text-green-600">${{ payrollSummary.total.toLocaleString() }}</span>
+                                <span class="text-2xl font-mono font-bold text-green-600">₹{{ payrollSummary.total.toLocaleString() }}</span>
                             </div>
 
                             <div class="max-h-32 overflow-y-auto custom-scrollbar bg-gray-50 dark:bg-black/20 p-2 rounded text-xs space-y-1">
                                 <div v-for="u in payrollSummary.pendingUsers" :key="u.id" class="flex justify-between">
                                     <span class="text-gray-600 dark:text-gray-400">{{ u.name }}</span>
-                                    <span class="font-mono font-bold">${{ u.pending_payout }}</span>
+                                    <span class="font-mono font-bold">₹{{ u.pending_payout }}</span>
                                 </div>
                             </div>
                         </div>
                         <div class="p-4 bg-gray-50 dark:bg-white/5 flex justify-end gap-2">
-                            <button @click="showPayrollModal = false" :disabled="payrollProcessing" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 disabled:opacity-50">Cancel</button>
+                            <button @click="showPayrollModal = false" :disabled="payrollProcessing" class="px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 dark:bg-white/10 dark:hover:bg-white/15 dark:text-gray-200 rounded-lg border border-slate-700 dark:border-white/10 disabled:opacity-50">Cancel</button>
                             <button @click="confirmPayrollRun" :disabled="payrollProcessing" class="px-6 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 shadow-sm flex items-center gap-2 justify-center min-w-[160px] disabled:opacity-75 disabled:cursor-wait">
                                 <span v-if="!payrollProcessing" class="material-symbols-outlined text-[18px]">check_circle</span>
                                 <span v-if="payrollProcessing" class="animate-spin material-symbols-outlined text-[18px]">progress_activity</span>
@@ -396,9 +399,9 @@
                             </div>
                             <div class="w-full bg-gray-50 dark:bg-white/5 p-4 rounded-lg mt-4 border border-dashed border-gray-200 dark:border-white/10">
                                 <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Total Disbursed</p>
-                                <p class="text-3xl font-bold font-mono text-gray-900 dark:text-white mt-1">${{ payrollSummary.total.toLocaleString() }}</p>
+                                <p class="text-3xl font-bold font-mono text-gray-900 dark:text-white mt-1">₹{{ payrollSummary.total.toLocaleString() }}</p>
                             </div>
-                            <button @click="showPayrollModal = false" class="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-bold text-sm mt-4 hover:opacity-90 transition-opacity shadow-lg">
+                            <button @click="showPayrollModal = false" class="w-full py-3 bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white rounded-lg font-bold text-sm mt-4 transition-colors shadow-lg border border-slate-700 dark:border-primary/30">
                                 Close & Return to Dashboard
                             </button>
                         </div>
@@ -431,13 +434,13 @@
                             
                             <div class="bg-gray-50 dark:bg-black/20 p-4 rounded-xl border border-dashed border-gray-200 dark:border-white/10 text-center">
                                 <p class="text-xs font-bold uppercase text-gray-500 mb-1">Total Transfer Amount</p>
-                                <p class="text-3xl font-bold font-mono text-gray-900 dark:text-white">${{ paymentTarget?.amount.toLocaleString() }}</p>
+                                <p class="text-3xl font-bold font-mono text-gray-900 dark:text-white">₹{{ paymentTarget?.amount.toLocaleString() }}</p>
                             </div>
 
                             <p class="text-center text-xs text-gray-400 px-4">Funds will be transferred directly to the linked account ending in **4291.</p>
                         </div>
                         <div class="p-4 bg-gray-50 dark:bg-white/5 flex justify-end gap-2">
-                            <button @click="showPaymentModal = false" :disabled="paymentProcessing" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 disabled:opacity-50">Cancel</button>
+                            <button @click="showPaymentModal = false" :disabled="paymentProcessing" class="px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 dark:bg-white/10 dark:hover:bg-white/15 dark:text-gray-200 rounded-lg border border-slate-700 dark:border-white/10 disabled:opacity-50">Cancel</button>
                             <button @click="confirmSinglePayment" :disabled="paymentProcessing" class="px-6 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 shadow-sm flex items-center gap-2 min-w-[140px] justify-center disabled:opacity-75 disabled:cursor-wait">
                                 <span v-if="!paymentProcessing" class="material-symbols-outlined text-[18px]">send_money</span>
                                 <span v-if="paymentProcessing" class="animate-spin material-symbols-outlined text-[18px]">progress_activity</span>
@@ -458,9 +461,9 @@
                             </div>
                             <div class="w-full bg-gray-50 dark:bg-white/5 p-4 rounded-lg mt-4">
                                 <p class="text-xs text-gray-400">Total Paid</p>
-                                <p class="text-lg font-bold font-mono text-gray-900 dark:text-white">${{ paymentTarget?.amount.toLocaleString() }}</p>
+                                <p class="text-lg font-bold font-mono text-gray-900 dark:text-white">₹{{ paymentTarget?.amount.toLocaleString() }}</p>
                             </div>
-                            <button @click="showPaymentModal = false" class="w-full py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-bold text-sm mt-4 hover:opacity-90 transition-opacity">
+                            <button @click="showPaymentModal = false" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white rounded-lg font-bold text-sm mt-4 transition-colors border border-slate-700 dark:border-primary/30">
                                 Close Receipt
                             </button>
                         </div>
@@ -471,22 +474,22 @@
 
         <!-- Create Transaction Modal -->
         <Teleport to="body">
-            <div v-if="showTransactionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scale-in">
-                    <div class="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Record Transaction</h3>
-                        <button @click="showTransactionModal = false" class="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+            <div v-if="showTransactionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                <div class="lm-transaction-modal bg-slate-950/98 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scale-in border border-white/10 backdrop-blur-xl">
+                    <div class="p-6 border-b border-white/10 flex justify-between items-center bg-slate-900/90">
+                        <h3 class="text-lg font-bold text-white">Record Transaction</h3>
+                        <button @click="showTransactionModal = false" class="text-gray-400 hover:text-white transition-colors">
                             <span class="material-symbols-outlined">close</span>
                         </button>
                     </div>
-                    <div class="p-6 space-y-4">
+                    <div class="p-6 space-y-4 bg-slate-950/95 text-slate-200">
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Description</label>
+                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Description</label>
                             <input v-model="newTx.desc" type="text" placeholder="e.g. Office Rent Payment" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white">
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Category</label>
+                                <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Category</label>
                                 <select v-model="newTx.type" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white">
                                     <option value="Incoming" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Income</option>
                                     <option value="Expense" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Expense</option>
@@ -494,13 +497,13 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Amount ($)</label>
+                                <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Amount (₹)</label>
                                 <input v-model.number="newTx.amount" type="number" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-white">
                             </div>
                         </div>
                     </div>
-                    <div class="p-4 bg-gray-50 dark:bg-white/5 flex justify-end gap-2">
-                        <button @click="showTransactionModal = false" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900">Cancel</button>
+                    <div class="p-4 bg-slate-900/90 flex justify-end gap-2 border-t border-white/10">
+                        <button @click="showTransactionModal = false" class="px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 dark:bg-white/10 dark:hover:bg-white/15 dark:text-gray-200 rounded-lg border border-slate-700 dark:border-white/10">Cancel</button>
                         <button @click="addTransaction" class="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 shadow-sm flex items-center gap-2">
                             <span class="material-symbols-outlined text-[18px]">save</span> Save Record
                         </button>
@@ -537,7 +540,7 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Expected Amount</label>
                                 <div class="w-full bg-gray-100 dark:bg-white/5 border border-transparent rounded-lg px-4 py-2 text-sm text-gray-500 font-mono">
-                                    ${{ selectedItem.amount.toLocaleString() }}
+                                    ₹{{ selectedItem.amount.toLocaleString() }}
                                 </div>
                             </div>
                             <div>
@@ -549,11 +552,11 @@
                         <div v-if="reconcileDiff !== 0" class="p-3 rounded text-xs font-bold flex items-center gap-2"
                              :class="reconcileDiff > 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
                             <span class="material-symbols-outlined text-[16px]">{{ reconcileDiff > 0 ? 'add_circle' : 'warning' }}</span>
-                            {{ reconcileDiff > 0 ? `Surplus of $${reconcileDiff}` : `Shortage of $${Math.abs(reconcileDiff)}` }}
+                            {{ reconcileDiff > 0 ? `Surplus of ₹${reconcileDiff}` : `Shortage of ₹${Math.abs(reconcileDiff)}` }}
                         </div>
                     </div>
                     <div class="p-4 bg-gray-50 dark:bg-white/5 flex justify-end gap-2">
-                        <button @click="reconcileModalOpen = false" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900">Cancel</button>
+                        <button @click="reconcileModalOpen = false" class="px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 dark:bg-white/10 dark:hover:bg-white/15 dark:text-gray-200 rounded-lg border border-slate-700 dark:border-white/10">Cancel</button>
                         <button @click="confirmReconciliation" class="px-6 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 shadow-sm flex items-center gap-2">
                             <span class="material-symbols-outlined text-[18px]">verified</span> Confirm & Close
                         </button>
@@ -565,12 +568,32 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+import salarySlipTemplate from '../../../html-slips/SalarySlip.html?raw'
 
 const store = useLogisticStore()
-const { filteredTransactions, filteredUsers } = storeToRefs(store)
+const {
+    filteredTransactions,
+    filteredUsers,
+    activeFinanceSummary,
+    filteredFinanceCodRecords,
+    filteredFinanceStaffRecords,
+    filteredFinanceDriverRecords,
+    initialized,
+    isLoading,
+} = storeToRefs(store)
+
+const financeLoaded = computed(() => initialized.value && !isLoading.value)
+const { openSlipWithData, prefetchSlips } = useSlipPrinter()
+
+onMounted(() => {
+    store.initialize().catch(() => {})
+    store.fetchFinanceSummary(store.activeWarehouse).catch(() => {})
+    prefetchSlips(['bookingConfirmation', 'financeTransaction']).catch(() => {})
+})
 
 // View State
 const activeTab = ref('overview') // overview, cod, staff, drivers
@@ -596,6 +619,7 @@ const paymentSuccess = ref(false)
 
 // Bulk Action State
 const showBulkActionModal = ref(false)
+const bulkApplying = ref(false)
 const bulkForm = ref({
     type: 'Bonus', // Bonus or Deduct
     amount: 0,
@@ -615,19 +639,19 @@ const bulkTargetUsers = computed(() => {
         // 1. Role Filter
         if (bulkForm.value.role_filter !== 'All' && user.role !== bulkForm.value.role_filter) return false
         
-        // 2. Mock Data for Filtering (Since not all users have these fields in store yet)
-        const mockRating = user.rating || (Math.random() * 2 + 3).toFixed(1) // 3.0 - 5.0
-        const mockTrips = user.trips || Math.floor(Math.random() * 50)
+        const topDriver = store.topDrivers.find(driver => driver.name === user.name)
+        const derivedRating = user.rating || topDriver?.rating || 4.0
+        const derivedTrips = user.trips || topDriver?.trips || Math.max(0, Math.round(user.pending_payout / 50))
 
         // 3. Apply Filters
-        if (bulkForm.value.min_rating > 0 && parseFloat(mockRating) < bulkForm.value.min_rating) return false
-        if (bulkForm.value.min_trips > 0 && mockTrips < bulkForm.value.min_trips) return false
+        if (bulkForm.value.min_rating > 0 && parseFloat(derivedRating) < bulkForm.value.min_rating) return false
+        if (bulkForm.value.min_trips > 0 && derivedTrips < bulkForm.value.min_trips) return false
 
         return true
     }).map(u => ({
         ...u,
-        _mockRating: u.rating || (Math.random() * 2 + 3).toFixed(1),
-        _mockTrips: u.trips || Math.floor(Math.random() * 50)
+        _mockRating: u.rating || store.topDrivers.find(driver => driver.name === u.name)?.rating || 4.0,
+        _mockTrips: u.trips || store.topDrivers.find(driver => driver.name === u.name)?.trips || Math.max(0, Math.round(u.pending_payout / 50))
     }))
 })
 
@@ -644,31 +668,32 @@ const openBulkActionModal = () => {
     showBulkActionModal.value = true
 }
 
-const applyBulkAction = () => {
-    if (!bulkTargetUsers.value.length) return
-    
-    // In a real app, this would be a batch API call
-    // Here we simulate individual transactions
-    const totalAmount = bulkTargetUsers.value.length * bulkForm.value.amount
-    
-    // Add a summary transaction to the ledger
-    store.addTransaction({
-        id: Date.now(),
-        date: new Date().toISOString().split('T')[0],
-        desc: `Bulk ${bulkForm.value.type}: ${bulkTargetUsers.value.length} users`,
-        amount: bulkForm.value.type === 'Bonus' ? -totalAmount : totalAmount, // Details logic inverted for expense/income representation
-        type: bulkForm.value.type === 'Bonus' ? 'Expense' : 'Income',
-        status: 'Completed',
-        hubId: store.activeWarehouse
-    })
+const applyBulkAction = async () => {
+    if (!bulkTargetUsers.value.length || bulkApplying.value) return
+    bulkApplying.value = true
+    try {
+        const isBonus = bulkForm.value.type === 'Bonus'
+        const txType = isBonus ? 'Expense' : 'Income'
+        const amountSign = isBonus ? -1 : 1
+        const date = new Date().toISOString().split('T')[0]
 
-    // Update individual users (Mock update)
-    bulkTargetUsers.value.forEach(user => {
-        // e.g., store.updateUserBalance(user.id, amount)
-        console.log(`Applied ${bulkForm.value.type} of ${bulkForm.value.amount} to ${user.name}`)
-    })
-
-    showBulkActionModal.value = false
+        // Create one transaction record per affected user
+        await Promise.all(bulkTargetUsers.value.map(user =>
+            store.addTransaction({
+                date,
+                desc: `${bulkForm.value.type} – ${user.name}${bulkForm.value.reason ? ': ' + bulkForm.value.reason : ''}`,
+                amount: bulkForm.value.amount * amountSign,
+                type: txType,
+                status: 'Completed',
+                hubId: store.activeWarehouse
+            })
+        ))
+        showBulkActionModal.value = false
+    } catch (e) {
+        alert(`Failed to apply: ${e.message || 'Unknown error'}`)
+    } finally {
+        bulkApplying.value = false
+    }
 }
 
 const openPayrollModal = () => {
@@ -690,28 +715,35 @@ const openPayrollModal = () => {
 
 const confirmPayrollRun = async () => {
     payrollProcessing.value = true
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 2000))
 
-    store.addTransaction({
-        id: Date.now(),
-        date: new Date().toISOString().split('T')[0],
-        desc: `Batch Payroll Run (${payrollSummary.value.count} staff)`,
-        amount: -payrollSummary.value.total, 
-        type: 'Expense',
-        status: 'Completed',
-        hubId: store.activeWarehouse
-    })
-    
-    // Clear pending payoutsMock
-    payrollSummary.value.pendingUsers.forEach(u => {
-        // In real app, call store action to clear
-        u.pending_payout = 0
-    })
+    // Build per-user payout list for the backend
+    const staffPayouts = filteredFinanceStaffRecords.value
+        .filter(item => item.status === 'Pending' && item.amount > 0)
+        .map(item => ({ user_id: item.userId, amount: item.amount, record_type: 'staff', name: item.name }))
+    const driverPayouts = filteredFinanceDriverRecords.value
+        .filter(item => item.status === 'Pending' && item.amount > 0)
+        .map(item => ({ user_id: item.userId, amount: item.amount, record_type: 'driver', name: item.name }))
 
-    payrollProcessing.value = false
-    payrollSuccess.value = true
+    try {
+        await store.runPayroll([...staffPayouts, ...driverPayouts])
+
+        // Update local record statuses so UI responds immediately without refresh
+        filteredFinanceStaffRecords.value
+            .filter(item => item.status === 'Pending')
+            .forEach(item => store.markFinanceRecordPaid('staff', item.id))
+        filteredFinanceDriverRecords.value
+            .filter(item => item.status === 'Pending')
+            .forEach(item => store.markFinanceRecordPaid('drivers', item.id))
+
+        // Clear pending_payout on user objects
+        payrollSummary.value.pendingUsers.forEach(u => { u.pending_payout = 0 })
+
+        payrollSuccess.value = true
+    } catch (e) {
+        console.error('Payroll run failed:', e)
+    } finally {
+        payrollProcessing.value = false
+    }
 }
 
 // Tabs Configuration
@@ -727,16 +759,22 @@ const activeTabLabel = computed(() => {
     return tabs.find(t => t.id === activeTab.value)?.label || 'Transactions'
 })
 
-const totalRevenue = computed(() => filteredTransactions.value.filter(t => t.type === 'Incoming').reduce((s, t) => s + t.amount, 0))
-const totalExpenses = computed(() => filteredTransactions.value.filter(t => t.type === 'Expense').reduce((s, t) => s + t.amount, 0))
-const totalPayrollDue = computed(() => {
-    // Mock calculation
-    return activeTab.value === 'staff' ? 12500 : 4200
-})
-const pendingCOD = computed(() => {
-    // Mock pending COD
-    return 3240
-})
+const totalRevenue = computed(() => activeFinanceSummary.value.total_revenue ??
+    filteredTransactions.value
+        .filter(t => t.amount > 0 && t.type !== 'CAPITAL_INVESTMENT')
+        .reduce((sum, t) => sum + t.amount, 0))
+const totalExpenses = computed(() => activeFinanceSummary.value.total_expenses ??
+    Math.abs(filteredTransactions.value.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0)))
+const totalPayrollDue = computed(() =>
+    [...filteredFinanceStaffRecords.value, ...filteredFinanceDriverRecords.value]
+        .filter(item => item.status === 'Pending')
+        .reduce((sum, item) => sum + (item.amount || 0), 0)
+)
+const capitalInflow = computed(() => activeFinanceSummary.value.capital_invested ??
+    filteredTransactions.value.filter(t => t.type === 'CAPITAL_INVESTMENT').reduce((sum, t) => sum + t.amount, 0))
+const pendingCOD = computed(() => filteredFinanceCodRecords.value
+    .filter(item => item.status === 'Pending')
+    .reduce((sum, item) => sum + (item.amount || 0), 0))
 
 const reconcileDiff = computed(() => {
     if(!selectedItem.value) return 0
@@ -749,33 +787,11 @@ const filteredItems = computed(() => {
     if (activeTab.value === 'overview') {
         items = filteredTransactions.value
     } else if (activeTab.value === 'cod') {
-        // Mock COD data
-        items = [
-            { id: 'COD-9921', date: 'Today', desc: 'Route 4B Collection', name: 'David Miller', amount: 450, status: 'Pending', type: 'COD' },
-            { id: 'COD-9922', date: 'Yesterday', desc: 'Sector 7 Dropoff', name: 'Sarah Jenkins', amount: 1250, status: 'Completed', type: 'COD' }
-        ]
+        items = filteredFinanceCodRecords.value
     } else if (activeTab.value === 'staff') {
-        // Filter users for staff roles
-        items = filteredUsers.value.filter(u => ['Logistic Manager', 'Dispatcher', 'Warehouse Manager', 'Customer Support'].includes(u.role)).map(u => ({
-            id: `PAY-${u.username}`,
-            date: 'Oct 31, 2023',
-            name: u.name,
-            role: u.role,
-            amount: 3200, // Mock salary
-            status: Math.random() > 0.5 ? 'Paid' : 'Pending',
-            avatar: u.avatar
-        }))
+        items = filteredFinanceStaffRecords.value
     } else if (activeTab.value === 'drivers') {
-        // Drivers and Labor
-        items = filteredUsers.value.filter(u => ['Driver', 'Labor'].includes(u.role)).map(u => ({
-            id: `WAGE-${u.username}`,
-            date: 'Weekly',
-            name: u.name,
-            role: u.role,
-            amount: 850 + Math.floor(Math.random()*200), // Mock wage
-            status: Math.random() > 0.3 ? 'Paid' : 'Pending',
-            avatar: u.avatar
-        }))
+        items = filteredFinanceDriverRecords.value
     }
 
     if (searchQuery.value) {
@@ -799,21 +815,18 @@ const openTransactionModal = () => {
     showTransactionModal.value = true
 }
 
-const addTransaction = () => {
+const addTransaction = async () => {
     let finalAmount = Math.abs(newTx.value.amount)
     if (newTx.value.type !== 'Incoming') finalAmount = -finalAmount
-    
-    store.transactions.unshift({
-        id: `TX-${Math.floor(Math.random()*90000)}`,
-        hubId: newTx.value.hubId || 1,
-        date: new Date().toLocaleDateString(),
+
+    await store.addTransaction({
+        hubId: newTx.value.hubId || store.activeWarehouse,
         desc: newTx.value.desc,
         type: newTx.value.type,
         amount: finalAmount,
         status: 'Completed'
     })
     showTransactionModal.value = false
-    window.alert('Transaction recorded successfully')
 }
 
 const openReconcileModal = (item) => {
@@ -823,10 +836,8 @@ const openReconcileModal = (item) => {
 }
 
 const confirmReconciliation = () => {
-    // In real app, update status
-    selectedItem.value.status = 'Completed'
+    store.markFinanceRecordPaid('cod', selectedItem.value.id)
     reconcileModalOpen.value = false
-    window.alert(`COD Reconciled. Receipt generated for ID: ${selectedItem.value.id}`)
 }
 
 const payUser = (item) => {
@@ -842,8 +853,7 @@ const confirmSinglePayment = async () => {
     // Simulate transaction
     await new Promise(resolve => setTimeout(resolve, 1500))
 
-    store.addTransaction({
-        id: `TX-PAY-${Math.floor(Math.random()*90000)}`,
+    await store.addTransaction({
         hubId: store.activeWarehouse,
         date: new Date().toLocaleDateString(),
         desc: `Payout to ${paymentTarget.value.name}`,
@@ -852,8 +862,9 @@ const confirmSinglePayment = async () => {
         status: 'Completed'
     })
 
-    // Update Local State (Mock)
-    paymentTarget.value.status = 'Paid'
+    store.markFinanceRecordPaid(activeTab.value === 'staff' ? 'staff' : 'drivers', paymentTarget.value.id)
+    const targetUser = filteredUsers.value.find((user) => user.id === paymentTarget.value.userId)
+    if (targetUser) targetUser.pending_payout = 0
 
     paymentProcessing.value = false
     paymentSuccess.value = true
@@ -866,8 +877,221 @@ const confirmSinglePayment = async () => {
     }, 2000)
 }
 
-const downloadSlip = (item) => {
-    window.alert(`Downloading Slip for ${item.id}...`)
+const TRACKING_CODE_REGEX = /\b([A-Z]{2,5}-[A-Z0-9]{4,})\b/i
+
+const extractTrackingCode = (value) => {
+    const match = String(value || '').match(TRACKING_CODE_REGEX)
+    return match?.[1]?.toUpperCase() || ''
 }
 
+const findRelatedOrder = (item) => {
+    if (item.relatedOrder) return item.relatedOrder
+    const metadata = item.metadataJson || {}
+    const trackingCode = (
+        item.desc === item.id
+            ? item.desc
+            : metadata.tracking_code || extractTrackingCode(item.desc) || extractTrackingCode(item.id)
+    )
+    if (!trackingCode) return null
+    return filteredTransactions.value.find(tx => tx.relatedOrder?.tracking_code === trackingCode)?.relatedOrder || null
+}
+
+const isPayrollSlip = (item) => (
+    activeTab.value === 'staff'
+    || activeTab.value === 'drivers'
+    || item.type === 'PAYROLL_RUN'
+)
+
+const isBookingSlip = (item) => ['REVENUE_ONLINE', 'REVENUE_COD', 'COD'].includes(item.type)
+
+const buildBookingSlipPayload = (item) => {
+    const order = findRelatedOrder(item)
+    if (!order) return null
+
+    return {
+        order: {
+            id: order.tracking_code || order.id,
+            createdAt: order.created_at || item.date,
+            eta: order.scheduled_at || order.created_at || item.date,
+            serviceTimeBlock: order.service_time_block || 'Flexible',
+            origin: order.pickup_addr || '—',
+            destination: order.delivery_addr || '—',
+            amount: Number(order.total_amount ?? Math.abs(item.amount || 0)),
+            paidAmount: Number(order.paid_amount ?? Math.abs(item.amount || 0)),
+            paymentMode: order.payment_mode || item.metadataJson?.payment_mode || txTypeLabel(item.type),
+            laborCount: Number(order.labor_count || 0),
+            vehicleType: order.vehicle_type || order.assigned_vehicle_code || 'Assigned vehicle',
+        },
+        user: {
+            name: order.customer_name || 'Customer',
+            phone: order.customer_phone || '—',
+            email: order.customer_email || '—',
+        },
+    }
+}
+
+const financeSlipTitle = (item) => {
+    if (item.type === 'EXPENSE_DRIVER') return 'Driver Shift Fee Slip'
+    if (item.type === 'EXPENSE_FUEL' || item.type === 'FUEL_EXPENSE') return 'Fuel Expense Slip'
+    if (item.type === 'REVENUE_RETURN_CHARGE') return 'Transport Charge Slip'
+    if (item.type === 'REVENUE_REFUND' && item.desc?.toLowerCase().includes('damage')) return 'Damage Return Refund Slip'
+    if (item.type === 'REVENUE_REFUND') return 'Refund / Reversal Slip'
+    if (item.type === 'DRIVER_CASHOUT') return 'Driver Cashout Slip'
+    if (item.type === 'CAPITAL_INVESTMENT') return 'Capital Investment Slip'
+    return 'Finance Transaction Slip'
+}
+
+const buildFinanceSlipPayload = (item) => {
+    const metadata = item.metadataJson || {}
+    const relatedOrder = findRelatedOrder(item)
+    const trackingCode = relatedOrder?.tracking_code || metadata.tracking_code || extractTrackingCode(item.desc)
+    const beneficiary = metadata.driver_name
+        || relatedOrder?.customer_name
+        || item.name
+        || 'Cargo-Core Ledger'
+
+    return {
+        ...item,
+        metadataJson: metadata,
+        relatedOrder,
+        slipTitle: financeSlipTitle(item),
+        typeLabel: txTypeLabel(item.type),
+        beneficiary,
+        transactionCode: item.transactionCode || item.id,
+        notes: trackingCode
+            ? `${item.desc}. Linked reference: ${trackingCode}.`
+            : `${item.desc}.`,
+    }
+}
+
+const openSalarySlip = (item) => {
+    const now = new Date()
+    const period = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+    const paymentDate = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+    const shortDate = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+
+    const net = Math.round(Math.abs(item.amount || 0))
+    const profTax = 200
+    const tds = Math.round(net * 0.1)
+    const totalDeductions = profTax + tds
+    const gross = net + totalDeductions
+    const basic = Math.round(gross * 0.70)
+    const hra = Math.round(gross * 0.20)
+    const transport = 2500
+    const special = Math.max(0, gross - basic - hra - transport)
+
+    const empId = (item.userId || item.id || '').slice(0, 6).toUpperCase()
+    const name = item.name || 'Employee'
+    const role = item.role || 'Staff'
+
+    const html = salarySlipTemplate
+        // meta & title
+        .replace('Salary Slip – February 2026', `Salary Slip – ${period}`)
+        .replace('For the month of February 2026', `For the month of ${period}`)
+        // employee details
+        .replace('Siddarth S', name)
+        .replace('WM001', empId)
+        .replace('Warehouse Manager', role)
+        .replace('28 February 2026', paymentDate)
+        // earnings
+        .replace('42,000</td>', `${basic.toLocaleString('en-IN')}</td>`)
+        .replace('12,000</td>', `${hra.toLocaleString('en-IN')}</td>`)
+        .replace('2,500</td>', `${transport.toLocaleString('en-IN')}</td>`)
+        .replace('3,500</td>', `${special.toLocaleString('en-IN')}</td>`)
+        .replace('₹60,000</td>', `₹${gross.toLocaleString('en-IN')}</td>`)
+        // deductions
+        .replace('200</td>', `${profTax}</td>`)
+        .replace('4,200</td>', `${tds.toLocaleString('en-IN')}</td>`)
+        .replace('₹4,400</td>', `₹${totalDeductions.toLocaleString('en-IN')}</td>`)
+        // net pay
+        .replace('₹55,600</div>', `₹${net.toLocaleString('en-IN')}</div>`)
+        // signature date
+        .replace('28 Feb 2026', shortDate)
+
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    const win = window.open(url, '_blank')
+    if (win) win.addEventListener('load', () => URL.revokeObjectURL(url))
+}
+
+const downloadSlip = async (item) => {
+    if (isPayrollSlip(item)) {
+        openSalarySlip(item)
+        return
+    }
+
+    if (isBookingSlip(item)) {
+        const bookingPayload = buildBookingSlipPayload(item)
+        if (bookingPayload) {
+            await openSlipWithData('bookingConfirmation', bookingPayload.order, bookingPayload.user)
+            return
+        }
+    }
+
+    await openSlipWithData('financeTransaction', buildFinanceSlipPayload(item))
+}
+
+const TX_TYPE_LABELS = {
+    'REVENUE_ONLINE': 'Online Payment',
+    'REVENUE_COD': 'COD Collection',
+    'REVENUE_RETURN_CHARGE': 'Return Transport Charge',
+    'REVENUE_REFUND': 'Refund / Reversal',
+    'EXPENSE_DRIVER': 'Driver Cost',
+    'EXPENSE_LABOUR': 'Labour Cost',
+    'EXPENSE_FUEL': 'Fuel',
+    'FUEL_EXPENSE': 'Fuel Receipt',
+    'EXPENSE_WAREHOUSE': 'Warehouse',
+    'EXPENSE_PROCUREMENT': 'Procurement',
+    'PAYROLL_RUN': 'Payroll',
+    'DRIVER_CASHOUT': 'Driver Cashout',
+    'CAPITAL_INVESTMENT': 'Capital Investment',
+    'COD': 'COD Collection',
+    'Expense': 'Expense',
+    'Incoming': 'Income',
+    'Payroll': 'Payroll',
+}
+const txTypeLabel = (type) => TX_TYPE_LABELS[type] || type
+
+
 </script>
+
+<style scoped>
+.lm-transaction-modal {
+    color: #e2e8f0;
+}
+
+.lm-transaction-modal :deep(label) {
+    color: #cbd5e1 !important;
+}
+
+.lm-transaction-modal :deep(input),
+.lm-transaction-modal :deep(select),
+.lm-transaction-modal :deep(textarea) {
+    background-color: rgba(15, 23, 42, 0.92) !important;
+    color: #f8fafc !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color-scheme: dark;
+}
+
+.lm-transaction-modal :deep(input::placeholder),
+.lm-transaction-modal :deep(textarea::placeholder) {
+    color: #94a3b8 !important;
+}
+
+.lm-transaction-modal :deep(option) {
+    background-color: rgb(15 23 42) !important;
+    color: #f8fafc !important;
+}
+
+.lm-transaction-modal :deep(.text-gray-400),
+.lm-transaction-modal :deep(.text-gray-500) {
+    color: #94a3b8 !important;
+}
+
+.lm-transaction-modal :deep(input[type='date']::-webkit-calendar-picker-indicator) {
+    filter: invert(1);
+    opacity: 0.85;
+}
+</style>
+
+

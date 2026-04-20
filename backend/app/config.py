@@ -1,12 +1,16 @@
+from pathlib import Path
 from functools import lru_cache
 from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_PATH = BASE_DIR / ".env"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(ENV_PATH),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",  # ignore docker-compose-only vars (POSTGRES_USER, etc.)
@@ -15,7 +19,7 @@ class Settings(BaseSettings):
     # ── Application ──────────────────────────────────────────────────────────
     app_env: str = "development"
     secret_key: str = "change-me"
-    access_token_expire_minutes: int = 15
+    access_token_expire_minutes: int = 1440  # 24 hours — suits long driver shifts
     refresh_token_expire_days: int = 7
 
     # ── Database ─────────────────────────────────────────────────────────────
@@ -25,8 +29,12 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # ── Google APIs ───────────────────────────────────────────────────────────
+    google_client_id: str = ""
     google_maps_api_key: str = ""
     gemini_api_key: str = ""
+
+    # ── Daily.co Video Conferencing ───────────────────────────────────────────
+    daily_api_key: str = ""
 
     # ── File Storage ──────────────────────────────────────────────────────────
     upload_dir: str = "./uploads"

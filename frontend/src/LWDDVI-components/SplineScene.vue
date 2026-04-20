@@ -1,16 +1,13 @@
 <template>
     <div class="spline-wrapper" :class="className">
-        <!-- Loading State -->
         <transition name="fade">
             <div v-if="loading" class="spline-loading">
                 <div class="spline-spinner"></div>
             </div>
         </transition>
 
-        <!-- Spline Viewer -->
         <spline-viewer ref="splineElement" :url="scene" class="spline-canvas" loading-anim-type="none"></spline-viewer>
 
-        <!-- Branding overlay (hides default Spline watermark area) -->
         <div class="branding">
             <span>Cargo-Core</span>
         </div>
@@ -21,7 +18,7 @@
 import { ref, onMounted } from 'vue'
 import '@splinetool/viewer'
 
-const props = defineProps({
+defineProps({
     scene: {
         type: String,
         required: true
@@ -35,7 +32,7 @@ const props = defineProps({
 const loading = ref(true)
 const splineElement = ref(null)
 
-const onLoad = (e) => {
+const onLoad = () => {
     loading.value = false
 }
 
@@ -45,26 +42,25 @@ onMounted(() => {
         el.addEventListener('load', onLoad)
     }
 
-    setTimeout(() => { loading.value = false }, 8000)
+    setTimeout(() => {
+        loading.value = false
+    }, 8000)
 })
 </script>
 
 <style scoped>
-/* Root wrapper fills whatever container it lives in */
 .spline-wrapper {
     position: relative;
     width: 100%;
     height: 100%;
 }
 
-/* The web-component canvas must stretch to fill the wrapper */
 .spline-canvas {
     display: block;
     width: 100%;
     height: 100%;
 }
 
-/* Loading spinner */
 .spline-loading {
     position: absolute;
     inset: 0;
@@ -90,7 +86,6 @@ onMounted(() => {
     }
 }
 
-/* Tiny branding pill — covers the Spline watermark */
 .branding {
     position: absolute;
     bottom: 21px;
@@ -107,7 +102,6 @@ onMounted(() => {
     backdrop-filter: blur(200px);
     width: 150px;
     height: 35px;
-    
 }
 
 .branding span {
@@ -118,7 +112,6 @@ onMounted(() => {
     text-transform: uppercase;
 }
 
-/* Fade-out transition for loading overlay */
 .fade-leave-active {
     transition: opacity 0.5s ease;
 }

@@ -3,7 +3,7 @@
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Warehouse Management</h2>
             <button @click="openAddModal"
-                class="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+                class="bg-slate-900 hover:bg-slate-800 dark:bg-primary dark:hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-lg border border-slate-700 dark:border-primary/30">
                 <span class="material-symbols-outlined">add</span>
                 Add New Hub
             </button>
@@ -151,11 +151,11 @@
         <Teleport to="body">
             <div v-if="isModalOpen"
                 class="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                <div class="bg-white dark:bg-card-dark rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-gray-200 dark:border-white/10"
+                <div class="bg-slate-950/98 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-white/10 backdrop-blur-xl"
                     @click.stop>
                     <div
-                        class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-black/20">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        class="p-6 border-b border-white/10 flex justify-between items-center bg-slate-900/90">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
                             <span class="material-symbols-outlined text-primary">{{ isEditing ? 'edit' : 'add_business'
                                 }}</span>
                             {{ isEditing ? 'Edit Hub' : 'Add New Hub' }}
@@ -166,33 +166,33 @@
                         </button>
                     </div>
 
-                    <div class="p-6 space-y-4">
+                    <div class="p-6 space-y-4 bg-slate-950/95">
                         <div class="space-y-1">
                             <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Hub
                                 Code</label>
                             <input type="text" v-model="draftHub.hubCode" placeholder="e.g. HUB-NY-01"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
+                                class="w-full bg-slate-800 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-primary/50 transition-colors">
                         </div>
 
                         <div class="space-y-1">
                             <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Hub
                                 Name</label>
                             <input type="text" v-model="draftHub.name" placeholder="North-East Distribution Center"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
+                                class="w-full bg-slate-800 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-primary/50 transition-colors">
                         </div>
 
                         <div class="space-y-1">
                             <label
                                 class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Location</label>
                             <input type="text" v-model="draftHub.location" placeholder="New York, NY"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
+                                class="w-full bg-slate-800 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-primary/50 transition-colors">
                         </div>
 
                         <div class="space-y-1">
                             <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Operating
                                 Hours</label>
                             <input type="text" v-model="draftHub.operatingHours" placeholder="09:00 AM - 09:00 PM"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm font-mono text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
+                                class="w-full bg-slate-800 border border-white/10 rounded-lg py-2 px-3 text-sm font-mono text-white placeholder:text-slate-400 focus:outline-none focus:border-primary/50 transition-colors">
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
@@ -201,14 +201,14 @@
                                     class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Manager
                                     Name</label>
                                 <input type="text" v-model="draftHub.manager" placeholder="Alex Chen"
-                                    class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
+                                    class="w-full bg-slate-800 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-primary/50 transition-colors">
                             </div>
                             <div class="space-y-1">
                                 <label
                                     class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Capacity
                                     (%)</label>
                                 <input type="number" v-model="draftHub.capacity" min="0" max="100" placeholder="92"
-                                    class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
+                                    class="w-full bg-slate-800 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-primary/50 transition-colors">
                             </div>
                         </div>
 
@@ -216,23 +216,23 @@
                             <label
                                 class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Status</label>
                             <select v-model="draftHub.status"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
-                                <option value="Optimal" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Optimal</option>
-                                <option value="Active" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Active</option>
-                                <option value="Congested" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Congested</option>
+                                class="w-full bg-slate-800 border border-white/10 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors">
+                                <option value="Optimal" class="bg-slate-900 text-white">Optimal</option>
+                                <option value="Active" class="bg-slate-900 text-white">Active</option>
+                                <option value="Congested" class="bg-slate-900 text-white">Congested</option>
                             </select>
                         </div>
                     </div>
 
                     <div
-                        class="p-6 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-black/20 flex justify-end gap-3">
-                        <button @click="closeModal"
-                            class="px-5 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+                        class="p-6 border-t border-white/10 bg-slate-900/90 flex justify-end gap-3">
+                        <button @click="closeModal" :disabled="isSavingHub"
+                            class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 border border-white/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
                             Cancel
                         </button>
-                        <button @click="saveHub"
-                            class="px-5 py-2 rounded-lg text-sm font-medium bg-primary hover:bg-primary/90 text-white transition-colors shadow-sm">
-                            {{ isEditing ? 'Save Changes' : 'Create Hub' }}
+                        <button @click="saveHub" :disabled="isSavingHub"
+                            class="px-5 py-2 rounded-lg text-sm font-medium bg-primary hover:bg-primary/90 text-white transition-colors shadow-sm border border-primary/30 disabled:opacity-60 disabled:cursor-not-allowed">
+                            {{ isSavingHub ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Hub') }}
                         </button>
                     </div>
                 </div>
@@ -245,9 +245,11 @@
 import { ref, computed } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
+import { useToast } from '@/composables/useToast'
 
 const store = useLogisticStore()
 const { hubs } = storeToRefs(store)
+const toast = useToast()
 
 // --- Search & Filtering ---
 const searchQuery = ref('')
@@ -293,6 +295,7 @@ const avgCapacity = computed(() => {
 // --- Add / Edit Modal Logic ---
 const isModalOpen = ref(false)
 const isEditing = ref(false)
+const isSavingHub = ref(false)
 
 const draftHub = ref({
     id: null,
@@ -326,12 +329,22 @@ const openEditModal = (hub) => {
 }
 
 const closeModal = () => {
+    if (isSavingHub.value) return
     isModalOpen.value = false
 }
 
-const saveHub = () => {
+const saveHub = async () => {
+    if (!draftHub.value.name?.trim()) {
+        toast.error('Hub name is required.')
+        return
+    }
+    if (!draftHub.value.location?.trim() || draftHub.value.location.trim().length < 5) {
+        toast.error('Location must be at least 5 characters.')
+        return
+    }
+
     // Generate initials from manager name
-    const initials = draftHub.value.manager
+    const initials = (draftHub.value.manager || '')
         .split(' ')
         .map(n => n[0])
         .join('')
@@ -343,12 +356,22 @@ const saveHub = () => {
         managerInitials: initials || 'UN'
     }
 
-    if (isEditing.value) {
-        store.updateHub(payload)
-    } else {
-        store.addHub(payload)
-    }
+    isSavingHub.value = true
 
-    closeModal()
+    try {
+        if (isEditing.value) {
+            await store.updateHub(payload)
+            toast.success('Hub updated successfully.')
+        } else {
+            await store.addHub(payload)
+            toast.success('Hub created successfully.')
+        }
+
+        closeModal()
+    } catch (error) {
+        toast.error(error.message || 'Unable to save hub right now.')
+    } finally {
+        isSavingHub.value = false
+    }
 }
 </script>

@@ -44,6 +44,7 @@
             <select v-model="statusFilter" class="text-sm bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none">
                 <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Status</option>
                 <option value="Pending" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pending</option>
+                <option value="In Warehouse" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Warehouse</option>
                 <option value="In Transit" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Transit</option>
                 <option value="Delivered" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delivered</option>
                 <option value="Cancelled" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Cancelled</option>
@@ -93,6 +94,12 @@
                                     <button @click="openDetail(s)" class="p-1.5 rounded-lg hover:bg-blue-500/10 text-gray-400 hover:text-blue-500 transition-colors" title="View">
                                         <span class="material-symbols-outlined text-[16px]">visibility</span>
                                     </button>
+                                    <button @click="openSlipWithData('bookingConfirmation', s, currentUser())" class="p-1.5 rounded-lg hover:bg-indigo-500/10 text-gray-400 hover:text-indigo-500 transition-colors" title="Booking Confirmation">
+                                        <span class="material-symbols-outlined text-[16px]">receipt_long</span>
+                                    </button>
+                                    <button v-if="s.status === 'Delivered'" @click="openSlipWithData('finalTaxInvoice', s, currentUser())" class="p-1.5 rounded-lg hover:bg-green-500/10 text-gray-400 hover:text-green-500 transition-colors" title="Tax Invoice">
+                                        <span class="material-symbols-outlined text-[16px]">request_quote</span>
+                                    </button>
                                     <button v-if="s.status !== 'Delivered' && s.status !== 'Cancelled'" @click="openAddressModal(s)" class="p-1.5 rounded-lg hover:bg-yellow-500/10 text-gray-400 hover:text-yellow-500 transition-colors" title="Update Address">
                                         <span class="material-symbols-outlined text-[16px]">edit_location</span>
                                     </button>
@@ -102,9 +109,18 @@
                                     <button v-if="s.status === 'Delivered'" @click="openDamageModal(s)" class="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors" title="Report Damage">
                                         <span class="material-symbols-outlined text-[16px]">report</span>
                                     </button>
-                                    <button v-if="s.status !== 'Delivered' && s.status !== 'Cancelled'" @click="cancelOrder(s)" class="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors" title="Cancel">
+                                    <button v-if="s.status === 'Delivered' && !s.customerRating" @click="openVendorRatingModal(s)" class="p-1.5 rounded-lg hover:bg-amber-500/10 text-gray-400 hover:text-amber-500 transition-colors" title="Rate Driver">
+                                        <span class="material-symbols-outlined text-[16px]">star</span>
+                                    </button>
+                                    <span v-if="s.status === 'Delivered' && s.customerRating" class="p-1.5 text-amber-400 cursor-default" :title="`Rated ${s.customerRating}/5`">
+                                        <span class="material-symbols-outlined text-[16px]">star</span>
+                                    </span>
+                                    <button v-if="s.status !== 'Delivered' && s.status !== 'Cancelled' && s.status !== 'In Transit'" @click="cancelOrder(s)" class="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors" title="Cancel">
                                         <span class="material-symbols-outlined text-[16px]">cancel</span>
                                     </button>
+                                    <span v-if="s.status === 'In Transit'" class="p-1.5 text-amber-400 cursor-default" title="This order is already in progress. Please contact support to request changes or cancellation.">
+                                        <span class="material-symbols-outlined text-[16px]">info</span>
+                                    </span>
                                 </div>
                             </td>
                         </tr>
@@ -154,6 +170,15 @@
                 </div>
                 <template #footer>
                     <button @click="detailOrder = null" class="px-4 py-2 text-gray-500 text-sm">Close</button>
+                    <button @click="openSlipWithData('bookingConfirmation', detailOrder, currentUser())" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[15px]">receipt_long</span> Booking Slip
+                    </button>
+                    <button v-if="detailOrder?.status === 'Delivered'" @click="openSlipWithData('proofOfDelivery', detailOrder, currentUser())" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[15px]">verified</span> PoD
+                    </button>
+                    <button v-if="detailOrder?.status === 'Delivered'" @click="openSlipWithData('finalTaxInvoice', detailOrder, currentUser())" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[15px]">request_quote</span> Invoice
+                    </button>
                 </template>
             </BaseModal>
         </Teleport>
@@ -249,15 +274,52 @@
                 </template>
             </BaseModal>
         </Teleport>
+
+        <!-- Driver Rating Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="vendorRatingModal.show" @close="vendorRatingModal.show = false">
+                <template #title>Rate Your Driver</template>
+                <div class="space-y-4 text-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">How was your experience? (optional)</p>
+                    <div class="flex justify-center gap-2">
+                        <span v-for="n in 5" :key="n"
+                            @click="vendorRatingModal.selected = n"
+                            @mouseenter="vendorRatingModal.hover = n"
+                            @mouseleave="vendorRatingModal.hover = 0"
+                            class="text-4xl cursor-pointer transition-colors select-none"
+                            :class="(vendorRatingModal.hover || vendorRatingModal.selected) >= n ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'">★</span>
+                    </div>
+                    <textarea v-model="vendorRatingModal.feedback" rows="2" placeholder="Leave a comment (optional)"
+                        class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-400/50 outline-none resize-none" />
+                </div>
+                <template #footer>
+                    <div class="flex gap-3 w-full">
+                        <button @click="submitVendorRating" :disabled="!vendorRatingModal.selected"
+                            class="flex-1 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-bold disabled:opacity-40">Submit Rating</button>
+                        <button @click="vendorRatingModal.show = false"
+                            class="flex-1 py-2 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white rounded-lg text-sm">Skip</button>
+                    </div>
+                </template>
+            </BaseModal>
+        </Teleport>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useVendorStore } from '@/stores/vendorStore'
+import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+
+const { openSlip, openSlipWithData } = useSlipPrinter()
 
 const store = useVendorStore()
+const authStore = useAuthStore()
+
+function currentUser() {
+  return authStore.currentUser || {}
+}
 const searchQuery = ref('')
 const statusFilter = ref('all')
 const categoryFilter = ref('all')
@@ -294,6 +356,7 @@ const filteredOrders = computed(() => {
 
 const statusClass = s => ({
     Pending: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
+    'In Warehouse': 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
     'In Transit': 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
     Delivered: 'bg-green-500/20 text-green-600 dark:text-green-400',
     Cancelled: 'bg-red-500/20 text-red-600 dark:text-red-400',
@@ -314,9 +377,9 @@ function openAddressModal(s) {
     showAddressModal.value = true
 }
 
-function submitAddressUpdate() {
+async function submitAddressUpdate() {
     if (!newAddress.value.trim() || !addressOrder.value) return
-    store.updateShipmentAddress(addressOrder.value.id, newAddress.value.trim())
+    await store.updateShipmentAddress(addressOrder.value.id, newAddress.value.trim())
     showAddressModal.value = false
     showToast('Address updated')
 }
@@ -328,9 +391,9 @@ function openRescheduleModal(s) {
     showRescheduleModal.value = true
 }
 
-function submitReschedule() {
+async function submitReschedule() {
     if (!newDate.value || !rescheduleOrder.value) return
-    store.rescheduleShipment(rescheduleOrder.value.id, newDate.value)
+    await store.rescheduleShipment(rescheduleOrder.value.id, newDate.value)
     showRescheduleModal.value = false
     showToast('Shipment rescheduled')
 }
@@ -342,22 +405,40 @@ function openDamageModal(s) {
     showDamageModal.value = true
 }
 
-function submitDamageReport() {
+async function submitDamageReport() {
     if (!damageDescription.value.trim() || !damageOrder.value) return
-    store.reportDamage({ shipmentId: damageOrder.value.id, severity: damageSeverity.value, description: damageDescription.value.trim() })
+    await store.reportDamage({ shipmentId: damageOrder.value.id, severity: damageSeverity.value, description: damageDescription.value.trim() })
     showDamageModal.value = false
     showToast('Damage reported — reverse logistics ticket created')
 }
 
-function cancelOrder(s) {
-    if (!confirm(`Cancel order ${s.id}?`)) return
-    store.cancelShipment(s.id)
-    showToast(`Order ${s.id} cancelled`)
+async function cancelOrder(s) {
+    if (!confirm(`Cancel order ${s.id}?\n\nIf you already paid online, the amount will be refunded to your wallet.`)) return
+    const result = await store.cancelShipment(s.id)
+    if (!result.success) {
+        showToast(result.message || `Failed to cancel ${s.id}`, 'error')
+        return
+    }
+    const refund = result.walletRefund ?? 0
+    showToast(refund > 0 ? `Order ${s.id} cancelled. ₹${refund.toLocaleString()} refunded to wallet.` : `Order ${s.id} cancelled.`)
 }
 
-function showToast(msg) {
+// Driver Rating
+const vendorRatingModal = reactive({ show: false, order: null, selected: 0, hover: 0, feedback: '' })
+function openVendorRatingModal(s) {
+    Object.assign(vendorRatingModal, { show: true, order: s, selected: 0, hover: 0, feedback: '' })
+}
+async function submitVendorRating() {
+    if (!vendorRatingModal.selected || !vendorRatingModal.order?.backendId) return
+    const result = await store.submitCustomerRating(vendorRatingModal.order.backendId, vendorRatingModal.selected, vendorRatingModal.feedback || null)
+    vendorRatingModal.show = false
+    showToast(result.success ? 'Thanks for rating your driver!' : (result.message || 'Failed to submit rating.'), result.success ? 'success' : 'error')
+}
+
+function showToast(msg, type = 'success') {
     const t = document.createElement('div')
-    t.className = 'fixed right-4 bottom-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
+    const bg = type === 'error' ? 'bg-red-500' : 'bg-green-500'
+    t.className = `fixed right-4 bottom-4 z-[9999] ${bg} text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl`
     t.textContent = msg
     document.body.appendChild(t)
     setTimeout(() => t.remove(), 3000)
