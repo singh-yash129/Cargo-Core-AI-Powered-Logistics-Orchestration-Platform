@@ -109,11 +109,21 @@ Frontend runs at: `http://localhost:5173`
 
 ```bash
 # Backend
-cp backend/.env.example backend/.env
+cd backend
+cp .env.example .env
+cd ..
 
 # Frontend
-cp frontend/.env.example frontend/.env
+cd frontend
+cp .env.example .env
+cd ..
 ```
+
+> **Windows users:** use `copy` instead of `cp`
+> ```
+> cd backend && copy .env.example .env && cd ..
+> cd frontend && copy .env.example .env && cd ..
+> ```
 
 Then open `backend/.env` and fill in your API keys. That's it — no manual typing needed.
 
