@@ -294,6 +294,16 @@ async def complete_return_order(
     return await orders_service.complete_return_order(db, order_id, caller=user)
 
 
+@router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def soft_delete_order(
+    order_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
+):
+    await orders_service.soft_delete_order(db, order_id, user)
+    await db.commit()
+
+
 @router.post("/{order_id}/cancel", response_model=OrderResponse)
 async def cancel_order(
     order_id: UUID,

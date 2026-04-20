@@ -638,7 +638,7 @@ async def list_orders(
     order_type: str | None = None,
     pickup_type: str | None = None,
 ) -> OrderListResponse:
-    filters = []
+    filters = [Order.is_deleted.is_(False)]
     user_role = user.role.name
 
     if user_role in {"INDIVIDUAL", "VENDOR"}:
@@ -2738,3 +2738,13 @@ async def auto_balance_drivers(db: AsyncSession) -> dict:
             for d in driver_loads
         ]
     }
+
+
+async def soft_delete_order(db: AsyncSession, order_id: UUID, caller: User) -> Order:
+    order = (await db.execute(select(Order).where(Order.id == order_id, Order.is_deleted.is_(False)))).scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    order.is_deleted = True
+    order.deleted_at = datetime.now(timezone.utc)
+    await db.flush()
+    return order
