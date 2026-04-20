@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-6">
+    <div class="space-y-5">
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
@@ -8,643 +8,637 @@
             </div>
             <div class="flex gap-2">
                 <select v-model="statusFilter"
-                    class="text-sm bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    <option value="all" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">All Statuses</option>
-                    <option value="pending" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Pending</option>
-                    <option value="transit" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">In Transit</option>
-                    <option value="delivery" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Out for Delivery</option>
-                    <option value="delivered" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Delivered</option>
-                    <option value="cancelled" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Cancelled</option>
+                    class="text-sm bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <option value="all" class="bg-white dark:bg-gray-800">All Statuses</option>
+                    <option value="pending" class="bg-white dark:bg-gray-800">Pending</option>
+                    <option value="warehouse" class="bg-white dark:bg-gray-800">In Warehouse</option>
+                    <option value="transit" class="bg-white dark:bg-gray-800">In Transit</option>
+                    <option value="delivery" class="bg-white dark:bg-gray-800">Out for Delivery</option>
+                    <option value="delivered" class="bg-white dark:bg-gray-800">Delivered</option>
+                    <option value="cancelled" class="bg-white dark:bg-gray-800">Cancelled</option>
                 </select>
             </div>
         </div>
 
         <!-- Stats Bar -->
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
-            <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center"><span
-                        class="material-symbols-outlined text-blue-500">local_shipping</span></div>
-                <div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">In Transit</div>
-                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.activeShipments.length }}
-                    </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div class="glass-panel p-4 rounded-xl flex items-center gap-3 border border-blue-500/10">
+                <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-blue-500 text-[20px]">local_shipping</span>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold tracking-wide truncate">Active</div>
+                    <div class="text-2xl font-black text-gray-900 dark:text-white leading-none mt-0.5">{{ store.activeShipments.length }}</div>
                 </div>
             </div>
-            <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center"><span
-                        class="material-symbols-outlined text-yellow-500">pending</span></div>
+            <div class="glass-panel p-4 rounded-xl flex items-center gap-3 border border-yellow-500/10">
+                <div class="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-yellow-500 text-[20px]">pending</span>
+                </div>
                 <div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Pending</div>
-                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.pendingShipments.length }}
-                    </div>
+                    <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold tracking-wide">Pending</div>
+                    <div class="text-2xl font-black text-gray-900 dark:text-white leading-none mt-0.5">{{ store.pendingShipments.length }}</div>
                 </div>
             </div>
-            <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center"><span
-                        class="material-symbols-outlined text-green-500">check_circle</span></div>
+            <div class="glass-panel p-4 rounded-xl flex items-center gap-3 border border-green-500/10">
+                <div class="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
+                </div>
                 <div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Delivered</div>
-                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.deliveredShipments.length }}
-                    </div>
+                    <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold tracking-wide">Delivered</div>
+                    <div class="text-2xl font-black text-gray-900 dark:text-white leading-none mt-0.5">{{ store.deliveredShipments.length }}</div>
                 </div>
             </div>
-            <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center"><span
-                        class="material-symbols-outlined text-purple-500">schedule</span></div>
+            <div class="glass-panel p-4 rounded-xl flex items-center gap-3 border border-emerald-500/10">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-emerald-500 text-[20px]">schedule</span>
+                </div>
                 <div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">On-Time</div>
-                    <div class="text-xl font-bold text-green-500">{{ store.analyticsData.onTime }}%</div>
+                    <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold tracking-wide">On-Time</div>
+                    <div class="text-2xl font-black text-emerald-500 leading-none mt-0.5">{{ store.analyticsData.onTime }}%</div>
                 </div>
             </div>
-            <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center"><span
-                        class="material-symbols-outlined text-orange-500">route</span></div>
+            <div class="glass-panel p-4 rounded-xl flex items-center gap-3 border border-orange-500/10">
+                <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-orange-500 text-[20px]">route</span>
+                </div>
                 <div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Avg Transit</div>
-                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.analyticsData.avgTransit }}d
-                    </div>
+                    <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold tracking-wide">Avg Transit</div>
+                    <div class="text-2xl font-black text-gray-900 dark:text-white leading-none mt-0.5">{{ store.analyticsData.avgTransit }}<span class="text-sm font-bold text-gray-400">d</span></div>
                 </div>
             </div>
         </div>
 
-        <div class="flex flex-col xl:flex-row gap-6">
-            <!-- Shipment List -->
-            <div class="w-full xl:w-96 glass-panel rounded-xl overflow-hidden flex flex-col max-h-[70vh]">
+        <!-- Main Layout -->
+        <div class="flex gap-5" style="min-height: 78vh;">
+
+            <!-- ── Left: Shipment List ─────────────────────────────────────── -->
+            <div class="w-80 flex-shrink-0 glass-panel rounded-2xl overflow-hidden flex flex-col">
+                <!-- Search -->
                 <div class="p-4 border-b border-gray-200 dark:border-white/5">
                     <div class="relative">
-                        <span
-                            class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-sm">search</span>
-                        <input v-model="searchQuery" type="text" placeholder="Search order ID, destination..."
-                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500/50">
+                        <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-[18px]">search</span>
+                        <input v-model="searchQuery" type="text" placeholder="Search ID or destination…"
+                            class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2 pl-9 pr-4 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500/50">
                     </div>
                 </div>
-                <div class="flex-1 overflow-y-auto p-2 space-y-2">
-                    <div v-if="filteredShipments.length === 0"
-                        class="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">No shipments found</div>
+                <!-- List -->
+                <div class="flex-1 overflow-y-auto p-3 space-y-2">
+                    <div v-if="filteredShipments.length === 0" class="py-16 text-center text-gray-400 text-sm">
+                        <span class="material-symbols-outlined text-4xl mb-2 block text-gray-300">inbox</span>
+                        No shipments found
+                    </div>
                     <div v-for="s in filteredShipments" :key="s.id"
-                        class="p-3 rounded-lg cursor-pointer transition-all border"
-                        :class="selected?.id === s.id ? 'bg-blue-500/10 border-blue-500 dark:bg-blue-500/20' : 'bg-gray-50 dark:bg-white/5 border-transparent hover:bg-gray-100 dark:hover:bg-white/10'"
-                        @click="selected = s">
-                        <div class="flex justify-between items-start mb-1">
-                            <span class="font-bold text-gray-900 dark:text-white text-sm">{{ s.id }}</span>
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                                :class="statusClass(s.statusKey)">{{ s.status }}</span>
-                        </div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">{{ s.route }}</div>
-                        <div class="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
-                            <div class="flex items-center gap-1"><span
-                                    class="material-symbols-outlined text-[10px]">schedule</span> ETA: {{ s.eta }}</div>
-                            <div class="font-bold text-gray-700 dark:text-gray-300">₹{{ s.amount.toLocaleString() }}
+                        @click="selected = s; detailTab = 'overview'"
+                        class="rounded-xl cursor-pointer transition-all border overflow-hidden"
+                        :class="selected?.id === s.id
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-md shadow-blue-500/10'
+                            : 'border-gray-100 dark:border-white/5 bg-white dark:bg-white/5 hover:border-blue-300 dark:hover:border-blue-500/30 hover:shadow-sm'">
+                        <!-- Color bar -->
+                        <div class="h-1 w-full" :class="{
+                            'bg-yellow-400': s.statusKey === 'pending',
+                            'bg-purple-500': s.statusKey === 'warehouse',
+                            'bg-blue-500': s.statusKey === 'transit',
+                            'bg-indigo-500': s.statusKey === 'delivery',
+                            'bg-green-500': s.statusKey === 'delivered',
+                            'bg-red-400': s.statusKey === 'cancelled',
+                        }"></div>
+                        <div class="p-3">
+                            <div class="flex justify-between items-start mb-1.5">
+                                <span class="font-mono font-bold text-gray-900 dark:text-white text-[11px]">{{ s.id }}</span>
+                                <span class="text-[9px] font-bold px-2 py-0.5 rounded-full" :class="statusClass(s.statusKey)">{{ s.status }}</span>
                             </div>
-                        </div>
-                        <div v-if="s.progress > 0 && s.statusKey !== 'delivered' && s.statusKey !== 'cancelled'"
-                            class="mt-2 w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full">
-                            <div class="h-1.5 bg-blue-500 rounded-full transition-all"
-                                :style="{ width: s.progress + '%' }"></div>
+                            <div class="flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 mb-2">
+                                <span class="font-medium text-gray-700 dark:text-gray-300 truncate">{{ s.origin }}</span>
+                                <span class="material-symbols-outlined text-[12px] flex-shrink-0 text-blue-400">arrow_forward</span>
+                                <span class="truncate">{{ s.destination }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] text-gray-400 flex items-center gap-0.5">
+                                    <span class="material-symbols-outlined text-[10px]">schedule</span> {{ s.eta }}
+                                </span>
+                                <span class="text-xs font-bold text-green-600 dark:text-green-400">₹{{ s.amount.toLocaleString() }}</span>
+                            </div>
+                            <!-- Progress bar -->
+                            <div v-if="s.progress > 0 && s.statusKey !== 'delivered' && s.statusKey !== 'cancelled'" class="mt-2">
+                                <div class="w-full h-1 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                    <div class="h-full bg-blue-500 rounded-full transition-all" :style="{ width: s.progress + '%' }"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Detail Panel -->
-            <div class="flex-1 space-y-6">
-                <!-- Global Dashboard when no shipment is selected -->
-                <div v-if="!selected" class="space-y-6">
-                    <!-- Global Dashboard Tabs -->
-                    <div class="flex items-center gap-2 border-b border-gray-200 dark:border-white/10 pb-2">
-                        <button @click="globalTab = 'map'"
-                            class="px-4 py-2 text-sm font-bold rounded-t-lg transition-colors"
-                            :class="globalTab === 'map' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'">Live
-                            Map</button>
-                        <button @click="globalTab = 'table'"
-                            class="px-4 py-2 text-sm font-bold rounded-t-lg transition-colors"
-                            :class="globalTab === 'table' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'">All
-                            Orders</button>
-                        <button @click="globalTab = 'graphs'"
-                            class="px-4 py-2 text-sm font-bold rounded-t-lg transition-colors"
-                            :class="globalTab === 'graphs' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'">Analytics</button>
+            <!-- ── Right: Detail / Dashboard ──────────────────────────────── -->
+            <div class="flex-1 min-w-0 flex flex-col gap-5">
+
+                <!-- ── No selection: Global dashboard ── -->
+                <template v-if="!selected">
+                    <!-- Tabs -->
+                    <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/5 rounded-xl p-1 w-fit">
+                        <button v-for="t in [['map','Live Map','map'], ['table','All Orders','table_rows'], ['graphs','Analytics','bar_chart']]"
+                            :key="t[0]" @click="globalTab = t[0]"
+                            class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                            :class="globalTab === t[0]
+                                ? 'bg-white dark:bg-card-dark text-blue-600 dark:text-blue-400 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'">
+                            <span class="material-symbols-outlined text-[16px]">{{ t[2] }}</span> {{ t[1] }}
+                        </button>
                     </div>
 
-                    <!-- Global Map Tab -->
-                    <div v-if="globalTab === 'map'" class="glass-panel rounded-xl overflow-hidden relative h-[60vh]">
-                        <div
-                            class="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-gray-900/50 dark:from-blue-900/30 dark:to-gray-900/70">
-                            <div class="absolute inset-0 opacity-10 dark:opacity-20"
-                                style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzk5OSIvPjwvc3ZnPg=='); background-size: 40px 40px;">
-                            </div>
+                    <!-- Live Map -->
+                    <div v-if="globalTab === 'map'" class="flex-1 glass-panel rounded-2xl overflow-hidden relative" style="min-height:500px;">
+                        <!-- Real Leaflet Map -->
+                        <l-map v-model:zoom="globalMapZoom" :center="globalMapCenter" :use-global-leaflet="false"
+                            style="position:absolute; inset:0; height:100%; width:100%;">
+                            <l-tile-layer
+                                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                                layer-type="base"
+                                name="CartoDB Voyager"
+                            ></l-tile-layer>
+                            <!-- Active driver markers -->
+                            <l-marker v-for="d in activeDrivers" :key="'drv-' + d.order_id"
+                                :lat-lng="[d.latitude, d.longitude]">
+                                <l-popup>
+                                    <div class="text-xs p-1">
+                                        <div class="font-bold flex items-center gap-1 mb-1">
+                                            <span class="material-symbols-outlined text-[14px] text-blue-500">local_shipping</span>
+                                            {{ d.driver_name }}
+                                        </div>
+                                        <div class="text-gray-500 mb-0.5">Order: <span class="font-medium text-gray-800">{{ d.order_id }}</span></div>
+                                        <div class="text-gray-500 mb-0.5">Vehicle: <span class="font-medium text-gray-800">{{ d.vehicle_code }}</span></div>
+                                        <div class="mt-1 text-[9px] uppercase font-bold bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 inline-block">{{ d.status }}</div>
+                                    </div>
+                                </l-popup>
+                            </l-marker>
+                        </l-map>
+                        <!-- No drivers overlay -->
+                        <div v-if="activeDrivers.length === 0" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style="z-index:500;">
+                            <span class="material-symbols-outlined text-5xl text-gray-400/50 mb-2">location_off</span>
+                            <p class="text-gray-400/70 text-sm font-medium">No active drivers on the road</p>
                         </div>
-
-                        <!-- Map all active shipments -->
-                        <div v-for="(s, idx) in store.activeShipments" :key="'gmap-' + s.id"
-                            class="absolute z-10 cursor-pointer group"
-                            :style="{ top: (20 + (idx * 15) % 60) + '%', left: (10 + s.progress * 0.6) + '%', transform: 'translate(-50%, -50%)' }"
-                            @click="selected = s">
-                            <div class="w-4 h-4 bg-blue-500 rounded-full animate-ping absolute opacity-70"></div>
-                            <div
-                                class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white relative z-10 shadow-lg group-hover:scale-125 transition-transform">
-                            </div>
-                            <div
-                                class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
-                                {{ s.id }} - {{ s.destination }}
-                            </div>
-                        </div>
-
-                        <!-- Fleet Sidebar Overlay -->
-                        <div class="absolute top-4 right-4 bottom-4 w-48 bg-white/80 dark:bg-black/40 backdrop-blur-md rounded-xl border border-gray-200 dark:border-white/10 hidden md:flex flex-col overflow-hidden z-20">
+                        <!-- Fleet overlay -->
+                        <div class="absolute top-4 right-4 bottom-16 w-52 bg-white/90 dark:bg-black/50 backdrop-blur-md rounded-xl border border-gray-200 dark:border-white/10 hidden md:flex flex-col overflow-hidden shadow-lg" style="z-index:1000;">
                             <div class="p-3 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
                                 <span class="text-[10px] font-bold text-gray-900 dark:text-white uppercase tracking-wider">Active Fleet</span>
                                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                             </div>
-                            <div class="flex-1 overflow-y-auto p-2 no-scrollbar">
-                                <div v-for="s in store.activeShipments.slice(0, 5)" :key="'fleet-'+s.id" @click="selected = s" class="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-white/5 cursor-pointer transition-colors mb-1 border border-transparent hover:border-blue-500/20">
-                                    <div class="flex justify-between items-start mb-1">
-                                        <span class="text-[9px] font-mono font-bold text-blue-500">{{ s.id }}</span>
-                                        <span class="text-[8px] px-1 bg-blue-500/10 text-blue-500 rounded">{{ s.progress }}%</span>
+                            <div class="flex-1 overflow-y-auto p-2">
+                                <div v-for="s in store.activeShipments.slice(0, 6)" :key="'fleet-'+s.id" @click="selected = s"
+                                    class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer transition-colors mb-1">
+                                    <div class="flex justify-between items-center mb-0.5">
+                                        <span class="text-[10px] font-mono font-bold text-blue-500 truncate">{{ s.id }}</span>
+                                        <span class="text-[9px] px-1.5 bg-blue-500/10 text-blue-600 rounded font-bold flex-shrink-0">{{ s.progress }}%</span>
                                     </div>
-                                    <div class="text-[9px] text-gray-500 truncate">{{ s.destination }}</div>
+                                    <div class="text-[9px] text-gray-500 truncate">→ {{ s.destination }}</div>
                                 </div>
+                                <div v-if="store.activeShipments.length === 0" class="text-center py-4 text-[10px] text-gray-400">No active shipments</div>
                             </div>
-                            <div class="p-3 bg-blue-500/5 text-center text-[9px] text-gray-500 border-t border-gray-200 dark:border-white/10">
-                                {{ store.activeShipments.length }} Total Vehicles
+                            <div class="p-2 bg-blue-500/5 text-center text-[9px] text-gray-500 border-t border-gray-100 dark:border-white/10">
+                                {{ store.activeShipments.length }} vehicles in motion
                             </div>
                         </div>
-                        
-                        <!-- Map Legend / Bottom Bar -->
-                        <div
-                            class="absolute bottom-4 left-4 right-4 md:right-56 bg-white/90 dark:bg-black/50 backdrop-blur-md p-3 rounded-lg border border-gray-200 dark:border-white/10 flex items-center justify-between pointer-events-auto">
-                            <div class="flex items-center gap-4">
-                                <div>
-                                    <div class="text-[10px] font-bold text-gray-900 dark:text-white">Global Live Tracking</div>
-                                    <div class="flex items-center gap-2 text-[9px] text-gray-600 dark:text-gray-300">
-                                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500"></span> In-Transit</span>
-                                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-green-500"></span> Origin</span>
-                                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500"></span> Destination</span>
-                                    </div>
+                        <!-- Legend -->
+                        <div class="absolute bottom-4 left-4 right-4 md:right-60 bg-white/90 dark:bg-black/60 backdrop-blur-md p-3 rounded-xl border border-gray-200 dark:border-white/10 flex items-center justify-between" style="z-index:1000;">
+                            <div>
+                                <div class="text-[11px] font-bold text-gray-900 dark:text-white mb-1">Global Live Tracking</div>
+                                <div class="flex items-center gap-3 text-[9px] text-gray-600 dark:text-gray-300">
+                                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span> In-Transit</span>
+                                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span> Origin</span>
+                                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Destination</span>
                                 </div>
                             </div>
-                            <div class="hidden sm:flex items-center gap-3">
-                                <div class="px-2 py-1 bg-yellow-500/10 rounded flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-yellow-500 text-[14px]">warning</span>
-                                    <span class="text-[9px] font-bold text-yellow-600 dark:text-yellow-400">2 Alerts</span>
-                                </div>
+                            <div v-if="mapAlertCount > 0" class="px-2 py-1 bg-yellow-500/10 rounded-lg flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-yellow-500 text-[14px]">warning</span>
+                                <span class="text-[9px] font-bold text-yellow-600">{{ mapAlertCount }} Alert{{ mapAlertCount !== 1 ? 's' : '' }}</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Global Table Tab -->
-                    <div v-if="globalTab === 'table'"
-                        class="glass-panel p-4 rounded-xl overflow-x-auto h-[60vh] flex flex-col gap-4">
-                        
-                        <!-- Quick Stats Bar -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-1">
-                            <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/5">
-                                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Total Valuation</div>
-                                <div class="text-sm font-bold text-gray-900 dark:text-white">₹{{ (store.shipments.reduce((acc, s) => acc + s.amount, 0)).toLocaleString() }}</div>
+                    <!-- All Orders Table -->
+                    <div v-if="globalTab === 'table'" class="flex-1 glass-panel rounded-2xl overflow-hidden flex flex-col">
+                        <!-- Mini stats -->
+                        <div class="grid grid-cols-4 divide-x divide-gray-100 dark:divide-white/5 border-b border-gray-100 dark:border-white/5">
+                            <div class="p-4">
+                                <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Total Valuation</div>
+                                <div class="text-sm font-bold text-gray-900 dark:text-white">₹{{ (store.shipments.reduce((a, s) => a + s.amount, 0)).toLocaleString() }}</div>
                             </div>
-                            <div class="p-3 bg-blue-500/5 rounded-lg border border-blue-500/10">
-                                <div class="text-[9px] text-blue-500 uppercase font-bold mb-1">Active Movement</div>
-                                <div class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ store.activeShipments.length }} Shipments</div>
+                            <div class="p-4">
+                                <div class="text-[9px] text-blue-500 uppercase font-bold mb-1">Active</div>
+                                <div class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ store.activeShipments.length }} shipments</div>
                             </div>
-                            <div class="p-3 bg-green-500/5 rounded-lg border border-green-500/10">
-                                <div class="text-[9px] text-green-500 uppercase font-bold mb-1">Efficiency</div>
-                                <div class="text-sm font-bold text-green-600 dark:text-green-400">94.2% On-Time</div>
+                            <div class="p-4">
+                                <div class="text-[9px] text-green-500 uppercase font-bold mb-1">On-Time Rate</div>
+                                <div class="text-sm font-bold text-green-600 dark:text-green-400">{{ store.analyticsData.onTime }}%</div>
                             </div>
-                            <div class="p-3 bg-purple-500/5 rounded-lg border border-purple-500/10">
-                                <div class="text-[9px] text-purple-500 uppercase font-bold mb-1">Total Weight</div>
-                                <div class="text-sm font-bold text-purple-600 dark:text-purple-400">12,450 kg</div>
+                            <div class="p-4">
+                                <div class="text-[9px] text-purple-500 uppercase font-bold mb-1">Avg Transit</div>
+                                <div class="text-sm font-bold text-purple-600 dark:text-purple-400">{{ store.analyticsData.avgTransit }} days</div>
                             </div>
                         </div>
-
-                        <table class="w-full text-left text-sm min-w-[800px] flex-1">
-                            <thead
-                                class="text-gray-500 dark:text-gray-400 uppercase text-[10px] border-b border-gray-200 dark:border-white/10 sticky top-0 bg-white dark:bg-card-dark z-10">
-                                <tr>
-                                    <th class="px-4 py-3">Order ID</th>
-                                    <th class="px-4 py-3">Route</th>
-                                    <th class="px-4 py-3">Amount</th>
-                                    <th class="px-4 py-3">ETA</th>
-                                    <th class="px-4 py-3">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                                <tr v-for="s in filteredShipments" :key="'tbl-' + s.id"
-                                    class="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
-                                    @click="selected = s">
-                                    <td class="px-4 py-3 font-mono text-blue-500 text-xs font-bold">{{ s.id }}</td>
-                                    <td class="px-4 py-3">
-                                        <div class="text-xs text-gray-900 dark:text-white font-medium">{{ s.origin }}
-                                        </div>
-                                        <div class="text-[10px] text-gray-500">→ {{ s.destination }}</div>
-                                    </td>
-                                    <td class="px-4 py-3 text-green-600 dark:text-green-400 font-bold text-xs">₹{{
-                                        s.amount.toLocaleString() }}</td>
-                                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300 text-xs">{{ s.eta }}</td>
-                                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold"
-                                            :class="statusClass(s.statusKey)">{{ s.status }}</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="flex-1 overflow-auto">
+                            <table class="w-full text-left text-sm min-w-[640px]">
+                                <thead class="text-gray-500 dark:text-gray-400 uppercase text-[10px] border-b border-gray-100 dark:border-white/5 sticky top-0 bg-white dark:bg-card-dark z-10">
+                                    <tr>
+                                        <th class="px-5 py-3 font-semibold">Order ID</th>
+                                        <th class="px-5 py-3 font-semibold">Route</th>
+                                        <th class="px-5 py-3 font-semibold">Amount</th>
+                                        <th class="px-5 py-3 font-semibold">ETA</th>
+                                        <th class="px-5 py-3 font-semibold">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-50 dark:divide-white/5">
+                                    <tr v-for="s in filteredShipments" :key="'tbl-'+s.id"
+                                        @click="selected = s; detailTab = 'overview'"
+                                        class="hover:bg-blue-50/50 dark:hover:bg-white/5 cursor-pointer transition-colors group">
+                                        <td class="px-5 py-3 font-mono text-blue-500 text-xs font-bold group-hover:text-blue-600">{{ s.id }}</td>
+                                        <td class="px-5 py-3">
+                                            <div class="text-xs font-semibold text-gray-900 dark:text-white">{{ s.origin }}</div>
+                                            <div class="text-[10px] text-gray-400 flex items-center gap-0.5 mt-0.5">
+                                                <span class="material-symbols-outlined text-[10px]">arrow_forward</span> {{ s.destination }}
+                                            </div>
+                                        </td>
+                                        <td class="px-5 py-3 font-bold text-green-600 dark:text-green-400 text-xs">₹{{ s.amount.toLocaleString() }}</td>
+                                        <td class="px-5 py-3 text-gray-600 dark:text-gray-300 text-xs">{{ s.eta }}</td>
+                                        <td class="px-5 py-3">
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold" :class="statusClass(s.statusKey)">{{ s.status }}</span>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="filteredShipments.length === 0">
+                                        <td colspan="5" class="px-5 py-12 text-center text-gray-400 text-sm">No shipments match</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
-                    <!-- Global Analytics/Graphs Tab -->
-                    <div v-if="globalTab === 'graphs'" class="grid grid-cols-1 md:grid-cols-2 gap-4 h-[60vh]">
-                        <div class="glass-panel p-5 rounded-xl h-full flex flex-col bg-blue-50/30 dark:bg-white/5 border border-blue-100/50 dark:border-white/10">
-                            <div class="flex items-center justify-between mb-4">
+                    <!-- Analytics -->
+                    <div v-if="globalTab === 'graphs'" class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div class="glass-panel p-6 rounded-2xl flex flex-col">
+                            <div class="flex items-center justify-between mb-5">
                                 <h4 class="text-sm font-bold text-gray-900 dark:text-white">Spend Overview</h4>
-                                <span class="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded">Last 6 Months</span>
+                                <span class="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded-lg">Last 6 Months</span>
                             </div>
-                            
-                            <!-- Chart.js Bar Chart for Spend -->
-                            <div class="flex-1 w-full h-full mt-2 relative min-h-[200px]">
-                                <Bar :data="spendChartData" :options="spendChartOptions" />
-                            </div>
-
-                            <!-- Additional Performance KPIs -->
-                            <div class="mt-4 pt-4 border-t border-gray-100 dark:border-white/5 grid grid-cols-2 gap-4">
+                            <div class="flex-1 relative min-h-[200px]"><Bar :data="spendChartData" :options="spendChartOptions" /></div>
+                            <div class="mt-5 pt-4 border-t border-gray-100 dark:border-white/5 grid grid-cols-2 gap-4">
                                 <div>
-                                    <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Transit Efficiency</div>
-                                    <div class="flex items-center gap-2">
-                                        <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.analyticsData.onTime }}%</div>
-                                        <span class="text-[10px] text-green-500 font-bold flex items-center"><span class="material-symbols-outlined text-[12px]">trending_up</span>+1.2%</span>
+                                    <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Transit Efficiency</div>
+                                    <div class="flex items-end gap-1">
+                                        <div class="text-2xl font-black text-gray-900 dark:text-white">{{ store.analyticsData.onTime }}%</div>
+                                        <span class="text-[10px] text-green-500 font-bold mb-0.5 flex items-center"><span class="material-symbols-outlined text-[12px]">trending_up</span>+1.2%</span>
                                     </div>
-                                    <div class="text-[8px] text-gray-400">vs Last Month</div>
+                                    <div class="text-[9px] text-gray-400">vs last month</div>
                                 </div>
-                                <div class="flex flex-col justify-end">
-                                    <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Success Rate</div>
-                                    <div class="flex items-center gap-2">
-                                        <div class="text-xl font-bold text-gray-900 dark:text-white">{{ store.analyticsData.successRate }}%</div>
-                                    </div>
-                                    <div class="flex items-center mt-1 gap-0.5">
-                                        <div v-for="i in 5" :key="'spark-'+i" class="w-2 rounded-full bg-blue-500/30" :style="{ height: (8 + i * 3) + 'px' }"></div>
+                                <div>
+                                    <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Success Rate</div>
+                                    <div class="text-2xl font-black text-gray-900 dark:text-white">{{ store.analyticsData.successRate }}%</div>
+                                    <div class="flex items-end gap-0.5 mt-1.5">
+                                        <div v-for="i in 5" :key="'spark-'+i" class="w-2.5 rounded-sm bg-blue-500/40" :style="{ height: (8 + i * 3) + 'px' }"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="glass-panel p-5 rounded-xl flex flex-col justify-between h-full bg-gradient-to-br from-transparent to-blue-500/5">
-                            <div class="flex items-center justify-between mb-2">
+                        <div class="glass-panel p-6 rounded-2xl flex flex-col">
+                            <div class="flex items-center justify-between mb-5">
                                 <h4 class="text-sm font-bold text-gray-900 dark:text-white">Volume Overview</h4>
-                                <div class="flex items-center gap-2">
-                                    <div class="w-2 h-2 rounded-full bg-blue-500"></div>
-                                    <span class="text-[10px] text-gray-500 font-bold">Daily Orders</span>
+                                <div class="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                    <div class="w-2 h-2 rounded-full bg-blue-500"></div> Daily Orders
                                 </div>
                             </div>
-                            <div class="flex-1 w-full h-full mt-2 relative min-h-[150px] mb-4">
-                                <Line :data="volumeChartData" :options="volumeChartOptions" />
-                            </div>
-                            
-                            <!-- Top Routes List -->
-                            <div class="space-y-2 mt-2">
-                                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">High Volume Routes</div>
-                                <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
-                                    <div class="flex items-center gap-2 leading-tight">
-                                        <div class="w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-[10px]">01</div>
+                            <div class="flex-1 relative min-h-[160px] mb-4"><Line :data="volumeChartData" :options="volumeChartOptions" /></div>
+                            <div class="space-y-2">
+                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">High Volume Routes</div>
+                                <div v-if="topRoutes.length === 0" class="text-[10px] text-gray-400 text-center py-3">No route data yet</div>
+                                <div v-for="r in topRoutes" :key="r.route"
+                                    class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 font-black text-[11px]">{{ r.rank }}</div>
                                         <div>
-                                            <div class="text-[10px] font-bold text-gray-900 dark:text-white">Mumbai → Chicago</div>
-                                            <div class="text-[8px] text-gray-500">12 Weekly Trips</div>
+                                            <div class="text-[11px] font-bold text-gray-900 dark:text-white">{{ r.route }}</div>
+                                            <div class="text-[9px] text-gray-400">{{ r.count }} trips</div>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <div class="text-[10px] font-bold text-green-500">98% Ontime</div>
-                                    </div>
-                                </div>
-                                 <div class="flex items-center justify-between p-2 rounded-lg bg-gray-100/50 dark:bg-white/5 border border-gray-200 dark:border-white/5">
-                                    <div class="flex items-center gap-2 leading-tight">
-                                        <div class="w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-[10px]">02</div>
-                                        <div>
-                                            <div class="text-[10px] font-bold text-gray-900 dark:text-white">Delhi → London</div>
-                                            <div class="text-[8px] text-gray-500">8 Weekly Trips</div>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="text-[10px] font-bold text-green-500">96.5% Ontime</div>
-                                    </div>
+                                    <div class="text-[11px] font-bold text-green-500">{{ r.onTime }}% on-time</div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-            <template v-else>
-                    <!-- Back Button to Global View -->
-                    <button @click="selected = null"
-                        class="mb-4 flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg w-fit mt-2">
-                        <span class="material-symbols-outlined text-[16px]">arrow_back</span> Back to Global View
-                    </button>
-                    <!-- Map Placeholder -->
-                    <div class="glass-panel rounded-xl overflow-hidden relative h-64">
-                        <div
-                            class="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-gray-900/50 dark:from-blue-900/30 dark:to-gray-900/70">
-                            <div class="absolute inset-0 opacity-10 dark:opacity-20"
-                                style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzk5OSIvPjwvc3ZnPg=='); background-size: 40px 40px;">
-                            </div>
-                        </div>
-                        <!-- Origin marker -->
-                        <div class="absolute top-1/2 left-[15%] transform -translate-x-1/2 -translate-y-1/2 z-10">
-                            <div class="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg"></div>
-                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">
-                                {{ selected.origin }}</div>
-                        </div>
-                        <!-- Route line -->
-                        <div
-                            class="absolute top-1/2 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-green-500 via-blue-500 to-red-500 transform -translate-y-1/2 z-0">
-                        </div>
-                        <!-- Driver marker (if in transit) -->
-                        <div v-if="selected.driver && selected.statusKey !== 'delivered' && selected.statusKey !== 'cancelled'"
-                            class="absolute z-10"
-                            :style="{ top: '50%', left: (15 + selected.progress * 0.7) + '%', transform: 'translate(-50%, -50%)' }">
-                            <div class="w-4 h-4 bg-blue-500 rounded-full animate-ping absolute"></div>
-                            <div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white relative z-10 shadow-lg">
-                            </div>
-                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">
-                                {{ selected.vehicle || 'Driver' }}</div>
-                        </div>
-                        <!-- Destination marker -->
-                        <div class="absolute top-1/2 right-[15%] transform translate-x-1/2 -translate-y-1/2 z-10">
-                            <div class="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg"></div>
-                            <div class="mt-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">
-                                {{ selected.destination }}</div>
-                        </div>
-                        <!-- Geofence badge -->
-                        <div v-if="selected.progress >= 80 && selected.statusKey !== 'delivered'"
-                            class="absolute top-3 right-3 z-20 bg-green-500/90 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 animate-pulse">
-                            <span class="material-symbols-outlined text-sm">my_location</span>
-                            Arriving Soon — {{ Math.max(5, Math.round((100 - selected.progress) * 1.5)) }} min away
-                        </div>
-                    </div>
-
-                    <!-- Shipment Detail -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 ">
-                        <!-- Info Cards -->
-                        <div class="lg:col-span-2 space-y-4">
-                            <div class="glass-panel p-5 rounded-xl">
-                                <div class="flex items-center justify-between mb-4">
-                                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">{{ selected.id }}</h3>
-                                    <span class="px-3 py-1.5 rounded-md text-xs font-bold shadow-sm"
-                                        :class="statusClass(selected.statusKey)">{{ selected.status }}</span>
-                                </div>
-                                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg col-span-2 lg:col-span-3 border border-gray-100 dark:border-white/5 relative overflow-hidden">
-                                        <div class="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-blue-500/10 to-transparent pointer-events-none"></div>
-                                        <div class="text-[10px] text-gray-500 uppercase mb-1 font-bold">Route</div>
-                                        <div class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                            <span class="truncate">{{ selected.route }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg col-span-2 lg:col-span-2 border border-gray-100 dark:border-white/5">
-                                        <div class="text-[10px] text-gray-500 uppercase mb-1 font-bold">ETA</div>
-                                        <div class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ selected.eta }}</div>
-                                    </div>
-                                    
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
-                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Category</div>
-                                        <div class="text-xs font-bold text-gray-900 dark:text-white">{{ selected.category }}</div>
-                                    </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5 hover:border-green-500/30 transition-colors">
-                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Amount</div>
-                                        <div class="text-sm font-bold text-green-500">₹{{ selected.amount.toLocaleString() }}</div>
-                                    </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
-                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Weight</div>
-                                        <div class="text-xs font-bold text-gray-900 dark:text-white">{{ selected.weight.toLocaleString() }} kg</div>
-                                    </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
-                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Pallets</div>
-                                        <div class="text-xs font-bold text-gray-900 dark:text-white">{{ selected.pallets }}</div>
-                                    </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
-                                        <div class="text-[10px] text-gray-500 uppercase mb-1">Payment</div>
-                                        <div class="text-xs font-bold text-gray-900 dark:text-white">{{ selected.paymentMode }}</div>
-                                    </div>
-                                    <div class="p-3 bg-blue-50/50 dark:bg-blue-500/10 rounded-lg col-span-2 lg:col-span-5 border border-blue-100 dark:border-blue-500/20 mt-2 block w-full">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <div class="text-[10px] text-blue-600 dark:text-blue-400 uppercase font-bold">Trip Progress</div>
-                                            <div class="text-xs font-bold text-blue-700 dark:text-blue-400">{{ selected.progress }}%</div>
-                                        </div>
-                                        <div class="w-full h-2 bg-blue-200/50 dark:bg-blue-900/40 rounded-full overflow-hidden">
-                                            <div class="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out"
-                                                :style="{ width: selected.progress + '%' }"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Driver Info -->
-                            <div v-if="selected.driver" class="glass-panel p-5 rounded-xl">
-                                <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-3">Driver Information</h4>
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                                        <span class="material-symbols-outlined text-blue-500">person</span>
-                                    </div>
-                                    <div class="flex-1">
-                                        <div class="font-medium text-gray-900 dark:text-white text-sm">{{
-                                            selected.driver }}</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ selected.vehicle }} ·
-                                            {{ selected.driverPhone }}</div>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <button @click="showCallModal = true"
-                                            class="p-2 bg-gray-100 dark:bg-white/5 hover:bg-blue-500/10 rounded-lg text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors tooltip-trigger relative group">
-                                            <span class="material-symbols-outlined text-[18px]">call</span>
-                                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 font-bold pointer-events-none">Call Driver</div>
-                                        </button>
-                                        <button @click="showChatModal = true"
-                                            class="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors tooltip-trigger relative group">
-                                            <span class="material-symbols-outlined text-[18px]">chat</span>
-                                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 font-bold pointer-events-none">Message Driver</div>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Actions -->
-                            <div v-if="selected.statusKey !== 'delivered' && selected.statusKey !== 'cancelled'"
-                                class="glass-panel p-5 rounded-xl">
-                                <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-3">Quick Actions</h4>
-                                <div class="flex flex-wrap gap-3">
-                                    <button @click="showAddressModal = true"
-                                        class="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[16px]">edit_location</span> Update
-                                        Address
-                                    </button>
-                                    <button @click="showRescheduleModal = true"
-                                        class="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[16px]">event</span> Reschedule
-                                    </button>
-                                    <button @click="showDamageModal = true"
-                                        class="px-4 py-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[16px]">report_problem</span> Report
-                                        Issue
-                                    </button>
-                                    <button @click="handleCancel"
-                                        class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[16px]">cancel</span> Cancel
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- PoD (if delivered) -->
-                            <div v-if="selected.pod && selected.pod.confirmed" class="glass-panel p-5 rounded-xl">
-                                <h4
-                                    class="font-bold text-gray-900 dark:text-white text-sm mb-3 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-green-500 text-[18px]">verified</span>
-                                    Proof of Delivery
-                                </h4>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div class="rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
-                                        <img :src="selected.pod.photo" alt="Delivery proof"
-                                            class="w-full h-40 object-cover">
-                                    </div>
-                                    <div class="space-y-3">
-                                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                                            <div class="text-[10px] text-gray-500 uppercase mb-1">Timestamp</div>
-                                            <div class="text-xs font-medium text-gray-900 dark:text-white">{{
-                                                selected.pod.timestamp }}</div>
-                                        </div>
-                                        <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                                            <div class="text-[10px] text-gray-500 uppercase mb-1">Location</div>
-                                            <div class="text-xs font-medium text-gray-900 dark:text-white">{{
-                                                selected.pod.location }}</div>
-                                        </div>
-                                        <div
-                                            class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center gap-2">
-                                            <span
-                                                class="material-symbols-outlined text-green-500 text-sm">check_circle</span>
-                                            <span class="text-xs font-bold text-green-600 dark:text-green-400">Delivery
-                                                Confirmed</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right Column: Tabs & Content -->
-                        <div class="space-y-4">
-                            <!-- Internal Detail Tabs -->
-                            <div class="flex items-center gap-1 border-b border-gray-200 dark:border-white/10 pb-2">
-                                <button @click="detailTab = 'overview'"
-                                    :class="detailTab === 'overview' ? 'bg-blue-50 text-blue-600 dark:bg-white/10 dark:text-white font-bold' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'"
-                                    class="px-4 py-2 rounded-lg text-sm transition-colors tracking-wide">
-                                    Overview
-                                </button>
-                                <button @click="detailTab = 'tracking-log'"
-                                    :class="detailTab === 'tracking-log' ? 'bg-blue-50 text-blue-600 dark:bg-white/10 dark:text-white font-bold' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'"
-                                    class="px-4 py-2 rounded-lg text-sm transition-colors tracking-wide relative">
-                                    Tracking Log
-                                    <span class="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                                </button>
-                            </div>
-
-                            <!-- Overview Tab Content -->
-                            <div v-if="detailTab === 'overview'" class="space-y-4 animate-fade-in">
-                                <!-- Status Timeline -->
-                                <div class="glass-panel p-5 rounded-xl">
-                                <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-4">Status Timeline</h4>
-                                <div class="space-y-4">
-                                    <div v-for="(step, idx) in (selected.statusHistory || [])" :key="idx"
-                                        class="flex gap-3">
-                                        <div class="flex flex-col items-center">
-                                            <div class="w-3 h-3 rounded-full flex-shrink-0"
-                                                :class="idx === selected.statusHistory.length - 1 ? 'bg-blue-500 ring-4 ring-blue-500/20' : 'bg-green-500'">
-                                            </div>
-                                            <div v-if="idx < selected.statusHistory.length - 1"
-                                                class="w-0.5 flex-1 bg-gray-200 dark:bg-white/10 mt-1"></div>
-                                        </div>
-                                        <div class="pb-4">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ step.status }}
-                                            </div>
-                                            <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ step.time }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Document Center -->
-                            <div class="glass-panel p-5 rounded-xl">
-                                <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-3">Document Center</h4>
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-blue-500/30 cursor-pointer transition-all">
-                                        <div class="flex items-center gap-2">
-                                            <span class="material-symbols-outlined text-red-500 text-lg">picture_as_pdf</span>
-                                            <span class="text-xs text-gray-700 dark:text-gray-300">Commercial Invoice</span>
-                                        </div>
-                                        <span class="material-symbols-outlined text-gray-400 text-sm">download</span>
-                                    </div>
-                                    <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-blue-500/30 cursor-pointer transition-all">
-                                        <div class="flex items-center gap-2">
-                                            <span class="material-symbols-outlined text-blue-500 text-lg">description</span>
-                                            <span class="text-xs text-gray-700 dark:text-gray-300">Bill of Lading</span>
-                                        </div>
-                                        <span class="material-symbols-outlined text-gray-400 text-sm">download</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Live Support Proxy -->
-                            <div @click="showSupportModal = true" @mouseenter="showToast('Need Help? Click to chat with support')" class="p-4 rounded-xl bg-blue-600 text-white relative overflow-hidden group cursor-pointer">
-                                <div class="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full group-hover:scale-150 transition-transform"></div>
-                                <div class="relative z-10 flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                                        <span class="material-symbols-outlined">support_agent</span>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold">Need Help?</div>
-                                        <div class="text-[10px] opacity-80">Chat with Support</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Tracking Log Tab Content -->
-                        <div v-else-if="detailTab === 'tracking-log'" class="space-y-4 animate-fade-in h-[500px] flex flex-col">
-                            <div class="glass-panel p-5 rounded-xl flex-1 flex flex-col overflow-hidden relative">
-                                <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-100 dark:border-white/5 shrink-0">
-                                    <h4 class="font-bold text-gray-900 dark:text-white text-base">Transit Log</h4>
-                                    <button class="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors">
-                                        <span class="material-symbols-outlined text-[14px]">download</span> Export
-                                    </button>
-                                </div>
-                                
-                                <div class="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar relative pl-4">
-                                    <div class="absolute left-6 top-2 bottom-4 w-px bg-gray-200 dark:bg-white/10 -z-10"></div>
-                                    <div v-for="(log, idx) in trackingLogs" :key="'log-'+idx"
-                                        class="relative flex gap-4 w-full group">
-                                        
-                                        <!-- Node Icon -->
-                                        <div class="flex flex-col items-center shrink-0 w-5 relative pt-1">
-                                            <div class="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 z-10 transition-colors"
-                                                :class="idx === 0 ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)] ring-4 ring-blue-500/20' : 'bg-gray-300 dark:bg-gray-600 group-hover:bg-blue-400'">
-                                                <div v-if="idx === 0" class="w-1.5 h-1.5 rounded-full bg-white"></div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Content -->
-                                        <div class="flex-1 pb-2">
-                                            <div class="flex items-start justify-between">
-                                                <div>
-                                                    <div class="text-sm font-bold" :class="idx === 0 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'">
-                                                        {{ log.action }}
-                                                    </div>
-                                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ log.location }}</div>
-                                                    <div v-if="log.note" class="mt-2 text-[11px] text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-white/5 p-2 rounded border border-gray-100 dark:border-white/5">
-                                                        {{ log.note }}
-                                                    </div>
-                                                </div>
-                                                <div class="text-right shrink-0 ml-4">
-                                                    <div class="text-[10px] font-bold text-gray-900 dark:text-white">{{ log.date }}</div>
-                                                    <div class="text-[10px] text-gray-500">{{ log.time }}</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                         </div>
                     </div>
                 </template>
+
+                <!-- ── Shipment selected: Detail view ── -->
+                <template v-else>
+                    <!-- Header bar -->
+                    <div class="flex items-center justify-between gap-4 flex-wrap">
+                        <div class="flex items-center gap-3">
+                            <button @click="selected = null"
+                                class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-gray-600 dark:text-gray-300 hover:text-blue-600 transition-colors">
+                                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                            </button>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono font-black text-gray-900 dark:text-white text-lg">{{ selected.id }}</span>
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold" :class="statusClass(selected.statusKey)">{{ selected.status }}</span>
+                                </div>
+                                <div class="text-xs text-gray-400 mt-0.5">{{ selected.route }}</div>
+                            </div>
+                        </div>
+                        <!-- Actions -->
+                        <div v-if="selected.statusKey !== 'delivered' && selected.statusKey !== 'cancelled'" class="flex items-center gap-2">
+                            <button @click="showAddressModal = true" class="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[15px]">edit_location</span> Update Address
+                            </button>
+                            <button @click="showRescheduleModal = true" class="px-3 py-1.5 bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 text-purple-600 dark:text-purple-400 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[15px]">event</span> Reschedule
+                            </button>
+                            <button @click="showDamageModal = true" class="px-3 py-1.5 bg-orange-50 dark:bg-orange-500/10 hover:bg-orange-100 text-orange-600 dark:text-orange-400 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[15px]">report_problem</span> Report Issue
+                            </button>
+                            <button @click="handleCancel" class="px-3 py-1.5 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 text-red-600 dark:text-red-400 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[15px]">cancel</span> Cancel
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Route Hero Card -->
+                    <div class="glass-panel rounded-2xl overflow-hidden">
+                        <!-- Map visualization - Real Leaflet Map -->
+                        <div class="relative h-52 overflow-hidden">
+                            <l-map :zoom="selectedMapZoom" :center="selectedMapCenter" :use-global-leaflet="false"
+                                style="position:absolute; inset:0; height:100%; width:100%;">
+                                <l-tile-layer
+                                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                                    layer-type="base"
+                                ></l-tile-layer>
+                                <!-- Driver live position -->
+                                <l-marker v-if="selected?.driverLat && selected?.driverLng"
+                                    :lat-lng="[selected.driverLat, selected.driverLng]">
+                                    <l-popup>
+                                        <div class="text-xs p-1">
+                                            <div class="font-bold flex items-center gap-1 mb-1">
+                                                <span class="material-symbols-outlined text-[14px] text-blue-500">local_shipping</span>
+                                                {{ selected.driver || 'Driver' }}
+                                            </div>
+                                            <div class="text-gray-500">Vehicle: <span class="font-medium text-gray-800">{{ selected.vehicle }}</span></div>
+                                            <div class="mt-1 text-[9px] uppercase font-bold bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 inline-block">In Transit</div>
+                                        </div>
+                                    </l-popup>
+                                </l-marker>
+                            </l-map>
+                            <!-- No GPS fallback -->
+                            <div v-if="!selected?.driverLat" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style="z-index:500;">
+                                <span class="material-symbols-outlined text-3xl text-gray-400/50 mb-1">gps_off</span>
+                                <p class="text-gray-400/60 text-xs font-medium">Live GPS not available</p>
+                            </div>
+                            <!-- Origin label -->
+                            <div class="absolute top-3 left-3" style="z-index:1000;">
+                                <div class="bg-black/70 text-white text-[9px] px-2 py-1 rounded-lg whitespace-nowrap font-medium flex items-center gap-1.5 shadow">
+                                    <span class="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"></span>{{ selected.origin }}
+                                </div>
+                            </div>
+                            <!-- Destination label -->
+                            <div class="absolute top-3 right-3" style="z-index:1000;">
+                                <div class="bg-black/70 text-white text-[9px] px-2 py-1 rounded-lg whitespace-nowrap font-medium flex items-center gap-1.5 shadow">
+                                    {{ selected.destination }}<span class="w-2 h-2 bg-red-400 rounded-full flex-shrink-0"></span>
+                                </div>
+                            </div>
+                            <!-- Arriving Soon badge -->
+                            <div v-if="selected.progress >= 80 && selected.statusKey !== 'delivered'"
+                                class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 animate-pulse shadow-lg shadow-green-500/30" style="z-index:1000;">
+                                <span class="material-symbols-outlined text-sm">my_location</span>
+                                Arriving in ~{{ Math.max(5, Math.round((100 - selected.progress) * 1.5)) }} min
+                            </div>
+                        </div>
+                        <!-- Progress strip -->
+                        <div class="px-6 py-4 flex items-center gap-4 border-t border-gray-100 dark:border-white/5">
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Trip Progress</span>
+                                    <span class="text-sm font-black text-blue-600 dark:text-blue-400">{{ selected.progress }}%</span>
+                                </div>
+                                <div class="w-full h-2.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-700"
+                                        :style="{ width: selected.progress + '%' }"></div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[10px] text-gray-400 uppercase font-bold">ETA</div>
+                                <div class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ selected.eta }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main content: single full-width column -->
+                    <div class="space-y-4">
+
+                        <!-- Row 1: Shipment Details + Driver side by side -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+                            <!-- Shipment details -->
+                            <div class="glass-panel rounded-2xl p-5">
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Shipment Details</h4>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <div class="p-3 bg-green-50 dark:bg-green-500/10 rounded-xl border border-green-100 dark:border-green-500/20">
+                                        <div class="text-[9px] text-green-600 dark:text-green-400 uppercase font-bold mb-1">Amount</div>
+                                        <div class="text-lg font-black text-green-600 dark:text-green-400">₹{{ selected.amount.toLocaleString() }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Weight</div>
+                                        <div class="text-base font-bold text-gray-900 dark:text-white">{{ selected.weight.toLocaleString() }}<span class="text-xs font-normal text-gray-400 ml-0.5">kg</span></div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Pallets</div>
+                                        <div class="text-base font-bold text-gray-900 dark:text-white">{{ selected.pallets }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Payment</div>
+                                        <div class="text-xs font-bold text-gray-900 dark:text-white">{{ selected.paymentMode }}</div>
+                                    </div>
+                                    <div class="col-span-2 sm:col-span-4 p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 flex items-center gap-3">
+                                        <span class="material-symbols-outlined text-blue-400 text-[20px]">category</span>
+                                        <div>
+                                            <div class="text-[9px] text-gray-400 uppercase font-bold">Category</div>
+                                            <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ selected.category }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Driver card -->
+                            <div v-if="selected.driver" class="glass-panel rounded-2xl p-5">
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Driver</h4>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
+                                        <span class="material-symbols-outlined text-white text-[28px]">person</span>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-bold text-gray-900 dark:text-white">{{ selected.driver }}</div>
+                                        <div class="text-xs text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">directions_car</span>{{ selected.vehicle }}</span>
+                                            <span class="text-gray-300 dark:text-white/20">·</span>
+                                            <span>{{ selected.driverPhone }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-1 mt-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                            <span class="text-[10px] text-green-500 font-bold">Active · On Route</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-2 flex-shrink-0">
+                                        <button @click="showCallModal = true"
+                                            class="w-10 h-10 bg-gray-100 dark:bg-white/10 hover:bg-green-100 dark:hover:bg-green-500/20 rounded-xl text-gray-600 dark:text-gray-300 hover:text-green-600 transition-colors flex items-center justify-center" title="Call">
+                                            <span class="material-symbols-outlined text-[20px]">call</span>
+                                        </button>
+                                        <button @click="showChatModal = true"
+                                            class="w-10 h-10 bg-blue-600 hover:bg-blue-700 rounded-xl text-white transition-colors flex items-center justify-center shadow-md shadow-blue-500/20" title="Chat">
+                                            <span class="material-symbols-outlined text-[20px]">chat</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- No driver placeholder to keep grid balanced -->
+                            <div v-else class="glass-panel rounded-2xl p-5 flex items-center justify-center text-gray-400">
+                                <div class="text-center">
+                                    <span class="material-symbols-outlined text-3xl text-gray-300 block mb-1">person_off</span>
+                                    <div class="text-xs">No driver assigned yet</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Documents (full width) -->
+                        <div class="glass-panel rounded-2xl p-5">
+                            <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3">Documents</h4>
+                            <div class="flex gap-3 flex-wrap">
+                                <div class="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-red-300 dark:hover:border-red-500/30 cursor-pointer transition-all group flex-1 min-w-[180px]">
+                                    <span class="material-symbols-outlined text-red-500 text-xl">picture_as_pdf</span>
+                                    <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 flex-1">Commercial Invoice</span>
+                                    <span class="material-symbols-outlined text-gray-400 text-sm group-hover:text-red-500 transition-colors">download</span>
+                                </div>
+                                <div class="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-blue-300 dark:hover:border-blue-500/30 cursor-pointer transition-all group flex-1 min-w-[180px]">
+                                    <span class="material-symbols-outlined text-blue-500 text-xl">description</span>
+                                    <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 flex-1">Bill of Lading</span>
+                                    <span class="material-symbols-outlined text-gray-400 text-sm group-hover:text-blue-500 transition-colors">download</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Transit Log — full width, horizontal scroll of steps -->
+                        <div class="glass-panel rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-5">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-blue-500 text-[15px]">timeline</span>
+                                    </div>
+                                    <h4 class="font-bold text-gray-900 dark:text-white text-sm">Transit Log</h4>
+                                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                                </div>
+                                <button class="text-xs font-bold text-blue-500 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
+                                    <span class="material-symbols-outlined text-[13px]">download</span> Export
+                                </button>
+                            </div>
+
+                            <div v-if="trackingLogs.length === 0" class="text-center py-8 text-gray-400 text-sm">
+                                <span class="material-symbols-outlined text-3xl block mb-2 text-gray-300">history</span>
+                                No status history yet
+                            </div>
+
+                            <!-- Horizontal step-by-step timeline -->
+                            <div v-else class="overflow-x-auto pb-2">
+                                <div class="flex items-start gap-0 min-w-max">
+                                    <div v-for="(log, idx) in trackingLogs" :key="'log-'+idx" class="flex items-start">
+                                        <!-- Step -->
+                                        <div class="flex flex-col items-center w-40">
+                                            <!-- Icon -->
+                                            <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-sm flex-shrink-0 transition-all"
+                                                :class="log.isCurrent
+                                                    ? 'bg-blue-500 shadow-blue-500/30 ring-4 ring-blue-500/20'
+                                                    : 'bg-green-500 shadow-green-500/20'">
+                                                <span class="material-symbols-outlined text-white text-[16px]">{{ log.icon }}</span>
+                                            </div>
+                                            <!-- Label -->
+                                            <div class="mt-3 text-center px-2">
+                                                <div class="text-xs font-bold leading-tight"
+                                                    :class="log.isCurrent ? 'text-blue-600 dark:text-blue-400' : 'text-gray-800 dark:text-gray-200'">
+                                                    {{ log.action }}
+                                                </div>
+                                                <div class="text-[10px] text-gray-400 mt-1 flex items-center justify-center gap-0.5">
+                                                    <span class="material-symbols-outlined text-[10px]">location_on</span>
+                                                    <span class="truncate max-w-[100px]">{{ log.location }}</span>
+                                                </div>
+                                                <div class="text-[9px] text-gray-400 mt-0.5">{{ log.date }} {{ log.time }}</div>
+                                                <div v-if="log.isCurrent" class="mt-1.5 inline-flex items-center gap-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                                    Now
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Connector line between steps -->
+                                        <div v-if="idx < trackingLogs.length - 1"
+                                            class="flex-shrink-0 flex items-center mt-5">
+                                            <div class="w-8 h-px bg-gray-200 dark:bg-white/10"></div>
+                                            <span class="material-symbols-outlined text-gray-300 dark:text-white/20 text-[14px]">chevron_right</span>
+                                            <div class="w-8 h-px bg-gray-200 dark:bg-white/10"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PoD (if delivered) -->
+                        <div v-if="selected.pod && selected.pod.confirmed" class="glass-panel rounded-2xl p-5">
+                            <h4 class="font-bold text-gray-900 dark:text-white text-sm mb-4 flex items-center gap-2">
+                                <span class="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-green-500 text-[16px]">verified</span>
+                                </span>
+                                Proof of Delivery
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="rounded-xl overflow-hidden border border-gray-100 dark:border-white/10">
+                                    <img :src="selected.pod.photo" alt="Delivery proof" class="w-full h-36 object-cover">
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl">
+                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Timestamp</div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.pod.timestamp }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl">
+                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Location</div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.pod.location }}</div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button @click="openSlipWithData('proofOfDelivery', selected, authStore.currentUser)"
+                                            class="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-colors">
+                                            <span class="material-symbols-outlined text-[14px]">verified</span> Download PoD
+                                        </button>
+                                        <button @click="openSlipWithData('finalTaxInvoice', selected, authStore.currentUser)"
+                                            class="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors">
+                                            <span class="material-symbols-outlined text-[14px]">request_quote</span> Tax Invoice
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Support banner -->
+                        <div @click="showSupportModal = true"
+                            class="p-4 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white cursor-pointer hover:from-blue-700 hover:to-blue-800 transition-all group relative overflow-hidden">
+                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full group-hover:scale-150 transition-transform duration-300"></div>
+                            <div class="relative flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                                    <span class="material-symbols-outlined text-[22px]">support_agent</span>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-bold">Need Help?</div>
+                                    <div class="text-xs opacity-75">Chat with our support team — available 24/7</div>
+                                </div>
+                                <span class="material-symbols-outlined text-[20px] ml-auto opacity-60">chevron_right</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </template>
             </div>
-    
+        </div>
+
         <!-- Address Update Modal -->
         <Teleport to="body">
             <BaseModal :isOpen="showAddressModal" @close="showAddressModal = false">
@@ -861,13 +855,29 @@
         </Teleport>
 
     </div>
-</div>
 </template>
 
 <script setup>
 import { ref, computed, reactive, watch } from 'vue'
 import { useVendorStore } from '@/stores/vendorStore'
+import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
+import { useSlipPrinter } from '@/composables/useSlipPrinter'
+import { useRealTimeTracking } from '@/composables/useRealTimeTracking'
+import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+// Fix Leaflet default icon URLs
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
+    iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
+    shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
+});
+
+const { openSlip, openSlipWithData } = useSlipPrinter()
+const authStore = useAuthStore()
 
 // Chart.js Imports
 import {
@@ -919,34 +929,86 @@ const damageForm = reactive({ severity: 'Medium', description: '' })
 const globalTab = ref('map')
 const detailTab = ref('overview')
 
-// Mock Tracking Logs
+// ─── Real-Time Tracking (all active drivers for vendor global view) ───
+const { activeDrivers } = useRealTimeTracking()
+
+const globalMapCenter = computed(() =>
+    activeDrivers.value.length > 0
+        ? [activeDrivers.value[0].latitude, activeDrivers.value[0].longitude]
+        : [20.5937, 78.9629]
+)
+const globalMapZoom = ref(5)
+
+const selectedMapCenter = computed(() =>
+    selected.value?.driverLat && selected.value?.driverLng
+        ? [selected.value.driverLat, selected.value.driverLng]
+        : [20.5937, 78.9629]
+)
+const selectedMapZoom = ref(10)
+
+// Transport Log — real status history from backend
+const STATUS_ICONS = {
+    'Order Placed':    'shopping_cart',
+    'Confirmed':       'verified',
+    'In Warehouse':    'warehouse',
+    'Awaiting Pick':   'inventory_2',
+    'Picking':         'forklift',
+    'Picked':          'check_circle',
+    'Packing':         'inventory',
+    'Packed':          'deployed_code',
+    'QC Passed':       'fact_check',
+    'In Transit':      'local_shipping',
+    'Out for Delivery':'two_wheeler',
+    'Delivered':       'done_all',
+    'Cancelled':       'cancel',
+}
+function statusIcon(label) {
+    for (const [key, icon] of Object.entries(STATUS_ICONS)) {
+        if (label && label.toLowerCase().includes(key.toLowerCase())) return icon
+    }
+    return 'radio_button_checked'
+}
+function formatLogDate(iso) {
+    if (!iso) return '—'
+    try {
+        const d = new Date(iso)
+        const today = new Date()
+        const diff = Math.floor((today - d) / 86400000)
+        if (diff === 0) return 'Today'
+        if (diff === 1) return 'Yesterday'
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+    } catch { return iso }
+}
+function formatLogTime(iso) {
+    if (!iso) return ''
+    try { return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) }
+    catch { return iso }
+}
+
 const trackingLogs = computed(() => {
     if (!selected.value) return []
-    // Generate dynamic logs based on the selected order's status history
-    const logs = []
-    const dates = ['Today', 'Yesterday', '2 Days Ago', '3 Days Ago']
-    
-    // Add a current active location log
-    logs.push({
-        action: 'In Transit - En Route',
-        location: `Moving towards ${selected.value.destination}`,
-        date: dates[0],
-        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        note: `Current speed: 55 mph. ETA remains ${selected.value.eta}.`
-    })
-
-    if (selected.value.statusHistory) {
-        selected.value.statusHistory.slice().reverse().forEach((step, idx) => {
-            logs.push({
-                action: step.status,
-                location: idx === selected.value.statusHistory.length - 1 ? selected.value.origin : `Hub Facility #${100 + idx}`,
-                date: dates[Math.min(idx, dates.length - 1)],
-                time: step.time,
-                note: idx === 1 ? 'Driver stopped for mandatory rest period. Journey to resume shortly.' : null
-            })
-        })
+    const history = selected.value.statusHistory || []
+    if (history.length > 0) {
+        return history.slice().reverse().map((step, idx) => ({
+            action: step.status,
+            location: idx === 0
+                ? (selected.value.statusKey === 'delivered' ? selected.value.destination : selected.value.route || '—')
+                : selected.value.origin,
+            date: formatLogDate(step.time),
+            time: formatLogTime(step.time),
+            icon: statusIcon(step.status),
+            isCurrent: idx === 0,
+        }))
     }
-    return logs
+    // Fallback: single entry based on current status
+    return [{
+        action: selected.value.status,
+        location: selected.value.route || '—',
+        date: 'Today',
+        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        icon: statusIcon(selected.value.status),
+        isCurrent: true,
+    }]
 })
 
 // Driver actions
@@ -1044,11 +1106,12 @@ const spendChartOptions = {
 }
 
 const volumeChartData = computed(() => {
+  const monthly = store.analyticsData.monthly
   return {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    labels: monthly.map(m => m.month),
     datasets: [{
-        label: 'Daily Orders',
-        data: [12, 18, 9, 24, 27, 6, 3],
+        label: 'Orders',
+        data: monthly.map(m => m.orders),
         borderColor: primaryColor,
         backgroundColor: primaryColor + '20',
         fill: true,
@@ -1060,6 +1123,30 @@ const volumeChartData = computed(() => {
         pointHoverRadius: 6
     }]
   }
+})
+
+const mapAlertCount = computed(() =>
+    store.overdueInvoices.length + store.shipments.filter(s => s.statusKey === 'cancelled').length
+)
+
+const topRoutes = computed(() => {
+    const map = {}
+    store.shipments.forEach(s => {
+        if (s.origin && s.destination) {
+            const key = `${s.origin} → ${s.destination}`
+            if (!map[key]) map[key] = { route: key, count: 0, delivered: 0 }
+            map[key].count++
+            if (s.statusKey === 'delivered') map[key].delivered++
+        }
+    })
+    return Object.values(map)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3)
+        .map((r, i) => ({
+            ...r,
+            rank: String(i + 1).padStart(2, '0'),
+            onTime: r.count > 0 ? Math.round((r.delivered / r.count) * 100) : 0,
+        }))
 })
 
 const volumeChartOptions = {
@@ -1098,8 +1185,9 @@ const filteredShipments = computed(() => {
 
 const statusClass = k => ({
     pending: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
+    warehouse: 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
     transit: 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
-    delivery: 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
+    delivery: 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
     delivered: 'bg-green-500/20 text-green-600 dark:text-green-400',
     cancelled: 'bg-red-500/20 text-red-600 dark:text-red-400',
 }[k] || 'bg-gray-500/20 text-gray-500')
@@ -1110,35 +1198,35 @@ const severityClass = sev => ({
     High: 'border-red-500 bg-red-500/10 text-red-600 dark:text-red-400',
 }[sev])
 
-function updateAddress() {
+async function updateAddress() {
     if (!selected.value || !newAddress.value.trim()) return
-    store.updateShipmentAddress(selected.value.id, newAddress.value.trim())
+    await store.updateShipmentAddress(selected.value.id, newAddress.value.trim())
     showAddressModal.value = false
     newAddress.value = ''
     showToast('Address updated successfully')
 }
 
-function reschedule() {
+async function reschedule() {
     if (!selected.value || !newDate.value) return
     const formatted = new Date(newDate.value).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-    store.rescheduleShipment(selected.value.id, formatted)
+    await store.rescheduleShipment(selected.value.id, formatted)
     showRescheduleModal.value = false
     newDate.value = ''
     rescheduleReason.value = ''
     showToast('Delivery rescheduled')
 }
 
-function handleCancel() {
+async function handleCancel() {
     if (!selected.value) return
     if (confirm(`Cancel shipment ${selected.value.id}? This action cannot be undone.`)) {
-        store.cancelShipment(selected.value.id)
+        await store.cancelShipment(selected.value.id)
         showToast('Shipment cancelled')
     }
 }
 
-function submitDamage() {
+async function submitDamage() {
     if (!selected.value || !damageForm.description.trim()) return
-    store.reportDamage(selected.value.id, { ...damageForm, photos: [] })
+    await store.reportDamage(selected.value.id, { ...damageForm, photos: [] })
     showDamageModal.value = false
     damageForm.severity = 'Medium'
     damageForm.description = ''

@@ -59,72 +59,15 @@ export const useWarehouseFloorStore = defineStore('warehouseFloor', () => {
     // ── Core Data ──────────────────────────────────────────────
     const floors = ref([
         { id: 1, label: 'Floor 1' },
-        { id: 2, label: 'Floor 2' },
-        { id: 3, label: 'Floor 3' }
     ])
 
-    const groups = ref([
-        { id: 'g1', floorId: 1, name: 'Fragile', color: '#ef4444', internalGap: 2, externalGap: 10 },
-        { id: 'g2', floorId: 1, name: 'Fertilizer', color: '#10b981', internalGap: 2, externalGap: 10 },
-        { id: 'g3', floorId: 1, name: 'Electronics', color: '#3b82f6', internalGap: 4, externalGap: 14 },
-        { id: 'g4', floorId: 2, name: 'Cold Storage', color: '#06b6d4', internalGap: 3, externalGap: 12 }
-    ])
+    const groups = ref([])
 
-    const sections = ref([
-        { id: 'c1', floorId: 1, groupId: 'g1', label: 'SEC-01 Fragile', x: 40, y: 60, w: 120, h: 140 },
-        { id: 'c2', floorId: 1, groupId: 'g1', label: 'SEC-02 Fragile', x: 166, y: 60, w: 120, h: 140 },
-        { id: 'c3', floorId: 1, groupId: 'g2', label: 'SEC-03 Fertilizer', x: 320, y: 60, w: 120, h: 140 },
-        { id: 'c4', floorId: 1, groupId: 'g2', label: 'SEC-04 Fertilizer', x: 446, y: 60, w: 120, h: 140 },
-        { id: 'c5', floorId: 1, groupId: 'g3', label: 'SEC-05 Electronics', x: 600, y: 60, w: 140, h: 140 },
-        { id: 'c6', floorId: 1, groupId: 'g3', label: 'SEC-06 Electronics', x: 746, y: 60, w: 140, h: 140 },
-        { id: 'c7', floorId: 1, groupId: null, label: 'SEC-07 General', x: 40, y: 260, w: 120, h: 130 },
-        { id: 'c8', floorId: 2, groupId: 'g4', label: 'SEC-10 Cold A', x: 60, y: 60, w: 130, h: 150 },
-        { id: 'c9', floorId: 2, groupId: 'g4', label: 'SEC-11 Cold B', x: 200, y: 60, w: 130, h: 150 }
-    ])
+    const sections = ref([])
 
-    const racks = ref([
-        { id: 'r1', sectionId: 'c1', label: 'Rack-A1', x: 30, y: 30, w: 180, h: 110, cols: 4, rows: 3 },
-        { id: 'r2', sectionId: 'c1', label: 'Rack-A2', x: 230, y: 30, w: 180, h: 110, cols: 4, rows: 3 },
-        { id: 'r3', sectionId: 'c2', label: 'Rack-B1', x: 30, y: 30, w: 200, h: 120, cols: 5, rows: 3 },
-        { id: 'r4', sectionId: 'c2', label: 'Rack-B2', x: 250, y: 30, w: 200, h: 120, cols: 5, rows: 3 },
-        { id: 'r5', sectionId: 'c3', label: 'Rack-C1', x: 30, y: 30, w: 180, h: 110, cols: 4, rows: 3 },
-        { id: 'r6', sectionId: 'c3', label: 'Rack-C2', x: 230, y: 30, w: 180, h: 110, cols: 4, rows: 3 },
-        { id: 'r7', sectionId: 'c4', label: 'Rack-D1', x: 30, y: 30, w: 200, h: 130, cols: 5, rows: 3 },
-        { id: 'r8', sectionId: 'c5', label: 'Rack-E1', x: 30, y: 30, w: 200, h: 120, cols: 5, rows: 3 },
-        { id: 'r9', sectionId: 'c5', label: 'Rack-E2', x: 250, y: 30, w: 200, h: 120, cols: 5, rows: 3 },
-        { id: 'r10', sectionId: 'c6', label: 'Rack-F1', x: 30, y: 30, w: 220, h: 140, cols: 6, rows: 4 },
-        { id: 'r11', sectionId: 'c7', label: 'Rack-G1', x: 30, y: 30, w: 180, h: 100, cols: 4, rows: 3 },
-        { id: 'r12', sectionId: 'c8', label: 'Rack-H1', x: 30, y: 30, w: 200, h: 120, cols: 5, rows: 3 },
-        { id: 'r13', sectionId: 'c8', label: 'Rack-H2', x: 250, y: 30, w: 200, h: 120, cols: 5, rows: 3 },
-        { id: 'r14', sectionId: 'c9', label: 'Rack-I1', x: 30, y: 30, w: 200, h: 120, cols: 5, rows: 3 }
-    ])
+    const racks = ref([])
 
-    const products = ref([
-        { sku: 'FRG-1001', name: 'Crystal Vase Set', orderId: 'ORD-20254', rma: null, rackId: 'r1', cell: 1, qty: 24, unit: 'pcs' },
-        { sku: 'FRG-1002', name: 'Porcelain Dinner Set', orderId: 'ORD-20312', rma: 'RMA-4421', rackId: 'r1', cell: 5, qty: 12, unit: 'sets' },
-        { sku: 'FRG-1003', name: 'Glass Panel 60x40', orderId: 'ORD-20455', rma: null, rackId: 'r2', cell: 3, qty: 48, unit: 'pcs' },
-        { sku: 'FRG-1004', name: 'Wine Glass Set', orderId: 'ORD-20460', rma: null, rackId: 'r2', cell: 8, qty: 30, unit: 'sets' },
-        { sku: 'FRG-1005', name: 'Ceramic Tiles Premium', orderId: 'ORD-20501', rma: null, rackId: 'r3', cell: 2, qty: 200, unit: 'pcs' },
-        { sku: 'FRG-1006', name: 'Mirror Panel Round', orderId: 'ORD-20555', rma: 'RMA-4450', rackId: 'r4', cell: 6, qty: 15, unit: 'pcs' },
-        { sku: 'FRT-2001', name: 'NPK 20-20-20 Bag', orderId: 'ORD-20133', rma: null, rackId: 'r5', cell: 1, qty: 150, unit: 'bags' },
-        { sku: 'FRT-2002', name: 'Urea Granular 50kg', orderId: 'ORD-20189', rma: null, rackId: 'r5', cell: 4, qty: 80, unit: 'bags' },
-        { sku: 'FRT-2003', name: 'Organic Compost Mix', orderId: 'ORD-20220', rma: 'RMA-4490', rackId: 'r6', cell: 2, qty: 90, unit: 'bags' },
-        { sku: 'FRT-2004', name: 'Potassium Sulfate', orderId: 'ORD-20280', rma: null, rackId: 'r6', cell: 7, qty: 60, unit: 'bags' },
-        { sku: 'FRT-2005', name: 'DAP Fertilizer', orderId: 'ORD-20350', rma: null, rackId: 'r7', cell: 3, qty: 120, unit: 'bags' },
-        { sku: 'ELC-3001', name: 'LED Monitor 27"', orderId: 'ORD-20612', rma: null, rackId: 'r8', cell: 1, qty: 36, unit: 'pcs' },
-        { sku: 'ELC-3002', name: 'Wireless Keyboard', orderId: 'ORD-20614', rma: null, rackId: 'r8', cell: 5, qty: 120, unit: 'pcs' },
-        { sku: 'ELC-3003', name: 'USB-C Hub 7-in-1', orderId: 'ORD-20700', rma: 'RMA-4512', rackId: 'r9', cell: 2, qty: 200, unit: 'pcs' },
-        { sku: 'ELC-3004', name: 'Bluetooth Speaker Pro', orderId: 'ORD-20750', rma: null, rackId: 'r9', cell: 8, qty: 60, unit: 'pcs' },
-        { sku: 'ELC-3005', name: 'Webcam 4K Ultra', orderId: 'ORD-20811', rma: null, rackId: 'r10', cell: 3, qty: 45, unit: 'pcs' },
-        { sku: 'ELC-3006', name: 'Laptop Stand Alu', orderId: 'ORD-20820', rma: null, rackId: 'r10', cell: 10, qty: 80, unit: 'pcs' },
-        { sku: 'GEN-5001', name: 'Cleaning Supplies', orderId: 'ORD-21100', rma: null, rackId: 'r11', cell: 1, qty: 75, unit: 'sets' },
-        { sku: 'GEN-5002', name: 'Paper Towel Bulk', orderId: 'ORD-21105', rma: null, rackId: 'r11', cell: 6, qty: 400, unit: 'rolls' },
-        { sku: 'CLD-6001', name: 'Frozen Seafood Box', orderId: 'ORD-21200', rma: null, rackId: 'r12', cell: 1, qty: 60, unit: 'boxes' },
-        { sku: 'CLD-6002', name: 'Dairy Products Pallet', orderId: 'ORD-21210', rma: 'RMA-4600', rackId: 'r12', cell: 5, qty: 20, unit: 'pallets' },
-        { sku: 'CLD-6003', name: 'Vaccines Cold Chain', orderId: 'ORD-21250', rma: null, rackId: 'r13', cell: 4, qty: 500, unit: 'vials' },
-        { sku: 'CLD-6004', name: 'Vaccines Cold Chain', orderId: 'ORD-21260', rma: null, rackId: 'r14', cell: 2, qty: 300, unit: 'vials' },
-        { sku: 'CLD-6005', name: 'Ice Cream Tubs 500ml', orderId: 'ORD-21220', rma: null, rackId: 'r14', cell: 8, qty: 300, unit: 'tubs' }
-    ])
+    const products = ref([])
 
     const presetColors = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1']
 
@@ -212,7 +155,7 @@ export const useWarehouseFloorStore = defineStore('warehouseFloor', () => {
         const col = ((product.cell - 1) % rack.cols) + 1
         return {
             floor: floor?.label || 'Unknown',
-            group: group?.name || 'Ungrouped',
+            group: group?.name || 'Uncategorized',
             section: section.label,
             rack: rack.label,
             cell: `R${row}C${col}`,
@@ -253,6 +196,445 @@ export const useWarehouseFloorStore = defineStore('warehouseFloor', () => {
             width: (mxX - mnX) + 'px',
             height: (mxY - mnY) + 'px',
             borderColor: group.color + '50'
+        }
+    }
+
+    const isLoading = ref(false)
+    const loadError = ref('')
+    const isSaving = ref(false)
+    const lastSavedAt = ref(null)
+
+    /**
+     * Save the current floor plan to the backend warehouse.floor_plan_json
+     */
+    async function saveFloorPlan(authToken, warehouseId) {
+        if (!warehouseId) {
+            console.warn('FloorPlan: No warehouse ID provided for save')
+            return false
+        }
+
+        isSaving.value = true
+        try {
+            const floorPlanData = {
+                floors: floors.value,
+                groups: groups.value,
+                sections: sections.value,
+                racks: racks.value,
+                products: products.value,
+                savedAt: new Date().toISOString()
+            }
+
+            const res = await fetch(`http://localhost:8000/api/v1/warehouses/${warehouseId}/floor-plan`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ floor_plan_json: floorPlanData })
+            })
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+            lastSavedAt.value = new Date()
+            console.log('FloorPlan: Saved successfully')
+            return true
+        } catch (err) {
+            console.error('FloorPlan: Failed to save:', err)
+            return false
+        } finally {
+            isSaving.value = false
+        }
+    }
+
+    /**
+     * Load the floor plan from the backend warehouse.floor_plan_json
+     * Falls back to initializeFromAPI if no saved floor plan exists
+     */
+    async function loadFloorPlan(authToken, warehouseId) {
+        if (!warehouseId) {
+            console.warn('FloorPlan: No warehouse ID provided for load')
+            return initializeFromAPI(authToken, null)
+        }
+
+        isLoading.value = true
+        loadError.value = ''
+
+        try {
+            const res = await fetch(`http://localhost:8000/api/v1/warehouses/${warehouseId}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+            const warehouse = await res.json()
+
+            // If warehouse has a saved floor plan, load it
+            if (warehouse.floor_plan_json &&
+                warehouse.floor_plan_json.floors &&
+                warehouse.floor_plan_json.sections) {
+
+                const fp = warehouse.floor_plan_json
+                floors.value = fp.floors || [{ id: 1, label: 'Floor 1' }]
+                groups.value = fp.groups || []
+                sections.value = fp.sections || []
+                racks.value = fp.racks || []
+                products.value = fp.products || []
+
+                await syncInventoryToFloorPlan(authToken, warehouseId)
+                console.log('FloorPlan: Loaded from saved floor plan')
+                return true
+            }
+
+            // No saved floor plan, initialize from inventory
+            console.log('FloorPlan: No saved floor plan, initializing from inventory')
+            await initializeFromAPI(authToken, warehouseId)
+            return true
+
+        } catch (err) {
+            console.error('FloorPlan: Failed to load warehouse:', err)
+            loadError.value = 'Could not load warehouse data.'
+            // Fall back to inventory initialization
+            await initializeFromAPI(authToken, warehouseId)
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    async function fetchInventoryItems(authToken, warehouseId) {
+        const pageSize = 100
+        let page = 1
+        let allRows = []
+
+        while (true) {
+            let url = `http://localhost:8000/api/v1/inventory?page=${page}&page_size=${pageSize}`
+            if (warehouseId) {
+                url += `&warehouse_id=${warehouseId}`
+            }
+
+            const res = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+            const data = await res.json()
+            const rows = Array.isArray(data) ? data : (data.items || [])
+            allRows = allRows.concat(rows)
+
+            if (Array.isArray(data)) break
+
+            const total = Number(data.total ?? 0)
+            const reachedEndByCount = rows.length < pageSize
+            const reachedEndByTotal = total > 0 && allRows.length >= total
+
+            if (reachedEndByCount || reachedEndByTotal) break
+            page += 1
+        }
+
+        return allRows.map(item => ({
+            sku: item.sku || item.id?.slice(0, 8).toUpperCase(),
+            name: item.name || item.product_name || 'Item',
+            qty: Number(item.quantity_on_hand ?? item.quantity ?? item.stock_quantity ?? item.quantity_available ?? 0),
+            unit: item.unit || item.unit_of_measure || 'pcs',
+            category: item.category || item.product_category || 'General',
+            raw: item
+        }))
+    }
+
+    function ensureBaseFloorPlanStructure() {
+        if (!floors.value.length) {
+            floors.value = [{ id: 1, label: 'Floor 1' }]
+        }
+
+        if (sections.value.length && racks.value.length) {
+            return
+        }
+
+        const floorId = floors.value[0]?.id || 1
+        const autoGroupId = 'g-auto-general'
+        const existingGeneral = groups.value.find(g => g.id === autoGroupId)
+        if (!existingGeneral) {
+            groups.value.push({
+                id: autoGroupId,
+                floorId,
+                name: 'General',
+                color: '#3b82f6',
+                internalGap: 2,
+                externalGap: 10
+            })
+        }
+
+        const sectionId = `s${_idCounter++}`
+        const rackId = `r${_idCounter++}`
+        sections.value.push({
+            id: sectionId,
+            floorId,
+            groupId: autoGroupId,
+            label: 'GENERAL-01',
+            x: 40,
+            y: 60,
+            w: 130,
+            h: 150
+        })
+        racks.value.push({
+            id: rackId,
+            sectionId,
+            label: 'Rack-01',
+            x: 20,
+            y: 25,
+            w: 230,
+            h: 130,
+            cols: 4,
+            rows: 3
+        })
+    }
+
+    function createOverflowRack() {
+        const floorId = floors.value[0]?.id || 1
+        const autoGroupId = 'g-auto-general'
+        let autoGroup = groups.value.find(g => g.id === autoGroupId)
+        if (!autoGroup) {
+            autoGroup = {
+                id: autoGroupId,
+                floorId,
+                name: 'General',
+                color: '#3b82f6',
+                internalGap: 2,
+                externalGap: 10
+            }
+            groups.value.push(autoGroup)
+        }
+
+        const maxX = sections.value.length
+            ? Math.max(...sections.value.map(s => s.x + s.w))
+            : 40
+
+        const sectionId = `s${_idCounter++}`
+        const rackId = `r${_idCounter++}`
+        const nextRackNumber = racks.value.length + 1
+
+        sections.value.push({
+            id: sectionId,
+            floorId,
+            groupId: autoGroupId,
+            label: `GENERAL-${String(nextRackNumber).padStart(2, '0')}`,
+            x: maxX + 40,
+            y: 60,
+            w: 130,
+            h: 150
+        })
+        racks.value.push({
+            id: rackId,
+            sectionId,
+            label: `Rack-${String(nextRackNumber).padStart(2, '0')}`,
+            x: 20,
+            y: 25,
+            w: 230,
+            h: 130,
+            cols: 4,
+            rows: 3
+        })
+
+        return rackId
+    }
+
+    function findFreeSlot(occupiedCells) {
+        for (const rack of racks.value) {
+            const rows = rack.rows || 3
+            const cols = rack.cols || 4
+            const capacity = rows * cols
+            for (let cell = 1; cell <= capacity; cell++) {
+                const key = `${rack.id}:${cell}`
+                if (!occupiedCells.has(key)) {
+                    return { rackId: rack.id, cell }
+                }
+            }
+        }
+
+        const rackId = createOverflowRack()
+        return { rackId, cell: 1 }
+    }
+
+    function toFloorProduct(item, placement, previousProduct = null) {
+        return {
+            sku: item.sku,
+            name: item.name,
+            orderId: previousProduct?.orderId || '--',
+            rma: previousProduct?.rma || null,
+            rackId: placement.rackId,
+            cell: placement.cell,
+            qty: item.qty,
+            unit: item.unit
+        }
+    }
+
+    async function syncInventoryToFloorPlan(authToken, warehouseId) {
+        try {
+            const items = await fetchInventoryItems(authToken, warehouseId)
+            if (!items.length) {
+                products.value = []
+                return true
+            }
+
+            ensureBaseFloorPlanStructure()
+
+            const existingBySku = new Map()
+            for (const product of products.value) {
+                if (!existingBySku.has(product.sku)) {
+                    existingBySku.set(product.sku, product)
+                }
+            }
+
+            const occupiedCells = new Set()
+            const nextProducts = []
+
+            for (const item of items) {
+                const previous = existingBySku.get(item.sku)
+                let placement = null
+
+                if (previous) {
+                    const rack = rackMap.value.get(previous.rackId)
+                    const capacity = (rack?.rows || 0) * (rack?.cols || 0)
+                    const isValidCell = rack && previous.cell >= 1 && previous.cell <= capacity
+                    const key = `${previous.rackId}:${previous.cell}`
+                    if (isValidCell && !occupiedCells.has(key)) {
+                        placement = { rackId: previous.rackId, cell: previous.cell }
+                    }
+                }
+
+                if (!placement) {
+                    placement = findFreeSlot(occupiedCells)
+                }
+
+                occupiedCells.add(`${placement.rackId}:${placement.cell}`)
+                nextProducts.push(toFloorProduct(item, placement, previous))
+            }
+
+            products.value = nextProducts
+            return true
+        } catch (err) {
+            console.error('FloorPlan: Failed to sync inventory into floor plan:', err)
+            return false
+        }
+    }
+
+    /**
+     * Fetch real inventory from backend and build the floor plan layout.
+     * Groups are created per category. Sections per group. Each section gets
+     * one rack, and inventory items fill the rack cells in order.
+     */
+    async function initializeFromAPI(authToken, warehouseId = null) {
+        isLoading.value = true
+        loadError.value = ''
+        try {
+            const items = await fetchInventoryItems(authToken, warehouseId)
+            if (!items.length) return
+
+            // Reset everything
+            groups.value = []
+            sections.value = []
+            racks.value = []
+            products.value = []
+            // Keep only Floor 1 by default, reset extras
+            floors.value = [{ id: 1, label: 'Floor 1' }]
+
+            const colorPalette = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1']
+
+            // Group inventory items by category
+            const categoryMap = new Map()
+            items.forEach(item => {
+                const cat = item.category || 'General'
+                if (!categoryMap.has(cat)) categoryMap.set(cat, [])
+                categoryMap.get(cat).push(item)
+            })
+
+            let sectionX = 40
+            let colorIdx = 0
+            let sCounter = 1
+            let rCounter = 1
+
+            categoryMap.forEach((catItems, categoryName) => {
+                // Create a group per category
+                const groupId = `g-${categoryName.replace(/\s+/g, '_').toLowerCase()}`
+                const color = colorPalette[colorIdx % colorPalette.length]
+                colorIdx++
+
+                groups.value.push({
+                    id: groupId,
+                    floorId: 1,
+                    name: categoryName,
+                    color,
+                    internalGap: 2,
+                    externalGap: 10
+                })
+
+                // Split items into sections of max 12 items each (4 cols × 3 rows)
+                const ITEMS_PER_SECTION = 12
+                const COLS = 4
+                const ROWS = 3
+                const chunks = []
+                for (let i = 0; i < catItems.length; i += ITEMS_PER_SECTION) {
+                    chunks.push(catItems.slice(i, i + ITEMS_PER_SECTION))
+                }
+
+                chunks.forEach((chunk, chunkIdx) => {
+                    const sectionId = `s${sCounter++}`
+                    const rackId = `r${rCounter++}`
+
+                    sections.value.push({
+                        id: sectionId,
+                        floorId: 1,
+                        groupId,
+                        label: `${categoryName.substring(0, 8).toUpperCase()}-${String(chunkIdx + 1).padStart(2, '0')}`,
+                        x: sectionX,
+                        y: 60,
+                        w: 130,
+                        h: 150
+                    })
+                    sectionX += 145
+
+                    racks.value.push({
+                        id: rackId,
+                        sectionId,
+                        label: `Rack-${String(rCounter - 1).padStart(2, '0')}`,
+                        x: 20,
+                        y: 25,
+                        w: 230,
+                        h: 130,
+                        cols: COLS,
+                        rows: ROWS
+                    })
+
+                    // Fill cells with real inventory items
+                    chunk.forEach((item, itemIdx) => {
+                        products.value.push({
+                            sku: item.sku,
+                            name: item.name,
+                            orderId: '--',
+                            rma: null,
+                            rackId,
+                            cell: itemIdx + 1,
+                            qty: item.qty,
+                            unit: item.unit
+                        })
+                    })
+                })
+
+                // Add spacer between groups
+                sectionX += 30
+            })
+
+        } catch (err) {
+            console.error('FloorPlan: Failed to load inventory:', err)
+            loadError.value = 'Could not load inventory. Use Edit mode to add sections manually.'
+        } finally {
+            isLoading.value = false
         }
     }
 
@@ -364,6 +746,10 @@ export const useWarehouseFloorStore = defineStore('warehouseFloor', () => {
         products,
         presetColors,
         comparedZones,
+        isLoading,
+        loadError,
+        isSaving,
+        lastSavedAt,
         // Maps
         sectionMap,
         rackMap,
@@ -395,6 +781,10 @@ export const useWarehouseFloorStore = defineStore('warehouseFloor', () => {
         updateGroup,
         deleteGroup,
         addComparedZone,
-        removeComparedZone
+        removeComparedZone,
+        initializeFromAPI,
+        syncInventoryToFloorPlan,
+        saveFloorPlan,
+        loadFloorPlan
     }
 })

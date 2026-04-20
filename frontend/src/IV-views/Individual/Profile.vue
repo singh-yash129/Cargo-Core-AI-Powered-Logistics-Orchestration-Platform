@@ -23,32 +23,21 @@
                 <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">{{ store.user.tier }}</p>
                 <div
                     class="mt-2 text-xs bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 px-3 py-1 rounded-full inline-block font-bold">
-                    Joined {{ new Date(store.user.joiningDate).toLocaleDateString('en-US', {
-                        month: 'short', year:
-                    'numeric' }) }}</div>
+                    Joined {{ formatJoinDate(store.user.joiningDate) }}</div>
 
                 <div class="mt-6 mb-6 space-y-3 text-sm text-left px-2">
-                    <div class="flex justify-between border-b border-gray-100 dark:border-white/5 pb-2">
-                        <span class="text-gray-500">DOB</span>
-                        <span class="font-medium text-gray-900 dark:text-white">{{ store.user.dob || 'Not Provided'
-                            }}</span>
-                    </div>
-                    <div class="flex justify-between border-b border-gray-100 dark:border-white/5 pb-2">
-                        <span class="text-gray-500">Alt Phone</span>
-                        <span class="font-medium text-gray-900 dark:text-white">{{ store.user.altPhone || 'Not Provided'
-                            }}</span>
-                    </div>
+
                 </div>
 
                 <div class="grid grid-cols-2 gap-3 mb-6">
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
-                        <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ store.orders.length }}
+                        <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ apiStats?.total_orders || 0 }}
                         </div>
                         <div class="text-xs text-gray-500">Total Moves</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                         <div class="text-xl font-bold text-blue-600 dark:text-blue-400">₹{{
-                            store.totalSpent.toLocaleString() }}</div>
+                            Number(apiStats?.total_spent || 0).toLocaleString() }}</div>
                         <div class="text-xs text-gray-500">Total Spent</div>
                     </div>
                 </div>
@@ -105,23 +94,12 @@
                             <input v-model="form.phone" type="tel"
                                 class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all" />
                         </div>
-                        <div>
-                            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">Alternative
-                                Phone (Optional)</label>
-                            <input v-model="form.altPhone" type="tel"
-                                class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all" />
-                        </div>
-                        <div>
-                            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">Date of
-                                Birth</label>
-                            <input v-model="form.dob" type="date"
-                                class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all" />
-                        </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1.5 font-medium">Primary
                                 Address</label>
-                            <input v-model="form.address" type="text"
+                            <input v-model="form.address" type="text" placeholder="Enter your primary address"
                                 class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all" />
+                            <p v-if="!form.address" class="text-xs text-amber-600 dark:text-amber-400 mt-1">No address provided yet. Please add your primary address.</p>
                         </div>
                     </div>
                     <button @click="saveProfile"
@@ -129,108 +107,8 @@
                         Save Changes
                     </button>
                 </div>
-
-                <!-- Address Book -->
-                <div class="glass-panel p-4 sm:p-6 rounded-xl">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-bold text-gray-900 dark:text-white">Saved Addresses</h3>
-                        <button @click="openAddAddress"
-                            class="text-green-600 dark:text-green-400 text-sm font-bold hover:underline flex items-center gap-1">
-                            <span class="material-symbols-outlined text-sm">add</span> Add New
-                        </button>
-                    </div>
-                    <div class="space-y-3">
-                        <div v-for="addr in addresses" :key="addr.id"
-                            class="flex items-start gap-4 p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5 hover:border-green-500/30 transition-colors group">
-                            <span
-                                class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-green-500 transition-colors mt-0.5">{{
-                                addr.icon }}</span>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="font-bold text-sm text-gray-900 dark:text-white">{{ addr.label
-                                        }}</span>
-                                    <span
-                                        class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{
-                                        addr.phone }}</span>
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400 leading-snug">
-                                    {{ addr.address }}{{ addr.city ? `, ${addr.city}` : '' }}{{ addr.state ? `,
-                                    ${addr.state}` : '' }}{{ addr.pincode ? ` - ${addr.pincode}` : '' }}
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button @click="editAddress(addr)"
-                                    class="text-gray-400 hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-blue-50 dark:hover:bg-blue-500/10">
-                                    <span class="material-symbols-outlined text-[20px]">edit</span>
-                                </button>
-                                <button @click="removeAddress(addr.id)"
-                                    class="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-500/10">
-                                    <span class="material-symbols-outlined text-[20px]">delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
-
-        <!-- Address Modal -->
-        <Teleport to="body">
-            <BaseModal :isOpen="addressModal.show" @close="addressModal.show = false">
-                <template #title>{{ addressModal.isEditing ? 'Edit Address' : 'Add New Address' }}</template>
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="col-span-2 md:col-span-1">
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Label (e.g., Home,
-                                Work)</label>
-                            <input v-model="addressModal.data.label" placeholder="Home"
-                                class="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-green-500/50 outline-none text-gray-900 dark:text-white" />
-                        </div>
-                        <div class="col-span-2 md:col-span-1">
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Contact Phone</label>
-                            <input v-model="addressModal.data.phone" type="tel" placeholder="+91 0000000000"
-                                class="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-green-500/50 outline-none text-gray-900 dark:text-white" />
-                        </div>
-                        <div class="col-span-2">
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Address Line</label>
-                            <textarea v-model="addressModal.data.address" rows="2"
-                                placeholder="Flat, House no., Building, Company, Apartment"
-                                class="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-green-500/50 outline-none text-gray-900 dark:text-white resize-none"></textarea>
-                        </div>
-                        <div class="col-span-2 md:col-span-1">
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">City</label>
-                            <input v-model="addressModal.data.city" placeholder="City"
-                                class="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-green-500/50 outline-none text-gray-900 dark:text-white" />
-                        </div>
-                        <div class="col-span-1">
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">State</label>
-                            <input v-model="addressModal.data.state" placeholder="State"
-                                class="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-green-500/50 outline-none text-gray-900 dark:text-white" />
-                        </div>
-                        <div class="col-span-1">
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Pincode</label>
-                            <input v-model="addressModal.data.pincode" type="text" placeholder="e.g. 110016"
-                                class="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-green-500/50 outline-none text-gray-900 dark:text-white" />
-                        </div>
-                        <div class="col-span-1">
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Landmark
-                                (Optional)</label>
-                            <input v-model="addressModal.data.landmark" type="text" placeholder="e.g. Near Temple"
-                                class="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-green-500/50 outline-none text-gray-900 dark:text-white" />
-                        </div>
-                    </div>
-                </div>
-                <template #footer>
-                    <div class="flex gap-3 w-full">
-                        <button @click="saveAddressModal"
-                            class="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors">Save
-                            Address</button>
-                        <button @click="addressModal.show = false"
-                            class="px-6 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-lg transition-colors">Cancel</button>
-                    </div>
-                </template>
-            </BaseModal>
-        </Teleport>
 
         <!-- Avatar Selection Modal -->
         <Teleport to="body">
@@ -256,8 +134,9 @@
                 enter-to-class="translate-y-0 opacity-100" leave-active-class="transition duration-200 ease-in"
                 leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-4 opacity-0">
                 <div v-if="toast.show"
-                    class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-xl bg-green-600 text-white border border-green-500 max-w-sm">
-                    <span class="material-symbols-outlined">check_circle</span>
+                    class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-xl text-white border max-w-sm"
+                    :class="toast.type === 'error' ? 'bg-red-600 border-red-500' : 'bg-green-600 border-green-500'">
+                    <span class="material-symbols-outlined">{{ toast.type === 'error' ? 'error' : 'check_circle' }}</span>
                     <span class="text-sm font-medium">{{ toast.message }}</span>
                 </div>
             </transition>
@@ -266,7 +145,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { useIndividualStore } from '@/stores/individualStore'
 import { Line } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler } from 'chart.js'
@@ -276,31 +155,56 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 const store = useIndividualStore()
 
+const apiStats = computed(() => store.dashboardSummary?.stats || null)
+
 const form = reactive({
     name: store.user.name,
     email: store.user.email,
     phone: store.user.phone,
-    altPhone: store.user.altPhone || '',
-    dob: store.user.dob || '',
-    address: store.user.address,
+    address: store.user.address || '',
 })
 
-const addresses = computed(() => store.savedAddresses)
-
-function saveProfile() {
-    store.updateProfile({
+async function saveProfile() {
+    const result = await store.saveProfileRemote({
         name: form.name,
         email: form.email,
         phone: form.phone,
-        altPhone: form.altPhone,
-        dob: form.dob,
         address: form.address
     })
-    showToast('Profile updated successfully!')
+    if (result.success) {
+        showToast('Profile updated successfully!', 'success')
+    } else {
+        let errMsg = result.message || 'Failed to update profile.'
+        if (Array.isArray(errMsg)) errMsg = errMsg.map(e => e.msg).join(', ')
+        else if (typeof errMsg === 'object') errMsg = JSON.stringify(errMsg)
+        showToast(errMsg, 'error')
+    }
 }
 
 // Chart Data
 const chartData = computed(() => {
+    const monthlyActivity = store.dashboardSummary?.monthly_activity || []
+
+    // If we have API data, use it
+    if (monthlyActivity.length > 0) {
+        return {
+            labels: monthlyActivity.map(d => d.month),
+            datasets: [{
+                label: 'Orders',
+                data: monthlyActivity.map(d => d.count),
+                borderColor: '#22c55e',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                borderWidth: 2,
+                pointBackgroundColor: '#22c55e',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#16a34a',
+                fill: true,
+                tension: 0.4
+            }]
+        }
+    }
+
+    // Fallback to static data if no API data available
     return {
         labels: store.monthlySpending.map(d => d.month),
         datasets: [{
@@ -339,58 +243,6 @@ const chartOptions = {
     interaction: { intersect: false, mode: 'index' }
 }
 
-// Address Modal (Flipkart Style)
-const addressModal = reactive({
-    show: false,
-    isEditing: false,
-    data: {
-        id: null,
-        label: 'Home',
-        icon: 'home',
-        address: '',
-        city: '',
-        state: '',
-        pincode: '',
-        phone: ''
-    }
-})
-
-function openAddAddress() {
-    addressModal.isEditing = false
-    addressModal.data = { id: null, label: 'Home', icon: 'home', address: '', city: '', state: '', pincode: '', phone: '' }
-    addressModal.show = true
-}
-
-function editAddress(addr) {
-    addressModal.isEditing = true
-    addressModal.data = { ...addr }
-    addressModal.show = true
-}
-
-function saveAddressModal() {
-    if (!addressModal.data.address || !addressModal.data.pincode || !addressModal.data.phone) {
-        showToast('Please fill all required fields.')
-        return
-    }
-
-    // Auto-assign icon based on label
-    const labelLower = addressModal.data.label.toLowerCase()
-    if (labelLower.includes('work') || labelLower.includes('office')) addressModal.data.icon = 'business'
-    else if (labelLower.includes('home')) addressModal.data.icon = 'home'
-    else addressModal.data.icon = 'location_on'
-
-    store.saveAddress({ ...addressModal.data })
-    addressModal.show = false
-    showToast(addressModal.isEditing ? 'Address updated!' : 'Address added successfully!')
-}
-
-function removeAddress(id) {
-    if (confirm('Are you sure you want to delete this address?')) {
-        store.deleteAddress(id)
-        showToast('Address deleted.')
-    }
-}
-
 // Avatar Logistics
 const avatarModal = ref(false)
 const presetAvatars = [
@@ -405,6 +257,33 @@ function selectAvatar(emoji) {
     showToast('Avatar updated!')
 }
 
-const toast = reactive({ show: false, message: '' })
-function showToast(msg) { toast.show = true; toast.message = msg; setTimeout(() => { toast.show = false }, 3000) }
+const toast = reactive({ show: false, message: '', type: 'success' })
+function showToast(msg, type = 'success') { 
+    toast.show = true; 
+    toast.message = msg; 
+    toast.type = type;
+    setTimeout(() => { toast.show = false }, 3000) 
+}
+
+function formatJoinDate(dateString) {
+    if (!dateString) return 'Recently'
+
+    try {
+        const date = new Date(dateString)
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    } catch {
+        return 'Recently'
+    }
+}
+
+onMounted(async () => {
+    await Promise.all([
+        store.fetchProfile(),
+        store.fetchDashboardSummary()
+    ])
+    form.name = store.user.name
+    form.email = store.user.email
+    form.phone = store.user.phone
+    form.address = store.user.address || ''
+})
 </script>

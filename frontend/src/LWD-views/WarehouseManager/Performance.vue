@@ -4,12 +4,11 @@
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Operational Performance</h2>
             <div class="flex gap-3 items-center">
-                <select v-model="timeRange"
+                <select v-model="timeRange" @change="fetchPerformance"
                     class="bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
                     <option value="today" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Today</option>
                     <option value="week" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">This Week</option>
                     <option value="month" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">This Month</option>
-                    <option value="quarter" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">This Quarter</option>
                 </select>
                 <button @click="exportReport"
                     class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm">
@@ -18,19 +17,26 @@
             </div>
         </div>
 
+        <!-- Loading -->
+        <div v-if="loading" class="glass-panel p-8 rounded-xl text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div class="mt-2 text-gray-600 dark:text-gray-400">Loading performance data...</div>
+        </div>
+
+        <template v-else>
         <!-- Primary KPI Row -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div v-for="kpi in primaryKPIs" :key="kpi.label"
                 class="glass-panel p-4 rounded-xl relative overflow-hidden group hover:border-primary/20 transition-colors">
-                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">{{ kpi.label
-                    }}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">{{ kpi.label }}</div>
                 <div class="text-2xl font-bold mt-1" :class="kpi.color">{{ kpi.value }}</div>
                 <div class="flex items-center gap-1 mt-1">
                     <span class="material-symbols-outlined text-[14px]"
-                        :class="kpi.trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{ kpi.trend > 0 ? 'trending_up' :
-                            'trending_down' }}</span>
-                    <span class="text-xs" :class="kpi.trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{ kpi.trendLabel
-                        }}</span>
+                        :class="kpi.trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+                        {{ kpi.trend > 0 ? 'trending_up' : 'trending_down' }}
+                    </span>
+                    <span class="text-xs"
+                        :class="kpi.trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{ kpi.trendLabel }}</span>
                 </div>
                 <div class="absolute bottom-0 left-0 right-0 h-0.5" :class="kpi.barColor"></div>
             </div>
@@ -38,11 +44,11 @@
 
         <!-- Charts Row -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Order Processing Time Trend -->
+            <!-- Order Status Distribution -->
             <div class="glass-panel p-5 rounded-xl">
                 <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-blue-400">timeline</span>
-                    Order Processing Time (Hours)
+                    Order Status Distribution
                 </h3>
                 <div class="h-60 relative">
                     <Bar :data="processingChartData" :options="processingChartOptions" />
@@ -53,36 +59,34 @@
             <div class="glass-panel p-5 rounded-xl">
                 <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
-                    Pick Accuracy Rate
+                    Order Completion Rate
                 </h3>
                 <div class="flex items-center justify-center gap-12 h-60">
-                    <!-- Circular Gauge -->
                     <div class="relative w-40 h-40">
                         <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="42" fill="none" stroke="#1f2937" stroke-width="8" />
                             <circle cx="50" cy="50" r="42" fill="none"
-                                :stroke="pickAccuracy >= 98 ? '#10b981' : pickAccuracy >= 95 ? '#f59e0b' : '#ef4444'"
+                                :stroke="completionRate >= 80 ? '#10b981' : completionRate >= 60 ? '#f59e0b' : '#ef4444'"
                                 stroke-width="8" stroke-linecap="round"
-                                :stroke-dasharray="`${pickAccuracy * 2.64} 264`" />
+                                :stroke-dasharray="`${completionRate * 2.64} 264`" />
                         </svg>
                         <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ pickAccuracy }}%</div>
-                            <div class="text-[10px] text-gray-500 uppercase">Accuracy</div>
+                            <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ completionRate }}%</div>
+                            <div class="text-[10px] text-gray-500 uppercase">Completed</div>
                         </div>
                     </div>
-                    <!-- Breakdown -->
                     <div class="space-y-4">
                         <div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">Total Picks Today</div>
-                            <div class="text-xl font-bold text-gray-900 dark:text-white">1,248</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Total Orders</div>
+                            <div class="text-xl font-bold text-gray-900 dark:text-white">{{ totalOrders }}</div>
                         </div>
                         <div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">Correct Picks</div>
-                            <div class="text-xl font-bold text-green-600 dark:text-green-400">1,223</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Dispatched</div>
+                            <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ packedOrders }}</div>
                         </div>
                         <div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">Errors</div>
-                            <div class="text-xl font-bold text-red-600 dark:text-red-400">25</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Pending</div>
+                            <div class="text-xl font-bold text-yellow-600 dark:text-yellow-400">{{ pendingOrders }}</div>
                         </div>
                     </div>
                 </div>
@@ -98,120 +102,99 @@
                     Labor Utilization
                 </h3>
                 <div class="space-y-4">
-                    <div v-for="dept in laborUtil" :key="dept.name">
-                        <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-600 dark:text-gray-300">{{ dept.name }}</span>
-                            <span class="font-bold"
-                                :class="dept.percent >= 90 ? 'text-green-600 dark:text-green-400' : dept.percent >= 70 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'">{{
-                                    dept.percent }}%</span>
+                    <div v-if="laborStats.total === 0" class="text-center text-gray-500 text-sm py-4">No labour data available</div>
+                    <template v-else>
+                        <div v-for="stat in laborBreakdown" :key="stat.name">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600 dark:text-gray-300">{{ stat.name }}</span>
+                                <span class="font-bold"
+                                    :class="stat.percent >= 70 ? 'text-green-600 dark:text-green-400' : stat.percent >= 40 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'">
+                                    {{ stat.percent }}%
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full transition-all"
+                                    :class="stat.percent >= 70 ? 'bg-green-500' : stat.percent >= 40 ? 'bg-yellow-500' : 'bg-red-500'"
+                                    :style="`width: ${stat.percent}%`"></div>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-0.5">{{ stat.count }} workers</div>
                         </div>
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full transition-all"
-                                :class="dept.percent >= 90 ? 'bg-green-500' : dept.percent >= 70 ? 'bg-yellow-500' : 'bg-red-500'"
-                                :style="`width: ${dept.percent}%`"></div>
-                        </div>
-                        <div class="text-xs text-gray-500 mt-0.5">{{ dept.workers }} workers • {{ dept.hours }}h logged
-                        </div>
-                    </div>
+                    </template>
                 </div>
             </div>
 
-            <!-- Dock Dwell Time -->
+            <!-- Order Pipeline Summary -->
             <div class="glass-panel p-5 rounded-xl">
                 <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400">local_shipping</span>
-                    Dock Dwell Time
+                    <span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400">conveyor_belt</span>
+                    Order Pipeline
                 </h3>
                 <div class="space-y-3">
-                    <div v-for="dock in dwellTimes" :key="dock.dock"
+                    <div v-for="stage in orderPipeline" :key="stage.label"
                         class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/5">
                         <div class="flex justify-between items-center mb-1">
-                            <span class="text-sm font-bold text-gray-900 dark:text-white">{{ dock.dock }}</span>
-                            <span class="text-sm font-mono"
-                                :class="dock.minutes > 45 ? 'text-red-600 dark:text-red-400' : dock.minutes > 30 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'">
-                                {{ dock.minutes }} min
-                            </span>
+                            <span class="text-sm font-bold text-gray-900 dark:text-white">{{ stage.label }}</span>
+                            <span class="text-sm font-mono font-bold" :class="stage.color">{{ stage.count }}</span>
                         </div>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full"
-                                :class="dock.minutes > 45 ? 'bg-red-500' : dock.minutes > 30 ? 'bg-yellow-500' : 'bg-green-500'"
-                                :style="`width: ${Math.min((dock.minutes / 60) * 100, 100)}%`"></div>
+                            <div class="h-full rounded-full" :class="stage.barColor"
+                                :style="`width: ${totalOrders > 0 ? Math.min((stage.count / totalOrders) * 100, 100) : 0}%`"></div>
                         </div>
-                        <div class="text-xs text-gray-500 mt-1">{{ dock.truck }} — {{ dock.carrier }}</div>
-                    </div>
-                </div>
-                <div class="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                    <div class="flex justify-between">
-                        <span class="text-xs text-blue-600 dark:text-blue-400 font-bold">Avg. Dwell Today</span>
-                        <span class="text-xs text-gray-900 dark:text-white font-bold">{{ avgDwell }} min</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Stock & Packing Metrics -->
+            <!-- Stock & Demand Health -->
             <div class="glass-panel p-5 rounded-xl">
                 <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined text-teal-400">inventory</span>
-                    Stock & Packing Health
+                    Stock & Demand Health
                 </h3>
                 <div class="space-y-4">
-                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                        <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-600 dark:text-gray-400">Stock Discrepancy</span>
-                            <span class="font-bold"
-                                :class="stockDiscrepancy <= 1 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{ stockDiscrepancy
-                                }}%</span>
-                        </div>
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full"
-                                :class="stockDiscrepancy <= 1 ? 'bg-green-500' : 'bg-red-500'"
-                                :style="`width: ${stockDiscrepancy * 10}%`"></div>
-                        </div>
-                    </div>
-                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
-                        <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-600 dark:text-gray-400">Packing Error Rate</span>
-                            <span class="font-bold" :class="packingError <= 2 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{
-                                packingError }}%</span>
-                        </div>
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full" :class="packingError <= 2 ? 'bg-green-500' : 'bg-red-500'"
-                                :style="`width: ${packingError * 10}%`"></div>
-                        </div>
-                    </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="flex justify-between text-sm mb-1">
                             <span class="text-gray-600 dark:text-gray-400">Daily Demand Load</span>
                             <span class="font-bold text-gray-900 dark:text-white">{{ demandLoad }} orders</span>
                         </div>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                            <div class="bg-blue-500 h-full rounded-full" :style="`width: ${(demandLoad / 60) * 100}%`">
-                            </div>
+                            <div class="bg-blue-500 h-full rounded-full" :style="`width: ${Math.min((demandLoad / 60) * 100, 100)}%`"></div>
                         </div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-600 dark:text-gray-400">Returns Processing Rate</span>
-                            <span class="font-bold text-green-600 dark:text-green-400">94%</span>
+                            <span class="text-gray-600 dark:text-gray-400">On Hold Orders</span>
+                            <span class="font-bold" :class="onHoldOrders > 5 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'">{{ onHoldOrders }}</span>
                         </div>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                            <div class="bg-green-500 h-full rounded-full" style="width: 94%"></div>
+                            <div :class="onHoldOrders > 5 ? 'bg-red-500' : 'bg-green-500'" class="h-full rounded-full"
+                                :style="`width: ${totalOrders > 0 ? Math.min((onHoldOrders / totalOrders) * 100, 100) : 0}%`"></div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-600 dark:text-gray-400">Labor Availability</span>
+                            <span class="font-bold text-green-600 dark:text-green-400">{{ laborStats.available }} / {{ laborStats.total }}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                            <div class="bg-green-500 h-full rounded-full"
+                                :style="`width: ${laborStats.total > 0 ? (laborStats.available / laborStats.total) * 100 : 0}%`"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Daily Demand Load Chart -->
+        <!-- Daily Order Volume Chart -->
         <div class="glass-panel p-5 rounded-xl">
             <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
                 <span class="material-symbols-outlined text-primary">bar_chart</span>
-                Daily Demand Load (Orders per Day)
+                Order Status Breakdown
             </h3>
             <div class="h-48 relative">
                 <Bar :data="demandChartData" :options="demandChartOptions" />
             </div>
         </div>
+        </template>
 
         <!-- Toast -->
         <div v-if="toastMsg"
@@ -223,19 +206,124 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js'
+import { useAuthStore } from '@/stores/authStore'
+import { API_BASE_URL } from '@/config/api'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
+const authStore = useAuthStore()
 const timeRange = ref('today')
-const pickAccuracy = ref(98)
-const stockDiscrepancy = ref(0.8)
-const packingError = ref(1.5)
-const demandLoad = ref(38)
-const avgDwell = ref(34)
 const toastMsg = ref('')
+const loading = ref(false)
+
+// Raw performance response from the dedicated backend endpoint
+const perfMetrics = ref(null)
+
+// Helper to read substatus counts from the server's status_breakdown dict
+function sub(key) {
+    return perfMetrics.value?.status_breakdown?.[key] ?? 0
+}
+
+const totalOrders = computed(() => perfMetrics.value?.total_orders ?? 0)
+const completionRate = computed(() => Math.round(perfMetrics.value?.completion_rate ?? 0))
+const onHoldOrders = computed(() => perfMetrics.value?.on_hold_count ?? 0)
+const qcPassedOrders = computed(() => perfMetrics.value?.ready_for_dispatch ?? 0)
+const onDockOrders = computed(() => sub('ON_DOCK'))
+const packedOrders = computed(() => perfMetrics.value?.dispatched_today ?? 0)
+const pendingOrders = computed(() => sub('AWAITING_PICK'))
+const packingOrders = computed(() => perfMetrics.value?.packing_active ?? 0)
+const demandLoad = computed(() => totalOrders.value)
+
+const laborStats = computed(() => {
+    const lb = perfMetrics.value?.labor_breakdown ?? {}
+    const active = lb.active ?? 0   // assigned to an order
+    const idle = lb.idle ?? 0       // in warehouse, no order
+    const off = lb.off ?? 0         // not active
+    const total = active + idle + off
+    return { total, available: idle, busy: active, offDuty: off }
+})
+
+const laborBreakdown = computed(() => {
+    const t = laborStats.value.total
+    return [
+        { name: 'Available', count: laborStats.value.available, percent: t > 0 ? Math.round((laborStats.value.available / t) * 100) : 0 },
+        { name: 'On Duty / Assigned', count: laborStats.value.busy, percent: t > 0 ? Math.round((laborStats.value.busy / t) * 100) : 0 },
+        { name: 'Off Duty', count: laborStats.value.offDuty, percent: t > 0 ? Math.round((laborStats.value.offDuty / t) * 100) : 0 },
+    ]
+})
+
+const orderPipeline = computed(() => [
+    { label: 'Awaiting Pick', count: sub('AWAITING_PICK'), color: 'text-yellow-600 dark:text-yellow-400', barColor: 'bg-yellow-500' },
+    { label: 'Picking', count: sub('PICKING'), color: 'text-blue-600 dark:text-blue-400', barColor: 'bg-blue-500' },
+    { label: 'Picked', count: sub('PICKED'), color: 'text-cyan-600 dark:text-cyan-400', barColor: 'bg-cyan-500' },
+    { label: 'Packing', count: sub('PACKING'), color: 'text-purple-600 dark:text-purple-400', barColor: 'bg-purple-500' },
+    { label: 'Packed', count: sub('PACKED'), color: 'text-indigo-600 dark:text-indigo-400', barColor: 'bg-indigo-500' },
+    { label: 'QC Passed', count: sub('QC_PASSED') + sub('READY_FOR_DISPATCH'), color: 'text-teal-600 dark:text-teal-400', barColor: 'bg-teal-500' },
+    { label: 'On Dock', count: sub('ON_DOCK'), color: 'text-pink-600 dark:text-pink-400', barColor: 'bg-pink-500' },
+    { label: 'Dispatched', count: sub('DISPATCHED'), color: 'text-green-600 dark:text-green-400', barColor: 'bg-green-500' },
+    { label: 'On Hold', count: sub('ON_HOLD'), color: 'text-orange-600 dark:text-orange-400', barColor: 'bg-orange-500' },
+])
+
+const primaryKPIs = computed(() => [
+    {
+        label: 'Total Orders', value: String(totalOrders.value),
+        color: 'text-gray-900 dark:text-white', trend: 1, trendLabel: `in ${timeRange.value}`, barColor: 'bg-gray-400'
+    },
+    {
+        label: 'Completion Rate', value: `${completionRate.value}%`,
+        color: completionRate.value >= 70 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400',
+        trend: completionRate.value >= 70 ? 1 : -1, trendLabel: 'dispatched/total', barColor: 'bg-green-500'
+    },
+    {
+        label: 'On Hold', value: String(onHoldOrders.value),
+        color: onHoldOrders.value > 5 ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400',
+        trend: onHoldOrders.value <= 5 ? 1 : -1, trendLabel: 'orders paused', barColor: 'bg-yellow-500'
+    },
+    {
+        label: 'Labor Total', value: String(laborStats.value.total),
+        color: 'text-blue-600 dark:text-blue-400', trend: 1, trendLabel: 'on roster', barColor: 'bg-blue-500'
+    },
+    {
+        label: 'QC Passed', value: String(qcPassedOrders.value),
+        color: 'text-teal-600 dark:text-teal-400', trend: 1, trendLabel: 'ready for dispatch', barColor: 'bg-teal-500'
+    },
+    {
+        label: 'On Dock', value: String(onDockOrders.value),
+        color: 'text-pink-600 dark:text-pink-400', trend: 1, trendLabel: 'loading', barColor: 'bg-pink-500'
+    },
+])
+
+async function fetchPerformance() {
+    loading.value = true
+    try {
+        const warehouseId = authStore.currentWarehouse?.id || authStore.currentUser?.warehouse_id
+        if (!warehouseId) {
+            console.warn('No warehouse_id — cannot fetch performance metrics')
+            return
+        }
+        const headers = {
+            'Authorization': `Bearer ${authStore.authToken}`,
+            'Content-Type': 'application/json'
+        }
+        const res = await fetch(
+            `${API_BASE_URL}/api/v1/warehouses/${warehouseId}/operations/performance?time_range=${timeRange.value}`,
+            { headers }
+        )
+        if (res.ok) {
+            const data = await res.json()
+            perfMetrics.value = data.metrics
+        } else {
+            console.error('Performance fetch failed:', res.status, await res.text())
+        }
+    } catch (error) {
+        console.error('Error fetching performance data:', error)
+    } finally {
+        loading.value = false
+    }
+}
 
 function showToast(msg) {
     toastMsg.value = msg
@@ -243,85 +331,57 @@ function showToast(msg) {
 }
 
 function exportReport() {
+    const rows = [
+        ['Metric', 'Value'],
+        ...primaryKPIs.value.map(k => [k.label, k.value]),
+        [],
+        ['Pipeline Stage', 'Order Count'],
+        ...orderPipeline.value.map(s => [s.label, s.count]),
+        [],
+        ['Labour', 'Count'],
+        ['Available', laborStats.value.available],
+        ['On Duty / Assigned', laborStats.value.busy],
+        ['Off Duty', laborStats.value.offDuty],
+        ['Total', laborStats.value.total],
+    ]
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `performance_${timeRange.value}_${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
     showToast(`Performance report (${timeRange.value}) exported`)
 }
 
-// Simulate data changes when time range changes
-watch(timeRange, (val) => {
-    const data = {
-        today: { accuracy: 98, discrepancy: 0.8, packing: 1.5, demand: 38, dwell: 34 },
-        week: { accuracy: 97.2, discrepancy: 1.1, packing: 1.8, demand: 42, dwell: 36 },
-        month: { accuracy: 96.8, discrepancy: 1.4, packing: 2.1, demand: 45, dwell: 38 },
-        quarter: { accuracy: 96.5, discrepancy: 1.6, packing: 2.3, demand: 40, dwell: 35 },
-    }
-    const d = data[val] || data.today
-    pickAccuracy.value = d.accuracy
-    stockDiscrepancy.value = d.discrepancy
-    packingError.value = d.packing
-    demandLoad.value = d.demand
-    avgDwell.value = d.dwell
-    showToast(`Showing ${val} data`)
-})
-
-const primaryKPIs = ref([
-    { label: 'Order Processing', value: '2.8h', color: 'text-green-600 dark:text-green-400', trend: 1, trendLabel: '12% faster', barColor: 'bg-green-500' },
-    { label: 'Pick Accuracy', value: '98%', color: 'text-primary', trend: 1, trendLabel: '+0.5%', barColor: 'bg-primary' },
-    { label: 'Stock Discrepancy', value: '0.8%', color: 'text-green-600 dark:text-green-400', trend: 1, trendLabel: '-0.3%', barColor: 'bg-green-500' },
-    { label: 'Labor Utilization', value: '87%', color: 'text-blue-600 dark:text-blue-400', trend: 1, trendLabel: '+4%', barColor: 'bg-blue-500' },
-    { label: 'Dock Dwell', value: '34m', color: 'text-yellow-600 dark:text-yellow-400', trend: -1, trendLabel: '+5 min', barColor: 'bg-yellow-500' },
-    { label: 'Packing Errors', value: '1.5%', color: 'text-green-600 dark:text-green-400', trend: 1, trendLabel: '-0.4%', barColor: 'bg-green-500' },
-])
-
-const processingTimeBars = ref([
-    { day: 'Mon', value: 3.2 },
-    { day: 'Tue', value: 2.8 },
-    { day: 'Wed', value: 4.1 },
-    { day: 'Thu', value: 3.5 },
-    { day: 'Fri', value: 2.6 },
-    { day: 'Sat', value: 2.1 },
-    { day: 'Sun', value: 1.8 },
-])
-
-const laborUtil = ref([
-    { name: 'Picking Team', percent: 92, workers: 14, hours: 98 },
-    { name: 'Packing Team', percent: 85, workers: 8, hours: 56 },
-    { name: 'Receiving Team', percent: 78, workers: 6, hours: 38 },
-    { name: 'Loading Team', percent: 95, workers: 10, hours: 72 },
-    { name: 'Returns Team', percent: 65, workers: 4, hours: 20 },
-])
-
-const dwellTimes = ref([
-    { dock: 'Dock 1', minutes: 28, truck: 'TRK-5541', carrier: 'UPS Freight' },
-    { dock: 'Dock 2', minutes: 45, truck: 'TRK-3312', carrier: 'DHL Express' },
-    { dock: 'Dock 3', minutes: 52, truck: 'TRK-9912', carrier: 'Internal Fleet' },
-    { dock: 'Dock 4', minutes: 15, truck: 'TRK-1124', carrier: 'FedEx Ground' },
-])
-
-const demandChart = ref([
-    { day: '20', count: 32 }, { day: '21', count: 41 }, { day: '22', count: 38 },
-    { day: '23', count: 55 }, { day: '24', count: 42 }, { day: '25', count: 36 },
-    { day: '26', count: 38 }, { day: '27', count: 0 }, { day: '28', count: 0 },
-])
-
-// ======== Chart.js Configs ========
-
-// Order Processing Time Bar Chart
+// Charts
 const processingChartData = computed(() => ({
-    labels: processingTimeBars.value.map(b => b.day),
+    labels: ['Awaiting', 'Picking', 'Picked', 'Packing', 'Packed', 'QC Passed', 'On Dock', 'Dispatched'],
     datasets: [{
-        label: 'Processing Time (hrs)',
-        data: processingTimeBars.value.map(b => b.value),
-        backgroundColor: processingTimeBars.value.map(b =>
-            b.value > 4 ? 'rgba(239, 68, 68, 0.8)' :
-                b.value > 3 ? 'rgba(245, 158, 11, 0.8)' :
-                    'rgba(68, 233, 150, 0.8)'
-        ),
-        borderColor: processingTimeBars.value.map(b =>
-            b.value > 4 ? 'rgb(239, 68, 68)' :
-                b.value > 3 ? 'rgb(245, 158, 11)' :
-                    'rgb(68, 233, 150)'
-        ),
-        borderWidth: 1,
+        label: 'Orders',
+        data: [
+            sub('AWAITING_PICK'),
+            sub('PICKING'),
+            sub('PICKED'),
+            packingOrders.value,
+            sub('PACKED'),
+            qcPassedOrders.value,
+            onDockOrders.value,
+            sub('DISPATCHED'),
+        ],
+        backgroundColor: [
+            'rgba(245, 158, 11, 0.7)',
+            'rgba(59, 130, 246, 0.7)',
+            'rgba(6, 182, 212, 0.7)',
+            'rgba(139, 92, 246, 0.7)',
+            'rgba(99, 102, 241, 0.7)',
+            'rgba(20, 184, 166, 0.7)',
+            'rgba(236, 72, 153, 0.7)',
+            'rgba(34, 197, 94, 0.7)',
+        ],
         borderRadius: 6,
         borderSkipped: false,
     }]
@@ -334,39 +394,22 @@ const processingChartOptions = {
         legend: { display: false },
         tooltip: {
             backgroundColor: 'rgba(0,0,0,0.8)',
-            titleFont: { size: 13, weight: 'bold' },
-            bodyFont: { size: 12 },
             padding: 12,
             cornerRadius: 8,
-            callbacks: {
-                label: (ctx) => `${ctx.parsed.y} hours`
-            }
+            callbacks: { label: (ctx) => `${ctx.parsed.y} orders` }
         }
     },
     scales: {
-        x: {
-            grid: { display: false },
-            ticks: { color: '#9ca3af', font: { size: 11 } }
-        },
-        y: {
-            min: 0,
-            max: 6,
-            grid: { color: 'rgba(156,163,175,0.1)' },
-            ticks: {
-                color: '#9ca3af',
-                font: { size: 11 },
-                callback: (v) => v + 'h'
-            }
-        }
+        x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 11 } } },
+        y: { min: 0, grid: { color: 'rgba(156,163,175,0.1)' }, ticks: { color: '#9ca3af', font: { size: 11 }, stepSize: 1 } }
     }
 }
 
-// Daily Demand Load Bar Chart
 const demandChartData = computed(() => ({
-    labels: demandChart.value.map(d => 'Day ' + d.day),
+    labels: orderPipeline.value.map(s => s.label),
     datasets: [{
         label: 'Orders',
-        data: demandChart.value.map(d => d.count),
+        data: orderPipeline.value.map(s => s.count),
         backgroundColor: (ctx) => {
             const chart = ctx.chart
             const { ctx: canvasCtx, chartArea } = chart
@@ -390,30 +433,19 @@ const demandChartOptions = {
         legend: { display: false },
         tooltip: {
             backgroundColor: 'rgba(0,0,0,0.8)',
-            titleFont: { size: 13, weight: 'bold' },
-            bodyFont: { size: 12 },
             padding: 12,
             cornerRadius: 8,
-            callbacks: {
-                label: (ctx) => `${ctx.parsed.y} orders`
-            }
+            callbacks: { label: (ctx) => `${ctx.parsed.y} orders` }
         }
     },
     scales: {
-        x: {
-            grid: { display: false },
-            ticks: { color: '#9ca3af', font: { size: 10 } }
-        },
-        y: {
-            min: 0,
-            max: 60,
-            grid: { color: 'rgba(156,163,175,0.1)' },
-            ticks: {
-                color: '#9ca3af',
-                font: { size: 11 },
-                stepSize: 15
-            }
-        }
+        x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 } } },
+        y: { min: 0, grid: { color: 'rgba(156,163,175,0.1)' }, ticks: { color: '#9ca3af', font: { size: 11 }, stepSize: 1 } }
     }
 }
+
+onMounted(async () => {
+    await authStore.ensureWarehouseContext()
+    await fetchPerformance()
+})
 </script>

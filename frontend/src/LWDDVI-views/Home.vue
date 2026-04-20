@@ -363,14 +363,14 @@ const driverImages = [
     '/images/mobile-screens/login-help.png',
     '/images/mobile-screens/pre-shift.png',
     '/images/mobile-screens/binding%20scanner.png',
-    '/images/mobile-screens/binding.png'   
+    '/images/mobile-screens/binding.png'
 ]
 
 // Preload Spline Scenes for "Instant" feel
 const splineScenes = [
     'https://prod.spline.design/dly62PB8Wm4vg4E3/scene.splinecode', // Hero
     'https://prod.spline.design/h-pIvYOqSBqshSxe/scene.splinecode', // Warehouse
-    'https://prod.spline.design/qjGo2c4YrEdZD6EY/scene.splinecode', // Dispatcher 
+    'https://prod.spline.design/qjGo2c4YrEdZD6EY/scene.splinecode', // Dispatcher
     'https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode', // AI Support
     'https://prod.spline.design/fDRu5GDs8Enzi-PA/scene.splinecode'  // Vendor
 ]

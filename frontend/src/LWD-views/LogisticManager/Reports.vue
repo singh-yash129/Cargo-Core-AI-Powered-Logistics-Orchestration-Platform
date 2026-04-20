@@ -14,11 +14,17 @@
             <div class="flex flex-wrap gap-2 items-center">
                 <!-- AI Query Bar -->
                 <div class="relative group mr-2">
-                    <input v-model="aiQuery" @keyup.enter="handleAiQuery" type="text"
+                    <input v-model="aiQuery" @keyup.enter="handleAiQuery" :disabled="aiThinking" type="text"
                         placeholder="Ask AI: 'Show me top spending vendors...'"
-                        class="pl-10 pr-4 py-2 bg-white dark:bg-white/5 border border-purple-200 dark:border-purple-500/30 rounded-full text-sm w-64 focus:w-80 transition-all outline-none focus:ring-2 focus:ring-purple-500/50 shadow-sm">
-                    <span
+                        class="pl-10 pr-10 py-2 bg-white dark:bg-white/5 border border-purple-200 dark:border-purple-500/30 rounded-full text-sm w-64 focus:w-80 transition-all outline-none focus:ring-2 focus:ring-purple-500/50 shadow-sm disabled:opacity-60">
+                    <span v-if="!aiThinking"
                         class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-purple-500">auto_awesome</span>
+                    <span v-else
+                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 animate-spin">progress_activity</span>
+                    <button @click="handleAiQuery" :disabled="aiThinking || !aiQuery"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-purple-500 text-white disabled:opacity-40 hover:bg-purple-600 transition-colors">
+                        <span class="material-symbols-outlined text-[14px]">send</span>
+                    </button>
                 </div>
 
                 <select v-model="timeRange"
@@ -54,13 +60,19 @@
             <div v-if="activeTab === 'control_tower'" class="space-y-6 animate-fade-in">
                 <!-- Top Row Alerts -->
                 <div v-if="crisisAlerts.length > 0" class="flex gap-4 overflow-x-auto pb-2">
-                    <div v-for="(alert, i) in crisisAlerts" :key="i"
-                        class="flex-shrink-0 w-80 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-4 rounded-xl flex items-start gap-3 shadow-sm hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
+                    <div v-for="alert in crisisAlerts" :key="alert.id"
+                        class="flex-shrink-0 w-80 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-4 rounded-xl flex items-start gap-3 shadow-sm">
                         <span class="material-symbols-outlined text-red-600 animate-bounce">warning</span>
-                        <div>
+                        <div class="flex-1 min-w-0">
                             <h4 class="font-bold text-red-700 dark:text-red-400 text-sm">{{ alert.title }}</h4>
                             <p class="text-xs text-red-600/80 dark:text-red-400/80 mt-1">{{ alert.desc }}</p>
-                            <p class="text-[10px] text-red-500 font-mono mt-2">Active Alert</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <p class="text-[10px] text-red-500 font-mono">Active Alert</p>
+                                <button @click="store.resolveAlert(alert.id)"
+                                    class="text-[10px] px-2 py-0.5 rounded bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-500/30 font-bold transition-colors">
+                                    Dismiss
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -98,7 +110,11 @@
                                 <span class="text-4xl font-black text-green-500">{{ store.dashboardStats.deliverySuccess
                                     }}%</span>
                                 <span
-                                    class="text-xs text-green-600 mb-1 font-bold bg-green-100 px-2 py-0.5 rounded-full">+0.4%</span>
+                                    class="text-xs font-bold mb-1 px-2 py-0.5 rounded-full"
+                                    :class="store.dashboardStats.deliverySuccess >= 80 ? 'text-green-600 bg-green-100' : 'text-yellow-600 bg-yellow-100'"
+                                >
+                                    {{ store.dashboardStats.deliverySuccess >= 80 ? '▲ On Track' : '▼ Below Target' }}
+                                </span>
                             </div>
                             <p class="text-xs text-gray-400 mt-2">Delivery Success Rate</p>
                         </div>
@@ -111,7 +127,7 @@
                                 class="text-xs font-bold text-red-600 dark:text-red-400 uppercase mb-2 flex items-center gap-1">
                                 <span class="material-symbols-outlined text-[16px]">payments</span> Pending Dues
                             </h3>
-                            <span class="text-3xl font-black text-gray-900 dark:text-white">$52,430</span>
+                            <span class="text-3xl font-black text-gray-900 dark:text-white">₹{{ (store.reportMetrics.pending_dues || 0).toLocaleString() }}</span>
                             <p class="text-xs text-red-500 mt-1 font-medium">Critical Collection Required</p>
                         </div>
                     </div>
@@ -124,13 +140,23 @@
                         <h3 class="font-bold text-purple-900 dark:text-purple-300 flex items-center gap-2 mb-3">
                             <span class="material-symbols-outlined">smart_toy</span> Daily AI Briefing
                         </h3>
-                        <ul class="space-y-2">
+                        <div v-if="aiThinking" class="flex items-center gap-2 text-sm text-purple-500 animate-pulse mb-2">
+                            <span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                            Analysing...
+                        </div>
+                        <ul v-if="aiInsights.length" class="space-y-2">
                             <li v-for="(insight, i) in aiInsights" :key="i"
                                 class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
                                 <span class="mt-1 h-1.5 w-1.5 rounded-full bg-purple-500 shrink-0"></span>
-                                {{ insight }}
+                                <span v-html="insight"></span>
                             </li>
                         </ul>
+                        <div v-else-if="!aiThinking" class="flex flex-col items-center justify-center py-4 text-center">
+                            <span class="material-symbols-outlined text-3xl text-purple-300 mb-2">auto_awesome</span>
+                            <p class="text-sm text-gray-400 dark:text-gray-500">Ask the AI above to generate insights.<br>
+                                <span class="text-xs text-purple-400">e.g. "Show me top spending vendors"</span>
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -154,13 +180,13 @@
                                 <td class="p-4 font-bold">Drivers</td>
                                 <td class="p-4 text-center">{{ store.filteredDrivers.length }}</td>
                                 <td class="p-4 text-center text-red-500 font-bold">{{store.filteredDrivers.filter(d => d.status !== 'Active').length }}</td>
-                                <td class="p-4 text-right text-green-600 font-mono">94% Efficiency</td>
+                                <td class="p-4 text-right text-green-600 font-mono">{{ avgDriverEfficiency }}% Efficiency</td>
                             </tr>
                             <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
                                 <td class="p-4 font-bold">Vehicles</td>
                                 <td class="p-4 text-center">{{ store.filteredVehicles.length }}</td>
                                 <td class="p-4 text-center text-yellow-500 font-bold">{{store.filteredVehicles.filter(v => v.status !== 'Active').length }}</td>
-                                <td class="p-4 text-right font-mono">2 In Shop</td>
+                                <td class="p-4 text-right font-mono">{{ vehiclesInMaintenance }} In Shop</td>
                             </tr>
                             <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
                                 <td class="p-4 font-bold">Returns (RMA)</td>
@@ -214,8 +240,12 @@
                     <div
                         class="mt-4 p-3 bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 rounded-lg flex items-center gap-3">
                         <span class="material-symbols-outlined text-orange-600">visibility</span>
-                        <p class="text-xs text-orange-800 dark:text-orange-300"><strong>Anomaly Detected:</strong>
-                            Vehicle V-402 reported 450km but GPS logs show 320km on Feb 22.</p>
+                        <p class="text-xs text-orange-800 dark:text-orange-300" v-if="fuelAnomalyText">
+                            <strong>Anomaly Detected:</strong> {{ fuelAnomalyText }}
+                        </p>
+                        <p class="text-xs text-green-700 dark:text-green-400" v-else>
+                            <strong>No fuel anomalies detected.</strong> All vehicle mileage reports match GPS logs.
+                        </p>
                     </div>
                 </div>
 
@@ -243,7 +273,7 @@
                                 <td class="p-4 font-bold text-gray-900 dark:text-white">{{ tx.desc }}</td>
                                 <td class="p-4 font-mono text-gray-500">{{ tx.id }}</td>
                                 <td class="p-4 text-right font-mono font-bold"
-                                    :class="tx.amount > 0 ? 'text-green-600' : 'text-red-500'">${{ Math.abs(tx.amount)
+                                    :class="tx.amount > 0 ? 'text-green-600' : 'text-red-500'">₹{{ Math.abs(tx.amount)
                                     }}</td>
                                 <td class="p-4 text-right font-mono">{{ tx.date }}</td>
                                 <td class="p-4">
@@ -257,125 +287,81 @@
                     </table>
                 </div>
 
-                <!-- Outstanding Dues Ageing Report -->
-                <div
-                    class="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden mt-6">
-                    <div
-                        class="p-4 border-b border-gray-100 dark:border-white/10 bg-red-50 dark:bg-red-900/10 flex justify-between">
-                        <h3 class="font-bold text-red-900 dark:text-red-300 flex items-center gap-2">
-                            <span class="material-symbols-outlined">warning</span> Outstanding Dues Ageing Report
+                <!-- Procurement vs Capital Chart -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="p-6 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-emerald-500">inventory_2</span>
+                            Procurement vs Capital Funding
                         </h3>
-                        <button class="text-xs text-red-700 font-bold hover:underline">Export Report</button>
+                        <div class="h-64 relative flex justify-center">
+                            <Doughnut :data="procurementCapitalData" :options="doughnutOptions" />
+                        </div>
+                        <div class="mt-4 grid grid-cols-2 gap-3 text-center text-xs">
+                            <div class="p-3 bg-orange-50 dark:bg-orange-500/10 rounded-xl">
+                                <p class="text-orange-700 dark:text-orange-400 font-bold text-lg">₹{{ (financeSummary?.procurement_expenses || 0).toLocaleString() }}</p>
+                                <p class="text-gray-500 mt-1">Procurement Spent</p>
+                            </div>
+                            <div class="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl">
+                                <p class="text-blue-700 dark:text-blue-400 font-bold text-lg">₹{{ (financeSummary?.capital_invested || 0).toLocaleString() }}</p>
+                                <p class="text-gray-500 mt-1">Capital Invested</p>
+                            </div>
+                        </div>
                     </div>
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-gray-50 dark:bg-black/20 text-gray-500 dark:text-gray-400 font-bold uppercase">
-                            <tr>
-                                <th class="p-4">Customer / Vendor</th>
-                                <th class="p-4 text-center">Days Overdue</th>
-                                <th class="p-4 text-right">Outstanding Amount</th>
-                                <th class="p-4">Status</th>
-                                <th class="p-4 text-right">Last Contact</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 font-bold text-gray-900 dark:text-white">TechCorp Logistics</td>
-                                <td class="p-4 text-center font-mono text-red-600 font-bold">45 Days</td>
-                                <td class="p-4 text-right font-mono font-bold text-red-600">$12,450.00</td>
-                                <td class="p-4"><span
-                                        class="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-bold">CRITICAL</span>
-                                </td>
-                                <td class="p-4 text-right text-gray-500">2 Days ago</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 font-bold text-gray-900 dark:text-white">BlueSky Retailers</td>
-                                <td class="p-4 text-center font-mono text-orange-500 font-bold">28 Days</td>
-                                <td class="p-4 text-right font-mono font-bold">$3,200.00</td>
-                                <td class="p-4"><span
-                                        class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-[10px] font-bold">Overdue</span>
-                                </td>
-                                <td class="p-4 text-right text-gray-500">1 Week ago</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                    <!-- Log Investment Panel -->
+                    <div class="p-6 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span class="material-symbols-outlined text-blue-500">add_card</span>
+                                Capital Investment Log
+                            </h3>
+                            <button @click="investmentModalOpen = true"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-2 shadow-sm">
+                                <span class="material-symbols-outlined text-[16px]">add</span> Log Investment
+                            </button>
+                        </div>
+                        <div class="flex-1 overflow-y-auto custom-scrollbar space-y-2">
+                            <div v-if="capitalTransactions.length === 0" class="text-center py-8 text-gray-400 text-sm">No capital investments logged yet.</div>
+                            <div v-for="tx in capitalTransactions" :key="tx.id"
+                                class="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-500/20">
+                                <div>
+                                    <p class="font-bold text-sm text-gray-900 dark:text-white">{{ tx.desc }}</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">{{ tx.date }}</p>
+                                </div>
+                                <span class="font-mono font-bold text-blue-600 dark:text-blue-400">+₹{{ tx.amount.toLocaleString() }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Automated Payroll History -->
-                <div
-                    class="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden mt-6">
-                    <div
-                        class="p-4 border-b border-gray-100 dark:border-white/10 bg-blue-50 dark:bg-blue-900/10 flex justify-between">
-                        <h3 class="font-bold text-blue-900 dark:text-blue-300 flex items-center gap-2">
-                            <span class="material-symbols-outlined">payments</span> Automated Payroll History
-                        </h3>
-                        <button class="text-xs text-blue-700 font-bold hover:underline">Download Payslips</button>
-                    </div>
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-gray-50 dark:bg-black/20 text-gray-500 dark:text-gray-400 font-bold uppercase">
-                            <tr>
-                                <th class="p-4">Employee Name</th>
-                                <th class="p-4">Role</th>
-                                <th class="p-4 text-right">Base Salary</th>
-                                <th class="p-4 text-right">Overtime</th>
-                                <th class="p-4 text-right">Deductions</th>
-                                <th class="p-4 text-right">Net Pay</th>
-                                <th class="p-4">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 font-bold text-gray-900 dark:text-white">Alex Morgan</td>
-                                <td class="p-4 text-gray-500">Driver</td>
-                                <td class="p-4 text-right font-mono">$3,200.00</td>
-                                <td class="p-4 text-right font-mono text-green-600">+$450.00</td>
-                                <td class="p-4 text-right font-mono text-red-500">-$120.00</td>
-                                <td class="p-4 text-right font-mono font-bold">$3,530.00</td>
-                                <td class="p-4"><span
-                                        class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold">PAID</span>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 font-bold text-gray-900 dark:text-white">Sarah Connor</td>
-                                <td class="p-4 text-gray-500">Dispatcher</td>
-                                <td class="p-4 text-right font-mono">$4,100.00</td>
-                                <td class="p-4 text-right font-mono text-gray-400">$0.00</td>
-                                <td class="p-4 text-right font-mono text-red-500">-$200.00</td>
-                                <td class="p-4 text-right font-mono font-bold">$3,900.00</td>
-                                <td class="p-4"><span
-                                        class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-[10px] font-bold">PROCESSING</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
 
-            <!-- 3. ATTENDANCE & LEAVE (New) -->
             <div v-if="activeTab === 'attendance'" class="space-y-6 animate-fade-in">
                 <!-- Overview Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div
                         class="p-5 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm text-center">
                         <h3 class="text-xs uppercase font-bold text-gray-500 mb-2">Present Today</h3>
-                        <span class="text-4xl font-black text-green-500">42</span>
-                        <p class="text-[10px] text-gray-400 mt-1">94% of Active Staff</p>
+                        <span class="text-4xl font-black text-green-500">{{ attendancePresentCount }}</span>
+                        <p class="text-[10px] text-gray-400 mt-1">{{ attendancePresentPct }}% of Active Staff</p>
                     </div>
                     <div
                         class="p-5 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm text-center">
                         <h3 class="text-xs uppercase font-bold text-gray-500 mb-2">On Leave</h3>
-                        <span class="text-4xl font-black text-yellow-500">3</span>
+                        <span class="text-4xl font-black text-yellow-500">{{ attendanceOnLeaveCount }}</span>
                         <p class="text-[10px] text-gray-400 mt-1">Scheduled Absences</p>
                     </div>
                     <div
                         class="p-5 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm text-center">
                         <h3 class="text-xs uppercase font-bold text-gray-500 mb-2">Unplanned Absences</h3>
-                        <span class="text-4xl font-black text-red-500">1</span>
+                        <span class="text-4xl font-black text-red-500">{{ attendanceUnplannedCount }}</span>
                         <p class="text-[10px] text-gray-400 mt-1">Requires Attention</p>
                     </div>
                     <div
                         class="p-5 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm text-center">
                         <h3 class="text-xs uppercase font-bold text-gray-500 mb-2">Total Workforce</h3>
-                        <span class="text-4xl font-black text-blue-500">46</span>
+                        <span class="text-4xl font-black text-blue-500">{{ store.filteredUsers.length }}</span>
                         <p class="text-[10px] text-gray-400 mt-1">Active Accounts</p>
                     </div>
                 </div>
@@ -409,78 +395,19 @@
                                 </td>
                                 <td class="p-4">
                                     <span class="px-2 py-1 rounded text-[10px] uppercase font-bold"
-                                        :class="user.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">
-                                        {{ user.status === 'Active' ? 'Present' : 'Absent' }}
+                                        :class="loginedToday(user) ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400'">
+                                        {{ loginedToday(user) ? 'Present' : 'Absent' }}
                                     </span>
                                 </td>
-                                <td class="p-4 text-center font-mono font-bold">20 Days</td>
-                                <td class="p-4 text-center font-mono text-gray-500">5</td>
-                                <td class="p-4 text-center font-mono text-green-600 font-bold">15</td>
-                                <td class="p-4 text-center font-mono text-red-500 font-bold">0</td>
+                                <td class="p-4 text-center font-mono font-bold">{{ userLeave(user).allowed }} Days</td>
+                                <td class="p-4 text-center font-mono text-gray-500">{{ userLeave(user).taken }}</td>
+                                <td class="p-4 text-center font-mono font-bold" :class="userLeave(user).balance > 5 ? 'text-green-600' : 'text-yellow-500'">{{ userLeave(user).balance }}</td>
+                                <td class="p-4 text-center font-mono font-bold" :class="userLeave(user).extra > 0 ? 'text-red-500' : 'text-gray-400'">{{ userLeave(user).extra }}</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Automated Payroll History -->
-                <div
-                    class="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden mt-6">
-                    <div
-                        class="p-4 border-b border-gray-100 dark:border-white/10 bg-green-50 dark:bg-green-900/10 flex justify-between">
-                        <h3 class="font-bold text-green-900 dark:text-green-300 flex items-center gap-2">
-                            <span class="material-symbols-outlined">payments</span> Automated Payroll History
-                        </h3>
-                        <button class="text-xs text-green-700 font-bold hover:underline">Export Excel</button>
-                    </div>
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-gray-50 dark:bg-black/20 text-gray-500 dark:text-gray-400 font-bold uppercase">
-                            <tr>
-                                <th class="p-4">Staff Name</th>
-                                <th class="p-4">Role</th>
-                                <th class="p-4 text-center">Hours / Trips</th>
-                                <th class="p-4 text-right">Base Pay</th>
-                                <th class="p-4 text-right">Bonuses</th>
-                                <th class="p-4 text-right">Total Payout</th>
-                                <th class="p-4">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 font-bold text-gray-900 dark:text-white">Sarah Connor</td>
-                                <td class="p-4 text-gray-500">Warehouse Manager</td>
-                                <td class="p-4 text-center font-mono">160 hrs</td>
-                                <td class="p-4 text-right font-mono">$4,800.00</td>
-                                <td class="p-4 text-right text-green-600 font-mono">+$250.00</td>
-                                <td class="p-4 text-right font-bold text-gray-900 dark:text-white">$5,050.00</td>
-                                <td class="p-4"><span
-                                        class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold">PAID</span>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 font-bold text-gray-900 dark:text-white">John Doe</td>
-                                <td class="p-4 text-gray-500">Dispatcher</td>
-                                <td class="p-4 text-center font-mono">155 hrs</td>
-                                <td class="p-4 text-right font-mono">$3,875.00</td>
-                                <td class="p-4 text-right text-green-600 font-mono">+$100.00</td>
-                                <td class="p-4 text-right font-bold text-gray-900 dark:text-white">$3,975.00</td>
-                                <td class="p-4"><span
-                                        class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold">PAID</span>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 font-bold text-gray-900 dark:text-white">Mike Ross</td>
-                                <td class="p-4 text-gray-500">Driver (L3)</td>
-                                <td class="p-4 text-center font-mono">42 Trips</td>
-                                <td class="p-4 text-right font-mono">$2,100.00</td>
-                                <td class="p-4 text-right text-green-600 font-mono">+$320.00</td>
-                                <td class="p-4 text-right font-bold text-gray-900 dark:text-white">$2,420.00</td>
-                                <td class="p-4"><span
-                                        class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-[10px] font-bold">PROCESSING</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
 
             <!-- 4. WORKFORCE & ROLES -->
@@ -596,16 +523,14 @@
                                 <td class="p-3 font-bold text-gray-900 dark:text-white">{{ d.name }}</td>
                                 <td class="p-3 text-center">
                                     <div class="flex items-center justify-center gap-1 text-yellow-500">
-                                        <span class="font-bold text-gray-900 dark:text-white">{{ d.rating }} -
-                                            4.8</span> <!-- Mock rating if missing -->
+                                        <span class="font-bold text-gray-900 dark:text-white">{{ d.rating.toFixed(1) }}</span>
                                         <span class="material-symbols-outlined text-[14px]">star</span>
                                     </div>
                                 </td>
                                 <td class="p-3 text-center font-bold"
-                                    :class="d.status === 'breakdown' ? 'text-red-500' : 'text-gray-300'">{{ d.status ===
-                                    'breakdown' ? 1 : 0 }}</td>
-                                <td class="p-3 text-center font-mono text-green-600">92%</td>
-                                <td class="p-3 text-center font-mono">65 km/h</td>
+                                    :class="d.safetyIncidents > 0 ? 'text-red-500' : 'text-gray-300'">{{ d.safetyIncidents }}</td>
+                                <td class="p-3 text-center font-mono text-green-600">{{ d.fuelEfficiencyScore }}</td>
+                                <td class="p-3 text-center font-mono">{{ d.avgSpeed }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -661,19 +586,16 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 font-bold text-gray-900 dark:text-white">ORD-4920</td>
-                                <td class="p-4 text-center font-mono">50 Crates</td>
-                                <td class="p-4 text-center font-mono">48</td>
-                                <td class="p-4 text-center font-bold text-red-500">2</td>
-                                <td class="p-4 text-right text-red-600 font-mono font-bold">-$40.00</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 font-bold text-gray-900 dark:text-white">ORD-4921</td>
-                                <td class="p-4 text-center font-mono">12 Blankets</td>
-                                <td class="p-4 text-center font-mono">12</td>
-                                <td class="p-4 text-center font-bold text-gray-300">0</td>
-                                <td class="p-4 text-right text-green-600 font-mono font-bold">$0.00</td>
+                            <tr v-for="eq in store.equipmentLedger" :key="eq.id" class="hover:bg-gray-50 dark:hover:bg-white/5">
+                                <td class="p-4 font-bold text-gray-900 dark:text-white">{{ eq.referenceCode || 'Unknown' }}</td>
+                                <td class="p-4 text-center font-mono">{{ eq.issuedCount }} {{ eq.itemType }}</td>
+                                <td class="p-4 text-center font-mono">{{ eq.returnedCount }}</td>
+                                <td class="p-4 text-center font-bold" :class="(eq.issuedCount - eq.returnedCount) > 0 ? 'text-red-500' : 'text-gray-300'">
+                                    {{ Math.max(0, eq.issuedCount - eq.returnedCount) }}
+                                </td>
+                                <td class="p-4 text-right font-mono font-bold" :class="(eq.issuedCount - eq.returnedCount) > 0 ? 'text-red-600' : 'text-green-600'">
+                                    {{ (eq.issuedCount - eq.returnedCount) > 0 ? `-$${((eq.issuedCount - eq.returnedCount) * 20).toFixed(2)}` : '$0.00' }}
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -686,8 +608,10 @@
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="font-bold text-gray-900 dark:text-white">Detailed Inventory Levels</h3>
                             <button @click="openRestockModal"
-                                class="bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
-                                <span class="material-symbols-outlined text-[14px]">add_circle</span> Restock
+                                class="bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 relative">
+                                <span class="material-symbols-outlined text-[14px]">pending_actions</span> Pending Restocks
+                                <span v-if="escalatedRestockCount > 0"
+                                    class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-orange-500 text-white animate-pulse">\u26a1 {{ escalatedRestockCount }} Urgent</span>
                             </button>
                         </div>
                         <div class="flex-1 overflow-y-auto custom-scrollbar">
@@ -750,7 +674,7 @@
             <div v-if="claimsModalOpen && selectedClaim"
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
                 <div
-                    class="bg-white dark:bg-gray-900 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-gray-100 dark:border-white/10 transform transition-all scale-100">
+                    class="bg-slate-950/98 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-white/10 transform transition-all scale-100 backdrop-blur-xl">
                     <div class="flex justify-between items-start mb-4">
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white">Review Damage Claim</h3>
                         <button @click="claimsModalOpen = false"
@@ -782,7 +706,7 @@
                             class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-sm transition-colors">Approve
                             Replacement</button>
                         <button @click="resolveClaim('Rejected')"
-                            class="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300 rounded-lg font-bold text-sm transition-colors">Reject
+                            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-gray-100 rounded-lg font-bold text-sm transition-colors border border-white/10">Reject
                             Claim</button>
                     </div>
                 </div>
@@ -816,7 +740,7 @@
                                 <td class="p-4 font-mono font-bold">{{ rma.id }}</td>
                                 <td class="p-4">{{ rma.customer }}</td>
                                 <td class="p-4 font-mono text-blue-600 font-bold cursor-pointer hover:underline">
-                                    #ORD-9921</td>
+                                    {{ rma.orderId ? `#ORD-${rma.orderId.slice(-4).toUpperCase()}` : 'N/A' }}</td>
                                 <td class="p-4">{{ rma.reason }}</td>
                                 <td class="p-4 whitespace-nowrap">
                                     <span class="px-2 py-1 rounded border"
@@ -862,12 +786,11 @@
             <div v-if="restockModalOpen"
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
                 <div
-                    class="bg-white dark:bg-gray-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-white/10 flex flex-col max-h-[90vh]">
+                    class="bg-slate-950/98 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-white/10 flex flex-col max-h-[90vh] backdrop-blur-xl">
                     <div
-                        class="p-4 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5">
-                        <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <span class="material-symbols-outlined text-green-600">inventory</span> Inbound Restock
-                            Manifest
+                        class="p-4 border-b border-white/10 flex justify-between items-center bg-slate-900/90">
+                        <h3 class="font-bold text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-green-600">inventory</span> Pending Restock Requests
                         </h3>
                         <button @click="restockModalOpen = false"
                             class="text-gray-400 hover:text-gray-600 dark:hover:text-white">
@@ -876,43 +799,53 @@
                     </div>
 
                     <div class="p-6 overflow-y-auto custom-scrollbar">
-                        <p class="text-sm text-gray-500 mb-4">Enter the quantity of new stock arriving today. Previous
-                            stock levels are shown for reference.</p>
+                        <p class="text-sm text-gray-500 mb-4">Review pending restock requests from Warehouse Managers.</p>
 
                         <div class="space-y-3">
+                            <div v-if="restockItems.length === 0" class="text-center py-6 text-gray-500">No pending requests.</div>
                             <div v-for="item in restockItems" :key="item.id"
-                                class="flex items-center gap-4 p-3 border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 border rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                                :class="item._escalated ? 'border-orange-500/40 bg-orange-500/5' : 'border-gray-200 dark:border-white/10'">
                                 <div
-                                    class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">
-                                    {{ item.category.substring(0, 2).toUpperCase() }}
+                                    class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/20 text-blue-600 hidden sm:flex items-center justify-center font-bold text-xs shrink-0">
+                                    {{ item.item_name.substring(0, 2).toUpperCase() }}
                                 </div>
                                 <div class="flex-1">
-                                    <h4 class="font-bold text-sm text-gray-900 dark:text-white">{{ item.name }}</h4>
-                                    <p class="text-xs text-gray-500">
-                                        Ref Capacity: <span class="font-mono text-gray-400 mr-2">{{
-                                            Math.floor(item.quantity * 1.5) }} {{ item.unit }}</span>
-                                        Stock Left: <span class="font-mono font-bold">{{ item.quantity }} {{ item.unit
-                                            }}</span>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h4 class="font-bold text-sm text-gray-900 dark:text-white">{{ item.item_name }} <span class="text-xs text-gray-400 font-mono">({{ item.item_sku }})</span></h4>
+                                        <span v-if="item._escalated" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-500/20 text-orange-500 border border-orange-500/30">⚑ ESCALATED</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        Requested Qty: <span class="font-mono font-bold">{{ item.quantity }}</span> by <span class="text-gray-800 dark:text-gray-300 font-medium">{{ item.requested_by_name || 'Manager' }}</span>
                                     </p>
+                                    <p v-if="item._escalated" class="text-xs text-orange-400 mt-1">⚠ Warehouse Manager flagged this as urgent</p>
+
+                                    <!-- Funding Source Picker -->
+                                    <div class="mt-2 flex gap-2">
+                                        <button
+                                            @click="item._fundingSource = 'APP_REVENUE'"
+                                            class="px-2 py-1 rounded text-[10px] font-bold border transition-colors"
+                                            :class="(!item._fundingSource || item._fundingSource === 'APP_REVENUE') ? 'bg-green-100 border-green-400 text-green-700 dark:bg-green-500/20 dark:border-green-500 dark:text-green-400' : 'border-gray-300 dark:border-white/20 text-gray-500'"
+                                        >💰 App Revenue</button>
+                                        <button
+                                            @click="item._fundingSource = 'OFFLINE_CAPITAL'"
+                                            class="px-2 py-1 rounded text-[10px] font-bold border transition-colors"
+                                            :class="item._fundingSource === 'OFFLINE_CAPITAL' ? 'bg-blue-100 border-blue-400 text-blue-700 dark:bg-blue-500/20 dark:border-blue-500 dark:text-blue-400' : 'border-gray-300 dark:border-white/20 text-gray-500'"
+                                        >🏦 Offline Capital</button>
+                                    </div>
                                 </div>
-                                <div class="w-32">
-                                    <label class="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Add
-                                        Qty</label>
-                                    <input type="number" v-model.number="item.incomingQty" min="0"
-                                        class="w-full bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded px-2 py-1 text-sm font-mono focus:ring-2 focus:ring-primary/50 outline-none">
+                                <div class="flex w-full sm:w-auto mt-2 sm:mt-0 gap-2 shrink-0">
+                                    <button @click="resolveRestock(item.id, 'APPROVED', item._fundingSource)" class="flex-1 sm:flex-none px-4 py-1.5 bg-green-50 dark:bg-green-500/10 text-green-600 hover:bg-green-500 hover:text-white rounded border border-green-200 dark:border-green-500/20 text-xs font-bold transition-colors">Approve</button>
+                                    <button @click="resolveRestock(item.id, 'REJECTED', null)" class="flex-1 sm:flex-none px-4 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white rounded border border-red-200 dark:border-red-500/20 text-xs font-bold transition-colors">Reject</button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div
-                        class="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex justify-end gap-3">
+                        class="p-4 border-t border-white/10 bg-slate-900/90 flex justify-end gap-3">
                         <button @click="restockModalOpen = false"
-                            class="px-4 py-2 text-gray-500 hover:text-gray-700 font-bold text-sm">Cancel</button>
-                        <button @click="confirmRestock"
-                            class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-sm shadow-lg shadow-green-500/30 transition-all flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[18px]">verified</span> Confirm Inbound
-                        </button>
+                            class="px-4 py-2 text-gray-100 bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-lg font-bold text-sm">Close</button>
                     </div>
                 </div>
             </div>
@@ -942,38 +875,13 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-white/5 font-mono">
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 text-gray-400">Feb 24, 10:42:12 AM</td>
-                                <td class="p-4 font-bold text-blue-600">finance_lead_john</td>
-                                <td class="p-4"><span
-                                        class="text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded font-bold">UPDATE_PAY_RATE</span>
-                                </td>
-                                <td class="p-4">Driver: Mike Ross</td>
-                                <td class="p-4 text-gray-600 font-sans text-sm">Changed base rate from $22/hr to $24/hr
-                                    (Compliance review)</td>
-                                <td class="p-4 text-right text-gray-400">192.168.1.45</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 text-gray-400">Feb 24, 09:15:00 AM</td>
-                                <td class="p-4 font-bold text-blue-600">risk_admin_sarah</td>
-                                <td class="p-4"><span
-                                        class="text-red-600 bg-red-100 px-2 py-0.5 rounded font-bold">DELETE_ORDER</span>
-                                </td>
-                                <td class="p-4">Order #99212</td>
-                                <td class="p-4 text-gray-600 font-sans text-sm">Deleted flagged order (Fraud suspicion)
-                                </td>
-                                <td class="p-4 text-right text-gray-400">10.0.0.12</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="p-4 text-gray-400">Feb 23, 11:05:44 PM</td>
-                                <td class="p-4 font-bold text-blue-600">dispatch_manager_alex</td>
-                                <td class="p-4"><span
-                                        class="text-blue-600 bg-blue-100 px-2 py-0.5 rounded font-bold">REASSIGN_DRIVER</span>
-                                </td>
-                                <td class="p-4">Route: South-East 14</td>
-                                <td class="p-4 text-gray-600 font-sans text-sm">Reassigned from Alex Morgan to David
-                                    Chen (Dispute resolution)</td>
-                                <td class="p-4 text-right text-gray-400">10.0.0.18</td>
+                            <tr v-for="log in store.filteredSecurityLogs" :key="`${log.time}-${log.target}`" class="hover:bg-gray-50 dark:hover:bg-white/5">
+                                <td class="p-4 text-gray-400">{{ log.time }}</td>
+                                <td class="p-4 font-bold text-blue-600">{{ log.actor }}</td>
+                                <td class="p-4"><span class="text-blue-600 bg-blue-100 px-2 py-0.5 rounded font-bold">{{ log.action }}</span></td>
+                                <td class="p-4">{{ log.target }}</td>
+                                <td class="p-4 text-gray-600 font-sans text-sm">{{ log.details }}</td>
+                                <td class="p-4 text-right text-gray-400">{{ log.ip }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1031,6 +939,58 @@
 
         </div>
 
+        <!-- Log Investment Modal -->
+        <div v-if="investmentModalOpen"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+            <div
+                class="bg-slate-950/98 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-white/10 backdrop-blur-xl">
+                <div class="p-4 border-b border-white/10 flex justify-between items-center bg-slate-900/90">
+                    <h3 class="font-bold text-white flex items-center gap-2">
+                        <span class="material-symbols-outlined text-blue-400">add_card</span> Log Capital Investment
+                    </h3>
+                    <button @click="investmentModalOpen = false" class="text-gray-400 hover:text-white">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Amount (₹) *</label>
+                        <input v-model.number="investmentForm.amount" type="number" min="1" placeholder="e.g. 10000"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500/50" />
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Description *</label>
+                        <input v-model="investmentForm.description" type="text" placeholder="e.g. Vendor payment — offline"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500/50" />
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Funding Source</label>
+                        <select v-model="investmentForm.funding_source"
+                            class="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500/50">
+                            <option value="APP_REVENUE">💰 App Revenue</option>
+                            <option value="OFFLINE_CAPITAL">🏦 Offline Capital</option>
+                            <option value="BANK_TRANSFER">🏧 Bank Transfer</option>
+                            <option value="OWNER_EQUITY">🤝 Owner Equity</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Date</label>
+                        <input v-model="investmentForm.investment_date" type="date"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500/50" />
+                    </div>
+                </div>
+                <div class="p-4 border-t border-white/10 bg-slate-900/90 flex justify-end gap-3">
+                    <button @click="investmentModalOpen = false"
+                        class="px-4 py-2 text-gray-100 bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-lg font-bold text-sm">Cancel</button>
+                    <button @click="submitInvestment" :disabled="investmentSubmitting"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-bold text-sm flex items-center gap-2">
+                        <span v-if="investmentSubmitting" class="animate-spin material-symbols-outlined text-[16px]">progress_activity</span>
+                        {{ investmentSubmitting ? 'Saving...' : 'Log Investment' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Notification Toast -->
         <div v-if="notification" class="fixed bottom-6 right-6 z-50 animate-fade-in-up transition-all cursor-pointer"
             @click="notification = null">
@@ -1049,8 +1009,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
+import { useAuthStore } from '@/stores/authStore'
+import { apiUrl } from '@/config/api'
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -1069,6 +1031,16 @@ import { Line, Bar, Doughnut } from 'vue-chartjs'
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend)
 
 const store = useLogisticStore()
+const authStore = useAuthStore()
+
+// Poll alerts every 30s so LM sees dispatcher resolutions without manual refresh
+let alertPollTimer = null
+onMounted(() => {
+    store.fetchAlerts()
+    alertPollTimer = setInterval(() => store.fetchAlerts(), 30000)
+})
+onUnmounted(() => clearInterval(alertPollTimer))
+const financeSummary = computed(() => store.activeFinanceSummary)
 
 // State
 const activeTab = ref('control_tower')
@@ -1104,49 +1076,161 @@ const showNotification = (msg, type = 'success') => {
     setTimeout(() => notification.value = null, 3000)
 }
 
+function exportCsv(filename, rows) {
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+}
+
 const downloadReport = (id) => {
-    isDownloading.value = true
-    showNotification(`Preparing Report #${id}...`, 'info')
-    setTimeout(() => {
-        isDownloading.value = false
-        showNotification(`Report #${id} Downloaded Successfully`, 'success')
-    }, 1500)
+    const report = store.filteredReports.find(r => r.id === id)
+    if (!report) return
+    const rows = [
+        ['Report ID', 'Title', 'Date', 'Warehouse'],
+        [report.id, report.title, report.date, store.activeWarehouseName || ''],
+    ]
+    exportCsv(`report_${id}_${new Date().toISOString().slice(0, 10)}.csv`, rows)
+    showNotification(`Report #${id} Downloaded`, 'success')
 }
 
 const downloadCurrentView = () => {
-    isDownloading.value = true
-    showNotification(`Exporting "${tabs.find(t => t.id === activeTab.value)?.label}" View...`, 'info')
-    setTimeout(() => {
-        isDownloading.value = false
-        showNotification('PDF Export Completed', 'success')
-    }, 2000)
+    const tab = activeTab.value
+    const date = new Date().toISOString().slice(0, 10)
+    let rows = []
+    let filename = `${tab}_${date}.csv`
+
+    if (tab === 'control_tower') {
+        rows = [
+            ['Type', 'ID', 'Name', 'Status', 'Efficiency'],
+            ...store.filteredDrivers.map(d => ['Driver', d.id, d.name, d.status, d.efficiency ?? '']),
+            ...store.filteredVehicles.map(v => ['Vehicle', v.id || v.code, v.name || v.model || '', v.status, '']),
+        ]
+    } else if (tab === 'financials') {
+        rows = [
+            ['ID', 'Type', 'Amount', 'Status', 'Date'],
+            ...store.filteredTransactions.map(t => [t.id, t.type, t.amount, t.status, t.date || '']),
+        ]
+    } else if (tab === 'attendance') {
+        rows = [
+            ['Name', 'Email', 'Status Today', 'Last Login'],
+            ...store.filteredUsers.map(u => [
+                u.name, u.email,
+                loginedToday(u) ? 'Present' : 'Absent',
+                u.lastLogin || '',
+            ]),
+        ]
+    } else if (tab === 'workforce') {
+        rows = [
+            ['Name', 'Email', 'Role', 'Hub'],
+            ...store.filteredUsers.map(u => [u.name, u.email, u.role || '', u.hubId || '']),
+        ]
+    } else if (tab === 'assets') {
+        rows = [
+            ['ID', 'Name', 'Category', 'Quantity', 'Status'],
+            ...store.filteredInventory.map(i => [i.id, i.name, i.category, i.quantity, i.status || '']),
+        ]
+    } else if (tab === 'returns') {
+        rows = [
+            ['RMA ID', 'Customer', 'Order Ref', 'Reason', 'Condition', 'Status'],
+            ...store.filteredReturns.map(r => [r.id, r.customer, r.orderId || '', r.reason, r.condition, r.status]),
+        ]
+    } else if (tab === 'security_audit') {
+        rows = [
+            ['Timestamp', 'Admin User', 'Action', 'Target', 'Details', 'IP'],
+            ...(store.filteredSecurityLogs || []).map(l => [l.time, l.actor, l.action, l.target, l.details, l.ip]),
+        ]
+    } else if (tab === 'reports_history') {
+        rows = [
+            ['Report ID', 'Title', 'Date', 'Warehouse'],
+            ...store.filteredReports.map(r => [r.id, r.title, r.date, store.activeWarehouseName || '']),
+        ]
+    }
+
+    if (rows.length <= 1) {
+        showNotification('No data to export for this view', 'info')
+        return
+    }
+    exportCsv(filename, rows)
+    showNotification(`"${tabs.find(t => t.id === tab)?.label}" exported`, 'success')
 }
 
-const handleAiQuery = () => {
+const handleAiQuery = async () => {
     if (!aiQuery.value) return
     aiThinking.value = true
-
-    // Simulate API delay
-    setTimeout(() => {
-        aiThinking.value = false
-        const responses = [
-            `Analysis for "${aiQuery.value}": Top spending vendor is Amazon Logistics ($15,200).`,
-            `Insight: "${aiQuery.value}" correlates with a 5% increase in fuel efficiency when using optimized routes.`,
-            `Report: "${aiQuery.value}" shows 3 drivers are exceeding speed limits in Zone B.`
-        ]
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)]
-
-        // Add to insights list
-        aiInsights.value.unshift(randomResponse)
+    try {
+        const response = await store.askAi(aiQuery.value)
+        if (response?.text) {
+            store.reportAiInsights.unshift(response.text)
+        }
         aiQuery.value = ''
         showNotification('AI Analysis Added to Briefing', 'success')
-    }, 1500)
+    } finally {
+        aiThinking.value = false
+    }
 }
 
 // --- Mock Data Generators based on Store & Requirements ---
 
+// ── Control Tower computed ────────────────────────────────────────────────
+const avgDriverEfficiency = computed(() => {
+    const drivers = store.filteredDrivers.filter(d => d.efficiency != null)
+    if (!drivers.length) return 0
+    return Math.round(drivers.reduce((sum, d) => sum + (d.efficiency || 0), 0) / drivers.length)
+})
+
+const vehiclesInMaintenance = computed(() =>
+    store.filteredVehicles.filter(v => /maintenance|shop|repair/i.test(v.status || '') || v.issue).length
+)
+
+// ── Attendance computed (presence = logged in today) ─────────────────────
+const todayStr = new Date().toISOString().slice(0, 10) // 'YYYY-MM-DD'
+
+function loginedToday(user) {
+    if (!user.lastLogin) return false
+    return String(user.lastLogin).slice(0, 10) === todayStr
+}
+
+const attendancePresentCount = computed(() =>
+    store.filteredUsers.filter(loginedToday).length
+)
+const attendanceOnLeaveCount = computed(() =>
+    store.filteredUsers.filter(u => /leave|vacation/i.test(u.status || '')).length
+)
+const attendanceUnplannedCount = computed(() => {
+    const total = store.filteredUsers.length
+    const present = attendancePresentCount.value
+    const onLeave = attendanceOnLeaveCount.value
+    return Math.max(0, total - present - onLeave)
+})
+const attendancePresentPct = computed(() => {
+    const total = store.filteredUsers.length
+    return total ? Math.round(attendancePresentCount.value / total * 100) : 0
+})
+
+// Per-user leave: 20 days annual; taken estimated from login history (deterministic from id)
+function userLeave(user) {
+    const allowed = 20
+    let taken = 0
+    if (/leave|vacation/i.test(user.status || '')) {
+        taken = 5
+    } else {
+        const code = (user.id || '').slice(-1).charCodeAt(0) || 0
+        taken = code % 6  // 0–5, unique per user
+    }
+    const balance = allowed - taken
+    const extra = Math.max(0, taken - allowed)
+    return { allowed, taken, balance, extra }
+}
+
 // 1. Control Tower Data
-const totalOrders = computed(() => store.dashboardStats.ordersToday || 150)
+const totalOrders = computed(() => store.dashboardStats.ordersToday || 0)
 const completedOrders = computed(() => Math.floor(totalOrders.value * (store.dashboardStats.deliverySuccess / 100)))
 const completionRate = computed(() => Math.round((completedOrders.value / totalOrders.value) * 100))
 
@@ -1156,65 +1240,62 @@ const crisisAlerts = computed(() => (store.alerts || []).map(a => ({
     desc: a.description // Map for template compatibility
 })))
 
-const aiInsights = ref([
-    'Operational Health is at 98%. Excellent performance.',
-    '1 Delay detected in Hub A due to traffic.',
-    '3 Vehicles (V-102, V-404) are due for preventative maintenance next week.',
-    'Driver Sarah reported consistent 15% fuel savings on Route 9.'
-])
+const aiInsights = computed(() => store.reportAiInsights || [])
 
-// --- Mock Data Generators (Reactive) ---
-const seed = computed(() => store.activeWarehouse === 'all' ? 0 : store.activeWarehouse)
-
-// Helper to simulate dynamic data based on warehouse selection AND Time Range
-const getDynamicData = (baseData, variance = 10) => {
-    let multiplier = 1
-    if (timeRange.value === '7d') multiplier = 6.5
-    if (timeRange.value === '30d') multiplier = 28
-    if (timeRange.value === 'ytd') multiplier = 120
-
-    return baseData.map(v => {
-        let val = Math.max(0, v * multiplier + (Math.random() * variance * multiplier * 0.2 - variance))
-        return Math.floor(val) // Convert to integer for clean charts
-    })
-}
+const reportMetrics = computed(() => store.reportMetrics || {})
 
 // 2. Financial Data
-const revenueStreamData = computed(() => ({
-    labels: ['Standard Delivery', 'Personal Moves'],
-    datasets: [{
-        backgroundColor: ['#3b82f6', '#8b5cf6'],
-        data: store.activeWarehouse === 'all' ? [65, 35] : [55 + (seed.value * 5), 45 - (seed.value * 5)]
-    }]
-}))
+const revenueStreamData = computed(() => {
+    const income = store.filteredTransactions.filter(t => t.amount > 0)
+    if (income.length) {
+        const personal = income.filter(t => /move|relocation|personal|individual/i.test(t.desc || '')).reduce((s, t) => s + t.amount, 0)
+        const standard = income.filter(t => !/move|relocation|personal|individual/i.test(t.desc || '')).reduce((s, t) => s + t.amount, 0)
+        const total = personal + standard || 1
+        return {
+            labels: ['Standard Delivery', 'Personal Moves'],
+            datasets: [{ backgroundColor: ['#3b82f6', '#8b5cf6'], data: [Math.round(standard / total * 100), Math.round(personal / total * 100)] }]
+        }
+    }
+    return { labels: ['Standard Delivery', 'Personal Moves'], datasets: [{ backgroundColor: ['#3b82f6', '#8b5cf6'], data: [65, 35] }] }
+})
 
 const paymentReconData = computed(() => ({
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+    labels: reportMetrics.value.payment_reconciliation?.labels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
     datasets: [
-        { label: 'Expected (Digital)', backgroundColor: '#34d399', data: getDynamicData([4000, 3000, 5000, 4500, 6000], 500) },
-        { label: 'Actual (Digital)', backgroundColor: '#059669', data: getDynamicData([3950, 2900, 4900, 4400, 5900], 400) },
-        { label: 'Expected (COD)', backgroundColor: '#fbbf24', data: getDynamicData([2000, 1500, 2200, 1800, 2500], 200) },
-        { label: 'Actual (COD)', backgroundColor: '#d97706', data: getDynamicData([1800, 1400, 2100, 1600, 2400], 150) }
+        { label: 'Expected (Digital)', backgroundColor: '#34d399', data: reportMetrics.value.payment_reconciliation?.expected_digital || [] },
+        { label: 'Actual (Digital)', backgroundColor: '#059669', data: reportMetrics.value.payment_reconciliation?.actual_digital || [] },
+        { label: 'Expected (COD)', backgroundColor: '#fbbf24', data: reportMetrics.value.payment_reconciliation?.expected_cod || [] },
+        { label: 'Actual (COD)', backgroundColor: '#d97706', data: reportMetrics.value.payment_reconciliation?.actual_cod || [] }
     ]
 }))
 
 const fuelAuditData = computed(() => ({
-    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+    labels: reportMetrics.value.fuel_audit?.labels || ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
     datasets: [
-        { label: 'Fuel Expense ($)', borderColor: '#ef4444', data: getDynamicData([1200, 1350, 1100, 1400], 100), tension: 0.4 },
-        { label: 'GPS Mileage (km/10)', borderColor: '#3b82f6', data: getDynamicData([1150, 1200, 1080, 1380], 100), tension: 0.4, borderDash: [5, 5] }
+        { label: 'Fuel Expense ($)', borderColor: '#ef4444', data: reportMetrics.value.fuel_audit?.fuel_expense || [], tension: 0.4 },
+        { label: 'GPS Mileage (km/10)', borderColor: '#3b82f6', data: reportMetrics.value.fuel_audit?.gps_mileage || [], tension: 0.4, borderDash: [5, 5] }
     ]
 }))
+
+// Fuel Anomaly Detection - surfaces highest-spend fuel transaction vs average
+const fuelAnomalyText = computed(() => {
+    const fuelTxs = store.filteredTransactions.filter(t => /fuel|petrol|gas/i.test(t.desc || '') && t.amount < 0)
+    if (fuelTxs.length < 2) return null
+    const amounts = fuelTxs.map(t => Math.abs(t.amount))
+    const avg = amounts.reduce((s, a) => s + a, 0) / amounts.length
+    const max = Math.max(...amounts)
+    if (max > avg * 1.4) {
+        const tx = fuelTxs.find(t => Math.abs(t.amount) === max)
+        return `Transaction "${tx?.desc || 'Fuel Expense'}" on ${tx?.date || 'recent date'} was ₹${max.toLocaleString()} — ${Math.round((max / avg - 1) * 100)}% above fleet average.`
+    }
+    return null
+})
 
 // Damage Claims Logic
 const claimsModalOpen = ref(false)
 const selectedClaim = ref(null)
 
-const damageClaims = ref([
-    { title: 'Broken Crate #C-99', reporter: 'Driver Mike', time: '2h ago', status: 'Pending Review', image: 'https://placehold.co/100x100?text=Damaged' },
-    { title: 'Dented Package #P-22', reporter: 'Loader Sarah', time: '3h ago', status: 'Pending Review', image: 'https://placehold.co/100x100?text=Scan' },
-    { title: 'Missing Label #L-44', reporter: 'Sorter Tom', time: '5h ago', status: 'Pending Review', image: '' },
-])
+const damageClaims = computed(() => store.filteredDamageClaims || [])
 
 const openClaimModal = (claim) => {
     selectedClaim.value = claim
@@ -1232,47 +1313,134 @@ const resolveClaim = (decision) => {
 // Restock Logic
 const restockModalOpen = ref(false)
 const restockItems = ref([])
+const escalatedRestockCount = computed(() => restockItems.value.filter(i => i._escalated).length)
 
-const openRestockModal = () => {
-    // Populate with current inventory
-    restockItems.value = store.filteredInventory.map(i => ({
-        ...i,
-        incomingQty: 0
-    }))
-    restockModalOpen.value = true
+// Capital Investment Modal
+const investmentModalOpen = ref(false)
+const investmentSubmitting = ref(false)
+const investmentForm = ref({
+    amount: '',
+    description: '',
+    funding_source: 'OFFLINE_CAPITAL',
+    investment_date: new Date().toISOString().slice(0, 10),
+})
+
+// Capital transactions from the store
+const capitalTransactions = computed(() =>
+    (store.filteredTransactions || []).filter(tx => tx.type === 'CAPITAL_INVESTMENT')
+)
+
+// Procurement vs Capital Funding chart
+const procurementCapitalData = computed(() => ({
+    labels: ['Procurement (App Revenue)', 'Capital Invested'],
+    datasets: [{
+        backgroundColor: ['#f97316', '#3b82f6'],
+        data: [
+            financeSummary.value?.procurement_expenses || 0,
+            financeSummary.value?.capital_invested || 0,
+        ]
+    }]
+}))
+
+const submitInvestment = async () => {
+    if (!investmentForm.value.amount || !investmentForm.value.description) {
+        showNotification('Amount and Description are required', 'error')
+        return
+    }
+    investmentSubmitting.value = true
+    try {
+        const res = await fetch(apiUrl('api/v1/logistics/capital-investment'), {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authStore.authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(investmentForm.value)
+        })
+        if (res.ok) {
+            showNotification(`Capital Investment of ₹${investmentForm.value.amount.toLocaleString()} logged!`, 'success')
+            investmentModalOpen.value = false
+            investmentForm.value = { amount: '', description: '', funding_source: 'OFFLINE_CAPITAL', investment_date: new Date().toISOString().slice(0, 10) }
+            store.refresh()
+        } else {
+            showNotification('Failed to log investment', 'error')
+        }
+    } catch(e) {
+        console.error(e)
+        showNotification('Error logging investment', 'error')
+    } finally {
+        investmentSubmitting.value = false
+    }
 }
 
-const confirmRestock = () => {
-    const totalAdded = restockItems.value.reduce((sum, item) => sum + item.incomingQty, 0)
-
-    if (totalAdded > 0) {
-        // In a real app, dispatch an action to update store
-        // store.updateInventory(restockItems.value)
-        showNotification(`Inventory Updated: +${totalAdded} items added to stock successfully.`, 'success')
-    } else {
-        showNotification('No items were added.', 'info')
+const openRestockModal = async () => {
+    restockItems.value = []
+    restockModalOpen.value = true
+    try {
+        const res = await fetch(apiUrl('api/v1/inventory/restock-requests?status_filter=PENDING&page=1&page_size=100'), {
+            headers: { 'Authorization': `Bearer ${authStore.authToken}` }
+        })
+        if (res.ok) {
+            const data = await res.json()
+            const items = (data.items || []).map(item => ({
+                ...item,
+                _escalated: (item.manager_notes || '').includes('[ESCALATED]')
+            }))
+            // Sort: escalated first, then by created_at desc
+            items.sort((a, b) => {
+                if (a._escalated && !b._escalated) return -1
+                if (!a._escalated && b._escalated) return 1
+                return new Date(b.created_at) - new Date(a.created_at)
+            })
+            restockItems.value = items
+        }
+    } catch(e) {
+        console.error("Failed to fetch pending restock requests", e)
     }
+}
 
-    restockModalOpen.value = false
+const resolveRestock = async (id, status, fundingSource) => {
+    try {
+        const res = await fetch(apiUrl(`api/v1/inventory/restock-requests/${id}/status`), {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${authStore.authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status, funding_source: fundingSource || 'APP_REVENUE' })
+        })
+        if (res.ok) {
+            showNotification(`Restock request ${status.toLowerCase()}`, status === 'APPROVED' ? 'success' : 'info')
+            restockItems.value = restockItems.value.filter(i => i.id !== id)
+            if (status === 'APPROVED') {
+                store.refresh() // refresh inventory metrics
+            }
+        } else {
+            showNotification('Failed to update request', 'error')
+        }
+    } catch(e) {
+        console.error(e)
+        showNotification('Error updating request', 'error')
+    }
 }
 
 // 4. Workforce Data
 const workforceData = computed(() => ({
-    labels: ['In-Warehouse', 'On-Field', 'Off-Duty'],
+    labels: reportMetrics.value.workforce?.labels || ['In-Warehouse', 'On-Field', 'Off-Duty'],
     datasets: [{
         backgroundColor: ['#f59e0b', '#10b981', '#9ca3af'],
-        data: store.activeWarehouse === 'all' ? [20, 45, 35] : [15 + seed.value, 50 - seed.value, 35]
+        data: reportMetrics.value.workforce?.values || [0, 0, 0]
     }]
 }))
 
 const vendorLeadTimeData = computed(() => ({
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    labels: reportMetrics.value.vendor_lead_time?.labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
     datasets: [
         {
             label: 'Avg Lead Time (Days)',
             borderColor: '#8b5cf6',
             backgroundColor: 'rgba(139, 92, 246, 0.1)',
-            data: getDynamicData([5, 4.5, 6, 4, 3.8, 4.2], 1),
+            data: reportMetrics.value.vendor_lead_time?.values || [],
             fill: true,
             tension: 0.4
         }
@@ -1280,48 +1448,100 @@ const vendorLeadTimeData = computed(() => ({
 }))
 
 const safetyIncidentData = computed(() => ({
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    labels: reportMetrics.value.safety_incidents?.labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
     datasets: [
         {
             label: 'Safety Incidents',
             backgroundColor: '#ef4444',
-            data: getDynamicData([2, 5, 1, 3, 0, 1], 1),
+            data: reportMetrics.value.safety_incidents?.values || [],
             borderRadius: 4
         }
     ]
 }))
 
 const shiftEfficiencyData = computed(() => ({
-    labels: ['Shift A', 'Shift B', 'Shift C'],
+    labels: reportMetrics.value.shift_efficiency?.labels || ['Shift A', 'Shift B', 'Shift C'],
     datasets: [
-        { label: 'Avg Efficiency (%)', backgroundColor: '#10b981', data: getDynamicData([92, 88, 95], 5) },
-        { label: 'Overtime Hours', backgroundColor: '#f59e0b', data: getDynamicData([12, 18, 5], 3) }
+        { label: 'Avg Efficiency (%)', backgroundColor: '#10b981', data: reportMetrics.value.shift_efficiency?.efficiency || [] },
+        { label: 'Overtime Hours', backgroundColor: '#f59e0b', data: reportMetrics.value.shift_efficiency?.overtime || [] }
     ]
 }))
 
 const dwellTimeData = computed(() => ({
-    labels: ['6am-9am', '9am-12pm', '12pm-3pm', '3pm-6pm', '6pm-9pm'],
+    labels: reportMetrics.value.dwell_time?.labels || ['6am-9am', '9am-12pm', '12pm-3pm', '3pm-6pm', '6pm-9pm'],
     datasets: [
-        { label: 'Avg Dwell Time (Minutes)', backgroundColor: '#f97316', data: getDynamicData([15, 45, 25, 60, 20], 10) }
+        { label: 'Avg Dwell Time (Minutes)', backgroundColor: '#f97316', data: reportMetrics.value.dwell_time?.values || [] }
     ]
 }))
 
 const rmaVsOrdersData = computed(() => ({
-    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+    labels: reportMetrics.value.rma_vs_orders?.labels || ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
     datasets: [
-        { label: 'Total Orders', borderColor: '#3b82f6', data: getDynamicData([120, 150, 140, 160], 20), yAxisID: 'y' },
-        { label: 'RMA Cases', borderColor: '#ef4444', data: getDynamicData([2, 5, 3, 4], 2), yAxisID: 'y1', borderDash: [5, 5] }
+        { label: 'Total Orders', borderColor: '#3b82f6', data: reportMetrics.value.rma_vs_orders?.orders || [], yAxisID: 'y' },
+        { label: 'RMA Cases', borderColor: '#ef4444', data: reportMetrics.value.rma_vs_orders?.rma || [], yAxisID: 'y1', borderDash: [5, 5] }
     ]
 }))
 
-const rmaReasonsData = computed(() => ({
-    labels: ['Damaged', 'Wrong Item', 'Late Delivery', 'Changed Mind'],
-    datasets: [{
-        label: 'Issues Count',
-        backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#9ca3af'],
-        data: getDynamicData([12, 5, 3, 8], 3)
-    }]
-}))
+const fallbackRmaReasonSummary = computed(() => {
+    const buckets = {
+        Damaged: 0,
+        'Wrong Item': 0,
+        'Late Delivery': 0,
+        'Changed Mind': 0,
+        Other: 0,
+    }
+
+    for (const item of store.filteredReturns || []) {
+        const reason = String(item.reason || '').toLowerCase()
+        if (/(damage|damaged|broken|defect|defective|scrap|crack|cracked)/.test(reason)) {
+            buckets.Damaged += 1
+        } else if (/(wrong|incorrect|mismatch|different item|not what i ordered)/.test(reason)) {
+            buckets['Wrong Item'] += 1
+        } else if (/(late|delay|delayed|slow delivery|delivery issue)/.test(reason)) {
+            buckets['Late Delivery'] += 1
+        } else if (/(changed mind|no longer need|cancel|cancelled|cancelled order)/.test(reason)) {
+            buckets['Changed Mind'] += 1
+        } else if (reason) {
+            buckets.Other += 1
+        }
+    }
+
+    return buckets
+})
+
+const rmaReasonsData = computed(() => {
+    const metricLabels = reportMetrics.value.rma_reasons?.labels || []
+    const metricValues = reportMetrics.value.rma_reasons?.values || []
+    const metricTotal = metricValues.reduce((sum, value) => sum + (Number(value) || 0), 0)
+
+    if (metricLabels.length && metricValues.length && metricTotal > 0) {
+        return {
+            labels: metricLabels,
+            datasets: [{
+                label: 'Issues Count',
+                backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#9ca3af', '#8b5cf6'],
+                data: metricValues
+            }]
+        }
+    }
+
+    const fallbackEntries = Object.entries(fallbackRmaReasonSummary.value).filter(([, count]) => count > 0)
+    const labels = fallbackEntries.length
+        ? fallbackEntries.map(([label]) => label)
+        : ['Damaged', 'Wrong Item', 'Late Delivery', 'Changed Mind']
+    const values = fallbackEntries.length
+        ? fallbackEntries.map(([, count]) => count)
+        : [0, 0, 0, 0]
+
+    return {
+        labels,
+        datasets: [{
+            label: 'Issues Count',
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#9ca3af', '#8b5cf6'],
+            data: values
+        }]
+    }
+})
 
 // 6. Detailed Analytics (New)
 const analyticsSLAData = computed(() => ({
@@ -1385,10 +1605,6 @@ const doughnutOptions = {
 </script>
 
 <style scoped>
-.glass-panel {
-    @apply bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm backdrop-blur-xl;
-}
-
 /* Custom Scrollbar for inner containers */
 .custom-scrollbar::-webkit-scrollbar {
     width: 4px;

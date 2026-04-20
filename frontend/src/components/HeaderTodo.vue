@@ -81,9 +81,9 @@
                         class="text-xs font-semibold px-3 py-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
                         Cancel
                     </button>
-                    <button @click="saveTask" :disabled="!draftTask.text"
+                    <button @click="saveTask" :disabled="!draftTask.text || isSaving"
                         class="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold py-1.5 px-4 rounded-lg transition-colors shadow-sm">
-                        {{ isAddingTask ? 'Save Task' : 'Update Task' }}
+                        {{ isSaving ? 'Saving...' : (isAddingTask ? 'Save Task' : 'Update Task') }}
                     </button>
                 </div>
             </div>
@@ -195,6 +195,8 @@ const logisticStore = useLogisticStore()
 const { tasks } = storeToRefs(logisticStore)
 
 const isOpen = ref(false)
+const isSaving = ref(false)
+const tasksLoaded = ref(false)
 const popoverRef = ref(null)
 
 // Form State
@@ -246,10 +248,13 @@ const sortedTasks = computed(() => {
 })
 
 // --- Methods ---
-const togglePopover = () => {
+const togglePopover = async () => {
     isOpen.value = !isOpen.value
     if (!isOpen.value) {
         cancelEdit()
+    } else if (!tasksLoaded.value) {
+        // Load tasks from backend on first open
+        logisticStore.fetchTasks().then(() => { tasksLoaded.value = true }).catch(() => { tasksLoaded.value = true })
     }
 }
 
@@ -302,87 +307,85 @@ const cancelEdit = () => {
     draftTask.value = { ...defaultDraft }
 }
 
-const saveTask = () => {
-    if (!draftTask.value.text) return
+const saveTask = async () => {
+    if (!draftTask.value.text || isSaving.value) return
 
     let targetTimeMs = null
     if (draftTask.value.dateString && draftTask.value.timeString) {
         const [year, month, day] = draftTask.value.dateString.split('-')
         const [hours, minutes] = draftTask.value.timeString.split(':')
-
         const t = new Date()
         t.setFullYear(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10))
         t.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0)
-
         targetTimeMs = t.getTime()
     }
 
-    if (isAddingTask.value) {
-        // Add new
-        tasks.value.push({
-            id: Date.now(),
-            text: draftTask.value.text,
-            status: draftTask.value.status,
-            targetTime: targetTimeMs,
-            repeat: draftTask.value.repeat,
-            createdAt: Date.now(),
-            lastAlertTime: null,
-            silenced: false,
-            remaining: ''
-        })
-    } else if (editingTaskId.value !== null) {
-        // Update existing
-        const task = tasks.value.find(t => t.id === editingTaskId.value)
-        if (task) {
-            task.text = draftTask.value.text
-            task.status = draftTask.value.status
-            task.targetTime = targetTimeMs
-            task.repeat = draftTask.value.repeat
-            task.lastAlertTime = null // Reset alerts so it triggers again if modified
-            task.silenced = false // Unsilence if explicitly edited
+    isSaving.value = true
+    try {
+        if (isAddingTask.value) {
+            await logisticStore.createTask({
+                text: draftTask.value.text,
+                status: draftTask.value.status,
+                targetTime: targetTimeMs,
+                repeat: draftTask.value.repeat,
+            })
+        } else if (editingTaskId.value !== null) {
+            const task = tasks.value.find(t => t.id === editingTaskId.value)
+            if (task) {
+                // Optimistic update
+                task.text = draftTask.value.text
+                task.status = draftTask.value.status
+                task.targetTime = targetTimeMs
+                task.repeat = draftTask.value.repeat
+                task.lastAlertTime = null
+                task.silenced = false
+                await logisticStore.patchTask(editingTaskId.value, {
+                    text: draftTask.value.text,
+                    status: draftTask.value.status,
+                    targetTime: targetTimeMs,
+                    repeat: draftTask.value.repeat,
+                    lastAlertTime: null,
+                }).catch(() => {})
+            }
         }
-    }
-
-    cancelEdit()
-}
-
-const toggleTaskStatus = (task) => {
-    if (task.status === 'Done') {
-        task.status = 'To Do'
-        // If changed back from done, re-arm alerts
-        task.lastAlertTime = null
-    } else {
-        task.status = 'Done'
-        task.lastAlertTime = null // Stop alerts
+        cancelEdit()
+    } finally {
+        isSaving.value = false
     }
 }
 
-const onInlineStatusChange = (task) => {
-    if (task.status === 'Done') {
-        task.lastAlertTime = null // Stop alerts
-    } else {
-        // Smart update: if status changes to anything else, and it's overdue, it will re-trigger the reminder on next tick
-        task.lastAlertTime = null
-    }
+const toggleTaskStatus = async (task) => {
+    const newStatus = task.status === 'Done' ? 'To Do' : 'Done'
+    task.status = newStatus
+    task.lastAlertTime = null
+    await logisticStore.patchTask(task.id, { status: newStatus, last_alert_time: null }).catch(() => {})
 }
 
-const deleteTask = (id) => {
+const onInlineStatusChange = async (task) => {
+    task.lastAlertTime = null
+    await logisticStore.patchTask(task.id, { status: task.status }).catch(() => {})
+}
+
+const deleteTask = async (id) => {
     tasks.value = tasks.value.filter(t => t.id !== id)
+    await logisticStore.deleteTask(id).catch(() => {})
 }
 
-const snoozeTask = (task) => {
+const snoozeTask = async (task) => {
     if (!task.targetTime) return
-    task.targetTime += 3600000 // Add 1 hour
+    task.targetTime += 3600000
     task.lastAlertTime = null
     task.silenced = false
+    await logisticStore.patchTask(task.id, { targetTime: task.targetTime, lastAlertTime: null }).catch(() => {})
 }
 
-const silenceTask = (task) => {
+const silenceTask = async (task) => {
     task.silenced = !task.silenced
+    await logisticStore.patchTask(task.id, { silenced: task.silenced }).catch(() => {})
 }
 
-const clearDoneTasks = () => {
-    tasks.value = tasks.value.filter(t => t.status !== 'Done')
+const clearDoneTasks = async () => {
+    await logisticStore.clearDoneTasks().catch(() => {})
 }
 
 // --- Display Helpers ---

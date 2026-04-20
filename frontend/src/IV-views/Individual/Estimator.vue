@@ -106,8 +106,15 @@
             <div class="lg:col-span-7">
                 <div class="glass-panel p-6 rounded-2xl h-full flex flex-col relative overflow-hidden"
                     :class="showResults ? 'border-purple-500/30' : ''">
+                    <!-- Error state -->
+                    <div v-if="errorMsg"
+                        class="mb-4 p-3 bg-red-50 dark:bg-red-500/10 border border-red-300 dark:border-red-500/30 rounded-xl flex items-start gap-3">
+                        <span class="material-symbols-outlined text-red-500 text-lg shrink-0">error</span>
+                        <p class="text-sm text-red-700 dark:text-red-400 font-medium">{{ errorMsg }}</p>
+                    </div>
+
                     <!-- Placeholder State -->
-                    <div v-if="!showResults"
+                    <div v-if="!showResults && !errorMsg"
                         class="flex-1 flex flex-col items-center justify-center text-center opacity-50 py-12">
                         <div class="relative">
                             <span
@@ -128,14 +135,14 @@
                                     Estimation Complete
                                 </h3>
                                 <p class="text-xs font-bold text-gray-500 mt-1">processed in {{ processTime }}ms •
-                                    Confidence: <span class="text-green-500">92.4%</span></p>
+                                    Confidence: <span class="text-green-500">{{ aiConfidence }}%</span></p>
                             </div>
                             <div class="text-right">
                                 <div class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Detected
                                     Space</div>
                                 <div
                                     class="text-lg font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-3 py-1 rounded-lg">
-                                    Master Bedroom / Living</div>
+                                    {{ detectedSpace }}</div>
                             </div>
                         </div>
 
@@ -161,7 +168,7 @@
                         </div>
 
                         <!-- Fleet Recommendation -->
-                        <div
+                        <div v-if="vehicleRec"
                             class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-5 border border-gray-700 text-white mb-6 shadow-2xl relative overflow-hidden">
                             <div
                                 class="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-purple-600/20 to-transparent pointer-events-none">
@@ -175,13 +182,12 @@
                                 <div class="flex-1">
                                     <div class="text-xs text-purple-300 font-bold uppercase tracking-wider mb-1">Optimal
                                         Fleet Assignment</div>
-                                    <div class="text-xl font-black tracking-wide">Tata Ace / 1.5 Ton Tempo</div>
-                                    <p class="text-xs text-gray-400 mt-1 max-w-md">Calculated total volume: ~85 cubic
-                                        feet. Fits perfectly within standard LCV limits.</p>
+                                    <div class="text-xl font-black tracking-wide">{{ vehicleRec.display_name }}</div>
+                                    <p class="text-xs text-gray-400 mt-1 max-w-md">{{ vehicleRec.reason }}</p>
                                 </div>
                                 <div class="text-right shrink-0">
                                     <div class="text-xs text-gray-400 mb-1">Base Cost Est.</div>
-                                    <div class="text-xl font-bold text-green-400">~₹4,500</div>
+                                    <div class="text-xl font-bold text-green-400">~₹{{ estimatedCost.toLocaleString() }}</div>
                                 </div>
                             </div>
                         </div>
@@ -226,11 +232,11 @@
 
                         <!-- Footer Action -->
                         <div class="mt-6 pt-4 border-t border-gray-100 dark:border-white/10 flex justify-end gap-3">
-                            <router-link to="/individual/book-move"
+                            <button @click="useForBooking"
                                 class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 transform hover:-translate-y-0.5">
                                 Use these requirements for Booking
                                 <span class="material-symbols-outlined">arrow_forward</span>
-                            </router-link>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -240,7 +246,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { useIndividualStore } from '@/stores/individualStore'
+
+const router = useRouter()
+const indStore = useIndividualStore()
 
 const fileInput = ref(null)
 const uploaded = ref(false)
@@ -249,21 +260,18 @@ const showResults = ref(false)
 const previewUrl = ref(null)
 const scanStatus = ref('')
 const processTime = ref(0)
+const errorMsg = ref('')
+const estimatedVolumeM3 = ref(null)
 
-const aiResults = ref([
-    { label: 'Boxes Needed', value: '14', icon: 'inventory_2', color: 'text-blue-500', confidence: 91 },
-    { label: 'Laborers', value: '2', icon: 'group', color: 'text-green-500', confidence: 98 },
-    { label: 'Bubble Wrap', value: '4 Rolls', icon: 'bubble_chart', color: 'text-amber-500', confidence: 88 },
-    { label: 'Heavy Items', value: '3', icon: 'fitness_center', color: 'text-purple-500', confidence: 95 },
-])
+// These are filled by the real Gemini Vision response
+const aiResults = ref([])
+const detectedItems = ref([])
+const detectedSpace = ref('')
+const vehicleRec = ref(null)
+const estimatedCost = ref(0)
+const aiConfidence = ref(0)
 
-const detectedItems = ref([
-    { name: 'Queen Size Bed (Dismantled)', qty: 1, fragile: false },
-    { name: 'Wooden Wardrobe', qty: 1, fragile: false },
-    { name: 'Glass Coffee Table', qty: 1, fragile: true },
-    { name: 'TV/Monitor Screens', qty: 2, fragile: true },
-    { name: 'Misc Medium Boxes', qty: 14, fragile: false },
-])
+const uploadedFile = ref(null)  // keep the actual File object for upload
 
 const scanningPhases = [
     'Initializing Neural Net...',
@@ -278,12 +286,12 @@ function triggerUpload() { fileInput.value?.click() }
 
 function handleFileProcess(file) {
     if (file && file.type.startsWith('image/')) {
+        uploadedFile.value = file
         uploaded.value = true
         showResults.value = false
+        errorMsg.value = ''
         const reader = new FileReader()
-        reader.onload = (e) => {
-            previewUrl.value = e.target.result
-        }
+        reader.onload = (e) => { previewUrl.value = e.target.result }
         reader.readAsDataURL(file)
     }
 }
@@ -295,32 +303,108 @@ function resetEstimator() {
     uploaded.value = false
     showResults.value = false
     previewUrl.value = null
+    uploadedFile.value = null
+    errorMsg.value = ''
+    estimatedVolumeM3.value = null
+    aiResults.value = []
+    detectedItems.value = []
     if (fileInput.value) fileInput.value.value = ''
 }
 
-function analyzePhoto() {
+async function analyzePhoto() {
+    if (!uploadedFile.value) return
+
     analyzing.value = true
     showResults.value = false
+    errorMsg.value = ''
 
     const startTime = performance.now()
     let phaseIdx = 0
     scanStatus.value = scanningPhases[0]
 
+    // Cycle through scanning phase labels while waiting for API
     const interval = setInterval(() => {
-        phaseIdx++
-        if (phaseIdx < scanningPhases.length) {
-            scanStatus.value = scanningPhases[phaseIdx]
-        }
-    }, 450)
+        phaseIdx = (phaseIdx + 1) % scanningPhases.length
+        scanStatus.value = scanningPhases[phaseIdx]
+    }, 600)
 
-    setTimeout(() => {
-        clearInterval(interval)
-        analyzing.value = false
+    try {
+        const formData = new FormData()
+        formData.append('file', uploadedFile.value)
+
+        const res = await fetch('http://localhost:8000/api/v1/ai/estimate-image', {
+            method: 'POST',
+            body: formData,
+        })
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: 'Unknown error' }))
+            throw new Error(err.detail || `HTTP ${res.status}`)
+        }
+
+        const data = await res.json()
+
+        // Populate reactive state from real Gemini response
+        detectedSpace.value = data.detected_space || 'Unknown Space'
+        aiConfidence.value = data.confidence || 0
+        vehicleRec.value = data.vehicle_recommendation || null
+        estimatedCost.value = data.estimated_base_cost_inr || 0
+        detectedItems.value = (data.items || []).map(i => ({
+            name: i.name,
+            qty: i.qty,
+            fragile: i.fragile,
+        }))
+
+        const m = data.metrics || {}
+        estimatedVolumeM3.value = Number.isFinite(Number(m.estimated_volume_cubic_feet))
+            ? Number((Number(m.estimated_volume_cubic_feet) * 0.0283168).toFixed(2))
+            : null
+        aiResults.value = [
+            { label: 'Boxes Needed',  value: String(m.boxes_needed ?? '?'),       icon: 'inventory_2',    color: 'text-blue-500',   confidence: 91 },
+            { label: 'Laborers',      value: String(m.laborers ?? '?'),            icon: 'group',          color: 'text-green-500',  confidence: 98 },
+            { label: 'Bubble Wrap',   value: `${m.bubble_wrap_rolls ?? '?'} Rolls`, icon: 'bubble_chart', color: 'text-amber-500',  confidence: 88 },
+            { label: 'Heavy Items',   value: String(m.heavy_items ?? '?'),         icon: 'fitness_center', color: 'text-purple-500', confidence: 95 },
+            { label: 'Volume',        value: estimatedVolumeM3.value !== null ? `${estimatedVolumeM3.value} m³` : '?', icon: 'deployed_code', color: 'text-cyan-500', confidence: 90 },
+        ]
+
         processTime.value = Math.round(performance.now() - startTime)
         showResults.value = true
-    }, 2800)
+
+    } catch (err) {
+        errorMsg.value = err.message || 'AI analysis failed. Please try again.'
+    } finally {
+        clearInterval(interval)
+        analyzing.value = false
+    }
+}
+
+// Map Gemini vehicle type key → BookMove vehicleType key
+const vehicleKeyMap = { 'mini-truck': 'mini-truck', 'tempo': 'tempo', 'lcv': 'lcv', 'hcv': 'hcv' }
+
+function useForBooking() {
+    const m = aiResults.value.reduce((acc, r) => {
+        if (r.label === 'Boxes Needed') acc.boxes = parseInt(r.value) || 10
+        if (r.label === 'Laborers')     acc.laborers = parseInt(r.value) || 2
+        if (r.label === 'Bubble Wrap')  acc.bubbleWrap = parseInt(r.value) || 2
+        return acc
+    }, { boxes: 10, laborers: 2, bubbleWrap: 2 })
+
+    const hasFragile = detectedItems.value.some(i => i.fragile)
+
+    indStore.setAiPrefill({
+        vehicleType:      vehicleKeyMap[vehicleRec.value?.type] || 'tempo',
+        laborCount:       m.laborers,
+        cargoType:        hasFragile ? 'Fragile Items' : 'Household Goods',
+        packingRequired:  hasFragile,             // auto-enable packing if fragile
+        boxes:            m.boxes,
+        bubbleWrap:       m.bubbleWrap,
+        estimatedVolumeM3: estimatedVolumeM3.value,
+    })
+    router.push('/individual/book-move')
 }
 </script>
+
+
 
 <style scoped>
 .animate-scan {

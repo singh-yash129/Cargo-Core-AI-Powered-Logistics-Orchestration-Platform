@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, onMounted } from 'vue'
 import { useIndividualStore } from '@/stores/individualStore'
 
 const store = useIndividualStore()
@@ -85,8 +85,13 @@ const store = useIndividualStore()
 const toast = reactive({ show: false, message: '' })
 function showToast(msg) { toast.show = true; toast.message = msg; setTimeout(() => { toast.show = false }, 3000) }
 
-function convertToOrder(quoteId) {
-    const order = store.convertQuoteToOrder(quoteId)
-    if (order) showToast(`Order ${order.id} created from quote!`)
+async function convertToOrder(quoteId) {
+    const result = await store.convertQuoteToOrderRemote(quoteId)
+    if (result.success) showToast(`Order ${result.data.tracking_code} created from quote!`)
+    else showToast(result.message || 'Failed to create order from quote.')
 }
+
+onMounted(() => {
+    store.fetchQuotes()
+})
 </script>

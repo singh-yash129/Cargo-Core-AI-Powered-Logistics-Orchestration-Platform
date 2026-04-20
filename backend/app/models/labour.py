@@ -22,6 +22,8 @@ class Labourer(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     warehouse = relationship("Warehouse", back_populates="labourers")
+    user = relationship("User", foreign_keys=[user_id])
+    assigned_order = relationship("Order", foreign_keys=[assigned_order_id])
     attendance_events = relationship("LabourAttendance", back_populates="labourer", cascade="all, delete-orphan")
 
 

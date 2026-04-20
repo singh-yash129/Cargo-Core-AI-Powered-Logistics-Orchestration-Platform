@@ -34,7 +34,7 @@
                             <div class="font-bold text-gray-900 dark:text-white text-sm truncate">{{ contact.name }}</div>
                             <span v-if="contact.unread" class="min-w-[16px] h-4 bg-primary rounded-full text-[9px] text-black font-bold flex items-center justify-center px-1">{{ contact.unread }}</span>
                         </div>
-                        <div class="text-[10px] text-gray-500 truncate">{{ contact.lastMessage }}</div>
+                        <div class="text-[10px] text-gray-500 truncate">{{ formatContactPreview(contact.lastMessage) }}</div>
                         <div class="text-[9px] mt-0.5 font-semibold px-1.5 py-0.5 rounded-full inline-block" :class="contact.type === 'warehouse' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'">
                             {{ contact.type === 'warehouse' ? 'Warehouse' : contact.role || 'Driver' }}
                         </div>
@@ -85,7 +85,7 @@
 
             <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-black/10" ref="chatAreaRef">
                 <!-- Messages -->
-                <div v-for="msg in currentMessages" :key="msg.id" :class="msg.from === 'dispatch' ? 'flex gap-3 flex-row-reverse' : 'flex gap-3'">
+                <div v-for="msg in renderedMessages" :key="msg.id" :class="isDispatcherMsg(msg) ? 'flex gap-3 flex-row-reverse' : 'flex gap-3'">
                     <template v-if="msg.type === 'system'">
                         <div class="w-full flex justify-center">
                             <div class="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] text-blue-400">
@@ -93,7 +93,35 @@
                             </div>
                         </div>
                     </template>
-                    <template v-else-if="msg.from === 'dispatch'">
+                    <template v-else-if="msg.action">
+                        <div v-if="isDispatcherMsg(msg)" class="w-8 h-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-[10px] text-black font-bold">DISP</div>
+                        <div v-else-if="activeContact?.type === 'warehouse'" class="w-8 h-8 rounded-full bg-blue-500/20 flex-shrink-0 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-blue-400 text-[14px]">warehouse</span>
+                        </div>
+                        <img v-else-if="!isDispatcherMsg(msg)" :src="activeContact?.avatar" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+                        <div class="max-w-[76%]">
+                            <div class="rounded-2xl border p-4 shadow-sm"
+                                :class="msg.action.kind === 'route'
+                                    ? (isDispatcherMsg(msg)
+                                        ? 'rounded-tr-none bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-400/20'
+                                        : 'rounded-tl-none bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-400/20')
+                                    : (isDispatcherMsg(msg)
+                                        ? 'rounded-tr-none bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-400/20'
+                                        : 'rounded-tl-none bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-400/20')">
+                                <div class="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em]"
+                                    :class="msg.action.kind === 'route' ? 'text-blue-700 dark:text-blue-300' : 'text-red-600 dark:text-red-300'">
+                                    <span class="material-symbols-outlined text-[16px]">{{ msg.action.kind === 'route' ? 'route' : 'priority_high' }}</span>
+                                    {{ msg.action.title }}
+                                </div>
+                                <div class="mt-2 whitespace-pre-line text-sm"
+                                    :class="msg.action.kind === 'route' ? 'text-slate-700 dark:text-slate-100' : 'text-slate-700 dark:text-slate-100'">
+                                    {{ msg.action.body }}
+                                </div>
+                            </div>
+                            <div class="text-[9px] text-gray-500 dark:text-gray-600 mt-1" :class="isDispatcherMsg(msg) ? 'text-right' : ''">{{ msg.time }}</div>
+                        </div>
+                    </template>
+                    <template v-else-if="isDispatcherMsg(msg)">
                         <div class="w-8 h-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-[10px] text-black font-bold">DISP</div>
                         <div class="max-w-[70%]">
                             <div class="bg-emerald-100 dark:bg-primary/20 border border-emerald-200 dark:border-primary/30 p-3 rounded-xl rounded-tr-none text-gray-900 dark:text-white text-sm break-words">{{ msg.text }}</div>
@@ -115,12 +143,12 @@
 
             <div class="p-4 bg-gray-100 dark:bg-black/20 border-t border-gray-200 dark:border-white/5">
                 <div class="relative flex gap-2 items-stretch">
-                    <input v-model="newMessage" type="text" :placeholder="'Message ' + (activeContact?.name || 'Mike') + '...'"
+                    <input v-model="newMessage" type="text" :placeholder="'Message ' + (activeContact?.name || '...') + '...'"
                         class="flex-1 bg-white dark:bg-white/5 border-2 border-gray-300 dark:border-white/10 rounded-full py-3 pl-4 pr-4 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50"
-                        @keyup.enter="sendMessage">
-                    <button @click="sendMessage" :disabled="!newMessage.trim()"
+                        @keyup.enter="sendMessage" :disabled="isSendingMsg">
+                    <button @click="sendMessage" :disabled="!newMessage.trim() || isSendingMsg"
                         class="px-4 bg-primary rounded-full text-black hover:scale-105 transition-transform disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0 flex items-center justify-center">
-                        <span class="material-symbols-outlined text-[20px]">send</span>
+                        <span class="material-symbols-outlined text-[20px]">{{ isSendingMsg ? 'hourglass_empty' : 'send' }}</span>
                     </button>
                 </div>
             </div>
@@ -148,16 +176,22 @@
         <!-- Route Update Modal -->
         <Teleport to="body">
         <div v-if="showRouteModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showRouteModal = false">
-            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-md m-4">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-blue-500">route</span> Push Route Update
-                </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Send a route update to <span class="font-bold text-gray-900 dark:text-white">{{ activeContact?.name }}</span></p>
-                <textarea v-model="routeUpdateMsg" rows="2" placeholder="Optional: Add route notes..."
-                    class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none mb-3"></textarea>
-                <div class="flex gap-2">
-                    <button @click="confirmRouteUpdate" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-lg text-sm transition-colors">Push Update</button>
-                    <button @click="showRouteModal = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
+            <div class="w-full max-w-md m-4 rounded-3xl border border-slate-200/70 dark:border-white/10 bg-white/95 dark:bg-slate-950/95 shadow-[0_32px_80px_rgba(15,23,42,0.32)] dark:shadow-[0_32px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl overflow-hidden">
+                <div class="px-6 pt-6 pb-4 border-b border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-blue-50 to-white dark:from-blue-500/10 dark:to-transparent">
+                    <div class="inline-flex items-center gap-2 rounded-full border border-blue-200 dark:border-blue-400/20 bg-blue-100/80 dark:bg-blue-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-blue-700 dark:text-blue-300">
+                        <span class="material-symbols-outlined text-[16px]">route</span>
+                        Route Sync
+                    </div>
+                    <h3 class="mt-4 text-xl font-bold text-slate-900 dark:text-white">Push Route Update</h3>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Send a route update to <span class="font-bold text-slate-900 dark:text-white">{{ activeContact?.name }}</span></p>
+                </div>
+                <div class="p-6">
+                    <textarea v-model="routeUpdateMsg" rows="2" placeholder="Optional: Add route notes..."
+                        class="mb-4 min-h-28 w-full resize-none rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-400 dark:focus:border-blue-400/50 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-500/10"></textarea>
+                    <div class="flex gap-3">
+                        <button @click="confirmRouteUpdate" class="flex-1 rounded-2xl bg-blue-500 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-colors hover:bg-blue-600">Push Update</button>
+                        <button @click="showRouteModal = false" class="flex-1 rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 py-3 text-sm text-slate-700 transition-colors hover:bg-slate-200 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">Cancel</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -166,16 +200,22 @@
         <!-- Urgent Instruction Modal -->
         <Teleport to="body">
         <div v-if="showUrgentModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showUrgentModal = false">
-            <div class="bg-white dark:bg-card-dark shadow-2xl border border-red-300 dark:border-red-500/20 rounded-2xl p-6 w-full max-w-md m-4">
-                <h3 class="font-bold text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
-                    <span class="material-symbols-outlined">priority_high</span> Send Urgent Instruction
-                </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Send urgent instructions to <span class="font-bold text-gray-900 dark:text-white">{{ activeContact?.name }}</span></p>
-                <textarea v-model="urgentInstructionMsg" rows="3" placeholder="Type urgent instruction..."
-                    class="w-full bg-gray-100 dark:bg-black/30 border border-red-300 dark:border-red-500/20 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none mb-3"></textarea>
-                <div class="flex gap-2">
-                    <button @click="confirmUrgentInstruction" :disabled="!urgentInstructionMsg.trim()" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded-lg text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Send Urgent</button>
-                    <button @click="showUrgentModal = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
+            <div class="w-full max-w-md m-4 rounded-3xl border border-red-200/80 dark:border-red-500/20 bg-white/95 dark:bg-slate-950/95 shadow-[0_32px_80px_rgba(15,23,42,0.32)] dark:shadow-[0_32px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl overflow-hidden">
+                <div class="px-6 pt-6 pb-4 border-b border-red-200/80 dark:border-red-500/20 bg-gradient-to-br from-red-50 to-white dark:from-red-500/10 dark:to-transparent">
+                    <div class="inline-flex items-center gap-2 rounded-full border border-red-200 dark:border-red-400/20 bg-red-100/80 dark:bg-red-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-red-700 dark:text-red-300">
+                        <span class="material-symbols-outlined text-[16px]">priority_high</span>
+                        High Priority
+                    </div>
+                    <h3 class="mt-4 text-xl font-bold text-red-600 dark:text-red-400">Send Urgent Instruction</h3>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Send urgent instructions to <span class="font-bold text-slate-900 dark:text-white">{{ activeContact?.name }}</span></p>
+                </div>
+                <div class="p-6">
+                    <textarea v-model="urgentInstructionMsg" rows="3" placeholder="Type urgent instruction..."
+                        class="mb-4 min-h-32 w-full resize-none rounded-2xl border border-red-200 dark:border-red-500/20 bg-red-50/70 dark:bg-red-500/5 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-red-400 dark:focus:border-red-400/50 focus:ring-4 focus:ring-red-100 dark:focus:ring-red-500/10"></textarea>
+                    <div class="flex gap-3">
+                        <button @click="confirmUrgentInstruction" :disabled="!urgentInstructionMsg.trim()" class="flex-1 rounded-2xl bg-red-500 py-3 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-40">Send Urgent</button>
+                        <button @click="showUrgentModal = false" class="flex-1 rounded-2xl border border-slate-300 dark:border-white/10 bg-slate-100 py-3 text-sm text-slate-700 transition-colors hover:bg-slate-200 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">Cancel</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -184,17 +224,71 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
+import { useToast } from '@/composables/useToast'
 
-const activeChat = ref(1)
+const store = useDispatcherStore()
+const toast = useToast()
+const ROUTE_UPDATE_PREFIX = 'ROUTE UPDATE'
+const URGENT_INSTRUCTION_PREFIX = 'URGENT INSTRUCTION'
+
+// Identifies messages sent by the dispatcher (supports both 'dispatch' and 'Dispatcher')
+function isDispatcherMsg(msg) {
+    return msg.from === 'dispatch' || msg.from?.toLowerCase() === 'dispatcher'
+}
+
+function parseDispatchAction(text) {
+    const raw = String(text || '').trim()
+    if (!raw) return null
+
+    if (raw === ROUTE_UPDATE_PREFIX || raw.startsWith(`${ROUTE_UPDATE_PREFIX}\n`)) {
+        const body = raw.slice(ROUTE_UPDATE_PREFIX.length).trim() || 'Updated route pushed to navigation.'
+        return { kind: 'route', title: 'Route Update', body }
+    }
+
+    if (raw === URGENT_INSTRUCTION_PREFIX || raw.startsWith(`${URGENT_INSTRUCTION_PREFIX}\n`)) {
+        const body = raw.slice(URGENT_INSTRUCTION_PREFIX.length).trim() || 'Immediate dispatcher instruction received.'
+        return { kind: 'urgent', title: 'Urgent Instruction', body }
+    }
+
+    return null
+}
+
+function formatContactPreview(text) {
+    const action = parseDispatchAction(text)
+    if (!action) return text || 'No messages yet'
+    const firstLine = action.body.split('\n')[0] || action.title
+    return `${action.title}: ${firstLine}`
+}
+
+function buildRouteUpdateMessage(notes) {
+    const lines = [ROUTE_UPDATE_PREFIX, 'Updated route pushed to your navigation.']
+    if (notes) lines.push(`Notes: ${notes}`)
+    return lines.join('\n')
+}
+
+function buildUrgentInstructionMessage(text) {
+    return [URGENT_INSTRUCTION_PREFIX, text].join('\n')
+}
+
+let _refreshInterval = null
+onMounted(() => {
+    store.initialize().catch(() => {})
+    // Poll for new messages every 8s so dispatcher sees driver replies in near-real-time
+    _refreshInterval = setInterval(() => store.fetchContacts().catch(() => {}), 8000)
+})
+onUnmounted(() => { if (_refreshInterval) clearInterval(_refreshInterval) })
+
+const activeChat = ref(null)
 const contactType = ref('all')
 const searchQuery = ref('')
 const newMessage = ref('')
+const isSendingMsg = ref(false)
 const showLog = ref(false)
 const routeUpdateSent = ref(false)
 const urgentSent = ref(false)
 const chatAreaRef = ref(null)
-// PTT and call removed from UI
 const showRouteModal = ref(false)
 const showUrgentModal = ref(false)
 const routeUpdateMsg = ref('')
@@ -206,13 +300,12 @@ const contactTabs = [
     { key: 'warehouse', label: 'Warehouse' }
 ]
 
-const contacts = ref([
-    { id: 1, name: 'Mike Ross', type: 'driver', online: true, lastMessage: 'Got the new route. Thanks!', avatar: 'https://i.pravatar.cc/150?u=1', status: 'On Route to Zone A', phone: '+1 555-0123', unread: 0 },
-    { id: 2, name: 'Harvey Specter', type: 'driver', online: false, lastMessage: 'Delivered successfully.', avatar: 'https://i.pravatar.cc/150?u=2', status: 'Off Duty', phone: '+1 555-0124', unread: 0 },
-    { id: 3, name: 'Rachel Zane', type: 'driver', online: true, lastMessage: 'Pick up done.', avatar: 'https://i.pravatar.cc/150?u=3', status: 'At Warehouse B', phone: '+1 555-0125', unread: 2 },
-    { id: 4, name: 'Warehouse Alpha', type: 'warehouse', online: true, lastMessage: 'Batch 42 ready for pickup.', avatar: '', status: 'Active', role: 'Main Warehouse', phone: '+1 555-8001', unread: 1 },
-    { id: 5, name: 'Warehouse Beta', type: 'warehouse', online: true, lastMessage: 'Cold storage order staged.', avatar: '', status: 'Active', role: 'Cold Storage Hub', phone: '+1 555-8002', unread: 0 },
-])
+const contacts = computed(() => store.dispatcherContacts)
+
+// Set first contact as active once loaded
+watch(contacts, (list) => {
+    if (list.length && activeChat.value === null) activeChat.value = list[0].id
+}, { immediate: true })
 
 const filteredContacts = computed(() => {
     return contacts.value.filter(c => {
@@ -224,111 +317,162 @@ const filteredContacts = computed(() => {
 
 const activeContact = computed(() => contacts.value.find(c => c.id === activeChat.value))
 
-// Per-contact message history
-const messageHistory = ref({
-    1: [
-        { id: 1, from: 'contact', text: 'Boss, traffic is heavy on Main St. Estimated delay 10 mins.', time: '10:14 AM' },
-        { id: 2, from: 'dispatch', text: 'Copy that Mike. Proceed with caution. Dispatching updated route to your nav.', time: '10:15 AM' },
-        { id: 3, from: 'contact', text: '', time: '10:16 AM', type: 'system' },
-        { id: 4, from: 'contact', text: 'Got the new route. ETA looks good now. Thanks!', time: '10:18 AM' }
-    ],
-    2: [
-        { id: 1, from: 'contact', text: 'All deliveries completed for Zone B. Heading back.', time: '3:45 PM' },
-        { id: 2, from: 'dispatch', text: 'Great work Harvey. See you at the hub.', time: '3:46 PM' }
-    ],
-    3: [
-        { id: 1, from: 'contact', text: 'Pickup at Warehouse B done. 24 parcels loaded.', time: '11:30 AM' },
-        { id: 2, from: 'dispatch', text: 'Confirmed. Head to Zone C next.', time: '11:31 AM' },
-        { id: 3, from: 'contact', text: 'On my way. ETA 25 mins.', time: '11:32 AM' }
-    ],
-    4: [
-        { id: 1, from: 'contact', text: 'Batch 42 ready for pickup. 38 parcels staged at Dock 2.', time: '9:15 AM' },
-        { id: 2, from: 'dispatch', text: 'Driver en route. ETA 15 mins.', time: '9:16 AM' }
-    ],
-    5: [
-        { id: 1, from: 'contact', text: 'Cold storage order OCS-221 staged. Temp verified at -18°C.', time: '8:30 AM' },
-        { id: 2, from: 'dispatch', text: 'Acknowledged. Refrigerated van dispatched.', time: '8:32 AM' }
-    ]
+// Per-contact message history — seeded from backend thread messages
+const messageHistory = ref({})
+
+function messagesFromThread(thread) {
+    return (thread.messages || []).map(m => ({
+        id: String(m.id || Date.now()),
+        from: m.sender || m.from || 'driver',
+        text: m.text || '',
+        time: m.time || '',
+        type: 'text',
+    }))
+}
+
+// When contacts load, seed message history from backend data
+watch(contacts, (list) => {
+    list.forEach(c => {
+        if (c.messages?.length && !messageHistory.value[c.id]) {
+            messageHistory.value[c.id] = messagesFromThread(c)
+        }
+    })
+}, { immediate: true, deep: true })
+
+// When switching contacts, load their messages if available
+watch(activeChat, (newId) => {
+    if (!newId) return
+    const contact = contacts.value.find(c => c.id === newId)
+    if (contact?.messages?.length && !messageHistory.value[newId]) {
+        messageHistory.value[newId] = messagesFromThread(contact)
+    }
 })
 
-// Init the system message text
-messageHistory.value[1][2].text = "Route update pushed to driver's navigation – 10:16 AM"
-
 const currentMessages = computed(() => messageHistory.value[activeChat.value] || [])
+const renderedMessages = computed(() => currentMessages.value.map(msg => ({
+    ...msg,
+    action: msg.type === 'system' ? null : parseDispatchAction(msg.text),
+})))
 
-const commLog = ref([
-    { id: 1, action: 'Route Update Pushed', type: 'route', contact: 'Mike Ross', detail: 'Alternative via Route 7', time: '10:16 AM' },
-    { id: 2, action: 'Urgent Instruction', type: 'urgent', contact: 'Rachel Zane', detail: 'Dock 3 closed, use Dock 5', time: '9:45 AM' },
-    { id: 3, action: 'Message Sent', type: 'message', contact: 'Warehouse Alpha', detail: 'Confirmed pickup at 11:00', time: '9:30 AM' },
-    { id: 4, action: 'Call Connected', type: 'message', contact: 'Harvey Specter', detail: 'Duration: 2m 15s', time: '9:12 AM' },
-    { id: 5, action: 'Route Update Pushed', type: 'route', contact: 'Mike Ross', detail: 'Original route restored', time: '8:50 AM' },
-    { id: 6, action: 'Broadcast Sent', type: 'urgent', contact: 'All Drivers', detail: 'Weather alert: heavy rain Zone C', time: '8:30 AM' },
-])
-
-// PTT and Call buttons removed from UI — dispatcher uses phone number shown in header
-
-function pushRouteUpdate() {
-    // kept for internal use
-    routeUpdateSent.value = true
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    const notes = routeUpdateMsg.value ? ` – ${routeUpdateMsg.value}` : ''
-    addSystemMessage(`Route update pushed to ${activeContact.value?.name}'s navigation – ${now}${notes}`)
-    commLog.value.unshift({ id: Date.now(), action: 'Route Update Pushed', type: 'route', contact: activeContact.value?.name, detail: routeUpdateMsg.value || 'Updated route sent', time: now })
-    setTimeout(() => { routeUpdateSent.value = false }, 5000)
-}
-
-function confirmRouteUpdate() {
-    pushRouteUpdate()
-    showRouteModal.value = false
-    routeUpdateMsg.value = ''
-}
-
-function sendUrgentInstruction() {
-    urgentSent.value = true
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    addSystemMessage(`Urgent instruction sent to ${activeContact.value?.name} – ${now}: ${urgentInstructionMsg.value}`)
-    commLog.value.unshift({ id: Date.now(), action: 'Urgent Instruction', type: 'urgent', contact: activeContact.value?.name, detail: urgentInstructionMsg.value || 'Awaiting acknowledgment', time: now })
-    setTimeout(() => { urgentSent.value = false }, 5000)
-}
-
-function confirmUrgentInstruction() {
-    sendUrgentInstruction()
-    showUrgentModal.value = false
-    urgentInstructionMsg.value = ''
-}
+const commLog = ref([])
 
 function addSystemMessage(text) {
     if (!messageHistory.value[activeChat.value]) messageHistory.value[activeChat.value] = []
     messageHistory.value[activeChat.value].push({ id: Date.now(), from: 'system', text, time: '', type: 'system' })
 }
 
-function sendMessage() {
-    if (!newMessage.value.trim()) return
+async function ensureActiveThread(contact, contactId) {
+    let threadId = contact?.threadId
+
+    if (!threadId) {
+        const threadName = contact?.type === 'driver'
+            ? `Driver: ${contact?.name || 'Unknown'}`
+            : (contact?.name || 'Unknown')
+        const newThread = await store.createChatForContact(threadName, contact?.phone || null)
+        if (newThread) {
+            threadId = String(newThread.id)
+            messageHistory.value[threadId] = messageHistory.value[contactId] || []
+            delete messageHistory.value[contactId]
+            await store.fetchContacts()
+        }
+    }
+
+    return threadId
+}
+
+async function sendThreadMessage(text, { optimistic = false } = {}) {
+    const contact = activeContact.value
+    const contactId = activeChat.value
+    if (!contact || !contactId) throw new Error('No active contact selected')
+
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    if (!messageHistory.value[activeChat.value]) messageHistory.value[activeChat.value] = []
-    messageHistory.value[activeChat.value].push({ id: Date.now(), from: 'dispatch', text: newMessage.value, time: now })
-    
-    // Update last message on contact
-    const contact = contacts.value.find(c => c.id === activeChat.value)
-    if (contact) { contact.lastMessage = 'You: ' + newMessage.value; contact.unread = 0 }
-    
-    // Log to comm log
-    commLog.value.unshift({ id: Date.now(), action: 'Message Sent', type: 'message', contact: activeContact.value?.name, detail: newMessage.value.substring(0, 40), time: now })
-    
-    const sentMsg = newMessage.value
-    newMessage.value = ''
-    
-    // Auto scroll
-    nextTick(() => { if (chatAreaRef.value) chatAreaRef.value.scrollTop = chatAreaRef.value.scrollHeight })
-    
-    // Simulate reply
-    setTimeout(() => {
-        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        const replies = ['Roger that, understood.', 'Copy. Will do.', 'Acknowledged. On it.', 'Got it, thanks!', 'Confirmed.']
-        const reply = replies[Math.floor(Math.random() * replies.length)]
-        messageHistory.value[activeChat.value].push({ id: Date.now(), from: 'contact', text: reply, time: replyTime })
-        if (contact) contact.lastMessage = reply
+    let tempId = null
+
+    if (optimistic) {
+        if (!messageHistory.value[contactId]) messageHistory.value[contactId] = []
+        tempId = `temp-${Date.now()}`
+        messageHistory.value[contactId].push({ id: tempId, from: 'dispatch', text, time: now, type: 'text' })
         nextTick(() => { if (chatAreaRef.value) chatAreaRef.value.scrollTop = chatAreaRef.value.scrollHeight })
-    }, 1500)
+    }
+
+    isSendingMsg.value = true
+    try {
+        const threadId = await ensureActiveThread(contact, contactId)
+        if (!threadId) throw new Error('Unable to create a chat thread')
+
+        const updated = await store.sendDispatchMessage(threadId, text)
+        if (!updated) throw new Error('Message send failed')
+
+        messageHistory.value[String(updated.id) || threadId] = messagesFromThread(updated)
+        await store.fetchContacts().catch(() => {})
+        return now
+    } catch (error) {
+        if (optimistic && tempId) {
+            const activeMessages = messageHistory.value[contactId] || []
+            messageHistory.value[contactId] = activeMessages.filter(msg => msg.id !== tempId)
+        }
+        throw error
+    } finally {
+        isSendingMsg.value = false
+        nextTick(() => { if (chatAreaRef.value) chatAreaRef.value.scrollTop = chatAreaRef.value.scrollHeight })
+    }
+}
+
+async function confirmRouteUpdate() {
+    const notes = routeUpdateMsg.value.trim()
+    try {
+        const now = await sendThreadMessage(buildRouteUpdateMessage(notes))
+        routeUpdateSent.value = true
+        commLog.value.unshift({
+            id: Date.now(),
+            action: 'Route Update Pushed',
+            type: 'route',
+            contact: activeContact.value?.name,
+            detail: notes || 'Updated route sent',
+            time: now,
+        })
+        showRouteModal.value = false
+        routeUpdateMsg.value = ''
+        setTimeout(() => { routeUpdateSent.value = false }, 5000)
+    } catch (_) {
+        toast.error('Could not push route update right now.')
+    }
+}
+
+async function confirmUrgentInstruction() {
+    const instruction = urgentInstructionMsg.value.trim()
+    if (!instruction) return
+
+    try {
+        const now = await sendThreadMessage(buildUrgentInstructionMessage(instruction))
+        urgentSent.value = true
+        commLog.value.unshift({
+            id: Date.now(),
+            action: 'Urgent Instruction',
+            type: 'urgent',
+            contact: activeContact.value?.name,
+            detail: instruction,
+            time: now,
+        })
+        showUrgentModal.value = false
+        urgentInstructionMsg.value = ''
+        setTimeout(() => { urgentSent.value = false }, 5000)
+    } catch (_) {
+        toast.error('Could not send the urgent instruction.')
+    }
+}
+
+async function sendMessage() {
+    const text = newMessage.value.trim()
+    if (!text || isSendingMsg.value) return
+
+    const contact = activeContact.value
+    newMessage.value = ''
+    try {
+        const now = await sendThreadMessage(text, { optimistic: true })
+        commLog.value.unshift({ id: Date.now(), action: 'Message Sent', type: 'message', contact: contact?.name, detail: text.substring(0, 40), time: now })
+    } catch (_) {
+        toast.error('Could not send that message.')
+    }
 }
 </script>

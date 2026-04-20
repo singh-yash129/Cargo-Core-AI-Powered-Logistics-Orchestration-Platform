@@ -1,6 +1,6 @@
 <template>
     <div
-        class="min-h-screen bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white antialiased flex relative">
+        class="min-h-screen bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white antialiased flex relative overflow-x-hidden">
 
         <!-- Mobile Overlay -->
         <div v-if="isSidebarOpen" @click="isSidebarOpen = false"
@@ -11,7 +11,7 @@
 
         <!-- Main Content Area -->
         <main
-            class="flex-1 md:ml-64 min-h-screen flex flex-col transition-all duration-300 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-500/5 dark:from-purple-900/10 via-surface-light dark:via-background-dark to-surface-light dark:to-background-dark">
+            class="flex-1 min-w-0 md:ml-64 min-h-screen flex flex-col overflow-x-hidden transition-all duration-300 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-500/5 dark:from-purple-900/10 via-surface-light dark:via-background-dark to-surface-light dark:to-background-dark">
 
             <!-- Top Bar -->
             <header
@@ -48,18 +48,19 @@
                     <div class="hidden lg:flex items-center gap-3 border-r border-gray-200 dark:border-white/10 pr-4">
                         <div class="text-center">
                             <div class="text-[10px] text-gray-500 uppercase font-bold">Tickets</div>
-                            <div class="text-sm font-bold text-purple-600 dark:text-purple-400">124</div>
+                            <div class="text-sm font-bold text-purple-600 dark:text-purple-400">{{ supportStats.totalSessions }}</div>
                         </div>
                         <div class="text-center">
                             <div class="text-[10px] text-gray-500 uppercase font-bold">Escalated</div>
-                            <div class="text-sm font-bold text-red-600 dark:text-red-400">3</div>
+                            <div class="text-sm font-bold text-red-600 dark:text-red-400">{{ supportStats.openEscalations }}</div>
                         </div>
                     </div>
 
                     <!-- Notifications -->
                     <NotificationPopover :notifications="store.notifications"
                         :unread-count="store.unreadNotificationsCount" @mark-read="store.markNotificationRead"
-                        @mark-all-read="store.markAllNotificationsRead" @clear-all="store.clearNotifications" />
+                        @mark-all-read="store.markAllNotificationsRead" @clear-all="store.clearNotifications"
+                        @open="store.fetchNotifications" />
 
                     <!-- New Ticket Button -->
                     <router-link to="/ai/tickets"
@@ -71,21 +72,23 @@
             </header>
 
             <!-- Page Content -->
-            <div class="flex-1 p-4 sm:p-6 lg:p-8">
-                <slot />
+            <div class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+                <RouterView />
             </div>
         </main>
     </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, watch, onMounted } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import AISidebar from '../Ai-components/AISidebar.vue'
 import NotificationPopover from '@/components/NotificationPopover.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
+import { useAiSupportStore } from '@/stores/aiSupportStore'
 
 const store = useLogisticStore()
+const aiSupportStore = useAiSupportStore()
 const isSidebarOpen = ref(false)
 const route = useRoute()
 
@@ -104,9 +107,18 @@ const pageTitles = {
 }
 
 const pageTitle = computed(() => pageTitles[route.path] || 'Internal Support Dashboard')
+const supportStats = computed(() => ({
+    totalSessions: aiSupportStore.dashboard?.stats?.total_sessions ?? 0,
+    openEscalations: aiSupportStore.dashboard?.stats?.open_escalations ?? 0,
+}))
 
 // Close sidebar on route change
 watch(route, () => {
     isSidebarOpen.value = false
+})
+
+onMounted(() => {
+    aiSupportStore.loadDashboard().catch(() => {})
+    store.fetchNotifications().catch(() => {})
 })
 </script>

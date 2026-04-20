@@ -3,24 +3,28 @@ auth_service.py
 All authentication business logic.  Routers should only call these functions —
 no direct DB or Redis access in routers.
 """
-import os
 import secrets
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from loguru import logger
 from redis.asyncio import Redis
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.logistics import LogisticsNotification
 from app.models.user import Role, User
 from app.schemas.auth import (
+    GoogleLoginRequest,
     SELF_SERVICE_ROLES,
     ChangePasswordRequest,
     ForgotPasswordRequest,
+    LoginResponse,
     OTPVerifiedResponse,
+    RegistrationResponse,
     RefreshTokenRequest,
     ResetPasswordRequest,
+    SignupOtpSendResponse,
     SendOTPRequest,
     TokenResponse,
     UserLogin,
@@ -30,18 +34,31 @@ from app.schemas.auth import (
     VerifyOTPRequest,
 )
 
+from app.config import get_settings
 from app.utils.hashing import hash_password, verify_password
 from app.utils.jwt import create_access_token, create_refresh_token, decode_token
+from app.utils.username import generate_unique_username, normalize_username
 
 # Redis key prefixes
 _BLACKLIST_PREFIX = "blacklist:"
 _RESET_PREFIX = "pwd_reset:"
 _OTP_PREFIX = "signup_otp:"
+_RESET_OTP_PREFIX = "reset_otp:"
+_LOGIN_OTP_PREFIX = "login_otp:"
 _RESET_TTL_SECONDS = 3600   # 1 hour
 _OTP_TTL_SECONDS = 600      # 10 minutes
 
+# In-memory OTP fallback when Redis is unavailable
+_otp_memory: dict[str, str] = {}
+_reset_otp_memory: dict[str, str] = {}
+_login_otp_memory: dict[str, str] = {}
+settings = get_settings()
+
 # Roles allowed through the public /register endpoint (kept in sync with schema).
 _SELF_SERVICE_ROLE_NAMES: frozenset[str] = frozenset(SELF_SERVICE_ROLES.__args__)  # type: ignore[union-attr]
+_APPROVAL_PENDING = "PENDING"
+_APPROVAL_APPROVED = "APPROVED"
+_APPROVAL_REJECTED = "REJECTED"
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -59,20 +76,109 @@ def _build_token_response(user: User) -> TokenResponse:
     )
 
 
+def _build_login_response(user: User) -> LoginResponse:
+    """Build login response with tokens and user profile."""
+    payload = _token_payload(user)
+    return LoginResponse(
+        access_token=create_access_token(payload),
+        refresh_token=create_refresh_token(payload),
+        user=_to_profile(user),
+    )
+
+
+def _build_registration_response(user: User) -> RegistrationResponse:
+    if (user.approval_status or _APPROVAL_APPROVED).upper() == _APPROVAL_PENDING:
+        return RegistrationResponse(
+            user=_to_profile(user),
+            pending_approval=True,
+            message="Vendor registration submitted successfully. A Logistics Manager must approve it before login.",
+        )
+
+    payload = _token_payload(user)
+    return RegistrationResponse(
+        access_token=create_access_token(payload),
+        refresh_token=create_refresh_token(payload),
+        user=_to_profile(user),
+    )
+
+
 def _to_profile(user: User) -> UserProfile:
     return UserProfile(
         id=user.id,
         name=user.name,
+        username=user.username,
         email=user.email,
         phone=user.phone,
+        address=user.address,
         role=user.role.name,
+        warehouse_id=user.warehouse_id,
         is_active=user.is_active,
+        approval_status=user.approval_status or _APPROVAL_APPROVED,
+        company_name=user.company_name,
+        tax_id=user.tax_id,
+        contact_person=user.contact_person,
+        business_email=user.business_email,
+        business_phone=user.business_phone,
         created_at=user.created_at,
+    )
+
+
+def _approval_message(user: User) -> str | None:
+    status_value = (user.approval_status or _APPROVAL_APPROVED).upper()
+    if status_value == _APPROVAL_PENDING:
+        return "Your vendor account is waiting for Logistics Manager approval."
+    if status_value == _APPROVAL_REJECTED:
+        return "Your vendor registration was rejected. Please contact the Logistics Manager or register again with updated details."
+    return None
+
+
+def _ensure_user_can_authenticate(user: User) -> None:
+    approval_message = _approval_message(user)
+    if approval_message:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=approval_message,
+        )
+
+
+def _ensure_user_session_valid(user: User) -> None:
+    approval_message = _approval_message(user)
+    if approval_message:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=approval_message,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+def _queue_vendor_registration_notification(db: AsyncSession, user: User) -> None:
+    company_name = user.company_name or user.name
+    contact_name = user.contact_person or user.name
+    db.add(
+        LogisticsNotification(
+            title="New vendor registration",
+            message=f"{company_name} registered with contact {contact_name}. Review the request in User & Roles.",
+            type="system",
+            audience_roles="LOGISTIC_MANAGER",
+        )
     )
 
 
 async def _get_user_by_email(db: AsyncSession, email: str) -> User | None:
     result = await db.execute(select(User).where(User.email == email))
+    return result.scalar_one_or_none()
+
+
+async def _get_user_by_identifier(db: AsyncSession, identifier: str) -> User | None:
+    normalized = identifier.strip().lower()
+    result = await db.execute(
+        select(User).where(
+            or_(
+                User.email == normalized,
+                User.username == normalize_username(normalized),
+            )
+        )
+    )
     return result.scalar_one_or_none()
 
 
@@ -94,10 +200,53 @@ async def _get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
     return result.scalar_one_or_none()
 
 
+async def ensure_logistic_manager_account(db: AsyncSession) -> User:
+    """Create or normalize the reserved Logistics Manager admin account."""
+    admin_email = "logisticmanager@gmail.com"
+    admin_username = "logisticmanager"
+    admin_password = "12345678"
+    admin_name = "Logistics Manager"
+
+    role = await _get_role_by_name(db, "LOGISTIC_MANAGER")
+    if not role:
+        raise RuntimeError("Required role 'LOGISTIC_MANAGER' does not exist")
+
+    user = await _get_user_by_email(db, admin_email)
+    password_hash = hash_password(admin_password)
+
+    if user:
+        user.name = admin_name
+        user.username = admin_username
+        user.role_id = role.id
+        user.password_hash = password_hash
+        user.is_active = True
+        db.add(user)
+        await db.flush()
+        await db.refresh(user, attribute_names=["role"])
+        logger.info("Bootstrapped existing Logistics Manager account: {}", admin_email)
+        return user
+
+    user = User(
+        name=admin_name,
+        username=admin_username,
+        email=admin_email,
+        phone="",
+        address="",
+        password_hash=password_hash,
+        role_id=role.id,
+        is_active=True,
+    )
+    db.add(user)
+    await db.flush()
+    await db.refresh(user, attribute_names=["role"])
+    logger.info("Created bootstrap Logistics Manager account: {}", admin_email)
+    return user
+
+
 # ── public service functions ──────────────────────────────────────────────────
 
 
-async def register_user(db: AsyncSession, data: UserRegister) -> TokenResponse:
+async def register_user(db: AsyncSession, data: UserRegister) -> RegistrationResponse:
     """Create a new user account and return JWT token pair.
 
     Only INDIVIDUAL and VENDOR roles may self-register.
@@ -135,10 +284,18 @@ async def register_user(db: AsyncSession, data: UserRegister) -> TokenResponse:
 
     user = User(
         name=data.name,
+        username=await generate_unique_username(db, data.username or data.email.split("@")[0]),
         email=data.email.lower(),
         phone=data.phone,
+        address=data.address,
         password_hash=hash_password(data.password),
         role_id=role.id,
+        approval_status=_APPROVAL_PENDING if role_upper == "VENDOR" else _APPROVAL_APPROVED,
+        company_name=data.company_name if role_upper == "VENDOR" else None,
+        tax_id=data.tax_id if role_upper == "VENDOR" else None,
+        contact_person=data.contact_person if role_upper == "VENDOR" else None,
+        business_email=data.business_email.lower() if role_upper == "VENDOR" and data.business_email else None,
+        business_phone=data.business_phone if role_upper == "VENDOR" else None,
     )
     db.add(user)
     await db.flush()  # get id without committing (get_db commits on success)
@@ -146,21 +303,26 @@ async def register_user(db: AsyncSession, data: UserRegister) -> TokenResponse:
     # Eagerly load role for token building
     await db.refresh(user, attribute_names=["role"])
 
+    if role_upper == "VENDOR":
+        _queue_vendor_registration_notification(db, user)
+
     logger.info(f"New user registered: {user.email} (role={role.name})")
-    return _build_token_response(user)
+    return _build_registration_response(user)
 
 
-async def login_user(db: AsyncSession, data: UserLogin) -> TokenResponse:
-    """Authenticate credentials and return JWT token pair."""
-    user = await _get_user_by_email(db, data.email.lower())
+async def login_user(db: AsyncSession, data: UserLogin) -> LoginResponse:
+    """Authenticate credentials and return JWT token pair with user profile."""
+    user = await _get_user_by_identifier(db, data.email)
 
     # Constant-time check so timing attacks can't enumerate accounts
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Incorrect username/email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    _ensure_user_can_authenticate(user)
 
     if not user.is_active:
         raise HTTPException(
@@ -168,12 +330,15 @@ async def login_user(db: AsyncSession, data: UserLogin) -> TokenResponse:
             detail="Account is deactivated",
         )
 
+    user.last_login = datetime.now(timezone.utc)
+    db.add(user)
+    await db.flush()
     await db.refresh(user, attribute_names=["role"])
-    return _build_token_response(user)
+    return _build_login_response(user)
 
 
 async def refresh_tokens(
-    db: AsyncSession, redis: Redis, data: RefreshTokenRequest
+    db: AsyncSession, redis: Redis | None, data: RefreshTokenRequest
 ) -> TokenResponse:
     """Validate a refresh token and issue a new token pair."""
     payload = decode_token(data.refresh_token)
@@ -184,9 +349,9 @@ async def refresh_tokens(
             detail="Invalid token type",
         )
 
-    # Check blacklist
+    # Check blacklist (skip gracefully if Redis is unavailable)
     jti = payload.get("jti", "")
-    if await redis.get(f"{_BLACKLIST_PREFIX}{jti}"):
+    if redis and await redis.get(f"{_BLACKLIST_PREFIX}{jti}"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
@@ -199,11 +364,13 @@ async def refresh_tokens(
             detail="User not found or inactive",
         )
 
+    _ensure_user_session_valid(user)
+
     await db.refresh(user, attribute_names=["role"])
     return _build_token_response(user)
 
 
-async def logout_user(redis: Redis, access_token: str) -> None:
+async def logout_user(redis: Redis | None, access_token: str) -> None:
     """Blacklist the access token in Redis for the remainder of its lifetime."""
     payload = decode_token(access_token)
     jti = payload.get("jti")
@@ -212,15 +379,17 @@ async def logout_user(redis: Redis, access_token: str) -> None:
     if not jti or not exp:
         return  # malformed token — nothing to blacklist
 
-    ttl = int(exp - datetime.now(timezone.utc).timestamp())
-    if ttl > 0:
-        await redis.setex(f"{_BLACKLIST_PREFIX}{jti}", ttl, "1")
-
-    logger.info(f"Token blacklisted: jti={jti} ttl={max(ttl, 0)}s")
+    if redis:
+        ttl = int(exp - datetime.now(timezone.utc).timestamp())
+        if ttl > 0:
+            await redis.setex(f"{_BLACKLIST_PREFIX}{jti}", ttl, "1")
+        logger.info(f"Token blacklisted: jti={jti} ttl={max(ttl, 0)}s")
+    else:
+        logger.warning(f"Redis unavailable — token NOT blacklisted: jti={jti}")
 
 
 async def get_current_user_from_token(
-    db: AsyncSession, redis: Redis, token: str
+    db: AsyncSession, redis: Redis | None, token: str
 ) -> User:
     """Validate access token, check blacklist, and return the User model."""
     payload = decode_token(token)
@@ -231,8 +400,9 @@ async def get_current_user_from_token(
             detail="Invalid token type",
         )
 
+    # Check blacklist only when Redis is available
     jti = payload.get("jti", "")
-    if await redis.get(f"{_BLACKLIST_PREFIX}{jti}"):
+    if redis and await redis.get(f"{_BLACKLIST_PREFIX}{jti}"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
@@ -246,6 +416,8 @@ async def get_current_user_from_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    _ensure_user_session_valid(user)
+
     await db.refresh(user, attribute_names=["role"])
     return user
 
@@ -254,10 +426,16 @@ async def update_profile(
     db: AsyncSession, user: User, data: UserProfileUpdate
 ) -> UserProfile:
     """Update the authenticated user's name / phone."""
+    from datetime import date
+
     if data.name is not None:
         user.name = data.name
     if data.phone is not None:
         user.phone = data.phone
+    if data.date_of_birth is not None:
+        user.date_of_birth = date.fromisoformat(data.date_of_birth) if data.date_of_birth else None
+    if data.address is not None:
+        user.address = data.address
     db.add(user)
     await db.flush()
     await db.refresh(user, attribute_names=["role"])
@@ -279,80 +457,341 @@ async def change_password(
     logger.info(f"Password changed for user: {user.email}")
 
 
-async def forgot_password(db: AsyncSession, redis: Redis, data: ForgotPasswordRequest) -> None:
+async def forgot_password(db: AsyncSession, redis: Redis | None, data: ForgotPasswordRequest) -> None:
     """
-    Generate a password-reset token and store it in Redis (TTL 1 hour).
-    In Phase 1 the reset link is logged to console; real email fires in Phase 7.
+    Generate a 6-digit OTP for password reset and send via email.
+    The OTP is stored in Redis with a 10-minute TTL.
     """
+    import random
+    from app.utils.email import send_email, password_reset_email_html
+
     user = await _get_user_by_email(db, data.email.lower())
     # Always return 200 to prevent email enumeration
     if not user:
+        logger.info(f"[DEV] Password reset requested for non-existent email: {data.email}")
         return
 
-    token = secrets.token_hex(32)
-    await redis.setex(f"{_RESET_PREFIX}{token}", _RESET_TTL_SECONDS, str(user.id))
+    # Generate 6-digit OTP
+    otp = f"{random.randint(0, 999999):06d}"
+    reset_key = f"{_RESET_OTP_PREFIX}{data.email.lower()}"
+    if redis is not None:
+        await redis.setex(reset_key, _OTP_TTL_SECONDS, otp)
+    else:
+        _reset_otp_memory[data.email.lower()] = otp
 
-    reset_link = f"http://localhost:5173/reset-password?token={token}"
-    logger.info(f"[DEV] Password reset link for {user.email}: {reset_link}")
+    logger.info(f"[DEV] Password reset OTP for {user.email}: {otp}")
+
+    # Send email with OTP
+    await send_email(
+        to=user.email,
+        subject="Password Reset - Cargo Core",
+        html_body=password_reset_email_html(otp, user.email, user.name),
+    )
 
 
 async def reset_password(
-    db: AsyncSession, redis: Redis, data: ResetPasswordRequest
+    db: AsyncSession, redis: Redis | None, data: ResetPasswordRequest
 ) -> None:
-    """Consume the Redis reset token and update the user's password hash."""
-    redis_key = f"{_RESET_PREFIX}{data.token}"
-    user_id = await redis.get(redis_key)
+    """Validate the OTP and update the user's password hash."""
+    redis_key = f"{_RESET_OTP_PREFIX}{data.email.lower()}"
 
-    if not user_id:
+    if redis is not None:
+        raw = await redis.get(redis_key)
+        stored_otp_str = raw.decode() if isinstance(raw, bytes) else (str(raw) if raw else None)
+    else:
+        stored_otp_str = _reset_otp_memory.get(data.email.lower())
+
+    if not stored_otp_str:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reset token is invalid or has expired",
+            detail="Reset code is invalid or has expired",
         )
 
-    user = await _get_user_by_id(db, user_id.decode())
+    if stored_otp_str != data.token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid verification code",
+        )
+
+    # Find user by email
+    user = await _get_user_by_email(db, data.email.lower())
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
 
+    # Update password
     user.password_hash = hash_password(data.new_password)
     db.add(user)
     await db.flush()
 
-    # Consume the token (one-time use)
-    await redis.delete(redis_key)
+    # Consume the OTP (one-time use)
+    if redis is not None:
+        await redis.delete(redis_key)
+    else:
+        _reset_otp_memory.pop(data.email.lower(), None)
     logger.info(f"Password reset completed for user: {user.email}")
 
 
-async def send_signup_otp(redis: Redis, data: SendOTPRequest) -> None:
-    """Generate a 6-digit OTP, store in Redis, and send via email."""
+async def send_signup_otp(db: AsyncSession, redis: Redis | None, data: SendOTPRequest) -> SignupOtpSendResponse:
+    """Generate a 6-digit OTP, store it, and send via email."""
     import random
     from app.utils.email import send_email, otp_email_html
 
-    otp = f"{random.randint(0, 999999):06d}"
-    await redis.setex(f"{_OTP_PREFIX}{data.email.lower()}", _OTP_TTL_SECONDS, otp)
-    logger.info(f"[DEV] Signup OTP for {data.email}: {otp}")
+    # Check if email already exists to provide early feedback
+    email = data.email.lower()
+    existing = await _get_user_by_email(db, email)
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A user with this email already exists",
+        )
 
-    await send_email(
-        to=data.email,
+    otp = f"{random.randint(0, 999999):06d}"
+    key = f"{_OTP_PREFIX}{email}"
+    sent_at = datetime.now(timezone.utc)
+    if redis is not None:
+        await redis.setex(key, _OTP_TTL_SECONDS, otp)
+    else:
+        _otp_memory[email] = otp
+    logger.info(f"[DEV] Signup OTP for {email}: {otp}")
+
+    sent = await send_email(
+        to=email,
         subject="Your Cargo Core Verification Code",
-        html_body=otp_email_html(otp, data.email),
+        html_body=otp_email_html(otp, email),
+    )
+    if not sent:
+        if settings.is_production:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Signup OTP email could not be sent. Check SMTP configuration.",
+            )
+
+        logger.warning("[EMAIL] Signup OTP generated without email delivery in development for {}", email)
+        return SignupOtpSendResponse(
+            message="Signup OTP generated (email unavailable in development)",
+            email=email,
+            sent_at=sent_at,
+            debug_otp=otp,
+        )
+
+    return SignupOtpSendResponse(
+        message="Signup OTP sent successfully",
+        email=email,
+        sent_at=sent_at,
     )
 
 
-async def verify_signup_otp(redis: Redis, data: VerifyOTPRequest) -> OTPVerifiedResponse:
+async def verify_signup_otp(redis: Redis | None, data: VerifyOTPRequest) -> OTPVerifiedResponse:
     """Verify the signup OTP sent to the user's email."""
     key = f"{_OTP_PREFIX}{data.email.lower()}"
-    stored_otp = await redis.get(key)
 
-    if not stored_otp or stored_otp.decode() != data.otp:
+    if redis is not None:
+        stored_otp = await redis.get(key)
+        stored_otp_str = stored_otp.decode() if isinstance(stored_otp, bytes) else (str(stored_otp) if stored_otp else None)
+    else:
+        stored_otp_str = _otp_memory.get(data.email.lower())
+
+    if not stored_otp_str:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP. Please request a new one.",
+        )
+
+    if stored_otp_str != data.otp:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OTP. Please request a new one.",
         )
 
     # Consume OTP — one time use
-    await redis.delete(key)
+    if redis is not None:
+        await redis.delete(key)
+    else:
+        _otp_memory.pop(data.email.lower(), None)
+
     logger.info(f"Email verified via OTP: {data.email}")
     return OTPVerifiedResponse(verified=True, message="Email verified successfully!")
+
+
+# Roles allowed to use OTP login (only self-service roles with real Gmail accounts)
+_OTP_LOGIN_ALLOWED_ROLES = frozenset({"INDIVIDUAL", "VENDOR"})
+
+
+async def send_login_otp(db: AsyncSession, redis: Redis | None, data: SendOTPRequest) -> SignupOtpSendResponse:
+    """Send a login OTP to an existing INDIVIDUAL or VENDOR user's email."""
+    import random
+    from app.utils.email import send_email, otp_email_html
+
+    email = data.email.lower()
+    user = await _get_user_by_email(db, email)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No account found with this email address.",
+        )
+
+    await db.refresh(user, attribute_names=["role"])
+
+    if user.role.name not in _OTP_LOGIN_ALLOWED_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="OTP login is only available for customer and vendor accounts.",
+        )
+
+    _ensure_user_can_authenticate(user)
+
+    otp = f"{random.randint(0, 999999):06d}"
+    key = f"{_LOGIN_OTP_PREFIX}{email}"
+    sent_at = datetime.now(timezone.utc)
+    if redis is not None:
+        await redis.setex(key, _OTP_TTL_SECONDS, otp)
+    else:
+        _login_otp_memory[email] = otp
+    logger.info(f"[DEV] Login OTP for {email}: {otp}")
+
+    sent = await send_email(
+        to=email,
+        subject="Your Cargo Core Login Code",
+        html_body=otp_email_html(otp, email),
+    )
+    if not sent:
+        if settings.is_production:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Login OTP email could not be sent. Check SMTP configuration.",
+            )
+        logger.warning("[EMAIL] Login OTP generated without email delivery in development for {}", email)
+        return SignupOtpSendResponse(
+            message="Login OTP generated (email unavailable in development)",
+            email=email,
+            sent_at=sent_at,
+            debug_otp=otp,
+        )
+
+    return SignupOtpSendResponse(message="Login OTP sent successfully", email=email, sent_at=sent_at)
+
+
+async def verify_login_otp(db: AsyncSession, redis: Redis | None, data: VerifyOTPRequest) -> LoginResponse:
+    """Verify a login OTP and return JWT tokens."""
+    email = data.email.lower()
+    key = f"{_LOGIN_OTP_PREFIX}{email}"
+
+    if redis is not None:
+        stored = await redis.get(key)
+        stored_otp = stored.decode() if isinstance(stored, bytes) else (str(stored) if stored else None)
+    else:
+        stored_otp = _login_otp_memory.get(email)
+
+    if not stored_otp or stored_otp != data.otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP. Please request a new one.",
+        )
+
+    if redis is not None:
+        await redis.delete(key)
+    else:
+        _login_otp_memory.pop(email, None)
+
+    user = await _get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    await db.refresh(user, attribute_names=["role"])
+    _ensure_user_can_authenticate(user)
+    logger.info(f"Login via OTP for user: {email}")
+    return _build_login_response(user)
+
+
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
+async def google_login_or_register(db: AsyncSession, redis: Redis, data: GoogleLoginRequest) -> LoginResponse:
+    try:
+        if not settings.google_client_id:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Google login is not configured on the server.",
+            )
+
+        idinfo = id_token.verify_oauth2_token(
+            data.credential,
+            google_requests.Request(),
+            settings.google_client_id,
+            clock_skew_in_seconds=10,
+        )
+
+        if not idinfo.get("email_verified", False):
+            raise HTTPException(status_code=400, detail="Google account email is not verified")
+        
+        email = idinfo['email']
+        name = idinfo.get('name', email.split('@')[0])
+        
+        # check if user exists
+        query = select(User).where(User.email == email)
+        result = await db.execute(query)
+        user = result.scalars().first()
+
+        if user:
+            # Allow existing users to log in with Google
+            _ensure_user_can_authenticate(user)
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Account is deactivated",
+                )
+            await db.refresh(user, attribute_names=["role"])
+            return _build_login_response(user)
+        else:
+            # register flow
+            role_result = await db.execute(select(Role).where(Role.name == data.role.upper()))
+            role = role_result.scalars().first()
+            if not role:
+                raise HTTPException(status_code=400, detail='Role not found.')
+                
+            dummy_password = secrets.token_urlsafe(16)
+            hashed_pwd = hash_password(dummy_password)
+            user = User(
+                name=name,
+                username=await generate_unique_username(db, email.split('@')[0]),
+                email=email,
+                phone="",
+                address="",
+                password_hash=hashed_pwd,
+                role_id=role.id,
+                is_active=True,
+                approval_status=_APPROVAL_PENDING if role.name == "VENDOR" else _APPROVAL_APPROVED,
+                company_name=name if role.name == "VENDOR" else None,
+                contact_person=name if role.name == "VENDOR" else None,
+                business_email=email if role.name == "VENDOR" else None,
+            )
+            db.add(user)
+            if role.name == "VENDOR":
+                _queue_vendor_registration_notification(db, user)
+            await db.commit()
+            await db.refresh(user, attribute_names=["role"])
+
+            if role.name == "VENDOR":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Vendor registration submitted successfully. A Logistics Manager must approve it before login.",
+                )
+
+        user.last_login = datetime.now(timezone.utc)
+        db.add(user)
+        await db.flush()
+        return _build_login_response(user)
+
+    except ValueError as e:
+        logger.warning(
+            "Google token verification failed: {} | client_id={} | token_prefix={}",
+            str(e),
+            settings.google_client_id,
+            data.credential[:24] if data.credential else "",
+        )
+        raise HTTPException(status_code=400, detail=f"Invalid Google token: {str(e)}")
+

@@ -163,7 +163,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useVendorStore } from '@/stores/vendorStore'
 import BaseModal from '@/components/BaseModal.vue'
 
@@ -208,22 +208,22 @@ const notificationDescs = {
     promotions: 'Product updates and offers',
 }
 
-function saveGeneral() {
-    store.updateCompanySettings(settings)
+async function saveGeneral() {
+    await store.updateCompanySettings(settings)
     showToast('Profile updated')
 }
 
-function addMember() {
+async function addMember() {
     if (!memberForm.value.name || !memberForm.value.email) return
-    store.addTeamMember({ ...memberForm.value })
+    await store.addTeamMember({ ...memberForm.value })
     showAddMember.value = false
     memberForm.value = { name: '', email: '', role: 'Viewer' }
     showToast('Member added')
 }
 
-function removeMember(m) {
+async function removeMember(m) {
     if (!confirm(`Remove ${m.name}?`)) return
-    store.removeTeamMember(m.id)
+    await store.removeTeamMember(m.id)
     showToast('Member removed')
 }
 
@@ -231,20 +231,21 @@ function toggleNotification(key) {
     store.companySettings.notifications[key] = !store.companySettings.notifications[key]
 }
 
-function saveNotifications() {
+async function saveNotifications() {
+    await store.updateCompanySettings(settings)
     showToast('Notification preferences saved')
 }
 
-function generateKey() {
+async function generateKey() {
     const name = newKeyName.value.trim() || `Key ${store.companySettings.apiKeys.length + 1}`
-    store.generateApiKey(name)
+    await store.generateApiKey(name)
     newKeyName.value = ''
     showToast('API key generated')
 }
 
-function revokeKey(key) {
+async function revokeKey(key) {
     if (!confirm(`Revoke key "${key.name}"?`)) return
-    store.revokeApiKey(key.id)
+    await store.revokeApiKey(key.id)
     showToast('API key revoked')
 }
 
@@ -260,5 +261,16 @@ function showToast(msg) {
     document.body.appendChild(t)
     setTimeout(() => t.remove(), 3000)
 }
+
+onMounted(async () => {
+    await store.initializeVendorData().catch(() => {})
+    Object.assign(settings, {
+        companyName: store.companySettings.companyName,
+        taxId: store.companySettings.taxId,
+        contactPerson: store.companySettings.contactPerson,
+        phone: store.companySettings.phone,
+        email: store.companySettings.email,
+    })
+})
 
 </script>

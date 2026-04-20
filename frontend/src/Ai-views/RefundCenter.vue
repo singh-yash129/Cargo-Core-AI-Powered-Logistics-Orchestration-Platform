@@ -1,236 +1,114 @@
 <template>
     <div class="space-y-6">
+
+        <!-- Page Header -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Refund Center</h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage refund requests, analyze risk, and
-                    configure auto-approval rules</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Track refund cases and flag urgent
+                    situations</p>
             </div>
-            <div class="flex gap-2">
-                <div class="relative hidden sm:block">
-                    <input v-model="searchQuery" type="text" placeholder="Search refunds or customers..."
-                        class="w-64 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-purple-500 transition-colors shadow-sm">
-                    <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-lg">search</span>
-                </div>
-                <button @click="showAddRefundModal = true"
-                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg flex items-center gap-2 transition-colors shadow-sm text-sm">
-                    <span class="material-symbols-outlined text-sm">add</span> <span class="hidden sm:inline">Issue
-                        Refund</span>
-                </button>
+            <div class="relative">
+                <input v-model="search" type="text" placeholder="Search refund cases..."
+                    class="w-52 bg-white dark:bg-[#1a1a2e] border border-gray-200 dark:border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors" />
+                <span class="material-symbols-outlined absolute left-2.5 top-2 text-gray-400 text-[18px]">search</span>
             </div>
         </div>
 
-        <!-- Top Metrics & Rules -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Stats -->
-            <div class="space-y-6">
-                <div
-                    class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 p-6 rounded-xl shadow-sm bg-gradient-to-br from-green-50 dark:from-green-900/20 to-white dark:to-transparent flex flex-col justify-between">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider">Total
-                            Refunded (MTD)</div>
-                        <div class="p-2 bg-green-100 dark:bg-green-500/20 rounded-lg">
-                            <span
-                                class="material-symbols-outlined text-green-600 dark:text-green-400 text-xl">payments</span>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-white">$4,250.00</div>
-                        <div class="text-xs text-green-600 dark:text-green-400 mt-2 flex items-center gap-1 font-bold">
-                            <span class="material-symbols-outlined text-[14px]">trending_down</span> 12% decrease vs
-                            last month
-                        </div>
-                    </div>
+        <!-- Stats Strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div v-for="stat in statCards" :key="stat.label"
+                class="bg-white dark:bg-card-darker rounded-xl border border-gray-100 dark:border-white/5 p-4 flex items-center gap-3 shadow-sm">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" :class="stat.bg">
+                    <span class="material-symbols-outlined text-[20px]" :class="stat.iconColor">{{ stat.icon }}</span>
                 </div>
-
-                <div
-                    class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 p-6 rounded-xl shadow-sm flex flex-col justify-between">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider">Pending
-                            Review</div>
-                        <div class="p-2 bg-purple-50 dark:bg-purple-500/10 rounded-lg">
-                            <span
-                                class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-xl">pending_actions</span>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex items-end gap-3">
-                            <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ pendingCount }}</div>
-                            <div class="text-sm text-gray-500 mb-1">Requests</div>
-                        </div>
-                        <button @click="showProcessModal = true"
-                            class="w-full mt-4 py-2 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 rounded-lg text-sm font-bold hover:bg-purple-600 hover:text-white transition-colors flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined text-sm">fact_check</span> Batch Review
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Auto-Refund Rules -->
-            <div
-                class="lg:col-span-2 bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 p-6 rounded-xl shadow-sm">
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <span class="material-symbols-outlined text-purple-500">smart_toy</span> AI Auto-Refund
-                            Rules
-                        </h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Configure automated rules to process
-                            low-risk refunds instantly.</p>
-                    </div>
-                    <button @click="showAddRuleModal = true"
-                        class="px-3 py-1.5 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[14px]">add</span> New Rule
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div v-for="rule in rules" :key="rule.id"
-                        class="flex flex-col p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 hover:border-purple-200 dark:hover:border-purple-500/30 transition-colors group">
-                        <div class="flex items-start justify-between mb-2">
-                            <div class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                {{ rule.name }}
-                            </div>
-                            <!-- Custom Toggle -->
-                            <button @click="rule.enabled = !rule.enabled"
-                                class="w-9 h-5 rounded-full relative transition-colors"
-                                :class="rule.enabled ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'">
-                                <div class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
-                                    :class="rule.enabled ? 'right-0.5' : 'left-0.5'"></div>
-                            </button>
-                        </div>
-                        <div
-                            class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-auto pt-2 border-t border-gray-200 dark:border-white/10">
-                            <span class="material-symbols-outlined text-[14px]">turn_right</span> Action: <strong
-                                class="text-gray-700 dark:text-gray-300">{{ rule.action }}</strong>
-                        </div>
-                    </div>
-                </div>
-                <div
-                    class="mt-4 p-3 bg-blue-50 dark:bg-blue-500/10 rounded-lg flex items-start gap-2 border border-blue-100 dark:border-blue-500/20 text-xs text-blue-800 dark:text-blue-300">
-                    <span class="material-symbols-outlined text-[16px] mt-0.5">info</span>
-                    <p>Rules only apply to requests where AI computes Fraud Risk &lt; 15%. High risk requests always
-                        require manual review.</p>
+                <div>
+                    <div class="text-2xl font-black text-gray-900 dark:text-white">{{ stat.value }}</div>
+                    <div class="text-[11px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">{{
+                        stat.label }}</div>
                 </div>
             </div>
         </div>
 
-        <!-- Refund Requests Table -->
+        <!-- Filter Tabs -->
         <div
-            class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-xl overflow-hidden shadow-sm">
-            <div
-                class="p-4 sm:p-6 border-b border-gray-100 dark:border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50 dark:bg-white/5">
-                <h3 class="font-bold text-gray-900 dark:text-white">Refund Requests Queue</h3>
+            class="flex gap-1 bg-white dark:bg-black/20 p-1 rounded-lg border border-gray-200 dark:border-white/10 w-fit flex-wrap">
+            <button v-for="tab in filterTabs" :key="tab.id" @click="activeTab = tab.id"
+                class="px-3 py-1.5 rounded-md text-xs font-bold transition-all"
+                :class="activeTab === tab.id ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'">
+                {{ tab.label }}
+            </button>
+        </div>
 
-                <!-- Filter Tabs -->
-                <div
-                    class="flex bg-gray-200 dark:bg-white/10 rounded-lg p-1 overflow-x-auto no-scrollbar w-full sm:w-auto">
-                    <button v-for="filter in ['All', 'Pending Review', 'Approved', 'Rejected']" :key="filter"
-                        @click="activeListFilter = filter"
-                        class="px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap"
-                        :class="activeListFilter === filter ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'">
-                        {{ filter }}
-                    </button>
-                </div>
-            </div>
+        <!-- Loading / Error -->
+        <div v-if="store.loading"
+            class="rounded-xl border border-gray-100 dark:border-white/5 bg-white dark:bg-card-darker p-6 text-sm text-gray-500 dark:text-gray-400">
+            Loading refund cases...
+        </div>
+        <div v-else-if="store.error"
+            class="rounded-xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
+            {{ store.error }}
+        </div>
 
+        <!-- Table -->
+        <div v-else
+            class="bg-white dark:bg-card-darker rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm min-w-[1000px]">
-                    <thead
-                        class="bg-gray-50 dark:bg-black/40 text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider font-bold">
-                        <tr>
-                            <th class="p-4 pl-6 w-32">Date & ID</th>
-                            <th class="p-4">Customer Details</th>
-                            <th class="p-4">Amount & Reason</th>
-                            <th class="p-4">AI Risk & Status</th>
-                            <th class="p-4 text-right pr-6">Action</th>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/2">
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ref</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Original</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Refund</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Flags</th>
+                            <th class="text-left px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Sentiment</th>
+                            <th class="text-right px-5 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                        <tr v-for="refund in filteredRefunds" :key="refund.id"
-                            class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer"
-                            @click="openRefundDetail(refund)">
-
-                            <td class="p-4 pl-6">
-                                <div
-                                    class="font-mono text-xs font-bold px-2 py-1 rounded bg-gray-100 dark:bg-white/10 inline-block text-gray-800 dark:text-gray-200 mb-1">
-                                    {{ refund.reqId }}
-                                </div>
-                                <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ refund.date }}</div>
-                            </td>
-
-                            <td class="p-4">
-                                <div class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                    <div
-                                        class="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-[10px]">
-                                        {{ refund.initials }}
-                                    </div>
-                                    {{ refund.customer }}
-                                </div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[12px]">receipt</span> Order #{{
-                                    refund.orderId }}
-                                </div>
-                            </td>
-
-                            <td class="p-4">
-                                <div class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1">
-                                    ${{ refund.amount.toFixed(2) }}
-                                </div>
-                                <div class="text-[10px] mt-1 flex gap-1 items-center">
-                                    <span
-                                        class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 shrink-0">{{
-                                        refund.type }}</span>
-                                    <span class="text-gray-500 truncate max-w-[150px] inline-block">{{ refund.reason
-                                        }}</span>
-                                </div>
-                            </td>
-
-                            <td class="p-4">
-                                <div class="flex flex-col items-start gap-1.5">
-                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border"
-                                        :class="refund.statusClass">
-                                        {{ refund.status }}
-                                    </span>
-                                    <span v-if="refund.status === 'Pending Review'"
-                                        class="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded"
-                                        :class="refund.riskScore > 50 ? 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-500/10' : 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-500/10'">
-                                        <span class="material-symbols-outlined text-[12px]">{{ refund.riskScore > 50 ?
-                                            'warning' : 'verified' }}</span>
-                                        Risk: {{ refund.riskScore }}%
-                                    </span>
-                                </div>
-                            </td>
-
-                            <td class="p-4 pr-6">
-                                <div class="flex justify-end gap-2">
-                                    <button @click.stop="openRefundDetail(refund)"
-                                        class="p-2 bg-gray-100 dark:bg-white/5 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors tooltip-trigger relative">
-                                        <span class="material-symbols-outlined text-sm">visibility</span>
-                                        <span class="tooltip">View Details</span>
-                                    </button>
-
-                                    <template v-if="refund.status === 'Pending Review'">
-                                        <button @click.stop="approveRefund(refund)"
-                                            class="px-2.5 py-1.5 bg-green-100 hover:bg-green-200 dark:bg-green-500/20 dark:hover:bg-green-500/30 text-green-700 dark:text-green-400 text-xs font-bold rounded-lg transition-colors border border-green-200 dark:border-green-500/30">
-                                            Approve
-                                        </button>
-                                        <button @click.stop="rejectRefund(refund)"
-                                            class="px-2.5 py-1.5 bg-red-100 hover:bg-red-200 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-red-700 dark:text-red-400 text-xs font-bold rounded-lg transition-colors border border-red-200 dark:border-red-500/30">
-                                            Reject
-                                        </button>
-                                    </template>
-                                </div>
+                    <tbody>
+                        <tr v-if="filtered.length === 0">
+                            <td colspan="8" class="text-center py-16 text-gray-400 dark:text-gray-600">
+                                <span class="material-symbols-outlined text-4xl mb-2 block">currency_exchange</span>
+                                No refund cases found
                             </td>
                         </tr>
-
-                        <tr v-if="filteredRefunds.length === 0">
-                            <td colspan="5" class="p-8 text-center text-gray-500 dark:text-gray-400">
-                                <div class="flex flex-col items-center justify-center">
-                                    <span
-                                        class="material-symbols-outlined text-4xl mb-2 text-gray-300 dark:text-gray-600">receipt_long</span>
-                                    <p>No refund requests found matching your criteria.</p>
+                        <tr v-for="row in filtered" :key="row.id"
+                            class="border-b border-gray-50 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+                            @click="openDetail(row)">
+                            <td class="px-5 py-3.5">
+                                <span class="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded">{{ row.reference_code }}</span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <div class="font-medium text-gray-900 dark:text-white text-sm">{{ row.customer_name }}</div>
+                            </td>
+                            <td class="px-5 py-3.5 hidden md:table-cell text-sm text-gray-700 dark:text-gray-300">₹{{ formatAmount(row.original_price) }}</td>
+                            <td class="px-5 py-3.5 text-sm font-semibold text-green-700 dark:text-green-400">₹{{ formatAmount(row.refund_amount) }}</td>
+                            <td class="px-5 py-3.5">
+                                <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="statusStyle(row.status)">{{ row.status }}</span>
+                            </td>
+                            <td class="px-5 py-3.5 hidden lg:table-cell">
+                                <div class="flex flex-wrap gap-1">
+                                    <span v-if="row.is_urgent"
+                                        class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                                        Urgent
+                                    </span>
+                                    <span v-if="isChargebackRisk(row)"
+                                        class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400">
+                                        Chargeback
+                                    </span>
                                 </div>
+                            </td>
+                            <td class="px-5 py-3.5 hidden lg:table-cell">
+                                <span v-if="row.sentiment" class="text-xs font-medium px-2 py-0.5 rounded-full" :class="sentimentStyle(row.sentiment)">{{ row.sentiment }}</span>
+                                <span v-else class="text-gray-400 text-xs">&#8212;</span>
+                            </td>
+                            <td class="px-5 py-3.5 text-right" @click.stop>
+                                <button @click="openDetail(row)" title="View"
+                                    class="p-1.5 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-500/10 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                                    <span class="material-symbols-outlined text-[18px]">open_in_new</span>
+                                </button>
                             </td>
                         </tr>
                     </tbody>
@@ -238,459 +116,312 @@
             </div>
         </div>
 
-        <!-- Details Modal -->
+        <!-- Case Detail Drawer -->
         <Teleport to="body">
-            <div v-if="showDetailModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
-                @click.self="showDetailModal = false">
-                <div
-                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
-                    <div
-                        class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-start bg-gray-50 dark:bg-white/5">
-                        <div>
-                            <div class="flex items-center gap-3 mb-2">
-                                <div
-                                    class="font-mono text-sm font-bold bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 px-2 py-1 rounded inline-block text-gray-800 dark:text-gray-200">
-                                    {{ selectedRefund?.reqId }}
-                                </div>
-                                <span class="px-2.5 py-1 rounded-full text-xs font-bold border"
-                                    :class="selectedRefund?.statusClass">
-                                    {{ selectedRefund?.status }}
-                                </span>
-                            </div>
-                            <h3 class="text-xl font-bold text-gray-900 dark:text-white mt-1">Refund Details</h3>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Requested Amount</div>
-                            <div class="text-3xl font-bold text-gray-900 dark:text-white">${{
-                                selectedRefund?.amount.toFixed(2)
-                                }}</div>
-                        </div>
-                    </div>
+            <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0"
+                enter-to-class="opacity-100">
+                <div v-if="selected"
+                    class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-end"
+                    @click.self="selected = null">
+                    <div class="w-full max-w-2xl h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto flex flex-col">
 
-                    <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-black/10 space-y-6">
-                        <!-- Customer & Order Info -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div
-                                class="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-white/5">
-                                <h4
-                                    class="text-xs uppercase font-bold text-gray-400 tracking-wider mb-3 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[14px]">person</span> Customer Profile
-                                </h4>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500">Name</span>
-                                        <span class="text-sm font-bold text-gray-900 dark:text-white">{{
-                                            selectedRefund?.customer }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500">LTV</span>
-                                        <span class="text-sm font-bold text-green-600 dark:text-green-400">${{
-                                            selectedRefund?.ltv || '1,450.00' }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500">Prior Refunds</span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-gray-300">{{
-                                            selectedRefund?.priorRefunds || 0 }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                class="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-white/5">
-                                <h4
-                                    class="text-xs uppercase font-bold text-gray-400 tracking-wider mb-3 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[14px]">receipt_long</span> Order
-                                    Information
-                                </h4>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500">Order ID</span>
-                                        <span class="text-sm font-bold text-purple-600 dark:text-purple-400">{{
-                                            selectedRefund?.orderId }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500">Order Date</span>
-                                        <span class="text-sm text-gray-900 dark:text-gray-300">Oct 15, 2024</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-sm text-gray-500">Payment Method</span>
-                                        <span class="text-sm text-gray-900 dark:text-gray-300">Visa ending in
-                                            4242</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Refund Reason -->
-                        <div
-                            class="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-white/5">
-                            <h4 class="text-xs uppercase font-bold text-gray-400 tracking-wider mb-3">Claim details</h4>
-                            <div class="flex gap-2 mb-2">
-                                <span
-                                    class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs font-bold">{{
-                                    selectedRefund?.type }}</span>
-                            </div>
-                            <p
-                                class="text-sm text-gray-700 dark:text-gray-300 italic border-l-2 border-gray-300 dark:border-gray-600 pl-3">
-                                "{{ selectedRefund?.reason }}"
-                            </p>
-                        </div>
-
-                        <!-- AI Insight -->
-                        <div class="rounded-xl p-4 flex items-start gap-3 border"
-                            :class="selectedRefund?.riskScore > 50 ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20' : 'bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20'">
-                            <span class="material-symbols-outlined mt-0.5"
-                                :class="selectedRefund?.riskScore > 50 ? 'text-red-600 dark:text-red-400' : 'text-purple-600 dark:text-purple-400'">
-                                smart_toy
-                            </span>
+                        <!-- Header -->
+                        <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-white/10 px-6 py-4 flex items-center justify-between z-10">
                             <div>
-                                <div class="flex items-center justify-between mb-1">
-                                    <h4 class="text-sm font-bold"
-                                        :class="selectedRefund?.riskScore > 50 ? 'text-red-900 dark:text-red-300' : 'text-purple-900 dark:text-purple-300'">
-                                        AI Fraud risk assessment</h4>
-                                    <span class="text-xs font-bold px-2 py-0.5 rounded"
-                                        :class="selectedRefund?.riskScore > 50 ? 'bg-red-200 dark:bg-red-500/30 text-red-800 dark:text-red-200' : 'bg-purple-200 dark:bg-purple-500/30 text-purple-800 dark:text-purple-200'">
-                                        Risk: {{ selectedRefund?.riskScore }}%
-                                    </span>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded">{{ selected.reference_code }}</span>
+                                    <span v-if="selected.is_urgent" class="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400">Urgent</span>
+                                    <span v-if="isChargebackRisk(selected)" class="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400">Chargeback Risk</span>
                                 </div>
-                                <p class="text-xs mt-1"
-                                    :class="selectedRefund?.riskScore > 50 ? 'text-red-700 dark:text-red-400' : 'text-purple-700 dark:text-purple-400'">
-                                    {{ selectedRefund?.riskScore > 50 ? 'High Risk: Customer has requested 3 refunds in the last 30 days for similar items.Manual verification strongly recommended before approval.' : 'Low Risk: Customer has high lifetime value and no previous refund history.Pattern matches standard courier delay metrics.' }}
-                                </p>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white mt-1">{{ selected.customer_name }}</h3>
                             </div>
-                        </div>
-
-                    </div>
-
-                    <div class="p-6 border-t border-gray-100 dark:border-white/5 flex gap-3 bg-gray-50 dark:bg-white/5">
-                        <button @click="showDetailModal = false"
-                            class="px-6 py-2.5 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors shadow-sm">
-                            Close
-                        </button>
-                        <div class="flex-1 flex justify-end gap-2" v-if="selectedRefund?.status === 'Pending Review'">
-                            <button @click="rejectRefund(selectedRefund); showDetailModal = false"
-                                class="px-6 py-2.5 bg-red-100 hover:bg-red-200 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-red-700 dark:text-red-400 font-bold rounded-xl transition-colors border border-red-200 dark:border-red-500/30">
-                                Reject Refund
-                            </button>
-                            <button @click="approveRefund(selectedRefund); showDetailModal = false"
-                                class="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2">
-                                <span class="material-symbols-outlined text-sm">thumb_up</span> Approve ${{
-                                selectedRefund.amount.toFixed(2) }}
+                            <button @click="selected = null"
+                                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 transition-colors">
+                                <span class="material-symbols-outlined">close</span>
                             </button>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
 
-        <!-- Process Modal -->
-        <Teleport to="body">
-            <div v-if="showProcessModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-                @click.self="showProcessModal = false">
-                <div
-                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 dark:border-white/5 bg-purple-50 dark:bg-purple-900/10">
-                        <div class="flex items-center gap-3">
-                            <span
-                                class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-3xl">fact_check</span>
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Batch Process Refunds</h3>
-                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ pendingCount }} requests
-                                    pending
-                                    your review.</p>
-                            </div>
-                        </div>
-                    </div>
+                        <!-- Body: two-column -->
+                        <div class="flex-1 p-6 flex gap-6">
 
-                    <div
-                        class="p-4 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-500/20 text-xs text-blue-800 dark:text-blue-300 flex gap-2">
-                        <span class="material-symbols-outlined text-[16px]">info</span>
-                        Focus on High-Risk items manually. Use AI Auto-Approve for low-risk items below $50.
-                    </div>
+                            <!-- Left -->
+                            <div class="flex-1 space-y-6 min-w-0">
 
-                    <div class="p-6 space-y-3 max-h-[40vh] overflow-y-auto custom-scrollbar">
-                        <div v-for="ref in refunds.filter(r => r.status === 'Pending Review')" :key="ref.id"
-                            class="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5 gap-4">
-                            <div>
-                                <div class="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                                    {{ ref.customer }}
-                                    <span class="text-xs text-green-600 dark:text-green-400 font-bold">${{
-                                        ref.amount.toFixed(2)
-                                        }}</span>
+                                <!-- Info Grid -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Status</div>
+                                        <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="statusStyle(selected.status)">{{ selected.status }}</span>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Flow</div>
+                                        <span class="text-xs font-medium px-2 py-0.5 rounded-full" :class="flowStyle(selected.flow_type)">{{ flowLabel(selected.flow_type) }}</span>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Original Price</div>
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-white">₹{{ formatAmount(selected.original_price) }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Refund Amount</div>
+                                        <div class="text-sm font-semibold text-green-700 dark:text-green-400">₹{{ formatAmount(selected.refund_amount) }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Filed</div>
+                                        <div class="text-xs font-semibold text-gray-900 dark:text-white">{{ formatFull(selected.created_at) }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Updated</div>
+                                        <div class="text-xs font-semibold text-gray-900 dark:text-white">{{ formatFull(selected.updated_at) }}</div>
+                                    </div>
                                 </div>
-                                <div class="text-xs text-gray-500 mt-1">{{ ref.type }}</div>
-                                <div class="text-[10px] mt-1 font-bold"
-                                    :class="ref.riskScore > 50 ? 'text-red-500' : 'text-green-500'">AI Risk: {{
-                                    ref.riskScore
-                                    }}%</div>
+
+                                <!-- Refund Timeline -->
+                                <div>
+                                    <div class="text-xs font-bold text-gray-500 uppercase mb-3">Refund Timeline</div>
+                                    <div class="relative">
+                                        <div class="absolute left-3.5 top-0 h-full w-0.5 bg-gray-200 dark:bg-white/10"></div>
+                                        <div v-for="(step, idx) in timelineSteps" :key="idx" class="relative flex items-start gap-3 mb-4">
+                                            <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 z-10 border-2"
+                                                :class="step.done ? 'bg-purple-600 border-purple-600' : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-white/20'">
+                                                <span class="material-symbols-outlined text-[14px]" :class="step.done ? 'text-white' : 'text-gray-400'">{{ step.icon }}</span>
+                                            </div>
+                                            <div class="pt-0.5">
+                                                <div class="text-sm font-semibold" :class="step.done ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'">{{ step.label }}</div>
+                                                <div class="text-xs text-gray-500">{{ step.desc }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Urgency Flag -->
+                                <div class="border-t border-gray-100 dark:border-white/10 pt-5">
+                                    <div class="text-xs font-bold text-gray-500 uppercase mb-3">Urgency Flag</div>
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <button @click="toggleUrgent"
+                                            class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
+                                            :class="urgentDraft ? 'border-red-400 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300'">
+                                            {{ urgentDraft ? 'Marked Urgent' : 'Mark as Urgent' }}
+                                        </button>
+                                        <button v-if="urgentDraft" @click="toggleUrgent"
+                                            class="px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 transition-all">
+                                            Clear
+                                        </button>
+                                    </div>
+                                    <textarea v-if="urgentDraft" v-model="urgentReason" rows="2"
+                                        placeholder="Reason (e.g. customer threatened chargeback)..."
+                                        class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500 transition resize-none mb-2"></textarea>
+                                    <button @click="saveUrgent" :disabled="savingUrgent"
+                                        class="px-4 py-2 bg-gray-800 dark:bg-white/10 hover:bg-gray-900 dark:hover:bg-white/20 text-white font-bold rounded-lg text-xs transition-colors disabled:opacity-50">
+                                        {{ savingUrgent ? 'Saving...' : 'Save Flag' }}
+                                    </button>
+                                </div>
+
+                                <!-- Support Notes (read-only from damage_report side) -->
+                                <div class="border-t border-gray-100 dark:border-white/10 pt-5">
+                                    <div class="text-xs font-bold text-gray-500 uppercase mb-2">Support Notes</div>
+                                    <div v-if="selected.support_notes" class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ selected.support_notes }}</div>
+                                    <div v-else class="text-xs text-gray-400">No support notes on this case.</div>
+                                </div>
                             </div>
-                            <div class="flex gap-2 shrink-0">
-                                <button @click="approveRefund(ref)"
-                                    class="p-2 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-500/30 border border-green-200 dark:border-green-500/30 transition-colors"
-                                    title="Approve">
-                                    <span class="material-symbols-outlined text-sm">check</span>
-                                </button>
-                                <button @click="rejectRefund(ref)"
-                                    class="p-2 bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-500/30 border border-red-200 dark:border-red-500/30 transition-colors"
-                                    title="Reject">
-                                    <span class="material-symbols-outlined text-sm">close</span>
-                                </button>
+
+                            <!-- Right: Customer History Sidebar -->
+                            <div class="w-44 flex-shrink-0 space-y-3">
+                                <div class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer History</div>
+                                <div v-if="loadingHistory" class="text-xs text-gray-400">Loading...</div>
+                                <template v-else-if="customerHistory">
+                                    <div v-for="item in customerHistoryCards" :key="item.label"
+                                        class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 text-center">
+                                        <div class="text-xl font-black" :class="item.color">{{ item.value }}</div>
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">{{ item.label }}</div>
+                                    </div>
+                                    <div v-if="customerHistory.last_sentiment"
+                                        class="p-3 rounded-xl border text-center text-xs font-bold"
+                                        :class="sentimentStyle(customerHistory.last_sentiment)">
+                                        {{ customerHistory.last_sentiment }}
+                                    </div>
+                                </template>
+                                <div v-else class="text-xs text-gray-400">N/A</div>
                             </div>
                         </div>
-                        <div v-if="pendingCount === 0"
-                            class="text-center text-gray-500 dark:text-gray-400 py-8 flex flex-col items-center">
-                            <span
-                                class="material-symbols-outlined text-4xl mb-2 text-gray-300 dark:text-gray-600">done_all</span>
-                            <p>All requests processed. Queue is clear!</p>
-                        </div>
-                    </div>
-                    <div class="p-6 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5 flex gap-3">
-                        <button @click="approveAllLowRisk" v-if="pendingCount > 0"
-                            class="flex-1 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white text-sm font-bold rounded-xl transition-colors flex justify-center items-center gap-2">
-                            <span class="material-symbols-outlined text-sm">smart_toy</span> Approve Low Risk
-                        </button>
-                        <button @click="showProcessModal = false"
-                            class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
-                            Done Reviewing
-                        </button>
                     </div>
                 </div>
-            </div>
+            </Transition>
         </Teleport>
-
-        <!-- Auto-Refund Rule Modal -->
-        <Teleport to="body">
-            <div v-if="showAddRuleModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-                @click.self="showAddRuleModal = false">
-                <div
-                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 dark:border-white/5 bg-purple-50 dark:bg-purple-900/10">
-                        <div class="flex items-center gap-3">
-                            <span
-                                class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-3xl">rule_settings</span>
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Add Auto-Refund Rule</h3>
-                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Create logic to reduce manual
-                                    reviews.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="p-6 space-y-4">
-                        <div>
-                            <label
-                                class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">Rule
-                                Name</label>
-                            <input v-model="newRule.name" type="text"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors"
-                                placeholder="e.g. Lost Delivery < $100" />
-                        </div>
-                        <div>
-                            <label
-                                class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">Trigger
-                                Condition</label>
-                            <select
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors">
-                                <option>Order Amount &lt; $50</option>
-                                <option>Time in Transit &gt; 14 days</option>
-                                <option>Customer LTV &gt; $500</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label
-                                class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">Action</label>
-                            <select v-model="newRule.action"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors">
-                                <option>Auto-Approve Full Refund</option>
-                                <option>Flag for Manual Review</option>
-                                <option>Offer Store Credit (+10%)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="p-6 border-t border-gray-100 dark:border-white/5 flex gap-3 bg-gray-50 dark:bg-white/5">
-                        <button @click="showAddRuleModal = false"
-                            class="flex-1 py-2.5 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors shadow-sm">
-                            Cancel
-                        </button>
-                        <button @click="addRule" :disabled="!newRule.name"
-                            class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors shadow-sm">
-                            Save Rule
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
-
-        <!-- Add Refund Modal (Issue Refund) -->
-        <Teleport to="body">
-            <div v-if="showAddRefundModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-                @click.self="showAddRefundModal = false">
-                <div
-                    class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5">
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Issue Manual Refund</h3>
-                        <p class="text-xs text-gray-500 mt-1">Initiate a refund directly to a customer's original
-                            payment
-                            method.</p>
-                    </div>
-                    <div class="p-6 space-y-4">
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Search
-                                Order / Customer</label>
-                            <div class="relative">
-                                <input type="text" placeholder="e.g. MV-4422 or Jane Doe"
-                                    class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors">
-                                <span
-                                    class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-lg">search</span>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label
-                                    class="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Refund
-                                    Amount ($)</label>
-                                <input type="number" placeholder="0.00"
-                                    class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors">
-                            </div>
-                            <div>
-                                <label
-                                    class="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Reason
-                                    Category</label>
-                                <select
-                                    class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors">
-                                    <option>Customer Satisfaction</option>
-                                    <option>Late Delivery</option>
-                                    <option>Lost/Damaged Item</option>
-                                    <option>Price Adjustment</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Internal
-                                Notes (Optional)</label>
-                            <textarea rows="2" placeholder="Why is this refund being issued?"
-                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors resize-none"></textarea>
-                        </div>
-                    </div>
-                    <div class="p-6 border-t border-gray-100 dark:border-white/5 flex gap-3 bg-gray-50 dark:bg-white/5">
-                        <button @click="showAddRefundModal = false"
-                            class="flex-1 py-2.5 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors shadow-sm">
-                            Cancel
-                        </button>
-                        <button @click="showAddRefundModal = false"
-                            class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined text-[16px]">credit_card</span> Issue Refund
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
-
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRefundStore } from '@/stores/refundStore'
 
-const searchQuery = ref('')
-const activeListFilter = ref('All')
+const store = useRefundStore()
 
-const showAddRuleModal = ref(false)
-const showDetailModal = ref(false)
-const showProcessModal = ref(false)
-const showAddRefundModal = ref(false)
-
-const selectedRefund = ref(null)
-
-const newRule = ref({ name: '', action: 'Auto-Approve Full Refund' })
-
-const rules = ref([
-    { id: 1, name: 'Damaged Items < $50', action: 'Auto-Approve Full Refund', enabled: true },
-    { id: 2, name: 'Late Delivery > 24h', action: 'Offer Store Credit (+10%)', enabled: true },
-    { id: 3, name: 'High Value Missing Item', action: 'Flag for Manual Review', enabled: false },
-])
-
-const refunds = ref([
-    { id: 1, reqId: 'REF-0012', customer: 'David Rose', initials: 'DR', orderId: 'MV-1122', reason: 'Sweater arrived damaged, completely unraveled', type: 'Damaged Item', date: 'Today, 10:45 AM', amount: 45.00, riskScore: 12, priorRefunds: 0, status: 'Pending Review', statusClass: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20' },
-    { id: 2, reqId: 'REF-0013', customer: 'Alexis Rose', initials: 'AR', orderId: 'MV-3344', reason: 'Service complaint, extremely rude driver', type: 'Service Issue', date: 'Yesterday, 2:15 PM', amount: 120.00, riskScore: 8, priorRefunds: 1, status: 'Pending Review', statusClass: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20' },
-    { id: 3, reqId: 'REF-0014', customer: 'Johnny Rose', initials: 'JR', orderId: 'MV-5566', reason: 'Missing box #4 from the shipment of 10 boxes', type: 'Lost Transit', date: 'Oct 24, 2024', amount: 200.00, riskScore: 78, priorRefunds: 4, ltv: '350.00', status: 'Pending Review', statusClass: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20' },
-    { id: 4, reqId: 'REF-0008', customer: 'Moira Rose', initials: 'MR', orderId: 'MV-7788', reason: 'Package arrived 3 days past guaranteed date', type: 'Late Delivery', date: 'Oct 21, 2024', amount: 35.00, riskScore: 4, priorRefunds: 0, status: 'Approved', statusClass: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20' },
-    { id: 5, reqId: 'REF-0005', customer: 'Stevie Budd', initials: 'SB', orderId: 'MV-9911', reason: 'Empty box received, claimed stolen', type: 'Theft Claim', date: 'Oct 18, 2024', amount: 550.00, riskScore: 92, priorRefunds: 1, status: 'Rejected', statusClass: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20' },
-])
-
-const filteredRefunds = computed(() => {
-    let result = refunds.value
-
-    // Status Filter
-    if (activeListFilter.value !== 'All') {
-        result = result.filter(r => r.status === activeListFilter.value)
-    }
-
-    // Text Search
-    if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase()
-        result = result.filter(r =>
-            r.reqId.toLowerCase().includes(q) ||
-            r.customer.toLowerCase().includes(q) ||
-            r.orderId.toLowerCase().includes(q)
-        )
-    }
-    return result
+onMounted(async () => {
+    try { await store.load() } catch { /* error shown in template */ }
 })
 
-const pendingCount = computed(() => refunds.value.filter(r => r.status === 'Pending Review').length)
+// Tabs & Filters
+const search = ref('')
+const activeTab = ref('all')
 
-function openRefundDetail(refund) {
-    selectedRefund.value = refund
-    showDetailModal.value = true
+const filterTabs = [
+    { id: 'all', label: 'All' },
+    { id: 'pending', label: 'Pending Decision' },
+    { id: 'claimed', label: 'Claimed' },
+    { id: 'rejected', label: 'Rejected' },
+    { id: 'chargeback', label: 'Chargeback Risk' },
+    { id: 'urgent', label: 'Urgent' },
+]
+
+const isChargebackRisk = (c) => c.status === 'Rejected' && c.sentiment === 'Negative'
+
+const filtered = computed(() => {
+    let list = store.cases
+    if (activeTab.value === 'pending') {
+        list = list.filter((c) => ['Pending', 'Under Review', 'Claims Reviewed', 'Physically Inspected'].includes(c.status))
+    } else if (activeTab.value === 'claimed') {
+        list = list.filter((c) => ['Claimed', 'Refunded'].includes(c.status))
+    } else if (activeTab.value === 'rejected') {
+        list = list.filter((c) => c.status === 'Rejected')
+    } else if (activeTab.value === 'chargeback') {
+        list = list.filter(isChargebackRisk)
+    } else if (activeTab.value === 'urgent') {
+        list = list.filter((c) => c.is_urgent)
+    }
+    const q = search.value.toLowerCase()
+    if (q) {
+        list = list.filter((c) =>
+            (c.reference_code || '').toLowerCase().includes(q) ||
+            (c.customer_name || '').toLowerCase().includes(q),
+        )
+    }
+    return list
+})
+
+// Stats Strip
+const statCards = computed(() => [
+    {
+        label: 'Total Refunded',
+        value: '₹' + formatAmount(store.stats.total_refunded_value || 0),
+        icon: 'currency_exchange',
+        bg: 'bg-green-100 dark:bg-green-500/10',
+        iconColor: 'text-green-600 dark:text-green-400',
+    },
+    {
+        label: 'Pending Decision',
+        value: store.stats.pending_decision || 0,
+        icon: 'hourglass_empty',
+        bg: 'bg-yellow-100 dark:bg-yellow-500/10',
+        iconColor: 'text-yellow-600 dark:text-yellow-400',
+    },
+    {
+        label: 'Urgent Flagged',
+        value: store.urgentCount,
+        icon: 'priority_high',
+        bg: 'bg-red-100 dark:bg-red-500/10',
+        iconColor: 'text-red-600 dark:text-red-400',
+    },
+    {
+        label: 'Chargeback Risk',
+        value: store.chargebackRiskCount,
+        icon: 'credit_card_off',
+        bg: 'bg-orange-100 dark:bg-orange-500/10',
+        iconColor: 'text-orange-600 dark:text-orange-400',
+    },
+])
+
+// Detail Drawer
+const selected = ref(null)
+const urgentDraft = ref(false)
+const urgentReason = ref('')
+const savingUrgent = ref(false)
+const customerHistory = ref(null)
+const loadingHistory = ref(false)
+
+const customerHistoryCards = computed(() => {
+    if (!customerHistory.value) return []
+    return [
+        { label: 'Total Orders', value: customerHistory.value.total_orders, color: 'text-blue-600 dark:text-blue-400' },
+        { label: 'Damage Reports', value: customerHistory.value.damage_reports_count, color: 'text-orange-600 dark:text-orange-400' },
+        { label: 'Escalations', value: customerHistory.value.escalations_count, color: 'text-red-600 dark:text-red-400' },
+    ]
+})
+
+const TIMELINE_STEPS = [
+    { label: 'Reported', icon: 'flag', statuses: ['Pending', 'Under Review', 'Claims Reviewed', 'Pickup Requested', 'Pickup Approved', 'Pickup Scheduled', 'Collected', 'Arrived at Warehouse', 'Physically Inspected', 'Rejected', 'Claimed', 'Refunded', 'Closed'] },
+    { label: 'Under Review', icon: 'rate_review', statuses: ['Under Review', 'Claims Reviewed', 'Pickup Requested', 'Pickup Approved', 'Pickup Scheduled', 'Collected', 'Arrived at Warehouse', 'Physically Inspected', 'Rejected', 'Claimed', 'Refunded', 'Closed'] },
+    { label: 'Decision Made', icon: 'gavel', statuses: ['Rejected', 'Claimed', 'Refunded', 'Closed'] },
+    { label: 'Refunded / Closed', icon: 'check_circle', statuses: ['Refunded', 'Closed'] },
+]
+
+const timelineSteps = computed(() => {
+    const status = selected.value?.status || ''
+    return TIMELINE_STEPS.map((step) => ({
+        ...step,
+        done: step.statuses.includes(status),
+        desc: step.statuses.includes(status) ? 'Completed' : 'Pending',
+    }))
+})
+
+async function openDetail(row) {
+    selected.value = { ...row }
+    urgentDraft.value = row.is_urgent
+    urgentReason.value = row.urgent_reason || ''
+    customerHistory.value = null
+    if (row.customer_id) {
+        loadingHistory.value = true
+        customerHistory.value = await store.loadCustomerHistory(row.customer_id)
+        loadingHistory.value = false
+    }
 }
 
-function approveRefund(refund) {
-    refund.status = 'Approved'
-    refund.statusClass = 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20'
+function toggleUrgent() {
+    urgentDraft.value = !urgentDraft.value
+    if (!urgentDraft.value) urgentReason.value = ''
 }
 
-function rejectRefund(refund) {
-    refund.status = 'Rejected'
-    refund.statusClass = 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
+async function saveUrgent() {
+    if (!selected.value) return
+    savingUrgent.value = true
+    try {
+        const updated = await store.flagUrgent(selected.value.id, urgentDraft.value, urgentReason.value)
+        selected.value = { ...updated }
+        urgentDraft.value = updated.is_urgent
+        urgentReason.value = updated.urgent_reason || ''
+    } finally {
+        savingUrgent.value = false
+    }
 }
 
-function approveAllLowRisk() {
-    refunds.value.forEach(r => {
-        if (r.status === 'Pending Review' && r.riskScore <= 50) {
-            approveRefund(r)
-        }
-    })
-    showProcessModal.value = false
+// Style Helpers
+const flowStyle = (f) => ({
+    photo_review: 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',
+    pickup_inspection: 'bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400',
+}[f] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400')
+
+const flowLabel = (f) => ({ photo_review: 'Photo Review', pickup_inspection: 'Pickup Inspection' }[f] || f || '&#8212;')
+
+const statusStyle = (s) => {
+    const map = {
+        Pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400',
+        'Under Review': 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',
+        'Claims Reviewed': 'bg-teal-100 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400',
+        Claimed: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400',
+        Rejected: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400',
+        Refunded: 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400',
+        Closed: 'bg-gray-100 text-gray-700 dark:bg-white/5 dark:text-gray-400',
+    }
+    return map[s] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400'
 }
 
-function addRule() {
-    if (!newRule.value.name) return
-    rules.value.push({
-        id: Date.now(),
-        name: newRule.value.name,
-        action: newRule.value.action,
-        enabled: true
-    })
-    newRule.value = { name: '', action: 'Auto-Approve Full Refund' }
-    showAddRuleModal.value = false
-}
+const sentimentStyle = (s) => ({
+    Positive: 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400',
+    Negative: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400',
+    Neutral: 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400',
+}[s] || 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400')
+
+const formatAmount = (n) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })
+
+const formatFull = (iso) =>
+    new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 </script>
-
-<style scoped>
-/* Tooltip styling */
-.tooltip-trigger .tooltip {
-    @apply absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 whitespace-nowrap pointer-events-none transition-opacity;
-    z-index: 50;
-}
-
-.tooltip-trigger:hover .tooltip {
-    @apply opacity-100;
-}
-</style>

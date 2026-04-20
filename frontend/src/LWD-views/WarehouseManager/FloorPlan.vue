@@ -36,15 +36,22 @@
                     class="w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20">
                     <span class="material-symbols-outlined text-[16px]">delete</span>
                 </button>
-                <button @click="editMode = !editMode"
+                <button @click="toggleEditMode"
                     class="py-1 px-3 rounded-lg text-sm font-bold flex items-center gap-1 border transition-colors"
                     :class="editMode ? 'bg-primary/20 text-primary border-primary/30' : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-white/10'">
                     <span class="material-symbols-outlined text-[16px]">{{ editMode ? 'lock_open' : 'edit' }}</span>
                     {{ editMode ? 'Editing' : 'Edit' }}
                 </button>
+                <button v-if="editMode" @click="onSaveFloorPlan"
+                    class="py-1 px-3 rounded-lg text-sm font-bold flex items-center gap-1 border transition-colors"
+                    :class="store.isSaving ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 border-gray-300 dark:border-gray-600 cursor-wait' : 'bg-green-500/20 text-green-600 border-green-500/30 hover:bg-green-500/30'"
+                    :disabled="store.isSaving">
+                    <span class="material-symbols-outlined text-[16px]">{{ store.isSaving ? 'hourglass_empty' : 'save' }}</span>
+                    {{ store.isSaving ? 'Saving...' : 'Save' }}
+                </button>
                 <button v-if="editMode" @click="showGroupModal = true"
                     class="bg-primary hover:bg-primary/90 text-white font-bold py-1 px-3 rounded-lg text-sm flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[16px]">add</span>Group
+                    <span class="material-symbols-outlined text-[16px]">add</span>Category
                 </button>
             </div>
         </div>
@@ -77,7 +84,7 @@
                 <!-- Breadcrumb -->
                 <FloorBreadcrumb :level="zoom.state.level" :floor-label="currentFloorLabel"
                     :section-label="activeSection?.label" :section-color="activeSectionColor"
-                    :group-name="activeSectionGroupName" :rack-label="activeRack?.label"
+                    :category-name="activeSectionCategoryName" :rack-label="activeRack?.label"
                     @navigate="onBreadcrumbNavigate" />
 
                 <!-- ═══ Canvas (fixed container with scrollable inner grid) ═══ -->
@@ -111,7 +118,7 @@
                                     <!-- Section cards -->
                                     <SectionCard v-for="sec in currentSections" :key="sec.id" :section="sec"
                                         :group-color="store.getGroupColor(sec)"
-                                        :group-name="store.getGroupName(sec.groupId)"
+                                        :category-name="store.getGroupName(sec.groupId)"
                                         :rack-count="store.racksBySection(sec.id).length"
                                         :product-count="store.productsBySection(sec.id).length"
                                         :is-selected="canvas.selectedElement.value?.id === sec.id"
@@ -239,17 +246,48 @@
                     </div>
 
                 </div><!-- end canvas container -->
+
+                <!-- Loading overlay -->
+                <div v-if="store.isLoading"
+                    class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm z-20 rounded-xl">
+                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-3"></div>
+                    <div class="text-gray-600 dark:text-gray-400 text-sm">Loading floor plan from inventory...</div>
+                </div>
+
+                <!-- Empty state (no sections) -->
+                <div v-else-if="!store.isLoading && currentSections.length === 0"
+                    class="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 pointer-events-none">
+                    <span class="material-symbols-outlined text-5xl text-gray-400 opacity-40">warehouse</span>
+                    <div class="text-center">
+                        <div class="text-gray-500 font-bold">No sections on this floor</div>
+                        <div class="text-gray-400 text-sm mt-1">
+                            {{ store.loadError || 'Add inventory items via the Inventory page, then reload. Or use Edit mode to add sections manually.' }}
+                        </div>
+                    </div>
+                    <button v-if="!store.isLoading" @click="store.initializeFromAPI(authStore.authToken, getWarehouseId())"
+                        class="pointer-events-auto mt-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px]">refresh</span> Reload from Inventory
+                    </button>
+                </div>
+
             </div>
 
             <!-- ═══ Sidebar ═══ -->
             <div class="w-64 flex flex-col gap-3">
                 <PropertiesPanel v-if="editMode" :element="canvas.selectedElement.value"
-                    :element-type="selectedElementType" :groups="currentGroups" />
+                    :element-type="selectedElementType" :categories="currentGroups" />
 
                 <div class="glass-panel rounded-xl p-4 flex-1 overflow-hidden flex flex-col gap-2">
-                    <h3 class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[16px] text-yellow-600 dark:text-yellow-400">folder</span>Groups
-                    </h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[16px] text-yellow-600 dark:text-yellow-400">folder</span>Categories
+                        </h3>
+                        <button @click="showGroupModal = true"
+                            class="w-6 h-6 flex items-center justify-center rounded bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                            title="Add new category">
+                            <span class="material-symbols-outlined text-[14px]">add</span>
+                        </button>
+                    </div>
                     <div class="flex-1 overflow-y-auto space-y-2">
                         <div v-for="g in currentGroups" :key="g.id" @click="editingGroup = g"
                             class="p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 cursor-pointer hover:border-primary/30">
@@ -258,10 +296,10 @@
                                 <span class="text-xs font-bold text-gray-900 dark:text-white flex-1">{{ g.name
                                     }}</span>
                                 <span class="text-[9px] text-gray-500">{{ store.sectionsByGroup(g.id).length }}
-                                    cols</span>
+                                    sections</span>
                             </div>
                         </div>
-                        <div v-if="!currentGroups.length" class="text-center text-gray-500 text-xs py-6">No groups
+                        <div v-if="!currentGroups.length" class="text-center text-gray-500 text-xs py-6">No categories yet. Click + to add.
                         </div>
                     </div>
                 </div>
@@ -344,6 +382,7 @@ import { useWarehouseFloorStore } from '@/stores/warehouseFloorStore'
 import { useZoomStateMachine } from './floorplan/composables/useZoomStateMachine'
 import { useCanvasInteraction } from './floorplan/composables/useCanvasInteraction'
 import { useFloorSearch } from './floorplan/composables/useFloorSearch'
+import { useAuthStore } from '@/stores/authStore'
 
 import SectionCard from './floorplan/components/SectionCard.vue'
 import RackGridView from './floorplan/components/RackGridView.vue'
@@ -353,6 +392,7 @@ import GroupModal from './floorplan/components/GroupModal.vue'
 import PropertiesPanel from './floorplan/components/PropertiesPanel.vue'
 
 const store = useWarehouseFloorStore()
+const authStore = useAuthStore()
 const zoom = useZoomStateMachine()
 const canvas = useCanvasInteraction()
 const search = useFloorSearch(store, zoom)
@@ -435,7 +475,7 @@ const currentSections = computed(() => store.sectionsByFloor(activeFloor.value))
 const currentGroups = computed(() => store.groupsByFloor(activeFloor.value))
 const activeSection = computed(() => store.sectionMap.get(zoom.state.activeSectionId))
 const activeSectionColor = computed(() => store.getGroupColor(activeSection.value))
-const activeSectionGroupName = computed(() => store.getGroupName(activeSection.value?.groupId))
+const activeSectionCategoryName = computed(() => store.getGroupName(activeSection.value?.groupId))
 const activeRack = computed(() => store.rackMap.get(zoom.state.activeRackId))
 const activeRacks = computed(() => zoom.state.activeSectionId ? store.racksBySection(zoom.state.activeSectionId) : [])
 const activeSectionProducts = computed(() => zoom.state.activeSectionId ? store.productsBySection(zoom.state.activeSectionId) : [])
@@ -588,12 +628,79 @@ function onDeleteSelected() {
 
 // ── Group Ops ──
 function onSaveGroup(data) {
-    if (editingGroup.value) { store.updateGroup(editingGroup.value.id, data); showToast('Group updated'); editingGroup.value = null }
-    else { store.addGroup(activeFloor.value, data); showToast('Group created'); showGroupModal.value = false }
+    if (editingGroup.value) { store.updateGroup(editingGroup.value.id, data); showToast('Category updated'); editingGroup.value = null }
+    else { store.addGroup(activeFloor.value, data); showToast('Category created'); showGroupModal.value = false }
 }
-function onDeleteGroup() { if (editingGroup.value) { store.deleteGroup(editingGroup.value.id); editingGroup.value = null; showToast('Group deleted') } }
+function onDeleteGroup() { if (editingGroup.value) { store.deleteGroup(editingGroup.value.id); editingGroup.value = null; showToast('Category deleted') } }
+
+// ── Save/Load Floor Plan ──
+async function onSaveFloorPlan() {
+    const warehouseId = authStore.currentWarehouse?.id
+    if (!warehouseId) {
+        showToast('No warehouse selected')
+        return
+    }
+    const success = await store.saveFloorPlan(authStore.authToken, warehouseId)
+    if (success) {
+        showToast('Floor plan saved!')
+    } else {
+        showToast('Failed to save floor plan')
+    }
+}
+
+async function toggleEditMode() {
+    if (editMode.value) {
+        // Exiting edit mode - auto-save
+        const warehouseId = authStore.currentWarehouse?.id
+        if (warehouseId) {
+            await store.saveFloorPlan(authStore.authToken, warehouseId)
+            showToast('Changes saved')
+        }
+    }
+    editMode.value = !editMode.value
+}
 
 function showToast(m) { toastMsg.value = m; setTimeout(() => { toastMsg.value = '' }, 2500) }
+
+function getWarehouseId() {
+    return authStore.currentWarehouse?.id || authStore.currentUser?.warehouse_id || null
+}
+
+/** Read inventory custom categories from localStorage and add as floor groups (if not already present) */
+function syncInventoryCategoriesToFloor() {
+    const warehouseId = getWarehouseId()
+    const storageKey = `warehouse-manager-inventory-categories:${warehouseId || 'default'}`
+    let customCategories = []
+    try {
+        const raw = JSON.parse(window.localStorage.getItem(storageKey) || '[]')
+        customCategories = Array.isArray(raw) ? raw : []
+    } catch (e) {
+        customCategories = []
+    }
+
+    const floorId = activeFloor.value || store.floors[0]?.id || 1
+    const colorPalette = store.presetColors
+    const existingNames = new Set(store.groupsByFloor(floorId).map(g => g.name.toLowerCase()))
+
+    customCategories.forEach((catName, idx) => {
+        if (typeof catName !== 'string' || !catName.trim()) return
+        const name = catName.trim()
+        if (existingNames.has(name.toLowerCase())) return
+        const color = colorPalette[idx % colorPalette.length] || '#6366f1'
+        store.addGroup(floorId, { name, color, internalGap: 2, externalGap: 10 })
+        existingNames.add(name.toLowerCase())
+    })
+}
+
+async function syncFloorInventory() {
+    const warehouseId = getWarehouseId()
+    if (warehouseId) {
+        await store.syncInventoryToFloorPlan(authStore.authToken, warehouseId)
+    } else {
+        await store.syncInventoryToFloorPlan(authStore.authToken, null)
+    }
+    syncInventoryCategoriesToFloor()
+}
 
 // ── Floor Name Editor ──
 function startFloorRename(floorId) {
@@ -644,6 +751,19 @@ function onKeyDown(e) {
     }
 }
 
+async function onInventoryUpdated(event) {
+    const eventWarehouseId = event?.detail?.warehouseId
+    const currentWarehouseId = getWarehouseId()
+
+    if (!currentWarehouseId || !eventWarehouseId || eventWarehouseId === currentWarehouseId) {
+        await syncFloorInventory()
+    }
+}
+
+function onCategoryCreated() {
+    syncInventoryCategoriesToFloor()
+}
+
 // Reset scroll position when zoom level changes
 watch(() => zoom.state.level, () => {
     nextTick(() => {
@@ -653,8 +773,28 @@ watch(() => zoom.state.level, () => {
     })
 })
 
-onMounted(() => { window.addEventListener('keydown', onKeyDown) })
-onUnmounted(() => { window.removeEventListener('keydown', onKeyDown) })
+onMounted(async () => {
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('warehouse-inventory-updated', onInventoryUpdated)
+    window.addEventListener('warehouse-category-created', onCategoryCreated)
+    // Load from saved floor plan or initialize from inventory
+    const warehouseId = getWarehouseId()
+    if (store.sections.length === 0) {
+        if (warehouseId) {
+            await store.loadFloorPlan(authStore.authToken, warehouseId)
+        } else {
+            await store.initializeFromAPI(authStore.authToken, null)
+        }
+    } else {
+        await syncFloorInventory()
+    }
+    syncInventoryCategoriesToFloor()
+})
+onUnmounted(() => {
+    window.removeEventListener('keydown', onKeyDown)
+    window.removeEventListener('warehouse-inventory-updated', onInventoryUpdated)
+    window.removeEventListener('warehouse-category-created', onCategoryCreated)
+})
 </script>
 
 <style scoped>

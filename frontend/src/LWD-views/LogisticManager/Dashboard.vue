@@ -20,9 +20,9 @@
                     </div>
                 </div>
                 <div class="flex items-center text-sm">
-                    <span class="text-primary font-medium flex items-center">
-                        <span class="material-symbols-outlined text-[16px] mr-1">trending_up</span>
-                        +{{ store.dashboardStats.ordersTrend }}%
+                    <span class="font-medium flex items-center" :class="ordersTrend >= 0 ? 'text-primary' : 'text-red-400'">
+                        <span class="material-symbols-outlined text-[16px] mr-1">{{ ordersTrend >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                        {{ ordersTrend >= 0 ? '+' : '' }}{{ ordersTrend }}%
                     </span>
                     <span class="text-gray-500 dark:text-gray-400 ml-2">vs yesterday</span>
                 </div>
@@ -46,10 +46,11 @@
                 </div>
                 <div class="flex items-center text-sm">
                     <span class="text-gray-500 dark:text-gray-400 font-medium">
-                        85% On-Time
+                        {{ store.dashboardStats.deliverySuccess }}% On-Time
                     </span>
                     <div class="ml-auto w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div class="h-full bg-blue-500 w-[85%]"></div>
+                        <div class="h-full bg-blue-500 transition-all duration-500"
+                            :style="{ width: `${Math.min(store.dashboardStats.deliverySuccess, 100)}%` }"></div>
                     </div>
                 </div>
             </div>
@@ -71,10 +72,10 @@
                     </div>
                 </div>
                 <div class="flex items-center text-sm">
-                    <span class="text-purple-400 font-medium flex items-center">
-                        High Perf.
+                    <span class="font-medium flex items-center" :class="successRateColor">
+                        {{ successRateLabel }}
                     </span>
-                    <span class="text-gray-500 dark:text-gray-400 ml-2">Consistent</span>
+                    <span class="text-gray-500 dark:text-gray-400 ml-2">{{ successRateStatus }}</span>
                 </div>
             </div>
 
@@ -86,7 +87,7 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">Revenue Today</div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">${{
+                        <div class="text-3xl font-bold text-gray-900 dark:text-white mt-1">₹{{
                             (store.dashboardStats.revenueToday /
                                 1000).toFixed(1) }}k</div>
                     </div>
@@ -96,11 +97,11 @@
                     </div>
                 </div>
                 <div class="flex items-center text-sm">
-                    <span class="text-emerald-400 font-medium flex items-center">
-                        <span class="material-symbols-outlined text-[16px] mr-1">trending_up</span>
-                        +{{ store.dashboardStats.revenueTrend }}%
+                    <span class="font-medium flex items-center" :class="revenueTrend >= 0 ? 'text-emerald-400' : 'text-red-400'">
+                        <span class="material-symbols-outlined text-[16px] mr-1">{{ revenueTrend >= 0 ? 'trending_up' : 'trending_down' }}</span>
+                        {{ revenueTrend >= 0 ? '+' : '' }}{{ revenueTrend }}%
                     </span>
-                    <span class="text-gray-500 dark:text-gray-400 ml-2">vs target</span>
+                    <span class="text-gray-500 dark:text-gray-400 ml-2">vs yesterday</span>
                 </div>
             </div>
         </div>
@@ -110,53 +111,61 @@
 
             <!-- Live Fleet Map (Takes up 2 columns) -->
             <div class="lg:col-span-2 glass-panel rounded-2xl p-0 overflow-hidden flex flex-col relative group">
-                <div class="absolute top-4 left-4 z-10 glass-panel px-3 py-1 rounded-full flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <div class="absolute top-4 left-4 z-10 glass-panel px-3 py-1 rounded-full flex items-center gap-2" style="z-index:1000">
+                    <span class="w-2 h-2 rounded-full animate-pulse" :class="wsConnected ? 'bg-green-500' : 'bg-yellow-500'"></span>
                     <span class="text-xs font-semibold text-gray-900 dark:text-white">LIVE FLEET VIEW</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ liveDrivers.length }} active</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded font-mono" :class="wsConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'">
+                        {{ wsConnected ? 'WS' : 'POLL' }}
+                    </span>
                 </div>
 
-                <!-- Placeholder for Map -->
-                <div
-                    class="flex-1 bg-gray-100 dark:bg-gray-800/50 flex items-center justify-center relative bg-[url('/src/assets/map-placeholder.png')] bg-cover bg-center">
-                    <div class="absolute inset-0 bg-white/30 dark:bg-background-dark/30 backdrop-blur-[1px]"></div>
+                <!-- Real Leaflet Map -->
+                <div class="flex-1 relative" style="min-height:0">
+                    <l-map
+                        ref="fleetMap"
+                        :zoom="fleetMapZoom"
+                        :center="fleetMapCenter"
+                        :use-global-leaflet="false"
+                        style="height:100%;width:100%;z-index:1"
+                        @ready="onMapReady"
+                    >
+                        <l-tile-layer
+                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                            layer-type="base"
+                            name="CartoDB Voyager"
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                        />
+                        <l-marker
+                            v-for="driver in liveDrivers"
+                            :key="driver.driver_id"
+                            :lat-lng="[driver.latitude, driver.longitude]"
+                            :icon="getDriverIcon(driver)"
+                        >
+                            <l-popup>
+                                <div style="min-width:140px">
+                                    <div style="font-weight:700;font-size:13px;margin-bottom:4px">{{ driver.driver_name }}</div>
+                                    <div style="font-size:11px;color:#6b7280;text-transform:capitalize">{{ driver.status }}</div>
+                                    <div v-if="driver.vehicle_code" style="font-size:11px;color:#6b7280">Vehicle: {{ driver.vehicle_code }}</div>
+                                    <div v-if="driver.last_updated" style="font-size:10px;color:#9ca3af;margin-top:4px">
+                                        Updated {{ new Date(driver.last_updated).toLocaleTimeString() }}
+                                    </div>
+                                </div>
+                            </l-popup>
+                        </l-marker>
+                    </l-map>
 
-                    <!-- Simulated Map Elements -->
-                    <div class="absolute top-1/2 left-1/3 transform -translate-x-1/2 -translate-y-1/2">
-                        <div class="relative group cursor-pointer"
-                            @click="store.openModal('driver-profile', store.drivers[0])">
-                            <div class="w-12 h-12 bg-primary/20 rounded-full animate-ping absolute inset-0"></div>
-                            <div
-                                class="w-12 h-12 bg-white dark:bg-background-dark/80 rounded-full border-2 border-primary flex items-center justify-center relative z-10 shadow-lg">
-                                <span class="material-symbols-outlined text-primary">local_shipping</span>
-                            </div>
-                            <!-- Tooltip -->
-                            <div
-                                class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 bg-white dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg p-2 hidden group-hover:block z-20 shadow-xl">
-                                <div class="text-xs font-bold text-gray-900 dark:text-white">{{ store.drivers[0].vehicle
-                                    }}</div>
-                                <div class="text-[10px] text-gray-500 dark:text-gray-400">Moving • 45 km/h</div>
-                            </div>
-                        </div>
+                    <!-- Empty state overlay when no drivers have location -->
+                    <div v-if="liveDrivers.length === 0 && !fleetLoading"
+                        class="absolute inset-0 flex flex-col items-center justify-center bg-white/60 dark:bg-background-dark/60 pointer-events-none"
+                        style="z-index:2">
+                        <span class="material-symbols-outlined text-4xl text-gray-400 mb-2">local_shipping</span>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">No active drivers with location data</div>
                     </div>
-
-                    <div class="absolute top-1/3 right-1/4">
-                        <div class="relative group cursor-pointer"
-                            @click="store.openModal('driver-profile', store.drivers[1])">
-                            <div class="w-8 h-8 bg-yellow-500/20 rounded-full absolute inset-0"></div>
-                            <div
-                                class="w-8 h-8 bg-white dark:bg-background-dark/80 rounded-full border-2 border-yellow-500 flex items-center justify-center relative z-10 shadow-lg">
-                                <span
-                                    class="material-symbols-outlined text-yellow-500 text-[16px]">local_shipping</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="text-gray-500 dark:text-gray-500 font-mono text-sm z-0">Iterative Map Component
-                        Loading...</div>
                 </div>
 
                 <!-- Map Controls Overlay -->
-                <div class="absolute bottom-4 right-4 flex flex-col gap-2">
+                <div class="absolute bottom-4 right-4 flex flex-col gap-2" style="z-index:1000">
                     <button @click="mapZoomIn"
                         class="w-8 h-8 glass-panel rounded-lg flex items-center justify-center hover:bg-white/10 text-gray-700 dark:text-white transition-colors"><span
                             class="material-symbols-outlined text-[18px]">add</span></button>
@@ -221,8 +230,8 @@
                                 class="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-2">
                                 Drivers Needing
                                 Support</h4>
-                            <div class="space-y-2">
-                                <div v-for="driver in store.filteredDrivers" :key="driver.id"
+                            <div v-if="driversNeedingSupport.length" class="space-y-2">
+                                <div v-for="driver in driversNeedingSupport" :key="driver.id"
                                     @click="store.openModal('driver-profile', driver)"
                                     class="flex items-center justify-between p-2 rounded hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer group transition-colors">
                                     <div class="flex items-center gap-3">
@@ -235,13 +244,16 @@
                                                 class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary transition-colors">
                                                 {{ driver.name }}</div>
                                             <div class="text-[10px]" :class="[
-                                                driver.status === 'breakdown' ? 'text-red-500 dark:text-red-400' : 'text-yellow-500 dark:text-yellow-400'
-                                            ]">{{ driver.status }}</div>
+                                                driver.supportTone === 'critical' ? 'text-red-500 dark:text-red-400' : 'text-yellow-500 dark:text-yellow-400'
+                                            ]">{{ driver.supportStatusLabel }}</div>
                                         </div>
                                     </div>
                                     <span
                                         class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-[18px]">chevron_right</span>
                                 </div>
+                            </div>
+                            <div v-else class="rounded-xl border border-dashed border-gray-200 dark:border-white/10 px-3 py-4 text-xs text-gray-500 dark:text-gray-400">
+                                No drivers currently need support.
                             </div>
                         </div>
                     </div>
@@ -319,13 +331,13 @@
                         }}%</span> Success Rate
                     </div>
                     <div>
-                        <span class="text-gray-900 dark:text-white font-bold">~42m</span> Avg. Time
+                        <span class="text-gray-900 dark:text-white font-bold">{{ store.dashboardStats.activeDrivers ?? '—' }}</span> Active Drivers
                     </div>
                 </div>
             </div>
 
             <!-- Hub Performance Table / Interactive View -->
-            <div class="glass-panel p-4 lg:p-5 rounded-2xl flex flex-col justify-between h-full">
+            <div class="glass-panel p-4 lg:p-5 rounded-2xl flex flex-col justify-between h-full overflow-hidden">
                 <!-- Header -->
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">
@@ -441,9 +453,9 @@
                         </div>
 
                         <!-- Secondary Metrics Group (Circular) -->
-                        <div class="flex items-center gap-4 lg:gap-6 justify-around w-full lg:w-auto mt-4 lg:mt-0">
+                        <div class="flex items-center gap-3 lg:gap-4 justify-around w-full lg:w-auto mt-4 lg:mt-0">
                             <!-- Efficiency Circular -->
-                            <div class="relative w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0 group">
+                            <div class="relative w-14 h-14 lg:w-16 lg:h-16 flex-shrink-0 group">
                                 <svg class="w-full h-full transform -rotate-90 drop-shadow-sm" viewBox="0 0 36 36">
                                     <circle cx="18" cy="18" r="15.9155" fill="none"
                                         class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
@@ -464,13 +476,13 @@
                             </div>
 
                             <!-- Staff Circular -->
-                            <div class="relative w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0 group">
+                            <div class="relative w-14 h-14 lg:w-16 lg:h-16 flex-shrink-0 group">
                                 <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                     <circle cx="18" cy="18" r="15.9155" fill="none"
                                         class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
                                     <circle cx="18" cy="18" r="15.9155" fill="none"
                                         class="transition-all duration-1000 ease-out stroke-blue-500" stroke-width="3"
-                                        :stroke-dasharray="(currentHub.staffActive / currentHub.staffTotal * 100) + ', 100'"
+                                        :stroke-dasharray="`${staffFillPercent}, 100`"
                                         stroke-linecap="round"></circle>
                                 </svg>
                                 <div class="absolute inset-0 flex flex-col items-center justify-center">
@@ -486,13 +498,13 @@
                             </div>
 
                             <!-- Vehicles Circular -->
-                            <div class="relative w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0 group">
+                            <div class="relative w-14 h-14 lg:w-16 lg:h-16 flex-shrink-0 group">
                                 <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                     <circle cx="18" cy="18" r="15.9155" fill="none"
                                         class="stroke-gray-100 dark:stroke-white/5" stroke-width="3"></circle>
                                     <circle cx="18" cy="18" r="15.9155" fill="none"
                                         class="transition-all duration-1000 ease-out stroke-purple-500" stroke-width="3"
-                                        :stroke-dasharray="(currentHub.vehiclesActive / currentHub.vehiclesTotal * 100) + ', 100'"
+                                        :stroke-dasharray="`${vehicleFillPercent}, 100`"
                                         stroke-linecap="round"></circle>
                                 </svg>
                                 <div class="absolute inset-0 flex flex-col items-center justify-center">
@@ -561,7 +573,7 @@
 
             <!-- Chart Container -->
             <div class="h-64 lg:h-80 w-full relative">
-                <Line :key="activeTab" :data="chartData" :options="chartOptions" />
+                <Line :key="activeTab + '-' + selectedTimePeriod" :data="chartData" :options="chartOptions" />
             </div>
         </div>
 
@@ -569,7 +581,8 @@
         <AlertDetailsModal :is-open="store.activeModal === 'alert-details'" :alert="store.selectedItem"
             @close="store.closeModal()" @action="handleAlertAction" />
 
-        <DriverProfileModal :is-open="store.activeModal === 'driver-profile'" :driver="store.selectedItem"
+        <DriverProfileModal :key="store.selectedItem?.id || 'driver-profile'"
+            :is-open="store.activeModal === 'driver-profile'" :driver="store.selectedItem"
             @close="store.closeModal()" />
 
         <ContactHubModal :is-open="store.activeModal === 'contact-hub'" :hub="currentHub" @close="store.closeModal()" />
@@ -578,20 +591,328 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
+import { useDispatcherStore } from '@/stores/dispatcherStore'
 import AlertDetailsModal from '@/LWD-components/AlertDetailsModal.vue'
 import DriverProfileModal from '@/LWD-components/DriverProfileModal.vue'
 import ContactHubModal from '@/LWD-components/ContactHubModal.vue'
+import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+import { apiUrl } from '@/config/api'
 
 const store = useLogisticStore()
-const hoveredDataPoint = ref(null)
+const dispatcherStore = useDispatcherStore()
+const EMPTY_HUB = {
+    id: 'all',
+    hubCode: 'GLOBAL',
+    name: 'All Warehouses',
+    location: 'No warehouse data yet',
+    address: '',
+    capacity: 0,
+    efficiency: 0,
+    staffActive: 0,
+    staffTotal: 0,
+    vehiclesActive: 0,
+    vehiclesTotal: 0,
+    processRate: 0,
+    status: 'Monitoring',
+    statusColor: 'yellow',
+    bg: 'bg-slate-700',
+}
+// ─── Live Fleet Map ────────────────────────────────────────────────────────────
+import { API_BASE_URL } from '@/config/api'
+
+const fleetMap = ref(null)
+const fleetMapZoom = ref(5)
+const fleetMapCenter = ref([20.5937, 78.9629]) // India center
+const liveDrivers = ref([])
+const fleetLoading = ref(false)
+const wsConnected = ref(false)
+
+let fleetWs = null
+let wsReconnectTimer = null
+let wsReconnectDelay = 2000   // start at 2s, backs off to 30s max
+let pollFallbackTimer = null  // only used when WS is down
+
+function getDriverIcon(driver) {
+    const isAttention = ['breakdown', 'deviation', 'delayed'].includes((driver.status || '').toLowerCase())
+    const color = isAttention ? '#f59e0b' : '#3b82f6'
+    return L.divIcon({
+        html: `<div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:${color}22;border:2px solid ${color};border-radius:50%;font-size:14px">🚚</div>`,
+        className: '',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -18],
+    })
+}
+
+// ── WebSocket ──────────────────────────────────────────────────────────────────
+function buildWsUrl() {
+    const token = localStorage.getItem('auth_token') || ''
+    // Convert http(s):// → ws(s)://
+    const wsBase = API_BASE_URL.replace(/^http/, 'ws')
+    return `${wsBase}/ws/fleet?token=${encodeURIComponent(token)}`
+}
+
+function applyLocationUpdate(msg) {
+    if (msg.latitude == null || msg.longitude == null) return
+    const existing = liveDrivers.value.findIndex(d => d.driver_id === msg.driver_id)
+    const entry = {
+        driver_id: msg.driver_id,
+        driver_name: msg.driver_name,
+        latitude: msg.latitude,
+        longitude: msg.longitude,
+        status: msg.status,
+        vehicle_code: msg.vehicle_code,
+        vehicle_id: msg.vehicle_id,
+        last_updated: msg.last_updated,
+    }
+    if (existing >= 0) {
+        liveDrivers.value[existing] = entry
+    } else {
+        liveDrivers.value.push(entry)
+    }
+}
+
+function connectFleetWs() {
+    if (fleetWs && fleetWs.readyState <= WebSocket.OPEN) return
+
+    try {
+        fleetWs = new WebSocket(buildWsUrl())
+    } catch (e) {
+        scheduleWsReconnect()
+        return
+    }
+
+    fleetWs.onopen = () => {
+        wsConnected.value = true
+        wsReconnectDelay = 2000
+        // WebSocket is up — stop polling fallback
+        clearInterval(pollFallbackTimer)
+        pollFallbackTimer = null
+    }
+
+    fleetWs.onmessage = (event) => {
+        try {
+            const msg = JSON.parse(event.data)
+            if (msg.type === 'location_update') applyLocationUpdate(msg)
+            if (msg.type === 'ping') fleetWs.send(JSON.stringify({ type: 'pong' }))
+        } catch (e) { /* ignore malformed frames */ }
+    }
+
+    fleetWs.onerror = () => { /* handled in onclose */ }
+
+    fleetWs.onclose = () => {
+        wsConnected.value = false
+        fleetWs = null
+        // Fall back to polling while WS is reconnecting
+        if (!pollFallbackTimer) {
+            pollFallbackTimer = setInterval(fetchLiveDrivers, 30000)
+        }
+        scheduleWsReconnect()
+    }
+}
+
+function scheduleWsReconnect() {
+    clearTimeout(wsReconnectTimer)
+    wsReconnectTimer = setTimeout(() => {
+        connectFleetWs()
+        wsReconnectDelay = Math.min(wsReconnectDelay * 2, 30000) // cap at 30s
+    }, wsReconnectDelay)
+}
+
+function disconnectFleetWs() {
+    clearTimeout(wsReconnectTimer)
+    clearInterval(pollFallbackTimer)
+    if (fleetWs) {
+        fleetWs.onclose = null // prevent reconnect loop on intentional close
+        fleetWs.close()
+        fleetWs = null
+    }
+    wsConnected.value = false
+}
+
+// ── Initial REST fetch (fills map before first WS update) ──────────────────────
+async function fetchLiveDrivers() {
+    fleetLoading.value = true
+    try {
+        const token = localStorage.getItem('auth_token')
+        const res = await fetch(apiUrl('api/v1/tracking/drivers'), {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        liveDrivers.value = data.filter(d => d.latitude != null && d.longitude != null)
+        if (liveDrivers.value.length > 0 && fleetMap.value?.leafletObject) {
+            const bounds = L.latLngBounds(liveDrivers.value.map(d => [d.latitude, d.longitude]))
+            fleetMap.value.leafletObject.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 })
+        }
+    } catch (e) { /* silent */ } finally {
+        fleetLoading.value = false
+    }
+}
+
+function onMapReady() {
+    fetchLiveDrivers()
+}
+
+onMounted(() => {
+    connectFleetWs()
+    // Always do one immediate REST fetch to pre-populate the map
+    fetchLiveDrivers()
+})
+
+onUnmounted(() => {
+    disconnectFleetWs()
+})
 
 // --- Active Hub Logic ---
+function resolveNetworkStatus(hubs) {
+    const normalizedStatuses = hubs.map((hub) => String(hub.status || '').toLowerCase())
+
+    if (normalizedStatuses.some((status) => status === 'congested')) {
+        return 'Congested'
+    }
+
+    if (normalizedStatuses.some((status) => status && status !== 'optimal')) {
+        return 'Monitoring'
+    }
+
+    return 'Optimal'
+}
+
 const currentHub = computed(() => {
-    if (store.activeWarehouse === 'all') return null
-    return store.hubs.find(h => h.id === store.activeWarehouse)
+    const hubs = store.hubs || []
+
+    if (store.activeWarehouse !== 'all') {
+        return hubs.find((hub) => hub.id === store.activeWarehouse) || hubs[0] || EMPTY_HUB
+    }
+
+    if (hubs.length === 0) {
+        return EMPTY_HUB
+    }
+
+    if (hubs.length === 1) {
+        return hubs[0]
+    }
+
+    const totalCapacity = hubs.reduce((sum, hub) => sum + (Number(hub.capacity) || 0), 0)
+    const totalEfficiency = hubs.reduce((sum, hub) => sum + (Number(hub.efficiency) || 0), 0)
+    const totalStaffActive = hubs.reduce((sum, hub) => sum + (Number(hub.staffActive) || 0), 0)
+    const totalStaffTotal = hubs.reduce((sum, hub) => sum + (Number(hub.staffTotal) || 0), 0)
+    const totalVehiclesActive = hubs.reduce((sum, hub) => sum + (Number(hub.vehiclesActive) || 0), 0)
+    const totalVehiclesTotal = hubs.reduce((sum, hub) => sum + (Number(hub.vehiclesTotal) || 0), 0)
+    const totalProcessRate = hubs.reduce((sum, hub) => sum + (Number(hub.processRate) || 0), 0)
+
+    return {
+        ...EMPTY_HUB,
+        location: `${hubs.length} hubs connected`,
+        capacity: Math.round(totalCapacity / hubs.length),
+        efficiency: Math.round(totalEfficiency / hubs.length),
+        staffActive: totalStaffActive,
+        staffTotal: totalStaffTotal,
+        vehiclesActive: totalVehiclesActive,
+        vehiclesTotal: totalVehiclesTotal,
+        processRate: totalProcessRate,
+        status: resolveNetworkStatus(hubs),
+    }
 })
+
+const SUPPORT_DRIVER_STATUSES = new Set(['breakdown', 'deviation', 'delayed', 'suspended'])
+
+function getDriverSupportStatus(driver) {
+    if (!driver) return ''
+    const id = String(driver.id || '')
+    if (id && dispatcherStore.isDriverSuspended(id)) {
+        return 'suspended'
+    }
+    return String(driver.status || '').trim().toLowerCase()
+}
+
+function getDriverSupportTone(status) {
+    return ['breakdown', 'suspended'].includes(status) ? 'critical' : 'warning'
+}
+
+function formatDriverSupportStatus(status) {
+    if (!status) return 'Needs review'
+    return status
+        .split(/[\s_-]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ')
+}
+
+const driversNeedingSupport = computed(() => (
+    store.filteredDrivers
+        .filter((driver) => SUPPORT_DRIVER_STATUSES.has(getDriverSupportStatus(driver)))
+        .map((driver) => {
+            const supportStatus = getDriverSupportStatus(driver)
+            return {
+                ...driver,
+                supportStatus,
+                supportStatusLabel: formatDriverSupportStatus(supportStatus),
+                supportTone: getDriverSupportTone(supportStatus),
+            }
+        })
+))
+
+// --- KPI Card Computed ---
+const ordersTrend = computed(() => {
+    const week = store.dashboardStats.orders?.week || []
+    if (week.length < 2) return store.dashboardStats.ordersTrend
+    const yesterday = week[week.length - 2] || 0
+    const today = week[week.length - 1] || 0
+    if (yesterday === 0) return today > 0 ? 100 : 0
+    return Math.round(((today - yesterday) / yesterday) * 100)
+})
+
+const revenueTrend = computed(() => {
+    const week = store.dashboardStats.revenue?.week || []
+    if (week.length < 2) return store.dashboardStats.revenueTrend
+    const yesterday = week[week.length - 2] || 0
+    const today = week[week.length - 1] || 0
+    if (yesterday === 0) return today > 0 ? 100 : 0
+    return Math.round(((today - yesterday) / yesterday) * 100)
+})
+
+const successRateLabel = computed(() => {
+    const rate = store.dashboardStats.deliverySuccess
+    if (rate >= 95) return 'Excellent'
+    if (rate >= 85) return 'High Perf.'
+    if (rate >= 70) return 'Moderate'
+    return 'Needs Work'
+})
+
+const successRateStatus = computed(() => {
+    const rate = store.dashboardStats.deliverySuccess
+    if (rate >= 95) return 'Outstanding'
+    if (rate >= 85) return 'Consistent'
+    if (rate >= 70) return 'Improving'
+    return 'Attention needed'
+})
+
+const successRateColor = computed(() => {
+    const rate = store.dashboardStats.deliverySuccess
+    if (rate >= 95) return 'text-emerald-400'
+    if (rate >= 85) return 'text-purple-400'
+    if (rate >= 70) return 'text-yellow-400'
+    return 'text-red-400'
+})
+
+const staffFillPercent = computed(() => {
+    const total = Number(currentHub.value.staffTotal) || 0
+    if (total <= 0) return 0
+    return Math.round(((Number(currentHub.value.staffActive) || 0) / total) * 100)
+})
+
+const vehicleFillPercent = computed(() => {
+    const total = Number(currentHub.value.vehiclesTotal) || 0
+    if (total <= 0) return 0
+    return Math.round(((Number(currentHub.value.vehiclesActive) || 0) / total) * 100)
+})
+
 
 // --- Chart Controls ---
 const selectedTimePeriod = ref('week')
@@ -610,7 +931,7 @@ const optimizeHub = () => {
             severity: 'low',
             type: 'system',
             icon: 'check_circle',
-            location: currentHub.value ? currentHub.value.location : 'Global Sector',
+            location: currentHub.value.location || 'Global Sector',
             timestamp: 'Just now',
             recommendation: 'Monitor load throughput for the next 15 minutes to verify stabilization.'
         })
@@ -621,13 +942,8 @@ const contactHub = () => {
     store.openModal('contact-hub', currentHub.value)
 }
 
-const mapZoomIn = () => {
-
-}
-
-const mapZoomOut = () => {
-
-}
+const mapZoomIn = () => { fleetMapZoom.value = Math.min(fleetMapZoom.value + 1, 18) }
+const mapZoomOut = () => { fleetMapZoom.value = Math.max(fleetMapZoom.value - 1, 2) }
 
 // --- Chart.js Setup ---
 import {
@@ -770,6 +1086,8 @@ const chartOptions = computed(() => {
     if (activeTab.value === 'sla') {
         minBuild = 70;
         maxBuild = 100;
+    } else {
+        minBuild = 0;
     }
 
     return {

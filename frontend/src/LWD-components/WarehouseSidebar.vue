@@ -76,7 +76,7 @@
                 leave-from-class="transform scale-100 opacity-100 translate-y-0"
                 leave-to-class="transform scale-95 opacity-0 translate-y-2">
                 <div v-if="isUserMenuOpen"
-                    class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-card-dark rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50">
+                    class="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-card-darker rounded-xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50">
                     <div class="py-1">
                         <!-- Profile Option -->
                         <button @click="showProfileModal = true"
@@ -92,18 +92,14 @@
                             ID Card
                         </button>
 
-                        <!-- Need Support Option -->
-                        <div class="relative group/support">
-                            <button @click="showSupportModal = true"
-                                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[20px]">help</span>
-                                Need Support
-                            </button>
-                            <!-- Tooltip/Hover for email -->
-                            <div
-                                class="hidden group-hover/support:block absolute left-full bottom-0 ml-2 p-2 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
-                                {{ userEmail }}
-                            </div>
+                        <!-- Appearance Toggle -->
+                        <div class="w-full px-4 py-2.5 flex items-center gap-3">
+                            <span
+                                class="material-symbols-outlined text-[20px] text-primary transition-all duration-300">
+                                {{ isDark ? 'dark_mode' : 'light_mode' }}
+                            </span>
+                            <span class="text-sm text-gray-700 dark:text-gray-200 flex-1">Appearance</span>
+                            <ThemeToggle />
                         </div>
 
                         <div class="border-t border-gray-200 dark:border-white/5 my-1"></div>
@@ -133,40 +129,6 @@
         </div>
     </aside>
 
-    <!-- Support Modal -->
-    <Teleport to="body">
-        <BaseModal :isOpen="showSupportModal" @close="showSupportModal = false">
-            <template #title>Need Support?</template>
-            <div class="space-y-4">
-                <p class="text-gray-600 dark:text-gray-300">
-                    Contact our support team for assistance with any issues or questions.
-                </p>
-                <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
-                    <div class="flex items-center gap-3 mb-2">
-                        <span class="material-symbols-outlined text-primary">mail</span>
-                        <span class="font-medium">Email Support</span>
-                    </div>
-                    <a :href="'mailto:' + userEmail" class="text-primary hover:underline block ml-9">{{ userEmail }}</a>
-                </div>
-                <div class="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
-                    <div class="flex items-center gap-3 mb-2">
-                        <span class="material-symbols-outlined text-primary">phone</span>
-                        <span class="font-medium">Phone Support</span>
-                    </div>
-                    <a href="tel:+1234567890" class="text-gray-600 dark:text-gray-300 hover:text-primary block ml-9">+1
-                        (234)
-                        567-890</a>
-                </div>
-            </div>
-            <template #footer>
-                <button @click="showSupportModal = false"
-                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
-                    Close
-                </button>
-            </template>
-        </BaseModal>
-    </Teleport>
-
     <!-- Profile Modal -->
     <Teleport to="body">
         <BaseModal :isOpen="showProfileModal" @close="showProfileModal = false">
@@ -193,7 +155,7 @@
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 mb-1">Employee ID</div>
-                        <div class="font-medium text-sm">WH-1049</div>
+                        <div class="font-medium text-sm">{{ userEmployeeId }}</div>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 mb-1">Department</div>
@@ -201,7 +163,7 @@
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-lg">
                         <div class="text-xs text-gray-500 mb-1">Last Login</div>
-                        <div class="font-medium text-sm">Today, 06:15 AM</div>
+                        <div class="font-medium text-sm">{{ userLastLogin }}</div>
                     </div>
                 </div>
             </div>
@@ -262,26 +224,45 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
 import IdCard from '@/components/IdCard.vue'
 import { useWarehouseFloorStore } from '@/stores/warehouseFloorStore'
+import { useLogisticStore } from '@/stores/logisticStore'
+import { getEffectiveWarehouseSubstatus, isWarehouseOrderAccepted } from '@/utils/warehouseOrderState'
+import { buildIdCardProfile } from '@/utils/idCardProfile'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const store = useWarehouseFloorStore()
+const logisticStore = useLogisticStore()
 
 // State for User Menu and Modals
 const isUserMenuOpen = ref(false)
-const showSupportModal = ref(false)
 const showProfileModal = ref(false)
 const showIdCardModal = ref(false)
 const showLogoutConfirm = ref(false)
+const isDark = ref(true)
+let themeObserver = null
 
 // User Data
-const userName = ref('Alex Chen')
-const userRole = ref('Warehouse Manager')
-const userEmail = ref('alex.chen@quadcore.dev')
+const userName = computed(() => authStore.currentUser?.name || 'Warehouse Manager')
+const userRole = computed(() => authStore.userRoleLabel || 'Warehouse Manager')
+const userEmail = computed(() => authStore.currentUser?.email || 'support@cargocore.local')
+const userCreatedAt = computed(() => authStore.currentUser?.created_at || authStore.currentUser?.createdAt || null)
+const userEmployeeId = computed(() => {
+    const rawId = authStore.currentUser?.id
+    if (!rawId) return 'WH-USER'
+    return `WH-${String(rawId).replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8)}`
+})
+const userJoinDate = computed(() => {
+    if (!userCreatedAt.value) return 'Active account'
+    const parsed = new Date(userCreatedAt.value)
+    if (Number.isNaN(parsed.getTime())) return 'Active account'
+    return parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
+})
+const userLastLogin = computed(() => authStore.isAuthenticated ? 'Active session' : 'Offline')
 const userInitials = computed(() => {
     return userName.value
         .split(' ')
@@ -291,37 +272,90 @@ const userInitials = computed(() => {
         .substring(0, 2)
 })
 
-const employeeData = {
-    name: 'Alex Chen',
-    id: 'WH-1049',
-    designation: 'Warehouse Manager',
+const employeeData = computed(() => buildIdCardProfile({
+    user: authStore.currentUser,
+    role: authStore.currentUser?.role || 'WAREHOUSE_MANAGER',
+    roleLabel: userRole.value,
     department: 'Warehouse Operations',
-    address: '123, MG Road, Bangalore - 560001',
-    phone: '+91 0000000000',
-    email: 'alex.chen@quadcore.dev',
-    joinDate: '15 January 2024',
-    validUntil: '31 December 2026',
-    emergencyContact: {
-        name: 'Jane Doe',
-        relation: 'Spouse',
-        phone: '+91 0000000000'
-    }
-}
+    address: authStore.currentWarehouse?.name || authStore.currentUser?.address || 'CargoCore Warehouse Network',
+    phone: authStore.currentUser?.phone || 'Managed by admin directory',
+    email: userEmail.value,
+    joinDate: userJoinDate.value,
+}))
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const handleLogout = async () => {
     showLogoutConfirm.value = false
-    await authStore.logout()
-    router.push('/login')
+    const loginPath = authStore.logout()
+    router.replace(loginPath)
 }
 
-const menuItems = [
+// Live badge counts
+const inboundBadge = ref(null)
+// Track order IDs we've already notified about so we don't re-notify on refresh
+const notifiedOrderIds = ref(new Set())
+
+async function fetchSidebarBadges() {
+    try {
+        const warehouseId = authStore.currentUser?.warehouse_id
+        const headers = {
+            'Authorization': `Bearer ${authStore.authToken}`,
+            'Content-Type': 'application/json'
+        }
+
+        const [ordersRes, inboundRes] = await Promise.allSettled([
+            fetch('http://localhost:8000/api/v1/orders?page=1&page_size=100', { headers }),
+            fetch('http://localhost:8000/api/v1/orders?page=1&page_size=50&status_filter=CONFIRMED', { headers })
+        ])
+
+        // New Orders → push to notification bell instead of sidebar badge
+        if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
+            const data = await ordersRes.value.json()
+            const orders = (data.items || []).filter(o =>
+                warehouseId ? o.warehouse_id === warehouseId : true
+            )
+            const newOrders = orders.filter(o =>
+                (o.status === 'DRAFT' || (
+                    o.status === 'CONFIRMED' &&
+                    !isWarehouseOrderAccepted(o, warehouseId) &&
+                    (!getEffectiveWarehouseSubstatus(o, warehouseId) || getEffectiveWarehouseSubstatus(o, warehouseId) === 'AWAITING_PICK')
+                )) && !notifiedOrderIds.value.has(o.id)
+            )
+            newOrders.forEach(o => {
+                notifiedOrderIds.value.add(o.id)
+                logisticStore.notifications.unshift({
+                    id: `new-order-${o.id}`,
+                    title: 'New Order Received',
+                    message: `Order ${o.tracking_code} is awaiting warehouse processing.`,
+                    time: 'Just now',
+                    read: false,
+                    type: 'order',
+                })
+            })
+        }
+
+        // Inbound badge = vendor orders not yet received (no warehouse_substatus set)
+        if (inboundRes.status === 'fulfilled' && inboundRes.value.ok) {
+            const data = await inboundRes.value.json()
+            const items = (data.items || []).filter(o =>
+                o.order_type === 'VENDOR' &&
+                (warehouseId ? o.warehouse_id === warehouseId : true) &&
+                !o.warehouse_substatus
+            )
+            inboundBadge.value = items.length > 0 ? String(items.length) : null
+        }
+    } catch (error) {
+        console.warn('Sidebar badge fetch failed:', error)
+    }
+}
+
+const menuItems = computed(() => [
     { label: 'Overview', icon: 'grid_view', route: '/warehouse/dashboard' },
-    { label: 'New Orders', icon: 'orders', route: '/warehouse/new-orders', badge: '7' },
+    { label: 'New Orders', icon: 'orders', route: '/warehouse/new-orders' },
     { label: 'Inventory', icon: 'inventory', route: '/warehouse/inventory' },
-    { label: 'Inbound', icon: 'input', route: '/warehouse/inbound', badge: '12' },
+    { label: 'Inbound', icon: 'input', route: '/warehouse/inbound', badge: inboundBadge.value },
     { label: 'Floor Plan', icon: 'map', route: '/warehouse/floor-plan' },
     { label: 'Picking', icon: 'shopping_basket', route: '/warehouse/picking' },
     { label: 'Packing Materials', icon: 'package_2', route: '/warehouse/packing-materials' },
@@ -332,40 +366,62 @@ const menuItems = [
     { label: 'Performance', icon: 'bar_chart', route: '/warehouse/performance' },
     { label: 'Smart WMS', icon: 'psychology', route: '/warehouse/ai' },
     { label: 'Comparative Viewers', icon: 'compare_arrows', route: '/warehouse/comparative-viewers' },
-]
-
-// Mock zone data mapped to store groups if available, otherwise static fallback
-const zones = ref([
-    { id: 'g1', name: 'Zone A', value: '92%', status: 'Normal', color: store.presetColors[0] },
-    { id: 'g2', name: 'Zone B', value: 'Full', status: 'Full', color: store.presetColors[1] },
-    { id: 'g3', name: 'Zone C', value: '45%', status: 'Normal', color: store.presetColors[2] },
-    { id: 'g4', name: 'Cold Chain', value: 'Alert', status: 'Alert', color: store.presetColors[6] }
+    { label: 'Messages', icon: 'forum', route: '/warehouse/messages' },
 ])
 
-// Sync with actual groups if they exist in the store
 onMounted(() => {
-    if (store.groups && store.groups.length > 0) {
-        zones.value = store.groups.slice(0, 4).map((g, index) => {
-            // Map some mock statuses based on index for the UI
-            let status = 'Normal';
-            let value = '45%';
-            if (index === 0) value = '92%';
-            if (index === 1) { status = 'Full'; value = 'Full'; }
-            if (index === 3) { status = 'Alert'; value = 'Alert'; }
+    isDark.value = document.documentElement.classList.contains('dark')
+    themeObserver = new MutationObserver(() => {
+        isDark.value = document.documentElement.classList.contains('dark')
+    })
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class']
+    })
 
-            return {
-                id: g.id,
-                name: g.name.substring(0, 10), // Keep name short for grid
-                value: value,
-                status: status,
-                color: g.color || store.presetColors[index]
-            }
-        })
-    }
+    window.addEventListener('warehouse-orders-updated', fetchSidebarBadges)
+    authStore.ensureWarehouseContext().finally(() => {
+        fetchSidebarBadges()
+    })
+})
+
+onUnmounted(() => {
+    if (themeObserver) themeObserver.disconnect()
+    window.removeEventListener('warehouse-orders-updated', fetchSidebarBadges)
+})
+
+// Default zones when no floor plan groups exist
+const defaultZones = [
+    { id: 'zone-a', name: 'Zone A', value: '72%', status: 'Normal', color: '#3b82f6' },
+    { id: 'zone-b', name: 'Zone B', value: '85%', status: 'Full', color: '#ef4444' },
+    { id: 'zone-c', name: 'Zone C', value: '45%', status: 'Normal', color: '#10b981' },
+    { id: 'zone-d', name: 'Zone D', value: '2 RMA', status: 'Alert', color: '#f59e0b' },
+]
+
+const zones = computed(() => {
+    if (!store.groups.length) return defaultZones
+    return store.groups.slice(0, 4).map((group, index) => {
+        const groupSections = store.sections.filter(section => section.groupId === group.id)
+        const groupRackIds = store.racks
+            .filter(rack => groupSections.some(section => section.id === rack.sectionId))
+            .map(rack => rack.id)
+        const groupProducts = store.products.filter(product => groupRackIds.includes(product.rackId))
+        const returnCount = groupProducts.filter(product => product.rma).length
+        const fillRatio = groupRackIds.length
+            ? Math.min(100, Math.round((groupProducts.length / (groupRackIds.length * 12)) * 100))
+            : 0
+        const status = returnCount > 0 ? 'Alert' : fillRatio >= 85 ? 'Full' : 'Normal'
+        return {
+            id: group.id,
+            name: group.name.substring(0, 10),
+            value: status === 'Alert' ? `${returnCount} RMA` : `${fillRatio}%`,
+            status,
+            color: group.color || store.presetColors[index]
+        }
+    })
 })
 
 const availableZones = computed(() => {
-    // Only filter out if we are on the comparative viewer page and dragging
     if (store.comparedZones) {
         return zones.value.filter(z => !store.comparedZones.find(cz => cz.id === z.id))
     }

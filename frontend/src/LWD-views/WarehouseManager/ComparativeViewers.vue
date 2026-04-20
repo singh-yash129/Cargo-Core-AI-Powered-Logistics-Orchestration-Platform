@@ -34,7 +34,7 @@
             <div class="flex gap-1 overflow-x-auto pb-2 border-b border-gray-200 dark:border-white/10 no-scrollbar">
                 <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
                     class="px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 shrink-0"
-                    :class="activeTab === tab.id ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'">
+                    :class="activeTab === tab.id ? 'bg-primary text-background-dark shadow-sm' : 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/15'">
                     <span class="material-symbols-outlined text-[16px]">{{ tab.icon }}</span>
                     {{ tab.label }}
                 </button>
@@ -91,16 +91,24 @@
                                 class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg text-center border border-gray-100 dark:border-white/5">
                                 <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">Orders
                                     Processed</div>
-                                <div class="text-xl font-black text-gray-900 dark:text-white">{{
-                                    getDynamicValue(zone.id, 100, 500) }}</div>
-                                <div class="text-[10px] text-green-500 font-bold">↑ 12%</div>
+                                <div class="text-xl font-black text-gray-900 dark:text-white">
+                                    {{ getZoneMetricValue(zone.id, 'orders_processed') ?? '–' }}
+                                </div>
+                                <div v-if="getMetricTrend(zone.id, 'orders_processed') !== null"
+                                    :class="getMetricTrend(zone.id, 'orders_processed') >= 0 ? 'text-green-500' : 'text-red-500'"
+                                    class="text-[10px] font-bold">
+                                    {{ getMetricTrend(zone.id, 'orders_processed') >= 0 ? '↑' : '↓' }}
+                                    {{ Math.abs(getMetricTrend(zone.id, 'orders_processed')) }}% vs prev
+                                </div>
+                                <div v-else class="text-[10px] text-gray-400">No trend data</div>
                             </div>
                             <div
                                 class="bg-gray-50 dark:bg-white/5 p-3 rounded-lg text-center border border-gray-100 dark:border-white/5">
                                 <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">Picking
                                     Accuracy</div>
-                                <div class="text-xl font-black text-green-500">{{ Math.min(100, getDynamicValue(zone.id,
-                                    90, 100)) }}%</div>
+                                <div class="text-xl font-black text-green-500">
+                                    {{ getZoneMetricValue(zone.id, 'picking_accuracy') !== null ? Math.min(100, getZoneMetricValue(zone.id, 'picking_accuracy')) + '%' : '–' }}
+                                </div>
                                 <div class="text-[10px] text-gray-500 dark:text-gray-400 font-bold">Target: 98%</div>
                             </div>
                         </div>
@@ -109,14 +117,25 @@
                         <div class="space-y-2">
                             <div class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Active Alerts
                             </div>
-                            <div v-if="zone.status === 'Alert' || getDynamicValue(zone.id, 0, 5) > 3"
+                            <div v-if="zone.status === 'Alert'"
                                 class="bg-red-50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-500/20 flex gap-3">
                                 <span class="material-symbols-outlined text-red-500 text-[20px]">warning</span>
                                 <div>
                                     <div class="text-xs font-bold text-red-700 dark:text-red-400">Bottleneck Detected
                                     </div>
-                                    <div class="text-[10px] text-red-600/80 dark:text-red-400/70 mt-1">High traffic in
-                                        aisles 3 and 4. Needs immediate attention.</div>
+                                    <div class="text-[10px] text-red-600/80 dark:text-red-400/70 mt-1">
+                                        {{ zone.name }} has return items (RMA). Review pending returns.
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else-if="zone.status === 'Full'"
+                                class="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-lg border border-orange-100 dark:border-orange-500/20 flex gap-3">
+                                <span class="material-symbols-outlined text-orange-500 text-[20px]">inventory_2</span>
+                                <div>
+                                    <div class="text-xs font-bold text-orange-700 dark:text-orange-400">Zone at Capacity</div>
+                                    <div class="text-[10px] text-orange-600/80 dark:text-orange-400/70 mt-1">
+                                        {{ zone.name }} is fully occupied. Consider reallocation.
+                                    </div>
                                 </div>
                             </div>
                             <div v-else
@@ -125,10 +144,11 @@
                             </div>
                         </div>
 
-                        <!-- System Health Chart (New) -->
+                        <!-- Throughput Chart -->
                         <div class="h-32 mt-2">
                             <h4 class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Throughput Load</h4>
-                            <Line :data="getLineChartData(zone.id, 'Throughput')" :options="miniChartOptions" />
+                            <Line v-if="getLineChartData(zone.id, 'Throughput')" :data="getLineChartData(zone.id, 'Throughput')" :options="miniChartOptions" />
+                            <div v-else class="h-full flex items-center justify-center text-[10px] text-gray-400 dark:text-gray-500">No recorded data</div>
                         </div>
                     </div>
 
@@ -147,26 +167,29 @@
                                     :class="[
                                         zone.status === 'Alert' || zone.status === 'Full' ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'
                                     ]">
-                                    {{ zone.value === 'Full' ? '100%' : (zone.value || getDynamicValue(zone.id, 65, 95)
-                                    + '%') }}
+                                    {{ getCapacityPct(zone) !== '–' ? getCapacityPct(zone) + '%' : '–' }}
                                 </div>
                                 <div class="flex-1 space-y-1">
                                     <div class="flex justify-between text-xs">
-                                        <span class="text-gray-500 dark:text-gray-400">Total Space</span>
-                                        <span class="font-bold text-gray-900 dark:text-white">100 Racks</span>
+                                        <span class="text-gray-500 dark:text-gray-400">Total Racks</span>
+                                        <span class="font-bold text-gray-900 dark:text-white">
+                                            {{ getZoneRackCount(zone.id) > 0 ? getZoneRackCount(zone.id) + ' Racks' : '–' }}
+                                        </span>
                                     </div>
                                     <div class="flex justify-between text-xs">
                                         <span class="text-gray-500 dark:text-gray-400">Used</span>
-                                        <span class="font-bold text-indigo-500">{{ (getDynamicValue(zone.id, 65,
-                                            95)).toLocaleString() }} Racks</span>
+                                        <span class="font-bold text-indigo-500">
+                                            {{ getUsedRacks(zone) }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <!-- Stock Trend Chart (New) -->
+                        <!-- Stock Trend Chart -->
                         <div class="h-32">
                             <h4 class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Stock Trend (30 Days)</h4>
-                            <Line :data="getLineChartData(zone.id, 'Stock', 'purple')" :options="miniChartOptions" />
+                            <Line v-if="getLineChartData(zone.id, 'Stock', 'purple')" :data="getLineChartData(zone.id, 'Stock', 'purple')" :options="miniChartOptions" />
+                            <div v-else class="h-full flex items-center justify-center text-[10px] text-gray-400 dark:text-gray-500">No recorded data</div>
                         </div>
                     </div>
 
@@ -182,37 +205,43 @@
                                 <div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Active
                                         Pickers</div>
-                                    <div class="text-lg font-bold text-gray-900 dark:text-white">{{
-                                        getDynamicValue(zone.id, 5, 15) }}/15</div>
+                                    <div class="text-lg font-bold text-gray-900 dark:text-white">
+                                        {{ getZoneMetricValue(zone.id, 'active_pickers') ?? '–' }}
+                                    </div>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="text-xs text-green-500 font-bold">Optimal</div>
+                                <div class="text-xs font-bold" :class="getStaffingStatus(zone.id).color">
+                                    {{ getStaffingStatus(zone.id).label }}
+                                </div>
                                 <div class="text-[10px] text-gray-500 dark:text-gray-400">Staffing</div>
                             </div>
                         </div>
 
                         <div class="space-y-2">
-                            <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Top Performers</h4>
+                            <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Zone Throughput</h4>
                             <div class="p-2 flex items-center gap-2 bg-gray-50 dark:bg-white/5 rounded-lg">
-                                <span class="material-symbols-outlined text-green-500 text-[16px]">verified</span>
-                                <div class="flex-1 text-xs font-medium text-gray-700 dark:text-gray-300">Michael T.
+                                <span class="material-symbols-outlined text-blue-500 text-[16px]">speed</span>
+                                <div class="flex-1 text-xs font-medium text-gray-700 dark:text-gray-300">Items / Hour</div>
+                                <div class="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
+                                    {{ getZoneMetricValue(zone.id, 'throughput') ?? '–' }}
                                 </div>
-                                <div class="text-[10px] text-green-600 font-bold">120 picks/hr</div>
                             </div>
                             <div class="p-2 flex items-center gap-2 bg-gray-50 dark:bg-white/5 rounded-lg">
                                 <span class="material-symbols-outlined text-green-500 text-[16px]">verified</span>
-                                <div class="flex-1 text-xs font-medium text-gray-700 dark:text-gray-300">Sarah M.</div>
-                                <div class="text-[10px] text-green-600 font-bold">115 picks/hr</div>
+                                <div class="flex-1 text-xs font-medium text-gray-700 dark:text-gray-300">Pick Accuracy</div>
+                                <div class="text-[10px] text-green-600 dark:text-green-400 font-bold">
+                                    {{ getZoneMetricValue(zone.id, 'picking_accuracy') !== null ? Math.min(100, getZoneMetricValue(zone.id, 'picking_accuracy')) + '%' : '–' }}
+                                </div>
                             </div>
                         </div>
 
                         <!-- Labor Distribution -->
                         <div class="h-40 flex justify-center mt-2 relative">
-                            <Doughnut :data="getLaborData(zone.id)"
+                            <Doughnut v-if="getLaborData(zone.id)" :data="getLaborData(zone.id)"
                                 :options="{ maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } } }" />
-                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <span class="text-[10px] font-bold text-gray-400 mt-8">Roles</span>
+                            <div v-else class="w-full flex items-center justify-center text-[10px] text-gray-400 dark:text-gray-500">
+                                No labor data recorded
                             </div>
                         </div>
                     </div>
@@ -233,8 +262,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useWarehouseFloorStore } from '@/stores/warehouseFloorStore'
+import { useAuthStore } from '@/stores/authStore'
 import {
     Chart as ChartJS,
     Title,
@@ -252,9 +282,13 @@ import { Bar, Doughnut, Line } from 'vue-chartjs'
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement, ArcElement)
 
 const store = useWarehouseFloorStore()
+const authStore = useAuthStore()
 const timeRange = ref('today')
 const activeTab = ref('performance')
 const notification = ref(null)
+const warehouseId = ref(null)
+const zoneMetricsCache = ref({})  // Cache zone metrics by zone ID
+const loadingZones = ref(new Set())
 
 // Tabs Structure tailored for Warehouse Zones
 const tabs = [
@@ -262,6 +296,88 @@ const tabs = [
     { id: 'inventory', label: 'Inventory', icon: 'inventory_2' },
     { id: 'labor', label: 'Labor', icon: 'groups' }
 ]
+
+async function fetchWarehouseId() {
+    try {
+        const headers = {
+            'Authorization': `Bearer ${authStore.authToken}`,
+            'Content-Type': 'application/json'
+        }
+        const response = await fetch('http://localhost:8000/api/v1/warehouses?page=1&page_size=10', { headers })
+        if (response.ok) {
+            const data = await response.json()
+            const warehouses = data.items || data || []
+            if (warehouses.length > 0) {
+                warehouseId.value = warehouses[0].id
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching warehouse ID:', error)
+    }
+}
+
+async function fetchZoneMetrics(zoneId) {
+    if (!warehouseId.value || zoneMetricsCache.value[zoneId]) return
+
+    loadingZones.value.add(zoneId)
+    try {
+        const headers = {
+            'Authorization': `Bearer ${authStore.authToken}`,
+            'Content-Type': 'application/json'
+        }
+
+        // Calculate date range based on selected time range
+        const today = new Date()
+        let dateFrom = new Date()
+        
+        if (timeRange.value === 'today') {
+            dateFrom = today
+        } else if (timeRange.value === '7d') {
+            dateFrom.setDate(today.getDate() - 7)
+        } else if (timeRange.value === '30d') {
+            dateFrom.setDate(today.getDate() - 30)
+        } else if (timeRange.value === 'ytd') {
+            dateFrom = new Date(today.getFullYear(), 0, 1) // Jan 1st of current year
+        }
+
+        const formatDate = (d) => d.toISOString().split('T')[0]
+        const params = new URLSearchParams({
+            date_from: formatDate(dateFrom),
+            date_to: formatDate(today)
+        })
+
+        const response = await fetch(
+            `http://localhost:8000/api/v1/warehouses/${warehouseId.value}/operations/zones/${zoneId}/metrics?${params}`,
+            { headers }
+        )
+
+        if (response.ok) {
+            const data = await response.json()
+            // API returns {items: [], total: N} ordered by metric_date DESC
+            // items[0] is the most recent entry
+            if (data.items && data.items.length > 0) {
+                zoneMetricsCache.value[zoneId] = {
+                    latest: data.items[0],
+                    series: [...data.items].reverse() // chronological order for charts
+                }
+            } else {
+                zoneMetricsCache.value[zoneId] = { latest: null, series: [] }
+            }
+        }
+    } catch (error) {
+        console.error(`Error fetching metrics for zone ${zoneId}:`, error)
+    } finally {
+        loadingZones.value.delete(zoneId)
+    }
+}
+
+// Watch for time range changes to refetch metrics
+watch(timeRange, () => {
+    zoneMetricsCache.value = {}  // Clear cache on time range change
+    if (store.comparedZones) {
+        store.comparedZones.forEach(zone => fetchZoneMetrics(zone.id))
+    }
+})
 
 const onDrop = (event) => {
     try {
@@ -277,6 +393,8 @@ const onDrop = (event) => {
 
             if (zoneData && !store.comparedZones.find(z => z.id === zoneData.id)) {
                 store.comparedZones.push(zoneData)
+                // Fetch metrics for the newly added zone
+                fetchZoneMetrics(zoneData.id)
             }
         }
     } catch (e) {
@@ -296,35 +414,112 @@ onBeforeUnmount(() => {
     }
 })
 
-// Pseudo-random value generator based on ID to be consistent but varied
-const getDynamicValue = (seed, min, max) => {
-    let numericSeed = 0;
-    if (typeof seed === 'string') {
-        for (let i = 0; i < seed.length; i++) numericSeed += seed.charCodeAt(i);
-    } else {
-        numericSeed = seed;
+onMounted(async () => {
+    await fetchWarehouseId()
+    // Fetch metrics for any zones already in comparison
+    if (store.comparedZones) {
+        store.comparedZones.forEach(zone => fetchZoneMetrics(zone.id))
     }
+})
 
-    const x = Math.sin(numericSeed * 9999 + (timeRange.value.length * 10)) * 10000;
-    const random = x - Math.floor(x);
-
-    return Math.floor(random * (max - min + 1)) + min;
+// Get zone metric value - uses API data (latest) only; returns null when no real data
+const getZoneMetricValue = (zoneId, metricKey) => {
+    const cache = zoneMetricsCache.value[zoneId]
+    if (!cache) return null  // not fetched yet
+    const metrics = cache.latest
+    if (!metrics) return null  // fetched but empty
+    const fieldMap = {
+        'orders_processed': metrics.orders_processed,
+        'picking_accuracy': metrics.picking_accuracy_pct,
+        'active_pickers': metrics.active_pickers,
+        'capacity_used': metrics.capacity_used_pct,
+        'throughput': metrics.throughput_items_per_hour,
+    }
+    const val = fieldMap[metricKey]
+    return (val !== undefined && val !== null) ? Math.round(val) : null
 }
 
-// Chart Data Generators
-const getLineChartData = (seed, label, color = 'blue') => {
-    const data = [
-        getDynamicValue(seed, 10, 50),
-        getDynamicValue(seed + '1', 10, 50),
-        getDynamicValue(seed + '2', 10, 50),
-        getDynamicValue(seed + '3', 10, 50),
-        getDynamicValue(seed + '4', 10, 50),
-    ]
+// Compute trend: percentage change vs previous record in series
+const getMetricTrend = (zoneId, metricKey) => {
+    const cache = zoneMetricsCache.value[zoneId]
+    const series = cache?.series
+    if (!series || series.length < 2) return null
+    const apiFieldMap = {
+        'orders_processed': 'orders_processed',
+        'picking_accuracy': 'picking_accuracy_pct',
+        'active_pickers': 'active_pickers',
+        'capacity_used': 'capacity_used_pct',
+        'throughput': 'throughput_items_per_hour',
+    }
+    const field = apiFieldMap[metricKey]
+    if (!field) return null
+    const latest = series[series.length - 1]?.[field]
+    const prev = series[series.length - 2]?.[field]
+    if (latest == null || prev == null || prev === 0) return null
+    return Math.round(((latest - prev) / prev) * 100)
+}
+
+// Compute total rack count for a zone from the store's floor plan
+const getZoneRackCount = (zoneId) => {
+    const groupSections = store.sections.filter(s => s.groupId === zoneId)
+    if (!groupSections.length) return 0
+    return store.racks.filter(r => groupSections.some(s => s.id === r.sectionId)).length
+}
+
+// Capacity percentage for a zone (from API or zone.value string)
+const getCapacityPct = (zone) => {
+    const cached = zoneMetricsCache.value[zone.id]
+    if (cached?.latest?.capacity_used_pct != null) {
+        return Math.round(cached.latest.capacity_used_pct)
+    }
+    if (zone.value === 'Full') return 100
+    const parsed = parseInt(zone.value)
+    return isNaN(parsed) ? '–' : parsed
+}
+
+// Used rack count derived from capacity % and total racks
+const getUsedRacks = (zone) => {
+    const total = getZoneRackCount(zone.id)
+    if (!total) return '–'
+    const pct = getCapacityPct(zone)
+    if (pct === '–') return '–'
+    return Math.round((pct / 100) * total) + ' Racks'
+}
+
+// Staffing status based on actual active_pickers
+const getStaffingStatus = (zoneId) => {
+    const cache = zoneMetricsCache.value[zoneId]
+    const pickers = cache?.latest?.active_pickers
+    if (pickers == null) return { label: '–', color: 'text-gray-400 dark:text-gray-500' }
+    if (pickers >= 10) return { label: 'Optimal', color: 'text-green-500' }
+    if (pickers >= 5) return { label: 'Moderate', color: 'text-yellow-500' }
+    return { label: 'Low Staff', color: 'text-red-500' }
+}
+
+// Returns true when metrics have been fetched but are empty (no DB records)
+const hasNoData = (zoneId) => {
+    const cache = zoneMetricsCache.value[zoneId]
+    return cache !== undefined && cache.latest === null
+}
+
+// Chart — uses real time-series; null when no data
+const getLineChartData = (zoneId, label, color = 'blue') => {
+    const cache = zoneMetricsCache.value[zoneId]
+    const series = cache?.series || []
+    if (!series.length) return null
+
+    const fieldKey = label === 'Throughput' ? 'throughput_items_per_hour'
+        : label === 'Stock' ? 'capacity_used_pct'
+        : 'orders_processed'
+    const slice = series.slice(-7)
     return {
-        labels: ['M', 'T', 'W', 'T', 'F'],
+        labels: slice.map(m => {
+            const d = new Date(m.metric_date)
+            return d.toLocaleDateString('en-US', { weekday: 'short' })
+        }),
         datasets: [{
-            label: label,
-            data: data,
+            label,
+            data: slice.map(m => Math.round(m[fieldKey] ?? 0)),
             borderColor: color === 'purple' ? '#8b5cf6' : color === 'green' ? '#10b981' : '#3b82f6',
             backgroundColor: color === 'purple' ? 'rgba(139, 92, 246, 0.1)' : color === 'green' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)',
             fill: true,
@@ -334,15 +529,17 @@ const getLineChartData = (seed, label, color = 'blue') => {
     }
 }
 
-const getLaborData = (seed) => {
+// Labor doughnut — based on real active_pickers; null when no data
+const getLaborData = (zoneId) => {
+    const pickers = zoneMetricsCache.value[zoneId]?.latest?.active_pickers
+    if (pickers == null || pickers === 0) return null
+    const pickerCount = Math.round(pickers * 0.6) || 1
+    const stowerCount = Math.round(pickers * 0.25) || 1
+    const qaCount = Math.max(pickers - pickerCount - stowerCount, 0)
     return {
         labels: ['Pickers', 'Stowers', 'QA'],
         datasets: [{
-            data: [
-                getDynamicValue(seed, 10, 20),
-                getDynamicValue(seed + '1', 5, 15),
-                getDynamicValue(seed + '2', 2, 5)
-            ],
+            data: [pickerCount, stowerCount, qaCount],
             backgroundColor: ['#8b5cf6', '#3b82f6', '#10b981'],
             borderWidth: 0
         }]

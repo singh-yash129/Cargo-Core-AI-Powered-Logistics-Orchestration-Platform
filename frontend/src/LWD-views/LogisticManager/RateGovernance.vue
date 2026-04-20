@@ -7,16 +7,27 @@
             </div>
 
             <div class="flex items-center gap-4">
+                <!-- One-time seed button — only visible when inventory has never been seeded -->
+                <template v-if="!inventorySeeded">
+                    <p v-if="seedError" class="text-xs text-red-500">{{ seedError }}</p>
+                    <button @click="sendItemsToWarehouse" :disabled="isSeeding"
+                        class="bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm text-sm">
+                        <span class="material-symbols-outlined text-[18px]">{{ isSeeding ? 'hourglass_empty' : 'inventory_2' }}</span>
+                        {{ isSeeding ? 'Sending...' : 'Send Items to Warehouse' }}
+                    </button>
+                </template>
+
+                <p v-if="saveError" class="text-xs text-red-500">{{ saveError }}</p>
                 <button v-if="!isEditMode" @click="isEditMode = true"
                     class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm text-sm">
                     <span class="material-symbols-outlined text-[18px]">lock_open</span>
                     Unlock Edit Mode
                 </button>
 
-                <button v-else @click="saveAndLock"
-                    class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm text-sm">
-                    <span class="material-symbols-outlined text-[18px]">cloud_upload</span>
-                    Deploy & Lock Rates
+                <button v-else @click="saveAndLock" :disabled="isSaving"
+                    class="bg-primary hover:bg-primary/90 disabled:opacity-60 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm text-sm">
+                    <span class="material-symbols-outlined text-[18px]">{{ isSaving ? 'hourglass_empty' : 'cloud_upload' }}</span>
+                    {{ isSaving ? 'Saving...' : 'Deploy & Lock Rates' }}
                 </button>
             </div>
         </div>
@@ -41,7 +52,7 @@
                         <div>
                             <h4
                                 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 border-b border-gray-100 dark:border-white/5 pb-2">
-                                A. Base Transport Rate (per Vendor/Individual)</h4>
+                                A. Commercial / Vendor Transport Base</h4>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Base Fee
@@ -76,45 +87,124 @@
                             <div>
                                 <h4
                                     class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 border-b border-gray-100 dark:border-white/5 pb-2">
-                                    B. Customer Labor Add-on</h4>
-                                <div
-                                    class="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/20">
-                                    <label
-                                        class="block text-xs font-bold text-blue-700 dark:text-blue-400 uppercase mb-2">Charge
-                                        per Labor / Hour (₹)</label>
-                                    <input type="number" :disabled="!isEditMode"
-                                        v-model.number="rates.customerLaborRate"
-                                        class="w-full bg-white dark:bg-black/40 border border-blue-200 dark:border-blue-800/30 rounded-lg p-3 text-sm font-mono font-bold text-blue-900 dark:text-blue-100 focus:ring-2 focus:ring-blue-500/20 outline-none">
-                                    <p class="text-[10px] text-blue-600 dark:text-blue-400 mt-2 opacity-80">Used in
-                                        instant quotes and invoice generation.</p>
+                                    B. Customer Add-ons</h4>
+                                <div class="space-y-3">
+                                    <div
+                                        class="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-800/20">
+                                        <label
+                                            class="block text-xs font-bold text-blue-700 dark:text-blue-400 uppercase mb-2">Labor / Helper (₹)</label>
+                                        <input type="number" :disabled="!isEditMode"
+                                            v-model.number="rates.customerLaborRate"
+                                            class="w-full bg-white dark:bg-black/40 border border-blue-200 dark:border-blue-800/30 rounded-lg p-2.5 text-sm font-mono font-bold text-blue-900 dark:text-blue-100 focus:ring-2 focus:ring-blue-500/20 outline-none">
+                                        <p class="text-[10px] text-blue-600 dark:text-blue-400 mt-1 opacity-80">Per helper per shipment.</p>
+                                    </div>
+                                    <div
+                                        class="bg-purple-50/50 dark:bg-purple-900/10 p-3 rounded-xl border border-purple-100 dark:border-purple-800/20">
+                                        <label
+                                            class="block text-xs font-bold text-purple-700 dark:text-purple-400 uppercase mb-2">Packing Service Fee (₹)</label>
+                                        <input type="number" :disabled="!isEditMode"
+                                            v-model.number="rates.customerPackingFee"
+                                            class="w-full bg-white dark:bg-black/40 border border-purple-200 dark:border-purple-800/30 rounded-lg p-2.5 text-sm font-mono font-bold text-purple-900 dark:text-purple-100 focus:ring-2 focus:ring-purple-500/20 outline-none">
+                                        <p class="text-[10px] text-purple-600 dark:text-purple-400 mt-1 opacity-80">Flat fee for packing service add-on.</p>
+                                    </div>
+                                    <div
+                                        class="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-xl border border-amber-100 dark:border-amber-800/20">
+                                        <label
+                                            class="block text-xs font-bold text-amber-700 dark:text-amber-400 uppercase mb-2">Insurance Rate (%)</label>
+                                        <input type="number" :disabled="!isEditMode" step="0.1"
+                                            v-model.number="rates.insurancePct"
+                                            class="w-full bg-white dark:bg-black/40 border border-amber-200 dark:border-amber-800/30 rounded-lg p-2.5 text-sm font-mono font-bold text-amber-900 dark:text-amber-100 focus:ring-2 focus:ring-amber-500/20 outline-none">
+                                        <p class="text-[10px] text-amber-600 dark:text-amber-400 mt-1 opacity-80">% of declared value charged as insurance.</p>
+                                    </div>
                                 </div>
                             </div>
                             <div>
-                                <h4
-                                    class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 border-b border-gray-100 dark:border-white/5 pb-2">
-                                    C. Packing Materials</h4>
+                                <div class="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-white/5 pb-2">
+                                    <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                        C. Packing Materials</h4>
+                                    <button v-if="isEditMode" @click="showAddMaterialModal = true"
+                                        class="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium">
+                                        <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                                        Add Material
+                                    </button>
+                                </div>
                                 <div class="space-y-3">
-                                    <div class="flex items-center gap-3">
-                                        <span class="text-sm text-gray-600 dark:text-gray-400 w-24">Box</span>
+                                    <div v-for="(material, index) in materialsArray" :key="material.id"
+                                        class="flex items-center gap-3 group">
+                                        <span class="text-sm text-gray-600 dark:text-gray-400 w-28 truncate" :title="material.name">{{ material.name }}</span>
                                         <span class="text-sm font-mono text-gray-400">₹</span>
                                         <input type="number" :disabled="!isEditMode"
-                                            v-model.number="rates.materials.box"
+                                            v-model.number="materialsArray[index].rate"
                                             class="flex-1 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
+                                        <span class="text-xs text-gray-400 w-12">/ {{ material.unit }}</span>
+                                        <button v-if="isEditMode && !['box', 'bubbleWrap', 'crate'].includes(material.id)"
+                                            @click="removeMaterial(index)"
+                                            class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-600 transition-opacity">
+                                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                                        </button>
                                     </div>
-                                    <div class="flex items-center gap-3">
-                                        <span class="text-sm text-gray-600 dark:text-gray-400 w-24">Bubble Wrap</span>
-                                        <span class="text-sm font-mono text-gray-400">₹</span>
-                                        <input type="number" :disabled="!isEditMode"
-                                            v-model.number="rates.materials.bubbleWrap"
-                                            class="flex-1 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
-                                        <span class="text-xs text-gray-400 w-12">/ m</span>
+                                    <p v-if="materialsArray.length === 0" class="text-xs text-gray-400 italic">No materials configured</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4
+                                class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 border-b border-gray-100 dark:border-white/5 pb-2">
+                                D. Individual / Parcel Pricing</h4>
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">House Shift Booking Fee (₹)</label>
+                                            <input type="number" :disabled="!isEditMode" v-model.number="rates.individualBookingFee"
+                                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">House Shift Helper (₹)</label>
+                                            <input type="number" :disabled="!isEditMode" v-model.number="rates.individualLaborRate"
+                                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Packing %</label>
+                                            <input type="number" :disabled="!isEditMode" step="0.1" v-model.number="rates.individualPackingPct"
+                                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Small Parcel ₹ / KG</label>
+                                            <input type="number" :disabled="!isEditMode" step="0.1" v-model.number="rates.smallPackagePerKgRate"
+                                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
+                                        </div>
                                     </div>
-                                    <div class="flex items-center gap-3">
-                                        <span class="text-sm text-gray-600 dark:text-gray-400 w-24">Crate Rental</span>
-                                        <span class="text-sm font-mono text-gray-400">₹</span>
-                                        <input type="number" :disabled="!isEditMode"
-                                            v-model.number="rates.materials.crate"
-                                            class="flex-1 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Small Parcel ₹ / KM</label>
+                                        <input type="number" :disabled="!isEditMode" step="0.1" v-model.number="rates.smallPackagePerKmRate"
+                                            class="w-full lg:w-1/2 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
+                                    </div>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-gray-500 uppercase mb-3">House Shift Distance Rates (₹ / KM)</h5>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs text-gray-500 mb-1">Mini Truck</label>
+                                            <input type="number" :disabled="!isEditMode" step="0.1" v-model.number="rates.individualDistanceRates.miniTruck"
+                                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-500 mb-1">Tempo</label>
+                                            <input type="number" :disabled="!isEditMode" step="0.1" v-model.number="rates.individualDistanceRates.tempo"
+                                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-500 mb-1">LCV</label>
+                                            <input type="number" :disabled="!isEditMode" step="0.1" v-model.number="rates.individualDistanceRates.lcv"
+                                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-500 mb-1">HCV</label>
+                                            <input type="number" :disabled="!isEditMode" step="0.1" v-model.number="rates.individualDistanceRates.hcv"
+                                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -534,81 +624,268 @@
                     class="material-symbols-outlined text-[14px]">history</span> Matrix last updated by sys_admin on Oct
                 24, 09:41 AM</span>
         </div>
+
+        <!-- Pending Material Requests Section -->
+        <div v-if="pendingMaterialRequests.length > 0" class="glass-panel rounded-xl overflow-hidden mt-6">
+            <div class="p-4 border-b border-gray-100 dark:border-white/5 bg-orange-50/50 dark:bg-orange-900/20 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">pending_actions</span>
+                </div>
+                <h3 class="font-bold text-gray-900 dark:text-white text-lg">Pending Material Requests
+                    <span class="text-xs font-normal text-orange-600 ml-2">({{ pendingMaterialRequests.length }} awaiting approval)</span>
+                </h3>
+            </div>
+            <div class="p-4 space-y-3">
+                <div v-for="req in pendingMaterialRequests" :key="req.id"
+                    class="flex items-center justify-between bg-white dark:bg-black/20 border border-gray-100 dark:border-white/10 rounded-lg p-3">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium text-gray-900 dark:text-white">{{ req.material_name }}</span>
+                            <span class="text-xs bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded">{{ req.unit }}</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Requested by {{ req.requested_by_name || 'Warehouse Manager' }}
+                            <span v-if="req.suggested_rate"> • Suggested: ₹{{ req.suggested_rate }}</span>
+                        </p>
+                        <p v-if="req.reason" class="text-xs text-gray-400 mt-1 italic">"{{ req.reason }}"</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="number" v-model.number="approvalRates[req.id]" placeholder="Rate"
+                            class="w-20 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded px-2 py-1.5 text-sm font-mono">
+                        <button @click="approveMaterialRequest(req)" :disabled="!approvalRates[req.id]"
+                            class="bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[16px]">check</span>
+                            Approve
+                        </button>
+                        <button @click="rejectMaterialRequest(req)"
+                            class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[16px]">close</span>
+                            Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Material Modal -->
+        <div v-if="showAddMaterialModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Add New Packing Material</h3>
+                    <button @click="showAddMaterialModal = false" class="text-gray-400 hover:text-gray-600">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Material Name *</label>
+                        <input type="text" v-model="newMaterial.name" placeholder="e.g., Foam Sheet"
+                            class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rate (₹) *</label>
+                            <input type="number" v-model.number="newMaterial.rate" placeholder="50"
+                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
+                            <select v-model="newMaterial.unit"
+                                class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm">
+                                <option value="pcs">pcs</option>
+                                <option value="m">m (meter)</option>
+                                <option value="kg">kg</option>
+                                <option value="roll">roll</option>
+                                <option value="sheet">sheet</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button @click="showAddMaterialModal = false"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg">
+                        Cancel
+                    </button>
+                    <button @click="addMaterial" :disabled="!newMaterial.name || !newMaterial.rate"
+                        class="px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-lg">
+                        Add Material
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRates } from '@/composables/useRates'
+import { getStoredAccessToken } from '@/config/api'
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 const isEditMode = ref(false)
+const isSaving = ref(false)
+const saveError = ref('')
 
-const rates = ref({
-    // Revenue
-    baseBookingFee: 1500,
-    perKmRate: 45,
-    minimumCharge: 2000,
-    expressMultiplier: 1.5,
+// One-time inventory seeding — default false so button shows immediately on fresh DB
+const inventorySeeded = ref(false)
+const isSeeding = ref(false)
+const seedError = ref('')
 
-    customerLaborRate: 300,
+async function checkInventorySeeded() {
+    seedError.value = '' // clear any stale error from previous navigation
+    try {
+        const token = getStoredAccessToken()
+        const res = await fetch(`${API_BASE}/api/v1/rates/inventory-seeded`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.ok) {
+            const data = await res.json()
+            inventorySeeded.value = data.seeded
+        }
+    } catch (e) {
+        // silently fail — button stays visible, no error shown
+    }
+}
 
-    materials: {
-        box: 50,
-        bubbleWrap: 20,
-        crate: 200
+async function sendItemsToWarehouse() {
+    isSeeding.value = true
+    seedError.value = ''
+    try {
+        const token = getStoredAccessToken()
+        const res = await fetch(`${API_BASE}/api/v1/rates/seed-inventory`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.ok) {
+            inventorySeeded.value = true
+        } else {
+            const err = await res.json().catch(() => ({}))
+            seedError.value = err.detail || 'Failed to seed inventory'
+        }
+    } catch (e) {
+        seedError.value = 'Network error. Please try again.'
+    } finally {
+        isSeeding.value = false
+    }
+}
+
+const { rates, ratesReady, saveRates } = useRates()
+
+// Materials as array (reactive, synced with rates)
+const materialsArray = computed({
+    get() {
+        return Array.isArray(rates.value.materials) ? rates.value.materials : []
     },
-
-    // Cost
-    driver: {
-        type: 'salary_bonus',
-        baseSalary: 25000,
-        hra: 5000,
-        da: 2000,
-        performanceBonus: 3000,
-        kmRate: 15,
-        fuelIncentive: 500,
-        ratingMultiplier: 1.1
-    },
-    labor: {
-        baseSalary: 18000,
-        hra: 3500,
-        da: 1500,
-        performanceBonus: 2000,
-        hourlyWage: 150,
-        overtimeMul: 1.5,
-        fieldAllowance: 200
-    },
-    managers: {
-        warehouseBase: 65000,
-        warehouseHra: 15000,
-        warehouseDa: 5000,
-        warehouseBonus: 10000,
-        dispatcherBase: 45000,
-        dispatcherHra: 10000,
-        dispatcherDa: 4000,
-        dispatcherBonus: 8000
-    },
-
-    // Discounts
-    // dynamic quotes list handled via pendingQuotes
-
-    // Fuel
-    fuel: {
-        maxClaimPerKm: 12.5,
-        benchmarkMileage: 8.5
-    },
-
-    // Dynamic
-    dynamic: {
-        peak: 1.2,
-        emergency: 2.5
+    set(val) {
+        rates.value.materials = val
     }
 })
 
-const pendingQuotes = ref([
-    { id: 1, customer: "Acme Corp", origin: "Delhi", dest: "Mumbai", originalPrice: 45000, aiQuote: 38000, discount: 15.5, startDate: "2026-03-01", endDate: "2026-03-31" },
-    { id: 2, customer: "TechFlow Ltd", origin: "Bangalore", dest: "Chennai", originalPrice: 15000, aiQuote: 12000, discount: 20.0, startDate: "2026-02-28", endDate: "2026-03-15" },
-    { id: 3, customer: "Global Traders", origin: "Pune", dest: "Hyderabad", originalPrice: 28000, aiQuote: 25000, discount: 10.7, startDate: "2026-03-05", endDate: "2026-04-05" }
-])
+// Add Material Modal
+const showAddMaterialModal = ref(false)
+const newMaterial = ref({ name: '', rate: null, unit: 'pcs' })
+
+function generateMaterialId(name) {
+    return name.split(' ').map((w, i) => i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('')
+}
+
+function addMaterial() {
+    if (!newMaterial.value.name || !newMaterial.value.rate) return
+    
+    const id = generateMaterialId(newMaterial.value.name)
+    const existing = materialsArray.value.find(m => m.id === id)
+    if (existing) {
+        alert('A material with this name already exists')
+        return
+    }
+    
+    materialsArray.value = [...materialsArray.value, {
+        id,
+        name: newMaterial.value.name,
+        rate: newMaterial.value.rate,
+        unit: newMaterial.value.unit
+    }]
+    
+    showAddMaterialModal.value = false
+    newMaterial.value = { name: '', rate: null, unit: 'pcs' }
+}
+
+function removeMaterial(index) {
+    materialsArray.value = materialsArray.value.filter((_, i) => i !== index)
+}
+
+// Pending Material Requests
+const pendingMaterialRequests = ref([])
+const approvalRates = ref({})
+
+async function fetchMaterialRequests() {
+    try {
+        const token = getStoredAccessToken()
+        const res = await fetch(`${API_BASE}/api/v1/inventory/material-requests?status_filter=PENDING`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.ok) {
+            const data = await res.json()
+            pendingMaterialRequests.value = data.items || []
+            // Pre-fill approval rates with suggested rates
+            data.items?.forEach(req => {
+                if (req.suggested_rate) approvalRates.value[req.id] = req.suggested_rate
+            })
+        }
+    } catch (e) {
+        console.error('Failed to fetch material requests:', e)
+    }
+}
+
+async function approveMaterialRequest(req) {
+    const rate = approvalRates.value[req.id]
+    if (!rate) return
+    
+    try {
+        const token = getStoredAccessToken()
+        const res = await fetch(`${API_BASE}/api/v1/inventory/material-requests/${req.id}/approve`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ approved_rate: rate })
+        })
+        if (res.ok) {
+            // Remove from pending list
+            pendingMaterialRequests.value = pendingMaterialRequests.value.filter(r => r.id !== req.id)
+            // Add to materials array
+            const id = generateMaterialId(req.material_name)
+            if (!materialsArray.value.find(m => m.id === id)) {
+                materialsArray.value = [...materialsArray.value, {
+                    id,
+                    name: req.material_name,
+                    rate: rate,
+                    unit: req.unit
+                }]
+            }
+        }
+    } catch (e) {
+        console.error('Failed to approve material request:', e)
+    }
+}
+
+async function rejectMaterialRequest(req) {
+    try {
+        const token = getStoredAccessToken()
+        const res = await fetch(`${API_BASE}/api/v1/inventory/material-requests/${req.id}/reject`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ manager_notes: 'Rejected by Logistics Manager' })
+        })
+        if (res.ok) {
+            pendingMaterialRequests.value = pendingMaterialRequests.value.filter(r => r.id !== req.id)
+        }
+    } catch (e) {
+        console.error('Failed to reject material request:', e)
+    }
+}
+
+// Legacy quote functions
+const pendingQuotes = ref([])
 
 const approveQuote = (id) => {
     if (!isEditMode.value) return;
@@ -620,12 +897,21 @@ const denyQuote = (id) => {
     pendingQuotes.value = pendingQuotes.value.filter(q => q.id !== id);
 }
 
-const saveAndLock = () => {
-    saveAllRates();
-    isEditMode.value = false;
+const saveAndLock = async () => {
+    isSaving.value = true
+    saveError.value = ''
+    try {
+        await saveRates(rates.value)
+        isEditMode.value = false
+    } catch (e) {
+        saveError.value = 'Failed to save rates. Please try again.'
+    } finally {
+        isSaving.value = false
+    }
 }
 
-const saveAllRates = () => {
-    alert("Global Rate Matrix safely deployed to all booking algorithms & payroll systems. Logged in Immutable System Audit.")
-}
+onMounted(() => {
+    fetchMaterialRequests()
+    checkInventorySeeded()
+})
 </script>

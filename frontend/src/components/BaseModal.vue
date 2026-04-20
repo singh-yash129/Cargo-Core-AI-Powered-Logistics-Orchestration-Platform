@@ -8,11 +8,11 @@
 
             <!-- Modal Content -->
             <div
-                class="relative bg-white dark:bg-card-dark border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 opacity-100">
+                class="relative bg-slate-950/98 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 opacity-100 backdrop-blur-xl">
                 <!-- Header -->
                 <div
-                    class="px-6 py-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-gray-50 dark:bg-white/5">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                    class="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-slate-900/90">
+                    <h3 class="text-lg font-bold text-white">
                         <slot name="title">Modal Title</slot>
                     </h3>
                     <button @click="$emit('close')"
@@ -22,13 +22,13 @@
                 </div>
 
                 <!-- Body -->
-                <div class="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div class="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar bg-slate-950/95">
                     <slot></slot>
                 </div>
 
                 <!-- Footer (Optional) -->
                 <div v-if="$slots.footer"
-                    class="px-6 py-4 border-t border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 flex justify-end gap-3">
+                    class="px-6 py-4 border-t border-white/10 bg-slate-900/90 flex justify-end gap-3">
                     <slot name="footer"></slot>
                 </div>
             </div>

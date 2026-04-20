@@ -26,8 +26,9 @@ async def list_labourers(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    warehouse_id: UUID | None = Query(default=None),
 ):
-    return await labour_service.list_labourers(db, page, page_size)
+    return await labour_service.list_labourers(db, page, page_size, warehouse_id)
 
 
 @router.post("", response_model=LabourerResponse, status_code=status.HTTP_201_CREATED)
@@ -37,6 +38,14 @@ async def create_labourer(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
 ):
     return await labour_service.create_labourer(db, data)
+
+
+@router.get("/availability", response_model=LabourAvailabilityResponse)
+async def availability(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+):
+    return await labour_service.availability_today(db)
 
 
 @router.get("/{labourer_id}", response_model=LabourerResponse)
@@ -56,6 +65,15 @@ async def update_labourer(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
 ):
     return await labour_service.update_labourer(db, labourer_id, data)
+
+
+@router.delete("/{labourer_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_labourer(
+    labourer_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+):
+    await labour_service.delete_labourer(db, labourer_id)
 
 
 @router.post("/{labourer_id}/assign/{order_id}", response_model=AssignLabourResponse)
@@ -84,11 +102,3 @@ async def check_out(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
 ):
     return await labour_service.check_out(db, labourer_id)
-
-
-@router.get("/availability", response_model=LabourAvailabilityResponse)
-async def availability(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
-):
-    return await labour_service.availability_today(db)

@@ -1,5 +1,11 @@
 <template>
     <div class="space-y-6">
+        <!-- Loading State -->
+        <div v-if="isLoading" class="flex items-center justify-center h-64">
+            <div class="text-gray-500 dark:text-gray-400">Loading orders...</div>
+        </div>
+
+        <div v-else>
         <!-- Header -->
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">New Orders / Demand Management</h2>
@@ -43,7 +49,7 @@
             <div class="glass-panel p-4 rounded-xl">
                 <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Dock Slots
                     Free</div>
-                <div class="text-3xl font-bold text-primary mt-1">{{ freeDocks }}/6</div>
+                <div class="text-3xl font-bold text-primary mt-1">{{ freeDocks }}/{{ totalDocks }}</div>
                 <div class="text-xs text-gray-500 mt-1">Available for dispatch</div>
             </div>
             <div class="glass-panel p-4 rounded-xl">
@@ -76,10 +82,9 @@
                     <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 uppercase sticky top-0">
                         <tr>
                             <th class="p-4">Order ID</th>
-                            <th class="p-4">Cargo Type</th>
-                            <th class="p-4">Qty / Weight</th>
-                            <th class="p-4">Labor Req.</th>
-                            <th class="p-4">Packing Material</th>
+                            <th class="p-4">Order Type</th>
+                            <th class="p-4">Cargo / Service</th>
+                            <th class="p-4">Total Value</th>
                             <th class="p-4">Deadline</th>
                             <th class="p-4">Status</th>
                             <th class="p-4">Actions</th>
@@ -88,49 +93,39 @@
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                         <tr v-for="order in filteredOrders" :key="order.id"
                             class="hover:bg-gray-50 dark:bg-white/5 transition-colors">
-                            <td class="p-4 font-mono text-primary font-bold">{{ order.id }}</td>
-                            <td class="p-4 text-gray-900 dark:text-white">{{ order.cargoType }}</td>
+                            <td class="p-4 font-mono text-primary font-bold">{{ order.tracking_code }}</td>
+                            <td class="p-4 text-gray-900 dark:text-white">{{ order.order_type }}</td>
                             <td class="p-4">
-                                <div class="text-gray-900 dark:text-white">{{ order.quantity }} items</div>
-                                <div class="text-xs text-gray-500">{{ order.weight }} kg</div>
+                                <div class="text-gray-900 dark:text-white">{{ order.cargo_type || 'Move order' }}</div>
+                                <div class="text-xs text-gray-500">{{ order.service_time_block || order.vehicle_type || 'Details pending' }}</div>
                             </td>
+                            <td class="p-4 text-gray-900 dark:text-white">{{ formatCurrency(order.total_amount) }}</td>
+                            <td class="p-4 text-gray-900 dark:text-white font-mono text-xs">{{ formatDate(order.scheduled_at) }}</td>
                             <td class="p-4">
-                                <span class="flex items-center gap-1"
-                                    :class="order.laborAvailable ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
-                                    <span class="material-symbols-outlined text-[16px]">{{ order.laborAvailable ?
-                                        'check_circle' : 'cancel' }}</span>
-                                    {{ order.laborNeeded }} workers
-                                </span>
-                            </td>
-                            <td class="p-4">
-                                <span class="flex items-center gap-1"
-                                    :class="order.packingReady ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
-                                    <span class="material-symbols-outlined text-[16px]">{{ order.packingReady ?
-                                        'check_circle' : 'cancel' }}</span>
-                                    {{ order.packingReady ? 'Ready' : 'Short' }}
-                                </span>
-                            </td>
-                            <td class="p-4 text-gray-900 dark:text-white font-mono text-xs">{{ order.deadline }}</td>
-                            <td class="p-4">
-                                <span class="px-2 py-1 rounded text-[10px] font-bold border" :class="order.statusClass">
+                                <span class="px-2 py-1 rounded text-[10px] font-bold border" :class="getStatusClass(order.status)">
                                     {{ order.status }}
                                 </span>
                             </td>
                             <td class="p-4">
                                 <div class="flex gap-2">
-                                    <button v-if="order.status === 'Pending'" @click="validateOrder(order)"
+                                    <button v-if="order.status === 'DRAFT'" @click="validateOrder(order)"
                                         class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded text-xs font-bold transition-colors">
                                         Validate
                                     </button>
-                                    <button v-if="order.status === 'Validated'" @click="acceptOrder(order)"
-                                        class="bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 px-3 py-1 rounded text-xs font-bold transition-colors">
-                                        Accept
+                                    <button v-else-if="needsWarehouseAcceptance(order)"
+                                        @click="selectedOrder = order; showDetailModal = true"
+                                        class="bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 px-3 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[14px]">task_alt</span>
+                                        Accept Order
                                     </button>
-                                    <button v-if="order.status !== 'Accepted' && order.status !== 'On Hold'"
-                                        @click="holdOrder(order)"
-                                        class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-600 dark:text-yellow-400 px-3 py-1 rounded text-xs font-bold transition-colors">
-                                        Hold
-                                    </button>
+                                    <span v-else-if="order.status === 'CONFIRMED'"
+                                        class="inline-flex items-center bg-green-500/10 text-green-600 dark:text-green-400 px-3 py-1 rounded text-xs font-bold border border-green-500/20">
+                                        In Processing
+                                    </span>
+                                    <span v-else-if="order.status === 'ASSIGNED'"
+                                        class="inline-flex items-center bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded text-xs font-bold border border-indigo-500/20">
+                                        Assigned
+                                    </span>
                                     <button @click="selectedOrder = order; showDetailModal = true"
                                         class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white px-2 py-1 rounded text-xs transition-colors">
                                         <span class="material-symbols-outlined text-[16px]">visibility</span>
@@ -138,9 +133,13 @@
                                 </div>
                             </td>
                         </tr>
+                        <tr v-if="filteredOrders.length === 0">
+                            <td colspan="7" class="p-8 text-center text-gray-500">No orders found</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
+        </div>
         </div>
 
         <!-- Order Detail Modal -->
@@ -151,7 +150,7 @@
                 <div
                     class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-gray-200 dark:border-white/10">
                     <div class="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Order {{ selectedOrder.id }}</h3>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Order {{ selectedOrder.tracking_code }}</h3>
                         <button @click="showDetailModal = false"
                             class="text-gray-500 hover:text-gray-900 dark:text-white transition-colors">
                             <span class="material-symbols-outlined">close</span>
@@ -160,86 +159,66 @@
                     <div class="p-6 space-y-6">
                         <div class="grid grid-cols-2 gap-4">
                             <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
-                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Cargo Type</div>
-                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.cargoType }}</div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Order Type</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.order_type }}</div>
                             </div>
                             <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
-                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Quantity / Weight
+                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Cargo Type
                                 </div>
-                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.quantity }} items
-                                    / {{
-                                        selectedOrder.weight }} kg</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.cargo_type || 'Move order' }}</div>
                             </div>
                             <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
-                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Delivery Deadline
+                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Service Window
                                 </div>
-                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.deadline }}</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ selectedOrder.service_time_block || 'TBD' }}</div>
                             </div>
                             <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
-                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Special
-                                    Instructions
+                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Scheduled Time
                                 </div>
-                                <div class="text-gray-900 dark:text-white font-bold">{{
-                                    selectedOrder.specialInstructions ||
-                                    'None' }}</div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ formatDate(selectedOrder.scheduled_at) }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Total Value
+                                </div>
+                                <div class="text-gray-900 dark:text-white font-bold">{{ formatCurrency(selectedOrder.total_amount) }}</div>
                             </div>
                         </div>
 
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3">Demand Validation Checklist
-                            </h4>
-                            <div class="space-y-3">
-                                <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                                    :class="selectedOrder.inventoryCheck ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
-                                    @click="selectedOrder.inventoryCheck = !selectedOrder.inventoryCheck">
-                                    <span class="material-symbols-outlined"
-                                        :class="selectedOrder.inventoryCheck ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{
-                                            selectedOrder.inventoryCheck ? 'check_circle' : 'cancel' }}</span>
-                                    <span class="text-sm text-gray-900 dark:text-white">Inventory Availability — Stock
-                                        sufficient</span>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Pickup Address</div>
+                                <div class="text-gray-900 dark:text-white text-sm leading-6">{{ selectedOrder.pickup_addr || 'Not available' }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Delivery Address</div>
+                                <div class="text-gray-900 dark:text-white text-sm leading-6">{{ selectedOrder.delivery_addr || 'Not available' }}</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
+                            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase mb-3">Item Manifest</div>
+                            <div v-if="selectedOrder.items?.length" class="space-y-2">
+                                <div v-for="item in selectedOrder.items" :key="item.id"
+                                    class="flex items-center justify-between rounded-lg border border-gray-200 dark:border-white/10 px-3 py-2">
+                                    <div>
+                                        <div class="font-medium text-gray-900 dark:text-white">{{ item.sku }}</div>
+                                        <div class="text-xs text-gray-500">Boxes: {{ item.box_count ?? 0 }} • Volume: {{ item.estimated_volume ?? 0 }}</div>
+                                    </div>
+                                    <div class="text-sm font-bold text-gray-900 dark:text-white">{{ item.quantity }}</div>
                                 </div>
-                                <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                                    :class="selectedOrder.packingReady ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
-                                    @click="selectedOrder.packingReady = !selectedOrder.packingReady">
-                                    <span class="material-symbols-outlined"
-                                        :class="selectedOrder.packingReady ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{
-                                            selectedOrder.packingReady ? 'check_circle' : 'cancel' }}</span>
-                                    <span class="text-sm text-gray-900 dark:text-white">Packing Materials — Boxes, wrap,
-                                        crates</span>
-                                </div>
-                                <div class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                                    :class="selectedOrder.laborAvailable ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'"
-                                    @click="selectedOrder.laborAvailable = !selectedOrder.laborAvailable">
-                                    <span class="material-symbols-outlined"
-                                        :class="selectedOrder.laborAvailable ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{
-                                            selectedOrder.laborAvailable ? 'check_circle' : 'cancel' }}</span>
-                                    <span class="text-sm text-gray-900 dark:text-white">Labor Availability — {{
-                                        selectedOrder.laborNeeded }}
-                                        workers required</span>
-                                </div>
-                                <div
-                                    class="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">dock</span>
-                                    <span class="text-sm text-gray-900 dark:text-white">Dock Capacity — {{ freeDocks }}
-                                        slots available</span>
-                                </div>
+                            </div>
+                            <div v-else class="text-sm text-gray-500 dark:text-gray-400 leading-6">
+                                No item-level list was captured for this booking. Warehouse and dispatcher can currently see only order-level details unless items are added later through the order items API.
                             </div>
                         </div>
 
                         <div class="flex gap-3">
-                            <button v-if="selectedOrder.status !== 'Accepted'"
+                            <button v-if="selectedOrder.status === 'DRAFT' || needsWarehouseAcceptance(selectedOrder)"
                                 @click="acceptOrder(selectedOrder); showDetailModal = false"
-                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 py-3 rounded-lg font-bold transition-colors"
-                                :disabled="!selectedOrder.inventoryCheck || !selectedOrder.packingReady || !selectedOrder.laborAvailable">
+                                class="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 py-3 rounded-lg font-bold transition-colors">
                                 <span
                                     class="material-symbols-outlined text-[18px] align-middle mr-1">check_circle</span>
-                                Accept for Processing
-                            </button>
-                            <button @click="holdOrder(selectedOrder); showDetailModal = false"
-                                class="flex-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-600 dark:text-yellow-400 py-3 rounded-lg font-bold transition-colors">
-                                <span
-                                    class="material-symbols-outlined text-[18px] align-middle mr-1">pause_circle</span>
-                                Put On Hold
+                                {{ selectedOrder.status === 'DRAFT' ? 'Validate Order' : 'Accept Order' }}
                             </button>
                             <button @click="escalateOrder(selectedOrder)"
                                 class="bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 py-3 px-6 rounded-lg font-bold transition-colors">
@@ -275,66 +254,271 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
+import { apiUrl } from '@/config/api'
+import {
+    getEffectiveWarehouseSubstatus,
+    isWarehouseOrderAccepted,
+} from '@/utils/warehouseOrderState'
 
+const authStore = useAuthStore()
 const activeTab = ref('incoming')
 const searchQuery = ref('')
 const showDetailModal = ref(false)
 const selectedOrder = ref(null)
-const freeDocks = ref(3)
-const freeLabor = ref(12)
+const freeDocks = ref(0)
+const freeLabor = ref(0)
+const totalDocks = ref(6)
 const escalateToast = ref('')
 const successToast = ref('')
+const isLoading = ref(true)
 
-const orders = ref([
-    { id: 'ORD-20261', cargoType: 'House Shift (3BHK)', quantity: 45, weight: 820, laborNeeded: 4, laborAvailable: true, packingReady: true, inventoryCheck: true, deadline: '2026-02-27 10:00', status: 'Pending', statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', specialInstructions: 'Fragile items — extra bubble wrap', tab: 'incoming' },
-    { id: 'ORD-20262', cargoType: 'Parcel Delivery', quantity: 12, weight: 95, laborNeeded: 1, laborAvailable: true, packingReady: true, inventoryCheck: true, deadline: '2026-02-26 16:00', status: 'Validated', statusClass: 'bg-blue-500/10 text-blue-500 border-blue-500/20', specialInstructions: '', tab: 'incoming' },
-    { id: 'ORD-20263', cargoType: 'Bulk Cargo', quantity: 200, weight: 3400, laborNeeded: 8, laborAvailable: false, packingReady: true, inventoryCheck: true, deadline: '2026-02-28 09:00', status: 'Pending', statusClass: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', specialInstructions: 'Requires forklift', tab: 'incoming' },
-    { id: 'ORD-20258', cargoType: 'House Shift (2BHK)', quantity: 30, weight: 520, laborNeeded: 3, laborAvailable: true, packingReady: true, inventoryCheck: true, deadline: '2026-02-26 14:00', status: 'Accepted', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20', specialInstructions: 'Piano included', tab: 'accepted' },
-    { id: 'ORD-20255', cargoType: 'Office Relocation', quantity: 80, weight: 1600, laborNeeded: 6, laborAvailable: true, packingReady: true, inventoryCheck: true, deadline: '2026-02-27 08:00', status: 'Accepted', statusClass: 'bg-green-500/10 text-green-500 border-green-500/20', specialInstructions: '', tab: 'accepted' },
-    { id: 'ORD-20264', cargoType: 'Fragile Electronics', quantity: 15, weight: 180, laborNeeded: 2, laborAvailable: true, packingReady: false, inventoryCheck: true, deadline: '2026-02-27 15:00', status: 'On Hold', statusClass: 'bg-orange-500/10 text-orange-500 border-orange-500/20', specialInstructions: 'Anti-static packaging needed', tab: 'onhold' },
-    { id: 'ORD-20265', cargoType: 'Warehouse Transfer', quantity: 500, weight: 8200, laborNeeded: 10, laborAvailable: false, packingReady: false, inventoryCheck: false, deadline: '2026-03-01 06:00', status: 'On Hold', statusClass: 'bg-orange-500/10 text-orange-500 border-orange-500/20', specialInstructions: 'Cross-dock needed', tab: 'onhold' },
-])
+const orders = ref([])
+// Incoming: Orders awaiting warehouse validation/pickup
+const incomingStatuses = new Set(['DRAFT', 'CONFIRMED'])
+// Accepted: Orders in warehouse processing or completed
+const acceptedStatuses = new Set(['ASSIGNED', 'IN_TRANSIT', 'DELIVERED', 'CLOSED'])
+const onHoldStatuses = new Set(['CANCELLED'])
+
+function needsWarehouseAcceptance(order) {
+    if (!order || order.status !== 'CONFIRMED') return false
+    const warehouseId = authStore.currentUser?.warehouse_id
+    const substatus = getEffectiveWarehouseSubstatus(order, warehouseId)
+    // If any warehouse substatus is already set in DB, it was already accepted
+    if (substatus) return false
+    return !isWarehouseOrderAccepted(order, warehouseId)
+}
+
+function notifyOrdersUpdated() {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('warehouse-orders-updated'))
+    }
+}
+
+// Fetch orders from API
+async function fetchOrders() {
+    try {
+        isLoading.value = true
+
+        // Ensure warehouse context is loaded (populates warehouse_id on currentUser)
+        let warehouseId = authStore.currentUser?.warehouse_id
+        if (!warehouseId) {
+            const warehouse = await authStore.ensureWarehouseContext()
+            warehouseId = warehouse?.id || authStore.currentUser?.warehouse_id
+        }
+
+        if (!warehouseId) {
+            console.error('No warehouse_id found for current user')
+            isLoading.value = false
+            return
+        }
+
+        // Normalise to string for safe comparison (API returns UUID strings)
+        const warehouseIdStr = String(warehouseId)
+
+        // Fetch orders, warehouse dashboard (for dock count) and labourers (for free labor) in parallel
+        const [ordersRes, dashRes, labourRes] = await Promise.allSettled([
+            fetch(apiUrl('api/v1/orders?page=1&page_size=100'), {
+                headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
+            }),
+            fetch(apiUrl(`api/v1/warehouses/${warehouseIdStr}/dashboard`), {
+                headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
+            }),
+            fetch(apiUrl('api/v1/labourers?page=1&page_size=100'), {
+                headers: { 'Authorization': `Bearer ${authStore.authToken}`, 'Content-Type': 'application/json' }
+            })
+        ])
+
+        // Process orders
+        // NOTE: The backend already filters orders by warehouse_id for WAREHOUSE_MANAGER role.
+        // We do a string-based comparison as a safety net in case the backend returns extra orders.
+        if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
+            const data = await ordersRes.value.json()
+            orders.value = (data.items || []).map(order => {
+                const itemCount = order.items?.length || 0
+                const totalWeight = order.items?.reduce((sum, item) => sum + (item.weight || 0), 0) || 0
+                const effectiveWarehouseSubstatus = getEffectiveWarehouseSubstatus(order, warehouseIdStr)
+
+                // Determine which tab this order belongs to
+                let tab = 'incoming'
+                if (onHoldStatuses.has(order.status)) {
+                    tab = 'onhold'
+                } else if (acceptedStatuses.has(order.status)) {
+                    tab = 'accepted'
+                } else if (incomingStatuses.has(order.status)) {
+                    if (
+                        order.status === 'CONFIRMED' &&
+                        (effectiveWarehouseSubstatus || isWarehouseOrderAccepted(order, warehouseIdStr))
+                    ) {
+                        tab = 'accepted'
+                    } else {
+                        tab = 'incoming'
+                    }
+                }
+
+                return {
+                    ...order,
+                    warehouse_substatus: effectiveWarehouseSubstatus,
+                    item_count: itemCount,
+                    total_weight: totalWeight,
+                    tab
+                }
+            // Backend already filters orders by warehouse_id for WAREHOUSE_MANAGER role.
+            // No client-side filter needed — avoids silent drops due to UUID type mismatches.
+            })
+        }
+
+        // Process warehouse dashboard — get dock count
+        if (dashRes.status === 'fulfilled' && dashRes.value.ok) {
+            const dash = await dashRes.value.json()
+            // total docks from dashboard or default 6
+            totalDocks.value = dash.dock_count || dash.total_docks || 6
+            // free docks = total docks - orders currently being dispatched (PACKED status)
+            const packingCount = orders.value.filter(o => o.status === 'PACKED' || o.status === 'PACKING').length
+            freeDocks.value = Math.max(0, totalDocks.value - packingCount)
+        } else {
+            // Fallback: free docks = total - active loading orders
+            const packingCount = orders.value.filter(o => o.status === 'PACKED' || o.status === 'PACKING').length
+            freeDocks.value = Math.max(0, 6 - packingCount)
+        }
+
+        // Process labourers — count AVAILABLE ones
+        if (labourRes.status === 'fulfilled' && labourRes.value.ok) {
+            const labourData = await labourRes.value.json()
+            const labourers = labourData.items || []
+            freeLabor.value = labourers.filter(l =>
+                l.status === 'AVAILABLE' || l.status === 'IN_WAREHOUSE' || l.status === 'In Warehouse'
+            ).length
+        } else {
+            freeLabor.value = 0
+        }
+
+    } catch (error) {
+        console.error('Error fetching orders:', error)
+        showToast('Error loading orders')
+    } finally {
+        isLoading.value = false
+    }
+}
 
 const capacityPercent = computed(() => Math.round((orders.value.length / 50) * 100))
-const pendingCount = computed(() => orders.value.filter(o => o.status === 'Pending').length)
+const pendingCount = computed(() => orders.value.filter(o => incomingStatuses.has(o.status)).length)
 
 const filteredOrders = computed(() => {
     return orders.value.filter(o => {
         const matchesTab = o.tab === activeTab.value
-        const matchesSearch = !searchQuery.value || o.id.toLowerCase().includes(searchQuery.value.toLowerCase()) || o.cargoType.toLowerCase().includes(searchQuery.value.toLowerCase())
+        const matchesSearch = !searchQuery.value ||
+            o.tracking_code.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+            o.order_type.toLowerCase().includes(searchQuery.value.toLowerCase())
         return matchesTab && matchesSearch
     })
 })
+
+function formatCurrency(value) {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0
+    }).format(value || 0)
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return date.toLocaleString('en-IN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+}
+
+function getStatusClass(status) {
+    const statusMap = {
+        'DRAFT': 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+        'CONFIRMED': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+        'ASSIGNED': 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
+        'IN_TRANSIT': 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+        'DELIVERED': 'bg-green-500/10 text-green-500 border-green-500/20',
+        'CLOSED': 'bg-gray-500/10 text-gray-500 border-gray-500/20',
+        'CANCELLED': 'bg-red-500/10 text-red-500 border-red-500/20'
+    }
+    return statusMap[status] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'
+}
 
 function showToast(msg) {
     successToast.value = msg
     setTimeout(() => { successToast.value = '' }, 2500)
 }
 
-function validateOrder(order) {
-    order.status = 'Validated'
-    order.statusClass = 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-    showToast(`${order.id} validated successfully`)
+async function validateOrder(order) {
+    try {
+        const response = await fetch(apiUrl(`api/v1/orders/${order.id}/confirm`), {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authStore.authToken}`,
+                'Content-Type': 'application/json'
+            }
+        })
+
+        if (!response.ok) {
+            const body = await response.json().catch(() => null)
+            const msg = body?.detail || 'Failed to validate order'
+            throw new Error(msg)
+        }
+
+        await fetchOrders()
+        notifyOrdersUpdated()
+        showToast(`${order.tracking_code} validated successfully`)
+    } catch (error) {
+        console.error('Error validating order:', error)
+        showToast(error.message || 'Error validating order')
+    }
 }
 
-function acceptOrder(order) {
-    order.status = 'Accepted'
-    order.statusClass = 'bg-green-500/10 text-green-500 border-green-500/20'
-    order.tab = 'accepted'
-    showToast(`${order.id} accepted for processing`)
-}
+async function acceptOrder(order) {
+    if (order.status === 'DRAFT') {
+        return validateOrder(order)
+    }
 
-function holdOrder(order) {
-    order.status = 'On Hold'
-    order.statusClass = 'bg-orange-500/10 text-orange-500 border-orange-500/20'
-    order.tab = 'onhold'
-    showToast(`${order.id} placed on hold`)
+    if (needsWarehouseAcceptance(order)) {
+        const warehouseId = authStore.currentUser?.warehouse_id
+        if (!warehouseId) {
+            showToast('No warehouse assigned to your account')
+            return
+        }
+        try {
+            const response = await fetch(
+                apiUrl(`api/v1/warehouses/${warehouseId}/operations/orders/${order.id}/accept`),
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authStore.authToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            )
+            if (!response.ok) throw new Error('Failed to accept order')
+            await fetchOrders()
+            notifyOrdersUpdated()
+            activeTab.value = 'accepted'
+            showToast(`${order.tracking_code} accepted into warehouse queue`)
+        } catch (error) {
+            console.error('Error accepting order:', error)
+            showToast('Error accepting order')
+        }
+    }
 }
 
 function escalateOrder(order) {
-    escalateToast.value = order.id
+    escalateToast.value = order.tracking_code
     showDetailModal.value = false
     setTimeout(() => { escalateToast.value = '' }, 3000)
 }
+
+onMounted(() => {
+    fetchOrders()
+})
 </script>
