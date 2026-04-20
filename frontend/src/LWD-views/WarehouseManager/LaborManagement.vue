@@ -410,7 +410,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { apiUrl } from '@/config/api'
 import { useSlipPrinter } from '@/composables/useSlipPrinter'
 
-const { openSlip } = useSlipPrinter()
+const { openSlipWithData } = useSlipPrinter()
 
 const authStore = useAuthStore()
 
@@ -582,7 +582,7 @@ function canPrintAssignmentSlip(staff) {
 
 function openAssignmentSlip(staff) {
     if (!canPrintAssignmentSlip(staff)) return
-    openSlip('laborAssignment')
+    openSlipWithData('laborAssignment', staff)
 }
 
 async function assignWorker() {

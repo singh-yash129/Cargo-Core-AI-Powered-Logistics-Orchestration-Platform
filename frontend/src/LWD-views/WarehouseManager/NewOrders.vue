@@ -463,14 +463,18 @@ async function validateOrder(order) {
             }
         })
 
-        if (!response.ok) throw new Error('Failed to validate order')
+        if (!response.ok) {
+            const body = await response.json().catch(() => null)
+            const msg = body?.detail || 'Failed to validate order'
+            throw new Error(msg)
+        }
 
         await fetchOrders()
         notifyOrdersUpdated()
         showToast(`${order.tracking_code} validated successfully`)
     } catch (error) {
         console.error('Error validating order:', error)
-        showToast('Error validating order')
+        showToast(error.message || 'Error validating order')
     }
 }
 

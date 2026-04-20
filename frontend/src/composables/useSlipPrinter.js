@@ -901,6 +901,44 @@ function digitalPickListReplacements(data) {
   }
 }
 
+function laborAssignmentReplacements(staff) {
+  const now = new Date()
+  const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
+  const shortId = staff?.id ? String(staff.id).slice(0, 6).toUpperCase() : 'TBD'
+  const empCode = `EMP-${shortId}`
+  const staffName = cleanText(staff?.name, 'Staff Member')
+  const orderId = cleanText(staff?.orderId, '—')
+  const startTime = (staff?.startTime && staff.startTime !== '--') ? staff.startTime : '09:00 AM'
+  const role = cleanText(staff?.role, 'Labourer')
+  const task = cleanText(staff?.task, 'Assigned Task')
+  const perf = staff?.perf != null ? `${staff.perf}%` : '—'
+
+  return {
+    'CC-12345':                        orderId,
+    'December 20, 2024':               dateStr,
+    '09:00 AM - 05:00 PM':             `${startTime} — End of Shift`,
+    'Sarah Khan | +91 98765 43210':    staffName,
+    'Rajesh Kumar':                    staffName,
+    'EMP-2541':                        empCode,
+    'TEAM LEAD':                       role.toUpperCase(),
+    'ASSIGNED WORKERS (4 MEMBERS)':    'ASSIGNED WORKER',
+    'Vijay Sharma':                    '—',
+    'Arun Patel':                      '—',
+    'Mohammed Rafi':                   '—',
+    'EMP-3782':                        '—',
+    'EMP-4156':                        '—',
+    'EMP-5234':                        '—',
+    '8 Years':                         perf,
+    'Supervise team, coordinate with customer, ensure quality control': task,
+    '123 Oak Street, Whitefield':      'Warehouse',
+    'Bangalore - 560066':              '',
+    '456 Maple Avenue, Indiranagar':   orderId !== '—' ? `Order: ${orderId}` : 'Order Location',
+    'Bangalore - 560038':              '',
+    'Customer has antique furniture - handle with extra care':          'Follow warehouse safety guidelines',
+    '2nd floor delivery - ensure lift is operational':                  'Coordinate with warehouse supervisor',
+  }
+}
+
 function getReplacements(key, order, user) {
   switch (key) {
     case 'bookingConfirmation':    return bookingConfirmationReplacements(order, user)
@@ -912,6 +950,7 @@ function getReplacements(key, order, user) {
     case 'assetCheckout':          return assetCheckoutReplacements(order, user)
     case 'tripManifest':           return tripManifestReplacements(order)
     case 'digitalPickList':        return digitalPickListReplacements(order)
+    case 'laborAssignment':        return laborAssignmentReplacements(order)
     default:                       return {}
   }
 }
