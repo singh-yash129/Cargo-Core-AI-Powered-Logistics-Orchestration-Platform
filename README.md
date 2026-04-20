@@ -105,7 +105,21 @@ Frontend runs at: `http://localhost:5173`
 
 ## Environment Variables
 
-Create a `.env` file inside the `backend/` folder with the following:
+**Quickest way — just copy the example files:**
+
+```bash
+# Backend
+cp backend/.env.example backend/.env
+
+# Frontend
+cp frontend/.env.example frontend/.env
+```
+
+Then open `backend/.env` and fill in your API keys. That's it — no manual typing needed.
+
+---
+
+The full list of variables for reference — create a `.env` file inside `backend/` with:
 
 ```env
 # Application
