@@ -390,7 +390,7 @@ async def delete_task(
 @router.get("/notifications", response_model=list[LogisticsNotificationItem])
 async def get_notifications(
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
 ):
     return await logistics_service.get_notifications(db, current_user)
 
@@ -400,7 +400,7 @@ async def update_notification(
     notification_id: UUID,
     data: LogisticsNotificationUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
 ):
     return await logistics_service.update_notification(db, notification_id, data, current_user)
 
@@ -408,7 +408,7 @@ async def update_notification(
 @router.post("/notifications/mark-all-read", response_model=MessageResponse)
 async def mark_all_notifications_read(
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER"))],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
 ):
     return await logistics_service.mark_all_notifications_read(db, current_user)
 
@@ -416,7 +416,7 @@ async def mark_all_notifications_read(
 @router.delete("/notifications", response_model=MessageResponse)
 async def clear_notifications(
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER"))],
+    current_user: Annotated[User, Depends(require_role("LOGISTIC_MANAGER", "WAREHOUSE_MANAGER", "DISPATCHER"))],
 ):
     return await logistics_service.clear_notifications(db, current_user)
 

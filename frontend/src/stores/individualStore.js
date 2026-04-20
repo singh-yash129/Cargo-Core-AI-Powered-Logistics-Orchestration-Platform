@@ -268,6 +268,7 @@ export const useIndividualStore = defineStore('individual', () => {
                 title: item.title,
                 message: item.message,
                 time: item.time,
+                createdAt: item.created_at,
                 read: item.read,
                 type: item.type,
             }))

@@ -770,6 +770,12 @@ async def submit_damage_review(
     case.status = data.new_status or "Claims Reviewed"
     if data.damage_severity:
         case.condition = data.damage_severity
+    if data.is_genuine is not None:
+        case.wm_is_genuine = data.is_genuine
+    if data.recommended_settlement:
+        case.wm_recommended_outcome = data.recommended_settlement
+    if data.remarks:
+        case.wm_inspection_remarks = data.remarks
     db.add(case)
 
     report.status = "reviewed"

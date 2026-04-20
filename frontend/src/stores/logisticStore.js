@@ -413,6 +413,7 @@ export const useLogisticStore = defineStore('logistic', () => {
             title: item.title,
             message: item.message,
             time: item.time,
+            createdAt: item.created_at,
             read: item.read,
             type: item.type,
         }))
@@ -1049,6 +1050,7 @@ export const useLogisticStore = defineStore('logistic', () => {
             title: item.title,
             message: item.message,
             time: item.time,
+            createdAt: item.created_at,
             read: item.read,
             type: item.type,
         }))

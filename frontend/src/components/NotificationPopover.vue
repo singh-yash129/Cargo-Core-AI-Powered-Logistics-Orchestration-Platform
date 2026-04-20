@@ -5,7 +5,7 @@
       class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white relative outline-none focus:ring-2 focus:ring-primary/50"
       @click="toggle"
     >
-      <span class="material-symbols-outlined text-[20px]" :class="{ 'text-primary': unreadCount > 0 }">notifications</span>
+      <span class="material-symbols-outlined text-[20px]" :class="{ 'text-primary': badgeCount > 0 }">notifications</span>
       <transition name="badge">
         <span
           v-if="badgeCount > 0"
@@ -27,9 +27,9 @@
             <span class="material-symbols-outlined text-[18px] text-primary">notifications_active</span>
             <h3 class="text-sm font-bold text-gray-900 dark:text-white">Notifications</h3>
             <span
-              v-if="unreadCount > 0"
+              v-if="badgeCount > 0"
               class="px-1.5 py-0.5 bg-red-500/10 text-red-500 dark:text-red-400 text-[10px] font-bold rounded-full"
-            >{{ unreadCount }} new</span>
+            >{{ badgeCount }} new</span>
           </div>
           <div v-if="notifications.length > 0" class="flex items-center gap-1">
             <button
@@ -139,11 +139,12 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
   notifications: { type: Array, default: () => [] },
   unreadCount: { type: Number, default: 0 },
+  storageKey: { type: String, default: 'cargo_notif_seen_ids_v2' },
 })
 
 const emit = defineEmits(['mark-read', 'mark-all-read', 'clear-all', 'open'])
@@ -154,13 +155,14 @@ const unreadNotifs = computed(() => props.notifications.filter(n => !n.read))
 const readNotifs = computed(() => props.notifications.filter(n => n.read))
 
 // Persist seen notification IDs in localStorage so badge resets after user views them
-const SEEN_KEY = 'cargo_notif_seen_ids'
+const sessionStartedAt = Date.now()
+let initialBaselineApplied = false
 
 function loadSeenIds() {
-  try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')) } catch { return new Set() }
+  try { return new Set(JSON.parse(localStorage.getItem(props.storageKey) || '[]')) } catch { return new Set() }
 }
 function saveSeenIds(ids) {
-  try { localStorage.setItem(SEEN_KEY, JSON.stringify([...ids])) } catch {}
+  try { localStorage.setItem(props.storageKey, JSON.stringify([...ids])) } catch {}
 }
 
 const seenIds = ref(loadSeenIds())
@@ -168,6 +170,48 @@ const seenIds = ref(loadSeenIds())
 // Badge: unread notifications not yet seen by the user
 const badgeCount = computed(() =>
   props.notifications.filter(n => !n.read && !seenIds.value.has(String(n.id))).length
+)
+
+function notificationCreatedMs(notification) {
+  const rawValue = notification.createdAt ?? notification.created_at
+  if (!rawValue) return null
+  const timestamp = new Date(rawValue).getTime()
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+function rememberSeenId(ids, id) {
+  if (!id || ids.has(id)) return false
+  ids.add(id)
+  return true
+}
+
+watch(
+  () => props.notifications,
+  (items) => {
+    const notifications = Array.isArray(items) ? items : []
+    if (!notifications.length) return
+
+    const updated = new Set(seenIds.value)
+    let changed = false
+    const shouldBaselineUnknown = !initialBaselineApplied
+
+    for (const notification of notifications) {
+      const id = String(notification.id)
+      const createdMs = notificationCreatedMs(notification)
+      const existedBeforeThisPageLoad = createdMs !== null && createdMs <= sessionStartedAt
+
+      if (notification.read || existedBeforeThisPageLoad || (shouldBaselineUnknown && createdMs === null)) {
+        changed = rememberSeenId(updated, id) || changed
+      }
+    }
+
+    initialBaselineApplied = true
+    if (changed) {
+      seenIds.value = updated
+      saveSeenIds(updated)
+    }
+  },
+  { immediate: true, deep: true }
 )
 
 // Guard against the backdrop's click firing on the same interaction that opens the panel

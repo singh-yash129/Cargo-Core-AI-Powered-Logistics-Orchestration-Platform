@@ -232,6 +232,7 @@ class LogisticsNotificationItem(BaseModel):
     title: str
     message: str
     time: str
+    created_at: datetime
     read: bool
     type: str
 

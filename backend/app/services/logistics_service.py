@@ -1151,9 +1151,9 @@ async def _build_return_case_item(
         reference_code=case.reference_code,
         wallet_credited=credited,
         wm_disposition=grading.disposition if (grading and is_physical_flow) else None,
-        wm_is_genuine=grading.is_genuine if (grading and is_physical_flow) else None,
-        wm_recommended_outcome=grading.recommended_outcome if (grading and is_physical_flow) else None,
-        wm_inspection_remarks=grading.inspection_remarks if (grading and is_physical_flow) else None,
+        wm_is_genuine=grading.is_genuine if (grading and is_physical_flow) else getattr(case, "wm_is_genuine", None),
+        wm_recommended_outcome=grading.recommended_outcome if (grading and is_physical_flow) else getattr(case, "wm_recommended_outcome", None),
+        wm_inspection_remarks=grading.inspection_remarks if (grading and is_physical_flow) else getattr(case, "wm_inspection_remarks", None),
         wm_graded_at=grading.graded_at if (grading and is_physical_flow) else None,
         wm_grader_name=grading.grader.name if (grading and is_physical_flow and grading.grader) else None,
         transport_charge_amount=round(float(case.transport_charge_amount or 0.0), 2),
@@ -1676,9 +1676,9 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
             reference_code=item.reference_code,
             wallet_credited=item.reference_code in _credited_ref_codes,
             wm_disposition=completed_grading.disposition if (completed_grading and is_physical_flow) else None,
-            wm_is_genuine=completed_grading.is_genuine if (completed_grading and is_physical_flow) else None,
-            wm_recommended_outcome=completed_grading.recommended_outcome if (completed_grading and is_physical_flow) else None,
-            wm_inspection_remarks=completed_grading.inspection_remarks if (completed_grading and is_physical_flow) else None,
+            wm_is_genuine=completed_grading.is_genuine if (completed_grading and is_physical_flow) else getattr(item, "wm_is_genuine", None),
+            wm_recommended_outcome=completed_grading.recommended_outcome if (completed_grading and is_physical_flow) else getattr(item, "wm_recommended_outcome", None),
+            wm_inspection_remarks=completed_grading.inspection_remarks if (completed_grading and is_physical_flow) else getattr(item, "wm_inspection_remarks", None),
             wm_graded_at=completed_grading.graded_at if (completed_grading and is_physical_flow) else None,
             wm_grader_name=completed_grading.grader.name if (completed_grading and is_physical_flow and completed_grading.grader) else None,
             transport_charge_amount=round(float(item.transport_charge_amount or 0.0), 2),
@@ -2472,7 +2472,7 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
         chats=[LogisticsChatThreadItem(id=thread.id, hub_id=thread.warehouse_id, name=thread.name, time=_fmt_relative(thread.last_message_at), last_message=thread.last_message, status=thread.status, phone=thread.phone, muted=thread.muted, messages=[LogisticsChatMessageItem(id=message.id, text=message.text, sender=message.sender, time=message.created_at.strftime("%I:%M %p")) for message in messages_by_thread.get(thread.id, [])]) for thread in chat_threads],
         escalations=[_to_logistics_escalation_item(esc) for esc in escalations],
         inventory=[{"id": str(item.id), "name": item.name, "category": item.category or "General", "quantity": item.quantity_on_hand, "unit": item.unit, "threshold": item.safety_stock, "location": item.aisle or (warehouse_map.get(item.warehouse_id).name if warehouse_map.get(item.warehouse_id) else "Unknown"), "status": "Low Stock" if item.quantity_on_hand <= item.safety_stock else "Good", "hubId": item.warehouse_id, "sku": item.sku} for item in inventory_items],
-        notifications=[LogisticsNotificationItem(id=item.id, title=item.title, message=item.message, time=_fmt_relative(item.created_at), read=item.is_read, type=item.type) for item in notifications],
+        notifications=[LogisticsNotificationItem(id=item.id, title=item.title, message=item.message, time=_fmt_relative(item.created_at), created_at=item.created_at, read=item.is_read, type=item.type) for item in notifications],
         tasks=[LogisticsTaskItem(id=item.id, text=item.text, status=item.status, target_time=item.target_time, repeat=item.repeat_rule, created_at=item.created_at, last_alert_time=item.last_alert_time, silenced=item.silenced) for item in tasks],
         ai_suggestion_chips=ai_suggestion_chips,
         ai_messages=ai_messages,
@@ -3504,7 +3504,7 @@ async def update_task(db: AsyncSession, task_id: UUID, data: LogisticsTaskUpdate
 async def get_notifications(db: AsyncSession, current_user: User) -> list[LogisticsNotificationItem]:
     notifications = (await db.execute(select(LogisticsNotification).order_by(LogisticsNotification.created_at.desc()))).scalars().all()
     notifications = [item for item in notifications if _notification_visible_to_user(item, current_user)]
-    return [LogisticsNotificationItem(id=item.id, title=item.title, message=item.message, time=_fmt_relative(item.created_at), read=item.is_read, type=item.type) for item in notifications]
+    return [LogisticsNotificationItem(id=item.id, title=item.title, message=item.message, time=_fmt_relative(item.created_at), created_at=item.created_at, read=item.is_read, type=item.type) for item in notifications]
 
 
 async def update_notification(db: AsyncSession, notification_id: UUID, data: LogisticsNotificationUpdate, current_user: User) -> LogisticsNotificationItem:
@@ -3514,7 +3514,7 @@ async def update_notification(db: AsyncSession, notification_id: UUID, data: Log
     notification.is_read = data.read
     db.add(notification)
     await db.flush()
-    return LogisticsNotificationItem(id=notification.id, title=notification.title, message=notification.message, time=_fmt_relative(notification.created_at), read=notification.is_read, type=notification.type)
+    return LogisticsNotificationItem(id=notification.id, title=notification.title, message=notification.message, time=_fmt_relative(notification.created_at), created_at=notification.created_at, read=notification.is_read, type=notification.type)
 
 
 async def mark_all_notifications_read(db: AsyncSession, current_user: User) -> MessageResponse:
