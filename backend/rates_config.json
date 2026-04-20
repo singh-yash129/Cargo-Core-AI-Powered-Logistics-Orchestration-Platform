@@ -30,6 +30,18 @@
       "name": "Foam Sheet",
       "rate": 110,
       "unit": "kg"
+    },
+    {
+      "id": "ropes",
+      "name": "ROPES",
+      "rate": 60,
+      "unit": "pcs"
+    },
+    {
+      "id": "boltsAndNuts",
+      "name": "BOLTS AND NUTS",
+      "rate": 70,
+      "unit": "pcs"
     }
   ],
   "individualBookingFee": 300,
