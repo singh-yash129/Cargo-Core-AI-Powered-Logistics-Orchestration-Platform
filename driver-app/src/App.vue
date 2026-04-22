@@ -23,16 +23,19 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useUiStore } from './stores/uiStore.js'
+import { useDriverStore } from './stores/driverStore.js'
 import { useSafeArea } from './composables/useSafeArea.js'
 import SyncBanner from './components/SyncBanner.vue'
 import RouteToast from './components/RouteToast.vue'
 import AppLoader from './components/AppLoader.vue'
 import { requestAppPermissions } from './composables/usePermissions.js'
 import { offlineSyncEngine } from './services/offlineSync.js'
+import { alertWebSocket } from './services/alertWebSocket.js'
 
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
 
 // Run synchronously — sets theme.value from localStorage/system preference BEFORE
 // the component tree renders, preventing a dark→light flash on first paint.
@@ -47,6 +50,19 @@ onMounted(() => {
   requestAppPermissions()
   // Initialize offline sync engine — sets up network listener, restores persisted queue
   offlineSyncEngine.init()
+  // Connect to alert WebSocket if authenticated
+  if (driverStore.isAuthenticated) {
+    alertWebSocket.connect()
+  }
+})
+
+// Watch for auth changes to connect/disconnect WebSocket
+watch(() => driverStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    alertWebSocket.reconnect()
+  } else {
+    alertWebSocket.disconnect()
+  }
 })
 
 const themeClass = computed(() =>

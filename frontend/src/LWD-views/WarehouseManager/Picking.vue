@@ -1045,6 +1045,10 @@ function isDirectTransport(wave) {
     return wave.packingAmount === 0
 }
 
+function isDirectTransportOrder(order) {
+    return Number(order?.packing_amount ?? order?.packingAmount ?? 0) === 0
+}
+
 const prerequisiteWarnings = computed(() => {
     const warnings = []
     const hasHouseShiftOrders = waves.value.some(w => isHouseShift(w))
@@ -2049,22 +2053,20 @@ async function fetchPickingData() {
 
             awaitingPickOrders = warehouseOrders.filter(order => {
                 const substatus = getEffectiveWarehouseSubstatus(order, warehouseId)
-                return order.status === 'CONFIRMED' && substatus === 'AWAITING_PICK'
+                return order.status === 'CONFIRMED' &&
+                    !isDirectTransportOrder(order) &&
+                    substatus === 'AWAITING_PICK'
             }).map(order => ({
                 ...order,
                 warehouse_substatus: 'AWAITING_PICK'
             }))
 
-            // All awaitingPickOrders already have warehouse_substatus === 'AWAITING_PICK',
-            // meaning the WM explicitly accepted them — show all of them regardless of packing_amount.
-            // Case B (no packing + no vehicle → dispatcher-direct) only applies to un-accepted orders;
-            // once the WM accepts, they own the order and it must appear in the picking queue.
-            //
-            // Case C — dispatcher already assigned driver (ASSIGNED status, no vehicle):
-            //   Surface as an info-only card so WM knows a driver is inbound but no action is needed.
+            // Direct transport / no-packing orders should never enter WM picking flow.
+            // Once accepted, they go straight to dispatcher handling and stay out of
+            // warehouse pick/pack waves.
             const dispatcherAssignedDirect = warehouseOrders.filter(order =>
                 order.status === 'ASSIGNED' &&
-                Number(order.packing_amount ?? 0) === 0 &&
+                isDirectTransportOrder(order) &&
                 order.assigned_driver_id != null &&
                 order.assigned_vehicle_id == null
             )
@@ -2077,14 +2079,27 @@ async function fetchPickingData() {
                     pickupAddr: order.pickup_addr || '',
                     value: order.total_amount || 0,
                 }))
-            pickingOrders = warehouseOrders.filter(order => order.status !== 'CANCELLED' && getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKING')
+            pickingOrders = warehouseOrders.filter(order =>
+                order.status !== 'CANCELLED' &&
+                !isDirectTransportOrder(order) &&
+                getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKING'
+            )
                 .map(order => ({ ...order, warehouse_substatus: 'PICKING' }))
-            pickedOrders = warehouseOrders.filter(order => order.status !== 'CANCELLED' && getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKED')
+            pickedOrders = warehouseOrders.filter(order =>
+                order.status !== 'CANCELLED' &&
+                !isDirectTransportOrder(order) &&
+                getEffectiveWarehouseSubstatus(order, warehouseId) === 'PICKED'
+            )
                 .map(order => ({ ...order, warehouse_substatus: 'PICKED' }))
-            packingOrders = warehouseOrders.filter(order => order.status !== 'CANCELLED' && getEffectiveWarehouseSubstatus(order, warehouseId) === 'PACKING')
+            packingOrders = warehouseOrders.filter(order =>
+                order.status !== 'CANCELLED' &&
+                !isDirectTransportOrder(order) &&
+                getEffectiveWarehouseSubstatus(order, warehouseId) === 'PACKING'
+            )
                 .map(order => ({ ...order, warehouse_substatus: 'PACKING' }))
             packedOrders = warehouseOrders.filter(order => {
                 if (order.status === 'CANCELLED') return false
+                if (isDirectTransportOrder(order)) return false
                 const substatus = getEffectiveWarehouseSubstatus(order, warehouseId)
                 return ['PACKED', 'QC_PASSED', 'READY_FOR_DISPATCH'].includes(substatus)
             }).map(order => ({

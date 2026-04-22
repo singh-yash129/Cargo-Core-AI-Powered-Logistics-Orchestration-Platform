@@ -15,14 +15,18 @@
         <!-- ── SCROLLABLE BODY ───────────────────────── -->
         <div class="screen-body px-5 py-4 flex flex-col gap-4">
 
-            <div class="rounded-2xl border overflow-hidden"
+            <div v-if="isLoading" class="flex items-center justify-center py-12 opacity-40">
+                <span class="material-icons text-3xl animate-spin">hourglass_empty</span>
+            </div>
+
+            <div v-else class="rounded-2xl border overflow-hidden"
                 :class="isDark ? 'border-white/5' : 'border-gray-100 shadow-sm'">
                 <div class="px-4 py-3 border-b"
                     :class="isDark ? 'bg-surface-dark/50 border-white/5' : 'bg-gray-50 border-gray-100'">
                     <p class="text-xs font-bold uppercase tracking-widest"
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">Today's Audit Trail (Immutable)</p>
                 </div>
-                <div class="divide-y" :class="isDark ? 'divide-gray-800' : 'divide-gray-100'">
+                <div v-if="auditEvents.length" class="divide-y" :class="isDark ? 'divide-gray-800' : 'divide-gray-100'">
                     <div v-for="event in auditEvents" :key="event.id" class="flex items-start gap-3 px-4 py-3">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
                             :class="isDark ? 'bg-surface-dark' : 'bg-gray-50'">
@@ -37,6 +41,10 @@
                             :class="isDark ? 'text-gray-600' : 'text-gray-400'">{{ event.time }}</span>
                     </div>
                 </div>
+                <div v-else class="flex flex-col items-center justify-center py-10 opacity-40">
+                    <span class="material-icons text-3xl mb-2">history</span>
+                    <p class="text-sm">No audit events for today</p>
+                </div>
             </div>
 
             <p class="text-center text-xs" :class="isDark ? 'text-gray-600' : 'text-gray-400'">
@@ -47,19 +55,23 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useUiStore } from '../stores/uiStore.js'
+import * as api from '../services/api.js'
 
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
-const auditEvents = [
-    { id: 1, icon: 'login', color: 'text-primary', action: 'Shift Started — Driver Authenticated', detail: 'DRV-2049 · RBAC Level 3', time: '07:58' },
-    { id: 2, icon: 'directions_car', color: 'text-accent-blue', action: 'Vehicle Bound', detail: 'CC-TRK-042 · MH 04 AB 2049', time: '08:02' },
-    { id: 3, icon: 'build', color: 'text-accent-gold', action: 'Inspection Completed', detail: '6/6 items passed', time: '08:11' },
-    { id: 4, icon: 'exit_to_app', color: 'text-primary', action: 'Gate Exit Logged', detail: 'North-East Hub · Gate 7', time: '08:19' },
-    { id: 5, icon: 'place', color: 'text-accent-purple', action: 'Geofence Arrival — Stop #1', detail: '14B Andheri West', time: '08:48' },
-    { id: 6, icon: 'payments', color: 'text-signal-amber', action: 'COD Collected — ₹450', detail: 'Stop #3 · Neha Gupta', time: '11:34' },
-    { id: 7, icon: 'verified', color: 'text-primary', action: 'Delivery Completed — Stop #1', detail: 'POD + OTP verified', time: '10:12' },
-]
+const auditEvents = ref([])
+const isLoading = ref(true)
+
+onMounted(async () => {
+    try {
+        auditEvents.value = await api.getDriverAuditLog()
+    } catch (err) {
+        uiStore.showToast('Could not load audit log', 'error', 2000)
+    } finally {
+        isLoading.value = false
+    }
+})
 </script>

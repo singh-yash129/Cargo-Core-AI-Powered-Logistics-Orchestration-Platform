@@ -10,6 +10,11 @@
                     <h1 class="text-2xl font-black">Shift Dashboard</h1>
                 </div>
                 <div class="flex items-center gap-2">
+                    <button @click="$router.push('/manager-chat')"
+                        class="w-10 h-10 rounded-full flex items-center justify-center border"
+                        :class="isDark ? 'bg-surface-dark/50 border-white/5 text-primary' : 'bg-primary/10 border-primary/20 text-primary shadow-sm'">
+                        <span class="material-icons text-xl">support_agent</span>
+                    </button>
                     <div class="px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider"
                         :class="isDark ? 'bg-purple-500/15 text-purple-400' : 'bg-purple-50 text-purple-600 border border-purple-200'">
                         {{ jobStore.stateLabel }}
@@ -128,7 +133,7 @@ import { useFlowRouter, FLOW_STEPS } from '../composables/useFlowRouter.js'
 
 const jobStore = useJobStore()
 const uiStore = useUiStore()
-const { navigateToCurrentState, getNextActionLabel } = useFlowRouter()
+const { advanceAndNavigate, navigateToCurrentState, getNextActionLabel } = useFlowRouter()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 // ── State Phases ──────────────────────────────────────────────────
@@ -158,6 +163,12 @@ const currentPhaseIcon = computed(() => {
 })
 
 function continueFlow() {
-    navigateToCurrentState()
+    // Advance to the next state; fall back to re-navigating current state
+    const nextState = jobStore.allowedTransitions[0]
+    if (nextState) {
+        advanceAndNavigate(nextState)
+    } else {
+        navigateToCurrentState()
+    }
 }
 </script>

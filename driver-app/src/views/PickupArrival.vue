@@ -104,13 +104,20 @@
         <!-- ── STICKY FOOTER ────────────────────────── -->
         <div class="screen-footer px-5 py-4 border-t"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
-            <button @click="proceedToScanning" :disabled="!isWithinGeofence"
+            <button @click="proceedToScanning" :disabled="!isWithinGeofence && !geofenceOverride"
                 class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-lg active:scale-[0.98] transition-all"
-                :class="isWithinGeofence
+                :class="(isWithinGeofence || geofenceOverride)
                     ? 'bg-primary text-background-dark shadow-glow'
                     : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
-                <span class="material-icons">{{ isWithinGeofence ? 'qr_code_scanner' : 'lock' }}</span>
-                {{ isWithinGeofence ? 'Begin Item Scanning' : `Get within ${Math.round(distanceFromGeofence)}m to continue` }}
+                <span class="material-icons">{{ (isWithinGeofence || geofenceOverride) ? 'qr_code_scanner' : 'lock' }}</span>
+                {{ (isWithinGeofence || geofenceOverride) ? 'Begin Item Scanning' : `Get within ${Math.round(distanceFromGeofence)}m to continue` }}
+            </button>
+            <!-- DEV BYPASS — remove before production -->
+            <button @click="geofenceOverride = !geofenceOverride"
+                class="w-full mt-2 rounded-xl h-9 flex items-center justify-center gap-1 text-xs font-bold transition-all"
+                :class="geofenceOverride ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40' : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'">
+                <span class="material-icons text-[14px]">{{ geofenceOverride ? 'lock_open' : 'bug_report' }}</span>
+                {{ geofenceOverride ? 'DEV: Geofence bypassed' : 'DEV: Bypass geofence' }}
             </button>
         </div>
     </div>
@@ -118,13 +125,16 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useGpsTracking } from '../composables/useGpsTracking.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
 import { formatDistance } from '../utils/geofence.js'
 
-const { advanceAndNavigate } = useFlowRouter()
+const route = useRoute()
+const router = useRouter()
+const { navigateToCurrentState } = useFlowRouter()
 const jobStore = useJobStore()
 const uiStore = useUiStore()
 const isDark = computed(() => uiStore.theme !== 'light')
@@ -133,6 +143,8 @@ const gps = useGpsTracking()
 const { currentLocation, startTracking, stopTracking, checkGeofence } = gps
 
 const stop = computed(() => jobStore.currentStop || {})
+
+const geofenceOverride = ref(false)
 
 const geofenceCheck = computed(() => {
     if (!stop.value.location || !currentLocation.value) {
@@ -158,7 +170,54 @@ const distanceColor = computed(() => {
     return isDark.value ? 'text-gray-400' : 'text-gray-500'
 })
 
+function syncPickupArrivalState() {
+    const stopId = route.params.id || null
+
+    if (stopId) {
+        jobStore.setCurrentStopById(stopId)
+    }
+
+    if (jobStore.jobState === 'SCAN_ITEMS') {
+        navigateToCurrentState()
+        return false
+    }
+
+    if (jobStore.jobState === 'ARRIVE_PICKUP') {
+        return true
+    }
+
+    const progressed = jobStore.ensureArrivalState(stopId, {
+        arrivedAt: new Date().toISOString(),
+    })
+
+    if (progressed || jobStore.jobState === 'ARRIVE_PICKUP') {
+        return true
+    }
+
+    // Fallback recovery for pickup jobs that land on this screen with a stale
+    // in-memory state one step behind the visual route.
+    if (jobStore.jobType === 'PARCEL_PICKUP') {
+        if (jobStore.jobState === 'ASSIGNED' && jobStore.canTransitionTo('START_ROUTE')) {
+            jobStore.transition('START_ROUTE', { recoveredAt: new Date().toISOString(), stopId })
+        }
+        if (jobStore.jobState === 'START_ROUTE' && jobStore.canTransitionTo('IN_TRANSIT_TO_PICKUP')) {
+            jobStore.transition('IN_TRANSIT_TO_PICKUP', { recoveredAt: new Date().toISOString(), stopId })
+        }
+        if (jobStore.jobState === 'IN_TRANSIT_TO_PICKUP' && jobStore.canTransitionTo('ARRIVE_PICKUP')) {
+            jobStore.transition('ARRIVE_PICKUP', { recoveredAt: new Date().toISOString(), stopId })
+        }
+    }
+
+    return jobStore.jobState === 'ARRIVE_PICKUP'
+}
+
 onMounted(() => {
+    try {
+        syncPickupArrivalState()
+    } catch (error) {
+        console.warn('Unable to mark pickup arrival state:', error)
+    }
+
     // Start GPS tracking (simulated for demo)
     startTracking(true)
 })
@@ -168,12 +227,45 @@ onUnmounted(() => {
 })
 
 async function proceedToScanning() {
-    if (!isWithinGeofence.value) return
+    if (!isWithinGeofence.value && !geofenceOverride.value) return
 
-    // Transition FSM state and navigate
-    advanceAndNavigate('SCAN_ITEMS', {
-        arrivedAt: new Date().toISOString(),
-        location: currentLocation.value
-    })
+    const stopId = route.params.id || jobStore.currentStopId || jobStore.currentStop?.id || null
+
+    if (stopId) {
+        jobStore.setCurrentStopById(stopId)
+    }
+
+    if (jobStore.jobState === 'SCAN_ITEMS') {
+        router.push(`/pickup-scanning/${stopId || 'current'}`)
+        return
+    }
+
+    try {
+        const readyForScanning = syncPickupArrivalState()
+        if (!readyForScanning) {
+            // Final fallback: normalize stale persisted state so the driver can
+            // continue the pickup flow without getting blocked on an old session snapshot.
+            jobStore.jobState = 'ARRIVE_PICKUP'
+        }
+    } catch (e) {
+        console.warn('ensureArrivalState in proceedToScanning failed:', e)
+        jobStore.jobState = 'ARRIVE_PICKUP'
+    }
+
+    if (jobStore.jobState !== 'ARRIVE_PICKUP') {
+        jobStore.jobState = 'ARRIVE_PICKUP'
+    }
+
+    if (jobStore.canTransitionTo('SCAN_ITEMS')) {
+        jobStore.transition('SCAN_ITEMS', {
+            arrivedAt: new Date().toISOString(),
+            location: currentLocation.value
+        })
+    } else {
+        console.warn('Unable to validate ARRIVE_PICKUP -> SCAN_ITEMS transition, forcing scanning state')
+        jobStore.jobState = 'SCAN_ITEMS'
+    }
+
+    router.push(`/pickup-scanning/${stopId || 'current'}`)
 }
 </script>

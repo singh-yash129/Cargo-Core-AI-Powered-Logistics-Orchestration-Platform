@@ -28,18 +28,18 @@
                 </div>
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-blue-500 cursor-pointer hover:bg-gray-50 dark:bg-white/5 transition-colors"
-                @click="statusFilter = statusFilter === 'Assigned to Order' ? '' : 'Assigned to Order'">
-                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Assigned to
+                @click="statusFilter = statusFilter === 'Warehouse Order' ? '' : 'Warehouse Order'">
+                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Warehouse
                     Order</div>
-                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ statusCounts.assigned }}</div>
-                <div class="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">Working on orders</div>
+                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ statusCounts.warehouseOrder }}</div>
+                <div class="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">Pick, pack, loading tasks</div>
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-purple-500 cursor-pointer hover:bg-gray-50 dark:bg-white/5 transition-colors"
-                @click="statusFilter = statusFilter === 'On Field' ? '' : 'On Field'">
-                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">On Field
-                    with Driver</div>
-                <div class="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-1">{{ statusCounts.onField }}</div>
-                <div class="text-xs text-purple-600/70 dark:text-purple-400/70 mt-1">Out for delivery/move</div>
+                @click="statusFilter = statusFilter === 'Customer Move' ? '' : 'Customer Move'">
+                <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wide">Customer
+                    Move</div>
+                <div class="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-1">{{ statusCounts.customerMove }}</div>
+                <div class="text-xs text-purple-600/70 dark:text-purple-400/70 mt-1">Service move / with driver</div>
             </div>
             <div class="glass-panel p-4 rounded-xl border-l-4 border-gray-500 cursor-pointer hover:bg-gray-50 dark:bg-white/5 transition-colors"
                 @click="statusFilter = statusFilter === 'Off Duty' ? '' : 'Off Duty'">
@@ -121,10 +121,19 @@
                                 <span class="font-bold text-gray-900 dark:text-white">{{ staff.name }}</span>
                             </td>
                             <td class="p-4 text-gray-600 dark:text-gray-300">{{ staff.role }}</td>
-                            <td class="p-4 text-gray-600 dark:text-gray-400">{{ staff.task }}</td>
                             <td class="p-4">
-                                <span v-if="staff.orderId" class="font-mono text-primary text-xs">{{ staff.orderId
-                                    }}</span>
+                                <div class="text-gray-600 dark:text-gray-400">{{ staff.task }}</div>
+                                <div v-if="staff.assignmentHint" class="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
+                                    {{ staff.assignmentHint }}
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <div v-if="staff.orderId" class="space-y-1">
+                                    <div class="font-mono text-primary text-xs">{{ staff.orderId }}</div>
+                                    <div v-if="staff.orderScope" class="text-[10px] text-gray-500 dark:text-gray-500">
+                                        {{ staff.orderScope }}
+                                    </div>
+                                </div>
                                 <span v-else class="text-gray-600">—</span>
                             </td>
                             <td class="p-4">
@@ -228,7 +237,7 @@
                         </div>
                         <div>
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Assignment Type</label>
-                            <select
+                            <select v-model="assignType"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
                                 <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Picking</option>
                                 <option class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">Packing</option>
@@ -423,6 +432,7 @@ const showCreateModal = ref(false)
 const assignTarget = ref(null)
 const selectedStaff = ref(null)
 const assignOrderId = ref('')
+const assignType = ref('Picking')
 const toastMsg = ref('')
 const toastType = ref('success')
 const loading = ref(false)
@@ -461,23 +471,12 @@ function resetNewLabourerForm() {
 
 const staffList = ref([])
 
-// Map API labourer status to display status
-function mapStatus(apiStatus) {
-    const statusMap = {
-        'AVAILABLE': 'In Warehouse',
-        'ASSIGNED': 'Assigned to Order',
-        'ON_FIELD': 'On Field',
-        'OFF_DUTY': 'Off Duty',
-        'INACTIVE': 'Off Duty',
-    }
-    return statusMap[apiStatus] || apiStatus || 'In Warehouse'
-}
-
 function mapStatusClass(displayStatus) {
     const classMap = {
         'In Warehouse': 'bg-green-500/10 text-green-500',
-        'Assigned to Order': 'bg-blue-500/10 text-blue-500',
-        'On Field': 'bg-purple-500/10 text-purple-400',
+        'Warehouse Order': 'bg-blue-500/10 text-blue-500',
+        'Service Move': 'bg-purple-500/10 text-purple-400',
+        'With Driver': 'bg-purple-500/10 text-purple-400',
         'Off Duty': 'bg-gray-500/10 text-gray-500',
     }
     return classMap[displayStatus] || 'bg-gray-500/10 text-gray-500'
@@ -494,6 +493,109 @@ function formatTime(dateString) {
         return new Date(dateString).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
     } catch {
         return '--'
+    }
+}
+
+function formatOrderDisplayId(orderId, trackingCode = null) {
+    const preferredId = String(trackingCode || '').trim()
+    if (preferredId) return preferredId
+
+    const rawId = String(orderId || '').trim()
+    if (!rawId) return null
+
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    return uuidPattern.test(rawId) ? rawId.slice(0, 8).toUpperCase() : rawId
+}
+
+function formatWarehouseSubstatus(substatus) {
+    const labelMap = {
+        AWAITING_INBOUND: 'Awaiting Inbound',
+        AWAITING_PICK: 'Awaiting Pick',
+        PICKING: 'Picking',
+        PICKED: 'Picked',
+        PACKING: 'Packing',
+        PACKED: 'Packed',
+        QC_PASSED: 'QC Passed',
+        READY_FOR_DISPATCH: 'Ready for Dispatch',
+        ON_DOCK: 'On Dock',
+        DISPATCHED: 'Dispatched',
+        ON_HOLD: 'On Hold',
+    }
+    return labelMap[substatus] || substatus || ''
+}
+
+function buildAssignmentMeta(labourer) {
+    if (!labourer.assigned_order_id) {
+        return {
+            task: labourer.current_task || 'Available',
+            assignmentHint: '',
+            orderScope: '',
+        }
+    }
+
+    if (labourer.assigned_order_substatus) {
+        return {
+            task: formatWarehouseSubstatus(labourer.assigned_order_substatus),
+            assignmentHint: 'Warehouse pick/pack assignment',
+            orderScope: 'WM order',
+        }
+    }
+
+    if (labourer.status === 'ON_FIELD') {
+        return {
+            task: 'With Driver',
+            assignmentHint: 'Customer move in progress',
+            orderScope: 'Service move order',
+        }
+    }
+
+    return {
+        task: 'Driver Move Assigned',
+        assignmentHint: 'Waiting to start customer move',
+        orderScope: 'Service move order',
+    }
+}
+
+function buildDisplayStatus(labourer) {
+    if (!labourer.is_active || ['OFF_DUTY', 'INACTIVE'].includes(labourer.status)) {
+        return 'Off Duty'
+    }
+
+    if (!labourer.assigned_order_id) {
+        return 'In Warehouse'
+    }
+
+    if (labourer.assigned_order_substatus) {
+        return 'Warehouse Order'
+    }
+
+    if (labourer.status === 'ON_FIELD') {
+        return 'With Driver'
+    }
+
+    return 'Service Move'
+}
+
+function buildLocalAssignmentState(type, orderId) {
+    const displayOrderId = formatOrderDisplayId(orderId)
+    if (type === 'Field Duty (With Driver)') {
+        return {
+            orderId: displayOrderId,
+            status: 'With Driver',
+            statusClass: mapStatusClass('With Driver'),
+            task: 'With Driver',
+            assignmentHint: 'Customer move in progress',
+            orderScope: 'Service move order',
+        }
+    }
+
+    return {
+        orderId: displayOrderId,
+        status: 'Warehouse Order',
+        statusClass: mapStatusClass('Warehouse Order'),
+        task: type || 'Warehouse Task',
+        assignmentHint: 'Warehouse pick/pack assignment',
+        orderScope: 'WM order',
     }
 }
 
@@ -514,13 +616,20 @@ async function fetchLabourers() {
         const items = data.items || data || []
 
         staffList.value = items.map(labourer => {
-            const displayStatus = mapStatus(labourer.status)
+            const displayStatus = buildDisplayStatus(labourer)
+            const displayOrderId = formatOrderDisplayId(
+                labourer.order_id || labourer.assigned_order_id,
+                labourer.assigned_order_tracking
+            )
+            const assignmentMeta = buildAssignmentMeta(labourer)
             return {
                 id: labourer.id,
                 name: labourer.name || labourer.full_name || `Labourer ${labourer.id?.slice(0, 6)}`,
                 role: labourer.role || labourer.skill || 'Labourer',
-                task: labourer.current_task || labourer.assigned_order_substatus || (labourer.assigned_order_id ? 'On Delivery' : 'Available'),
-                orderId: labourer.order_id || labourer.assigned_order_id || null,
+                task: assignmentMeta.task,
+                assignmentHint: assignmentMeta.assignmentHint,
+                orderScope: assignmentMeta.orderScope,
+                orderId: displayOrderId,
                 perf: labourer.performance_score || labourer.performance || Math.floor(85 + Math.random() * 20),
                 status: displayStatus,
                 statusClass: mapStatusClass(displayStatus),
@@ -542,8 +651,8 @@ async function fetchLabourers() {
 
 const statusCounts = computed(() => ({
     inWarehouse: staffList.value.filter(s => s.status === 'In Warehouse').length,
-    assigned: staffList.value.filter(s => s.status === 'Assigned to Order').length,
-    onField: staffList.value.filter(s => s.status === 'On Field').length,
+    warehouseOrder: staffList.value.filter(s => s.status === 'Warehouse Order').length,
+    customerMove: staffList.value.filter(s => ['Service Move', 'With Driver'].includes(s.status)).length,
     offDuty: staffList.value.filter(s => s.status === 'Off Duty').length,
 }))
 
@@ -565,7 +674,9 @@ const filteredStaff = computed(() => {
     return staffList.value.filter(s => {
         const matchesSearch = !searchQuery.value || s.name.toLowerCase().includes(searchQuery.value.toLowerCase())
         const matchesDept = !deptFilter.value || s.dept === deptFilter.value
-        const matchesStatus = !statusFilter.value || s.status === statusFilter.value
+        const matchesStatus = !statusFilter.value
+            || s.status === statusFilter.value
+            || (statusFilter.value === 'Customer Move' && ['Service Move', 'With Driver'].includes(s.status))
         return matchesSearch && matchesDept && matchesStatus
     })
 })
@@ -573,6 +684,7 @@ const filteredStaff = computed(() => {
 function openAssign(staff) {
     assignTarget.value = staff
     assignOrderId.value = ''
+    assignType.value = 'Picking'
     showAssignModal.value = true
 }
 
@@ -605,20 +717,26 @@ async function assignWorker() {
             }
         }
         // Update local list
-        assignTarget.value.orderId = assignOrderId.value
-        assignTarget.value.status = 'Assigned to Order'
-        assignTarget.value.statusClass = 'bg-blue-500/10 text-blue-500'
-        assignTarget.value.task = `Assigned: ${assignOrderId.value}`
+        const assignmentState = buildLocalAssignmentState(assignType.value, assignOrderId.value)
+        assignTarget.value.orderId = assignmentState.orderId
+        assignTarget.value.status = assignmentState.status
+        assignTarget.value.statusClass = assignmentState.statusClass
+        assignTarget.value.task = assignmentState.task
+        assignTarget.value.assignmentHint = assignmentState.assignmentHint
+        assignTarget.value.orderScope = assignmentState.orderScope
 
         showAssignModal.value = false
         showToast('Worker assigned to order')
     } catch (error) {
         console.error('Assign error:', error)
         // Still update locally
-        assignTarget.value.orderId = assignOrderId.value
-        assignTarget.value.status = 'Assigned to Order'
-        assignTarget.value.statusClass = 'bg-blue-500/10 text-blue-500'
-        assignTarget.value.task = `Assigned: ${assignOrderId.value}`
+        const assignmentState = buildLocalAssignmentState(assignType.value, assignOrderId.value)
+        assignTarget.value.orderId = assignmentState.orderId
+        assignTarget.value.status = assignmentState.status
+        assignTarget.value.statusClass = assignmentState.statusClass
+        assignTarget.value.task = assignmentState.task
+        assignTarget.value.assignmentHint = assignmentState.assignmentHint
+        assignTarget.value.orderScope = assignmentState.orderScope
         showAssignModal.value = false
         showToast('Worker assigned to order')
     } finally {

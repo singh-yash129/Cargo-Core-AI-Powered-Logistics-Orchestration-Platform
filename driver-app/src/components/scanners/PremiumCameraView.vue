@@ -4,17 +4,17 @@
 
         <!-- ── Top Controls ────────────────────────── -->
         <div class="h-28 bg-gradient-to-b from-black/80 to-transparent flex items-start justify-between px-6 pt-12 z-10 shrink-0">
-            <button @touchstart="onClose" @click="onClose"
+            <button @click.stop.prevent="onClose"
                 class="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform">
                 <span class="material-icons">close</span>
             </button>
             <div class="flex items-center gap-4">
-                <button @touchstart="toggleFlash" @click="toggleFlash"
+                <button @click.stop.prevent="toggleFlash"
                     class="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center active:scale-90 transition-transform"
                     :class="flashMode === 'on' ? 'text-yellow-300' : 'text-white'">
                     <span class="material-icons text-sm">{{ flashMode === 'off' ? 'flash_off' : 'flash_on' }}</span>
                 </button>
-                <button @touchstart="flipCamera" @click="flipCamera"
+                <button @click.stop.prevent="flipCamera"
                     class="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform">
                     <span class="material-icons text-sm">cameraswitch</span>
                 </button>
@@ -50,7 +50,7 @@
                 Initializing camera...
             </div>
 
-            <button @touchstart="takePicture" @click="takePicture" :disabled="capturing || !cameraReady"
+            <button @click.stop.prevent="takePicture" :disabled="capturing || !cameraReady"
                 class="w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all duration-150 outline-none overflow-hidden relative"
                 :class="cameraReady && !capturing ? 'border-white active:scale-90' : 'border-white/30 opacity-50 cursor-not-allowed'"
                 style="pointer-events: auto; touch-action: manipulation;">
@@ -110,8 +110,8 @@ onMounted(async () => {
             enableZoom: true,
         })
 
-        // Give the camera a moment to fully initialize (especially important on emulators)
-        await new Promise(resolve => setTimeout(resolve, 300))
+        // Give the camera a moment to fully initialize
+        await new Promise(resolve => setTimeout(resolve, 800))
 
         cameraReady.value = true
     } catch (e) {
@@ -139,7 +139,8 @@ async function takePicture() {
     try {
         let base64Pic;
         if (isNative) {
-            const result = await CameraPreview.capture({ quality: 90 })
+            await new Promise(resolve => setTimeout(resolve, 100))
+            const result = await CameraPreview.capture({ quality: 85 })
             base64Pic = normalizeCameraResult(result)
 
             if (!isValidBase64(base64Pic)) {
@@ -158,14 +159,13 @@ async function takePicture() {
 
         // Small delay to ensure store state is updated before navigation
         await new Promise(resolve => setTimeout(resolve, 50))
-        router.back()
+        await store.navigateBack(router)
     } catch (e) {
         console.error('Photo capture error:', e?.message || String(e))
-        alert('Camera capture failed. Simulating photo for testing.')
         await stopCamera()
         store.deliver(MockCameraData.TRANSPARENT_PNG)
         await new Promise(resolve => setTimeout(resolve, 50))
-        router.back()
+        await store.navigateBack(router)
     } finally {
         capturing.value = false
     }
@@ -205,7 +205,7 @@ async function onClose() {
     store.cancel()
     // Ensure cleanup before navigation
     await new Promise(resolve => setTimeout(resolve, 50))
-    router.back()
+    await store.navigateBack(router)
 }
 </script>
 

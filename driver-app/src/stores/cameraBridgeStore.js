@@ -1,5 +1,25 @@
 import { defineStore } from 'pinia'
 
+const CAMERA_RETURN_ROUTE_KEY = 'cargo-core:camera-return-route'
+
+function saveReturnRoute(path) {
+    try {
+        window.localStorage.setItem(CAMERA_RETURN_ROUTE_KEY, path)
+    } catch {
+        // Ignore storage failures on constrained devices.
+    }
+}
+
+function consumeReturnRoute(path) {
+    const resolved = path || window.localStorage.getItem(CAMERA_RETURN_ROUTE_KEY) || '/dashboard'
+    try {
+        window.localStorage.removeItem(CAMERA_RETURN_ROUTE_KEY)
+    } catch {
+        // Ignore storage failures on constrained devices.
+    }
+    return resolved
+}
+
 /**
  * Camera Bridge Store
  * ------------------
@@ -12,6 +32,7 @@ export const useCameraBridgeStore = defineStore('cameraBridge', {
         _resolve: null,
         promptText: '',
         mode: '', // 'qr' | 'photo' | 'ocr'
+        returnRoute: '/dashboard',
     }),
 
     actions: {
@@ -25,6 +46,8 @@ export const useCameraBridgeStore = defineStore('cameraBridge', {
         openCamera(router, type, prompt = '') {
             this.mode = type
             this.promptText = prompt
+            this.returnRoute = router.currentRoute.value.fullPath || '/dashboard'
+            saveReturnRoute(this.returnRoute)
 
             return new Promise((resolve) => {
                 this._resolve = resolve
@@ -49,6 +72,14 @@ export const useCameraBridgeStore = defineStore('cameraBridge', {
             const res = this._resolve
             this._resolve = null
             if (res) res(null)
+        },
+
+        async navigateBack(router) {
+            const target = consumeReturnRoute(this.returnRoute)
+            this.returnRoute = '/dashboard'
+            this.promptText = ''
+            this.mode = ''
+            await router.replace(target)
         },
     },
 })

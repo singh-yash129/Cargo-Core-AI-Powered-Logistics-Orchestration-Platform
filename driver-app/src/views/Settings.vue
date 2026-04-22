@@ -16,12 +16,12 @@
                     <span class="material-icons text-primary text-2xl">person</span>
                 </div>
                 <div class="flex-1">
-                    <p class="font-black">Arjun Sharma</p>
-                    <p class="text-xs font-mono text-primary">DRV-2049 · Pro Driver · L3</p>
+                    <p class="font-black">{{ driverStore.driverName }}</p>
+                    <p class="text-xs font-mono text-primary">{{ driverStore.driverId }} · {{ driverStore.driver?.badge || 'Driver' }} · {{ driverStore.driver?.tier || 'Field Ops' }}</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-xl font-black text-accent-gold">4.9★</p>
-                    <p class="text-[10px]" :class="isDark ? 'text-gray-500' : 'text-gray-400'">1,247 trips</p>
+                    <p class="text-xl font-black text-accent-gold">{{ driverStore.driver?.rating ?? '—' }}★</p>
+                    <p class="text-[10px]" :class="isDark ? 'text-gray-500' : 'text-gray-400'">{{ driverStore.driver?.totalDeliveries ?? 0 }} trips</p>
                 </div>
             </div>
         </header>
@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
@@ -130,6 +130,10 @@ const router = useRouter()
 const uiStore = useUiStore()
 const driverStore = useDriverStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+
+onMounted(() => {
+    driverStore.refreshDashboard()
+})
 
 const notifSettings = ref([
     { label: 'Push Notifications', icon: 'notifications', on: true },

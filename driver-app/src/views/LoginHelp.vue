@@ -123,6 +123,25 @@
                     </div>
                 </div>
 
+                <div class="rounded-2xl p-4 border"
+                    :class="isDark ? 'glass-panel border-white/10' : 'bg-white shadow-sm border-gray-100'">
+                    <div class="flex items-start gap-3">
+                        <div class="mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                            :class="isDark ? 'bg-white/5 text-primary' : 'bg-primary/5 text-primary'">
+                            <span class="material-icons text-sm">usb</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm mb-1">Seeing "Failed to fetch" on Android?</h3>
+                            <p class="text-[13px] leading-relaxed" :class="isDark ? 'text-white/70' : 'text-gray-600'">
+                                USB debugging does not automatically forward backend traffic. On a real phone, run
+                                <strong>adb reverse tcp:8000 tcp:8000</strong>, or set the Android API URL to
+                                <strong>http://&lt;your-computer-ip&gt;:8000</strong> and start the backend with
+                                <strong>--host 0.0.0.0</strong>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </main>
 

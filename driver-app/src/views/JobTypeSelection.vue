@@ -77,13 +77,30 @@
                 </div>
             </button>
 
+            <!-- Loading & Empty States -->
+            <div v-if="loading" class="shrink-0 p-8 text-center flex flex-col items-center justify-center">
+                <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p class="text-sm font-semibold" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Connecting to dispatch...</p>
+            </div>
+            <div v-else-if="jobOptions.length === 0" class="shrink-0 p-8 border rounded-3xl text-center"
+                 :class="isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-gray-50 border-gray-100'">
+                <div class="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-3"
+                     :class="isDark ? 'bg-white/5' : 'bg-white shadow-sm'">
+                     <span class="material-icons text-3xl" :class="isDark ? 'text-gray-600' : 'text-gray-400'">inbox</span>
+                </div>
+                <h3 class="text-lg font-black mb-1">No Active Assignments</h3>
+                <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">You currently have no jobs assigned for this shift.</p>
+                <button @click="$router.push('/dashboard')" class="mt-5 px-6 py-2.5 rounded-full bg-primary text-background-dark font-bold text-sm">
+                    Return to Dashboard
+                </button>
+            </div>
+
             <!-- Info Card -->
             <div class="shrink-0 rounded-xl p-3 border flex items-start gap-3 mt-2"
                 :class="isDark ? 'bg-surface-dark/30 border-white/5' : 'bg-gray-50 border-gray-100'">
                 <span class="material-icons text-primary text-base flex-shrink-0 mt-0.5">info</span>
                 <p class="text-xs leading-relaxed" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
-                    Your UI, navigation, and available features will adapt based on your selected job type.
-                    You can change this later via the Demo Mode widget.
+                    Your workflow, navigation, and screens are loaded from the live assignment type returned by dispatch.
                 </p>
             </div>
         </div>
@@ -91,12 +108,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useJobStore } from '../stores/jobStore.js'
-import { dummyParcelDeliveryJob, dummyParcelPickupJob, dummyHouseShiftJob } from '../utils/dummyData.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -104,59 +120,40 @@ const driverStore = useDriverStore()
 const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
-const jobOptions = [
-    {
-        type: 'PARCEL_DELIVERY',
-        label: 'Parcel Delivery',
-        description: 'Deliver parcels to multiple stops along an optimized route. Scan packages, capture POD, collect COD.',
-        icon: 'local_shipping',
-        iconBg: 'bg-green-500/15',
-        iconColor: 'text-green-400',
-        ring: 'ring-green-500/30',
-        glow: 'bg-green-500',
-        chips: ['Manifest', 'POD', 'COD', 'Returns'],
-        chipBg: 'bg-green-500/15',
-        chipText: 'text-green-400',
-        chipBgLight: 'bg-green-100',
-        chipTextLight: 'text-green-700',
-        data: dummyParcelDeliveryJob,
-        nextRoute: '/job-assignment',
-    },
-    {
-        type: 'PARCEL_PICKUP',
-        label: 'Parcel Pickup',
-        description: 'Collect parcels from pickup locations and return them to the warehouse. Scan items, get signatures.',
-        icon: 'assignment_return',
-        iconBg: 'bg-blue-500/15',
-        iconColor: 'text-blue-400',
-        ring: 'ring-blue-500/30',
-        glow: 'bg-blue-500',
-        chips: ['Manifest', 'Scanning', 'Signature', 'Returns'],
-        chipBg: 'bg-blue-500/15',
-        chipText: 'text-blue-400',
-        chipBgLight: 'bg-blue-100',
-        chipTextLight: 'text-blue-700',
-        data: dummyParcelPickupJob,
-        nextRoute: '/job-assignment',
-    },
-    {
-        type: 'HOUSE_SHIFT',
-        label: 'House Shifting',
-        description: 'Full house move operation with crew management, inventory tracking, packing, loading, and final walkthrough.',
-        icon: 'moving',
-        iconBg: 'bg-purple-500/15',
-        iconColor: 'text-purple-400',
-        ring: 'ring-purple-500/30',
-        glow: 'bg-purple-500',
-        chips: ['Crew', 'Inventory', 'Packing', 'Walkthrough'],
-        chipBg: 'bg-purple-500/15',
-        chipText: 'text-purple-400',
-        chipBgLight: 'bg-purple-100',
-        chipTextLight: 'text-purple-700',
-        data: dummyHouseShiftJob,
-        nextRoute: '/job-assignment',
-    },
-]
+const jobOptions = ref([])
+const loading = ref(true)
+
+onMounted(async () => {
+    loading.value = true
+    try {
+        const jobs = await jobStore.fetchAssignedOrders()
+        if (jobs && jobs.length > 0) {
+            jobOptions.value = jobs.map(job => {
+                const isHouseShift = job.jobType === 'HOUSE_SHIFT'
+                const isPickup = job.jobType === 'PARCEL_PICKUP'
+                return {
+                    type: job.jobType,
+                    label: isHouseShift ? 'House Shifting' : (isPickup ? 'Parcel Pickup' : 'Parcel Delivery'),
+                    description: `Assigned Job: ${job.jobId || job.id}. ${job.stops?.length || 1} stop(s). Route ending at ${job.deliveryAddr || job.destinationLocation?.address || job.sourceLocation?.address || 'TBD'}.`,
+                    icon: isHouseShift ? 'moving' : (isPickup ? 'assignment_return' : 'local_shipping'),
+                    iconBg: isHouseShift ? 'bg-purple-500/15' : (isPickup ? 'bg-blue-500/15' : 'bg-green-500/15'),
+                    iconColor: isHouseShift ? 'text-purple-400' : (isPickup ? 'text-blue-400' : 'text-green-400'),
+                    ring: isHouseShift ? 'ring-purple-500/30' : (isPickup ? 'ring-blue-500/30' : 'ring-green-500/30'),
+                    glow: isHouseShift ? 'bg-purple-500' : (isPickup ? 'bg-blue-500' : 'bg-green-500'),
+                    chips: isHouseShift ? ['Crew', 'Inventory'] : ['Manifest', 'POD'],
+                    chipBg: isHouseShift ? 'bg-purple-500/15' : 'bg-green-500/15',
+                    chipText: isHouseShift ? 'text-purple-400' : 'text-green-400',
+                    chipBgLight: isHouseShift ? 'bg-purple-100' : 'bg-green-100',
+                    chipTextLight: isHouseShift ? 'text-purple-700' : 'text-green-700',
+                    data: job,
+                    nextRoute: '/job-assignment'
+                }
+            })
+        }
+    } finally {
+        loading.value = false
+    }
+})
 
 function selectJob(job) {
     // Load the job into the store
@@ -165,11 +162,8 @@ function selectJob(job) {
     // Mark job type as selected in driver flow
     driverStore.jobTypeSelected = true
 
-    uiStore.showToast(`${job.label} selected`, 'success', 1500)
+    uiStore.showToast(`Active job selected`, 'success', 1500)
 
-    // Navigate based on job type
-    // House Shift → crew check-in first
-    // Delivery/Pickup → load verification (skip crew)
     router.push(job.nextRoute)
 }
 </script>

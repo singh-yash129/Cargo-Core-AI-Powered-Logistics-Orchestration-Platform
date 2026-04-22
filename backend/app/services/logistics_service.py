@@ -99,7 +99,7 @@ from app.schemas.logistics import (
     LogisticsMeetingUpdate,
 )
 from app.utils.hashing import hash_password
-from app.utils.username import generate_unique_username
+from app.utils.username import generate_unique_username, normalize_username
 from app.config import get_settings
 
 
@@ -179,6 +179,18 @@ def _avatar_url(name: str | None) -> str:
     return f"https://ui-avatars.com/api/?name={safe_name}&background=1CE783&color=0B0F14"
 
 _RESTOCK_ESCALATION_REF_RE = re.compile(r"\[ref:([0-9a-fA-F-]{36})\]")
+_DRIVER_PIN_RE = re.compile(r"^\d{4}$")
+
+
+def _normalize_driver_login_id(value: str | None, fallback_email: str) -> str:
+    return (value or "").strip() or fallback_email.split("@")[0]
+
+
+def _validate_driver_pin(pin: str | None) -> str:
+    normalized_pin = (pin or "1234").strip()
+    if not _DRIVER_PIN_RE.fullmatch(normalized_pin):
+        raise HTTPException(status_code=400, detail="Driver PIN must be exactly 4 digits")
+    return normalized_pin
 
 
 def _to_logistics_escalation_item(escalation: LogisticsEscalation) -> LogisticsEscalationItem:
@@ -3820,12 +3832,26 @@ async def list_drivers(db: AsyncSession, warehouse_id: UUID | None = None) -> li
 
 async def create_driver(db: AsyncSession, data: LogisticsDriverCreate) -> LogisticsDriverItem:
     existing = (await db.execute(select(User).where(User.email == data.email))).scalar_one_or_none()
+    driver_id = _normalize_driver_login_id(data.driver_id, data.email)
+    driver_pin = _validate_driver_pin(data.pin)
     if existing:
         # If the user already exists as a DRIVER (created via User Management),
         # just create the missing logistics profile instead of failing.
         driver_role = await _get_role(db, "DRIVER")
         if existing.role_id != driver_role.id:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A user with this email already exists with a different role")
+        normalized_driver_id = normalize_username(driver_id)
+        conflicting_user = (
+            await db.execute(select(User).where(User.username == normalized_driver_id, User.id != existing.id))
+        ).scalar_one_or_none()
+        if conflicting_user:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Driver ID already in use")
+        existing.username = normalized_driver_id
+        existing.password_hash = hash_password(driver_pin)
+        existing.phone = data.phone or existing.phone
+        existing.warehouse_id = data.warehouse_id
+        existing.is_active = True
+        db.add(existing)
         existing_profile = (await db.execute(select(LogisticsDriverProfile).where(LogisticsDriverProfile.user_id == existing.id))).scalar_one_or_none()
         if existing_profile:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A driver profile for this email already exists")
@@ -3842,15 +3868,14 @@ async def create_driver(db: AsyncSession, data: LogisticsDriverCreate) -> Logist
         return _build_driver_item(profile, existing, None)
 
     role = await _get_role(db, "DRIVER")
-    username_base = data.email.split("@")[0]
-    username = await generate_unique_username(db, username_base)
+    username = await generate_unique_username(db, driver_id)
     user = User(
         name=data.name,
         username=username,
         email=data.email,
         phone=data.phone,
         address="",
-        password_hash=hash_password("Driver@123"),
+        password_hash=hash_password(driver_pin),
         role_id=role.id,
         warehouse_id=data.warehouse_id,
         is_active=True,

@@ -10,7 +10,7 @@
                 </button>
                 <div>
                     <h1 class="text-2xl font-black tracking-tight">Arrived!</h1>
-                    <p class="text-xs text-primary font-semibold">Geofence triggered · Stop #1</p>
+                    <p class="text-xs text-primary font-semibold">Arrival logged · Stop #{{ stop?.stopNumber || 1 }}</p>
                 </div>
             </div>
         </header>
@@ -60,13 +60,18 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useRouteStore } from '../stores/routeStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
 
 const route = useRoute()
 const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
+const routeStore = useRouteStore()
+const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const stopId = computed(() => route.params.id || 'STOP-001')
+const stop = computed(() => jobStore.getStopById(stopId.value) || jobStore.currentStop || {})
 
 const seconds = ref(0)
 let timer = null
@@ -77,8 +82,24 @@ const dwellTime = computed(() => {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 })
 
-onMounted(() => { timer = setInterval(() => seconds.value++, 1000) })
-onUnmounted(() => clearInterval(timer))
+onMounted(() => {
+    jobStore.setCurrentStopById(stopId.value)
+    routeStore.setCurrentStopById(stopId.value)
+
+    try {
+        jobStore.ensureArrivalState(stopId.value, {
+            arrivedAt: new Date().toISOString(),
+        })
+    } catch (error) {
+        console.warn('Unable to mark delivery arrival state:', error)
+    }
+
+    routeStore.startDwell(stopId.value)
+    timer = setInterval(() => seconds.value++, 1000)
+})
+onUnmounted(() => {
+    if (timer) clearInterval(timer)
+})
 
 function proceed() {
     advanceAndNavigate('DELIVERY_IN_PROGRESS')

@@ -52,8 +52,27 @@
                 </div>
             </div>
 
-            <!-- Password -->
-            <div>
+            <!-- Mode toggle -->
+            <div class="flex rounded-xl overflow-hidden border"
+                :class="isDark ? 'border-white/10' : 'border-gray-200'">
+                <button type="button" @click="loginMode = 'password'"
+                    class="flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors"
+                    :class="loginMode === 'password'
+                        ? 'bg-primary text-background-dark'
+                        : (isDark ? 'text-white/40 hover:text-white' : 'text-gray-400 hover:text-gray-700')">
+                    Password
+                </button>
+                <button type="button" @click="loginMode = 'pin'"
+                    class="flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors"
+                    :class="loginMode === 'pin'
+                        ? 'bg-primary text-background-dark'
+                        : (isDark ? 'text-white/40 hover:text-white' : 'text-gray-400 hover:text-gray-700')">
+                    PIN
+                </button>
+            </div>
+
+            <!-- Password field -->
+            <div v-if="loginMode === 'password'">
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-2 ml-1"
                     :class="isDark ? 'text-primary/80' : 'text-primary'" for="passwordInput">Password</label>
                 <div @click="focusPasswordInput" class="glass-input rounded-2xl flex items-center px-4 py-4 gap-3 transition-colors cursor-text"
@@ -70,10 +89,28 @@
                         class="shrink-0 p-0 leading-none transition-colors active:scale-90 rounded-full relative z-10"
                         :disabled="isAnyLoading"
                         :class="isDark ? 'text-white/40 hover:text-primary' : 'text-gray-400 hover:text-primary'">
-                        <span class="material-icons text-lg leading-none">{{ showPwd ? 'visibility' : 'visibility_off'
-                            }}</span>
+                        <span class="material-icons text-lg leading-none">{{ showPwd ? 'visibility' : 'visibility_off' }}</span>
                     </button>
                 </div>
+            </div>
+
+            <!-- PIN field -->
+            <div v-else>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-3 ml-1"
+                    :class="isDark ? 'text-primary/80' : 'text-primary'">4-Digit PIN</label>
+                <div class="flex justify-center gap-4 mb-1" @click="focusPinInput">
+                    <div v-for="i in 4" :key="i"
+                        class="w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all"
+                        :class="[
+                            pin.length >= i ? 'border-primary bg-primary/10' : (isDark ? 'border-white/10 bg-white/5' : 'border-gray-200 bg-gray-50'),
+                            pin.length === i - 1 ? 'scale-105' : ''
+                        ]">
+                        <div v-if="pin.length >= i" class="w-3 h-3 rounded-full bg-primary"></div>
+                    </div>
+                </div>
+                <input ref="pinRef" v-model="pin" type="password" inputmode="numeric" pattern="[0-9]*"
+                    maxlength="4" :disabled="isAnyLoading"
+                    class="sr-only" @input="onPinInput" autocomplete="one-time-code" />
             </div>
 
             <!-- Error -->
@@ -85,9 +122,9 @@
             <!-- Actions -->
             <div class="space-y-3 pt-2">
                 <!-- Sign In Button -->
-                <button @click="handleLogin" :disabled="!driverId || !password || isAnyLoading"
+                <button @click="handleLogin" :disabled="!canSubmit || isAnyLoading"
                     class="w-full h-14 flex items-center justify-center gap-2 font-bold rounded-2xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                    :class="driverId && password && !isAnyLoading ? 'bg-primary text-background-dark shadow-glow hover:bg-primary-dark' : 'bg-primary/50 text-background-dark/50'">
+                    :class="canSubmit && !isAnyLoading ? 'bg-primary text-background-dark shadow-glow hover:bg-primary-dark' : 'bg-primary/50 text-background-dark/50'">
                     <span v-if="loading"
                         class="w-5 h-5 border-2 border-background-dark/30 border-t-background-dark rounded-full animate-spin"></span>
                     <span v-else class="material-icons text-lg">login</span>
@@ -126,7 +163,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useUiStore } from '../stores/uiStore.js'
@@ -135,8 +172,10 @@ const router = useRouter()
 const driverStore = useDriverStore()
 const uiStore = useUiStore()
 
+const loginMode = ref('password') // 'password' | 'pin'
 const driverId = ref('')
 const password = ref('')
+const pin = ref('')
 const showPwd = ref(false)
 const loading = ref(false)
 const loadingHelp = ref(false)
@@ -144,6 +183,32 @@ const error = ref('')
 
 const driverIdRef = ref(null)
 const passwordRef = ref(null)
+const pinRef = ref(null)
+
+const isDark = computed(() => uiStore.theme !== 'light')
+const isAnyLoading = computed(() => loading.value || loadingHelp.value)
+const canSubmit = computed(() =>
+    loginMode.value === 'pin'
+        ? driverId.value && pin.value.length === 4
+        : driverId.value && password.value
+)
+
+// Clear the other credential when switching modes
+watch(loginMode, () => {
+    error.value = ''
+    if (loginMode.value === 'pin') {
+        password.value = ''
+        nextTick(() => pinRef.value?.focus())
+    } else {
+        pin.value = ''
+        nextTick(() => passwordRef.value?.focus())
+    }
+})
+
+const onPinInput = () => {
+    pin.value = pin.value.replace(/\D/g, '').slice(0, 4)
+    if (pin.value.length === 4) handleLogin()
+}
 
 const focusDriverInput = async () => {
     if (driverIdRef.value && !isAnyLoading.value) {
@@ -171,25 +236,36 @@ const focusPasswordInput = async () => {
     }
 }
 
-const isDark = computed(() => uiStore.theme !== 'light')
-const isAnyLoading = computed(() => loading.value || loadingHelp.value)
+const focusPinInput = async () => {
+    if (pinRef.value && !isAnyLoading.value) {
+        pinRef.value.focus()
+        try {
+            const { Capacitor } = await import('@capacitor/core')
+            if (Capacitor.isNativePlatform()) {
+                const { Keyboard } = await import('@capacitor/keyboard')
+                await Keyboard.show()
+            }
+        } catch { /* web fallback — ignore */ }
+    }
+}
 
 const handleLogin = async () => {
-    if (!driverId.value || !password.value || isAnyLoading.value) return
+    if (!canSubmit.value || isAnyLoading.value) return
     error.value = ''
     loading.value = true
+    const credential = loginMode.value === 'pin' ? pin.value : password.value
 
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 1200))
-
-    if (driverId.value.trim().toUpperCase() !== 'DRV-2049') {
-        error.value = 'Invalid Driver ID or Password'
+    try {
+        await driverStore.login(driverId.value.trim(), credential)
+        router.push('/pre-shift')
+    } catch (err) {
+        error.value = loginMode.value === 'pin'
+            ? 'Invalid Driver ID or PIN'
+            : 'Invalid Driver ID or Password'
+        pin.value = ''
+    } finally {
         loading.value = false
-        return
     }
-
-    driverStore.login(driverId.value.trim().toUpperCase())
-    router.push('/pre-shift')
 }
 
 const handleHelp = async () => {

@@ -11,8 +11,7 @@
                 <h1 class="text-xl font-black tracking-tight">Proof of Delivery</h1>
                 <div class="w-10"></div>
             </div>
-            <p class="text-xs text-center" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Stop #1 · Priya & Rohit
-                Mehta</p>
+            <p class="text-xs text-center" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Stop #{{ stop.stopNumber || 1 }} · {{ stop.customerName || 'Customer' }}</p>
 
             <!-- Progress Steps -->
             <div class="flex items-center gap-2 mt-3">
@@ -35,7 +34,7 @@
         <div class="screen-body px-5 py-5 flex flex-col">
 
             <!-- STEP 0: Signature -->
-            <div v-if="currentStep === 0" class="flex-1 rounded-2xl border overflow-hidden flex flex-col min-h-[40vh]"
+            <div v-show="currentStep === 0" class="flex-1 rounded-2xl border overflow-hidden flex flex-col min-h-[40vh]"
                 :class="isDark ? 'border-white/5' : 'border-gray-100'">
                 <div class="p-4 flex justify-between items-center border-b shrink-0"
                     :class="isDark ? 'bg-surface-dark/50 border-white/5' : 'bg-gray-50 border-gray-100'">
@@ -87,9 +86,10 @@
             <div v-if="currentStep === 2" class="flex flex-col gap-4">
                 <div class="rounded-2xl p-5 text-center border"
                     :class="isDark ? 'bg-primary/10 border-primary/20' : 'bg-primary/10 border-primary/30'">
-                    <span class="material-icons text-4xl text-primary">sms</span>
+                    <span class="material-icons text-4xl text-primary">mail</span>
                     <h3 class="text-lg font-bold mt-2">Customer OTP</h3>
-                    <p class="text-sm mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">OTP sent to +91 ****4321
+                    <p class="text-sm mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                        {{ otpStatusMessage || 'Requesting OTP from the customer email linked to this order.' }}
                     </p>
                 </div>
                 <div class="flex gap-3 justify-center">
@@ -100,7 +100,10 @@
                         style="pointer-events: auto; touch-action: manipulation;"
                         :class="isDark ? 'bg-surface-dark border-white/10 text-white focus:border-primary' : 'bg-white border-gray-200 text-gray-900 focus:border-primary shadow-sm'" />
                 </div>
-                <p class="text-center text-xs" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Resend OTP in 28s</p>
+                <button @click="requestDeliveryOtp(true)" :disabled="otpSending"
+                    class="text-center text-xs font-semibold text-primary disabled:opacity-50">
+                    {{ otpSending ? 'Sending OTP...' : `Resend OTP${otpDestination ? ` to ${otpDestination}` : ''}` }}
+                </button>
             </div>
         </div>
 
@@ -123,23 +126,35 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
 import { useJobStore } from '../stores/jobStore.js'
 import { useCamera } from '../composables/useCamera.js'
 import { useLocalNotifications } from '../composables/useLocalNotifications.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
+import * as api from '../services/api.js'
 
 const route = useRoute()
 const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
 const routeStore = useRouteStore()
+const driverStore = useDriverStore()
 const jobStore = useJobStore()
 const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
 const { scanDocument, isCapturing } = useCamera()
 const stopId = computed(() => route.params.id || 'STOP-001')
+const stop = computed(() => jobStore.getStopById(stopId.value) || jobStore.currentStop || {})
+const requiresCodCollection = computed(() =>
+    Boolean(stop.value.cod && Number(stop.value.codAmount || 0) > 0 && !stop.value.codCollected)
+)
 
 const steps = ['Signature', 'Photos', 'OTP']
 const currentStep = ref(0)
+const otpStatusMessage = ref('')
+const otpDestination = ref('')
+const otpRequested = ref(false)
+const otpSending = ref(false)
+const signatureDataUrl = ref(null)
 
 // --- Signature Pad Logic ---
 const signatureCanvas = ref(null)
@@ -166,6 +181,15 @@ function initSignature() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         canvasInitialized = true;
+
+        if (signatureDataUrl.value) {
+            const img = new Image()
+            img.onload = () => {
+                ctx.clearRect(0, 0, w, h)
+                ctx.drawImage(img, 0, 0, w, h)
+            }
+            img.src = signatureDataUrl.value
+        }
     }
 }
 
@@ -175,6 +199,9 @@ watch(currentStep, (newStep) => {
         nextTick(() => {
             setTimeout(initSignature, 400); // Wait for transition & layout
         });
+    }
+    if (newStep === 2 && !otpRequested.value) {
+        requestDeliveryOtp().catch(() => {})
     }
 }, { immediate: true });
 
@@ -228,12 +255,39 @@ function stopDrawing(event) {
     if (event && event.cancelable) event.preventDefault();
     isDrawing.value = false;
     ctx.closePath();
+
+    // CRITICAL: Always persist immediately after drawing
+    const dataUrl = persistSignature()
+    console.log('[POD] Signature persisted on stroke end:', dataUrl ? 'success' : 'failed')
 }
 
 function clearSignature() {
     hasSig.value = false;
+    signatureDataUrl.value = null
     if (ctx && signatureCanvas.value) {
         ctx.clearRect(0, 0, signatureCanvas.value.width, signatureCanvas.value.height);
+    }
+}
+
+function persistSignature() {
+    if (!signatureCanvas.value || !hasSig.value) {
+        console.warn('[POD] Cannot persist signature: canvas=', !!signatureCanvas.value, 'hasSig=', hasSig.value)
+        return null
+    }
+
+    try {
+        const dataUrl = signatureCanvas.value.toDataURL('image/png')
+        if (dataUrl && dataUrl.length > 100) { // Sanity check: valid base64 should be longer than 100 chars
+            signatureDataUrl.value = dataUrl
+            console.log('[POD] Signature persisted successfully, length:', dataUrl.length)
+            return dataUrl
+        } else {
+            console.error('[POD] Invalid signature data URL generated')
+            return null
+        }
+    } catch (err) {
+        console.error('[POD] Error persisting signature:', err)
+        return null
     }
 }
 
@@ -267,9 +321,44 @@ const photos = ref([])
 const canProceed = computed(() => {
     if (currentStep.value === 0) return hasSig.value
     if (currentStep.value === 1) return photos.value.length >= 1
-    if (currentStep.value === 2) return otp.value.join('').length === 4
+    if (currentStep.value === 2) {
+        return otpRequested.value && otp.value.join('').length === 4
+    }
     return false
 })
+
+async function requestDeliveryOtp(forceResend = false) {
+    const orderId = jobStore.getOrderIdForStop(stopId.value)
+    if (!orderId) {
+        otpStatusMessage.value = 'No order found for OTP verification.'
+        return
+    }
+
+    otpSending.value = true
+    try {
+        const response = await api.sendDeliveryOtp(orderId, forceResend)
+        const debugOtp = String(response?.debug_otp || '').trim()
+
+        otpRequested.value = true
+        otpDestination.value = response.email || ''
+
+        if (/^\d{4}$/.test(debugOtp)) {
+            otp.value = debugOtp.split('')
+            otpStatusMessage.value = `Dev OTP generated: ${debugOtp}. SMTP is not configured, so email delivery is skipped.`
+            uiStore.showToast('OTP generated in dev mode', 'warning', 2000)
+        } else {
+            otpStatusMessage.value = response.email
+                ? `OTP sent to ${response.email}. Ask the customer for the code after handover.`
+                : 'OTP sent to the customer email.'
+            uiStore.showToast('Delivery OTP sent', 'success', 1600)
+        }
+    } catch (error) {
+        otpStatusMessage.value = error.message || 'Unable to send delivery OTP.'
+        uiStore.showToast(otpStatusMessage.value, 'error', 2400)
+    } finally {
+        otpSending.value = false
+    }
+}
 
 async function addPhoto() {
     const result = await scanDocument('Capture Proof of Delivery')
@@ -279,15 +368,84 @@ async function addPhoto() {
     }
 }
 function removePhoto(idx) { photos.value.splice(idx, 1) }
-function handleNext() {
-    if (currentStep.value < steps.length - 1) { currentStep.value++ }
+async function handleNext() {
+    // CRITICAL: Persist signature before leaving step 0
+    if (currentStep.value === 0) {
+        const persisted = persistSignature()
+        if (!persisted) {
+            uiStore.showToast('Please provide a signature', 'error', 2000)
+            return
+        }
+    }
+
+    if (currentStep.value < steps.length - 1) {
+        currentStep.value++
+    }
     else {
-        routeStore.completeDelivery(stopId.value)
-        routeStore.endDwell(stopId.value)
-        notify({ title: 'Delivery Complete', body: `Stop ${stopId.value} delivered successfully`, type: 'delivery', route: '/manifest' })
-        // Use FSM: go to NEXT_STOP if more stops, or COMPLETED if last
-        const nextState = routeStore.isLastStop ? 'COMPLETED' : 'NEXT_STOP'
-        advanceAndNavigate(nextState)
+        uiStore.showToast('Uploading Proof of Delivery...', 'info', 1500)
+        try {
+            jobStore.setCurrentStopById(stopId.value)
+            const orderId = jobStore.getOrderIdForStop(stopId.value)
+            const hasMoreStops = jobStore.currentStopIndex < (jobStore.totalStops - 1)
+
+            const photoBase64List = photos.value
+                .map(photo => photo.includes(',') ? photo.split(',')[1] : photo)
+                .filter(Boolean)
+
+            // Use the persisted signature (never try to re-capture at this point)
+            if (!signatureDataUrl.value) {
+                throw new Error('Signature data was lost. Please go back and re-sign.')
+            }
+
+            const sigBase64 = signatureDataUrl.value.includes(',')
+                ? signatureDataUrl.value.split(',')[1]
+                : signatureDataUrl.value
+
+            console.log('[POD] Final submit - hasSig:', hasSig.value, 'sigBase64 length:', sigBase64?.length || 0)
+
+            // Fallback: if stop-based lookup failed, use the top-level job id
+            const resolvedOrderId = orderId || jobStore.jobData?.id || jobStore.jobData?.jobId || null
+
+            if (!resolvedOrderId) {
+                throw new Error('Order ID not found. Cannot upload proof of delivery.')
+            }
+
+            await api.uploadProofOfDelivery(
+                resolvedOrderId,
+                photoBase64List,
+                sigBase64, // This is now guaranteed to be valid
+                otp.value.join(''),
+                stop.value.customerName || null,
+                '',
+            )
+
+            jobStore.addPOD({
+                photo: photoBase64List[0] || null,
+                signature: sigBase64,
+                customerName: stop.value.customerName,
+                notes: '',
+            })
+
+            // COD orders require payment collection after POD but before closing the stop.
+            if (requiresCodCollection.value) {
+                uiStore.showToast('POD saved. Proceed to COD collection.', 'success', 1800)
+                advanceAndNavigate('COD_COLLECTION')
+                return
+            }
+
+            jobStore.completeCurrentStop()
+            routeStore.completeDelivery(stopId.value)
+            routeStore.endDwell(stopId.value)
+            await driverStore.refreshDashboard()
+            notify({ title: 'Delivery Complete', body: `Stop ${stopId.value} delivered successfully`, type: 'delivery', route: '/manifest' })
+
+            // Use FSM: go to NEXT_STOP if more stops, or COMPLETED if last
+            const nextState = hasMoreStops ? 'NEXT_STOP' : 'COMPLETED'
+            advanceAndNavigate(nextState)
+        } catch (err) {
+            console.error('POD upload error:', err)
+            uiStore.showToast(err?.message || 'Failed to upload POD. Please try again.', 'error', 2500)
+        }
     }
 }
 </script>

@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
@@ -132,6 +132,20 @@ const jobStore = useJobStore()
 const uiStore = useUiStore()
 const { advanceAndNavigate } = useFlowRouter()
 const isDark = computed(() => uiStore.theme !== 'light')
+
+// Advance FSM from ARRIVE_DEST → UNLOADING_INVENTORY on mount.
+// TransitMode navigates here after transitioning to ARRIVE_DEST, so state
+// is ARRIVE_DEST when this screen loads. FINAL_CHECKLIST is only reachable
+// from UNLOADING_INVENTORY, so we must advance one step first.
+onMounted(() => {
+    if (jobStore.canTransitionTo('UNLOADING_INVENTORY')) {
+        try {
+            jobStore.transition('UNLOADING_INVENTORY', { unloadingStartedAt: new Date().toISOString() })
+        } catch (e) {
+            console.warn('[UnloadingInventory] Could not advance FSM:', e)
+        }
+    }
+})
 
 const inventory = computed(() => jobStore.jobData?.inventory || [])
 

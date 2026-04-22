@@ -2,6 +2,10 @@
     "appId": "com.cargocoredriver.app",
     "appName": "Cargo-Core Driver",
     "webDir": "dist",
+    "server": {
+        "androidScheme": "http",
+        "cleartext": true
+    },
 
     "plugins": {
         "SplashScreen": {

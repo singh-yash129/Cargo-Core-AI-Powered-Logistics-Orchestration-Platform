@@ -9,7 +9,7 @@ class UserAdminCreate(BaseModel):
     username: str | None = Field(default=None, min_length=3, max_length=64)
     email: EmailStr
     phone: str | None = Field(default=None, max_length=20)
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=4)
     role: str = Field(..., max_length=50)
     warehouse_id: UUID | None = None
 

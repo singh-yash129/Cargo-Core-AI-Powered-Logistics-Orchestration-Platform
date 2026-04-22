@@ -186,6 +186,12 @@ const routes = [
                 component: () => import('../views/CustomerSignOff.vue'),
                 meta: { requiresAuth: true, hideNav: true }
             },
+            {
+                path: 'packing-return',
+                name: 'packing-return',
+                component: () => import('../views/PackingReturn.vue'),
+                meta: { requiresAuth: true, hideNav: true }
+            },
 
             // ── Geofence & Deviation ─────────────────────
             {
@@ -290,6 +296,12 @@ const routes = [
                 path: 'chat',
                 name: 'chat',
                 component: () => import('../views/DispatchChat.vue'),
+                meta: { requiresAuth: true, hideNav: true }
+            },
+            {
+                path: 'manager-chat',
+                name: 'manager-chat',
+                component: () => import('../views/ManagerChat.vue'),
                 meta: { requiresAuth: true, hideNav: true }
             },
             {
@@ -427,7 +439,7 @@ router.beforeEach((to, from, next) => {
         return next({ name: driverStore.preShiftDone ? 'dashboard' : 'pre-shift' })
     }
 
-    // ── Shift flow enforcement (job-type-aware) ────────────────
+    // ── Shift flow enforcement (dashboard-first) ────────────────
     // Pages that are always accessible once authenticated (no flow guard)
     const flowExempt = ['pre-shift', 'settings', 'notifications']
     if (to.meta.requiresAuth && !flowExempt.includes(to.name)) {
@@ -439,20 +451,25 @@ router.beforeEach((to, from, next) => {
         if (!driverStore.vehicleBound && to.name !== 'vehicle-binding') {
             return next({ name: 'vehicle-binding' })
         }
-        // Must inspect before job type selection+
+        // Must inspect before entering post-check flow
         if (!driverStore.inspectionDone && !['vehicle-binding', 'vehicle-inspection'].includes(to.name)) {
             return next({ name: 'vehicle-inspection' })
         }
-        // Must select job type after inspection
-        if (!driverStore.jobTypeSelected && !['vehicle-binding', 'vehicle-inspection', 'job-type-selection'].includes(to.name)) {
-            return next({ name: 'job-type-selection' })
+
+        // After mandatory checks, dashboard must stay reachable even with no active job.
+        if (['dashboard', 'house-shift-dashboard'].includes(to.name)) {
+            return next()
+        }
+
+        // If no active job is loaded yet, skip job-type-specific blockers.
+        if (!jobStore.jobType) {
+            return next()
         }
 
         // ── Job-type-specific flow guards ──────────────────────
         const isHouseShift = jobStore.jobType === 'HOUSE_SHIFT'
         const isPickup = jobStore.jobType === 'PARCEL_PICKUP'
-        // Add job-assignment to daily start pages to ensure it's accessible right after job selection
-        const dailyStartPages = ['vehicle-binding', 'vehicle-inspection', 'job-type-selection', 'job-assignment']
+        const dailyStartPages = ['vehicle-binding', 'vehicle-inspection', 'job-assignment']
 
         if (isHouseShift) {
             // House Shift: require crew → gate (NO load-verify for house shift)

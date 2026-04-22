@@ -9,7 +9,7 @@
                     <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
                     <span class="text-xs font-bold uppercase tracking-wider text-primary">Pre-Shift</span>
                 </div>
-                <span class="text-xs font-mono" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Shift #402</span>
+                <span class="text-xs font-mono" :class="isDark ? 'text-gray-500' : 'text-gray-400'">{{ shiftCode }}</span>
             </div>
             <h1 class="text-3xl font-black tracking-tight">Ready to Go?</h1>
             <p class="text-sm mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Daily authorization &amp;
@@ -52,15 +52,15 @@
                 <div class="flex items-center justify-between mb-2">
                     <h3 class="text-xs uppercase font-bold tracking-widest"
                         :class="isDark ? 'text-gray-400' : 'text-gray-500'">Hours of Service</h3>
-                    <span class="text-xs font-bold text-primary">5h 20m Today</span>
+                    <span class="text-xs font-bold text-primary">{{ hos.used_label }} Today</span>
                 </div>
                 <div class="w-full rounded-full h-2 mb-2" :class="isDark ? 'bg-gray-800' : 'bg-gray-100'">
-                    <div class="h-2 rounded-full bg-gradient-to-r from-primary to-accent-blue" style="width: 37%"></div>
+                    <div class="h-2 rounded-full bg-gradient-to-r from-primary to-accent-blue" :style="`width: ${hos.progress_percent}%`"></div>
                 </div>
                 <div class="flex justify-between text-[10px]" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
-                    <span>5h 20m used</span>
-                    <span class="text-primary">9h 10m remaining</span>
-                    <span>14h max</span>
+                    <span>{{ hos.used_label }} used</span>
+                    <span class="text-primary">{{ hos.remaining_label }} remaining</span>
+                    <span>{{ hos.max_label }} max</span>
                 </div>
             </div>
 
@@ -83,11 +83,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useLocalNotifications } from '../composables/useLocalNotifications.js'
+import * as api from '../services/api.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -95,14 +96,28 @@ const driverStore = useDriverStore()
 const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
 
-const authChecks = ref([
-    { id: 1, label: 'RBAC Credential Verified', status: 'DRV-2049 · Active', ok: true, icon: 'badge' },
-    { id: 2, label: 'Roster Authorized', status: 'Shift-402 · North-East Hub', ok: true, icon: 'assignment' },
-    { id: 3, label: 'Driver License Valid', status: 'Expires 2028-12-31', ok: true, icon: 'card_membership' },
-    { id: 4, label: 'Medical Fitness', status: 'Cleared – Last check Mar 1', ok: true, icon: 'health_and_safety' },
-])
+const authChecks = ref([])
+const hos = computed(() => driverStore.dashboard?.hos || {
+    used_label: '0h 00m',
+    remaining_label: '14h 00m',
+    max_label: '14h 00m',
+    progress_percent: 0,
+})
+const shiftCode = computed(() => driverStore.dashboard?.shift?.shift_code || 'No shift')
 
-function proceed() {
+onMounted(async () => {
+    const context = await driverStore.refreshDashboard()
+    authChecks.value = context?.shift?.validations || []
+})
+
+async function proceed() {
+    try {
+        await api.startShift()
+    } catch (err) {
+        console.error('Failed to start shift on backend:', err)
+        // Log it but allow proceed for demo/prototype resiliency
+    }
+    await driverStore.refreshDashboard()
     driverStore.preShiftDone = true
     notify({ title: 'Pre-Shift Complete', body: 'Safety checks passed — proceed to vehicle binding', type: 'success', route: '/vehicle-binding' })
     router.push('/vehicle-binding')

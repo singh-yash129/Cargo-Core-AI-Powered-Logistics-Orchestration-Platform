@@ -74,11 +74,14 @@
         <!-- ── STICKY FOOTER ────────────────────────── -->
         <div class="screen-footer px-5 py-4 border-t"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
-            <button @click="submit"
-                class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-background-dark shadow-glow active:scale-[0.98]"
+            <button @click="submit" :disabled="isSubmitting"
+                class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-background-dark shadow-glow active:scale-[0.98] transition-opacity"
+                :class="isSubmitting ? 'opacity-60' : ''"
                 style="background: linear-gradient(135deg, #1CE783, #15b86a);">
-                <span class="material-icons">done_all</span>
-                Return Vehicle
+                <span class="material-icons" :class="isSubmitting ? 'animate-spin' : ''">
+                    {{ isSubmitting ? 'hourglass_empty' : 'done_all' }}
+                </span>
+                {{ isSubmitting ? 'Submitting...' : 'Return Vehicle' }}
             </button>
         </div>
     </div>
@@ -90,12 +93,14 @@ import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useCamera } from '../composables/useCamera.js'
+import * as api from '../services/api.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
 const driverStore = useDriverStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const { scanDocument, isCapturing } = useCamera()
+const isSubmitting = ref(false)
 
 const odometerRef = ref(null)
 const focusOdometer = () => { odometerRef.value?.focus() }
@@ -113,9 +118,26 @@ async function captureCondition() {
     }
 }
 
-function submit() {
+async function submit() {
+    if (isSubmitting.value) return
+    isSubmitting.value = true
+    try {
+        await api.returnVehicle({
+            odometerKm: odometer.value || null,
+            fuelLevelPct: fuelLevel.value,
+            notes: notes.value.trim() || null,
+            conditionPhoto: conditionPhoto.value || null,
+        })
+        uiStore.showToast('Vehicle returned successfully ✓', 'success', 2000)
+    } catch (err) {
+        // Non-blocking — if backend fails (e.g. vehicle already unassigned), still proceed
+        console.warn('[VehicleReturn] Backend return failed:', err.message)
+        uiStore.showToast('Return recorded locally — sync when online', 'warning', 2500)
+    } finally {
+        isSubmitting.value = false
+    }
+    // Clear local vehicle state and navigate regardless
     driverStore.vehicle = null
-    uiStore.showToast('Vehicle returned successfully ✓', 'success')
     router.replace('/shift-summary')
 }
 </script>

@@ -116,6 +116,18 @@ function roleApiValue(role) {
     return normalized
 }
 
+function normalizeDriverLoginId(value, fallbackEmail = '') {
+    const raw = String(value || '').trim()
+    if (raw) return raw
+    const emailPrefix = String(fallbackEmail || '').split('@')[0]?.trim()
+    return emailPrefix || ''
+}
+
+function normalizeDriverPin(value) {
+    const raw = String(value || '').trim()
+    return /^\d{4}$/.test(raw) ? raw : '1234'
+}
+
 async function apiRequest(path, options = {}) {
     return authenticatedJsonRequest(`api/v1${path}`, options)
 }
@@ -1138,6 +1150,8 @@ export const useLogisticStore = defineStore('logistic', () => {
     }
 
     async function addDriver(driverData) {
+        const driverId = normalizeDriverLoginId(driverData.driver_id || driverData.username, driverData.email)
+        const driverPin = normalizeDriverPin(driverData.pin || driverData.password)
         await apiRequest('/logistics/drivers', {
             method: 'POST',
             headers: authHeaders(),
@@ -1148,6 +1162,8 @@ export const useLogisticStore = defineStore('logistic', () => {
                 warehouse_id: driverData.warehouse_id && driverData.warehouse_id !== 'all' ? driverData.warehouse_id : null,
                 status: driverData.status || 'Active',
                 current_location: driverData.current_location || null,
+                driver_id: driverId || null,
+                pin: driverPin,
             }),
         })
         await refresh()
@@ -1192,24 +1208,30 @@ export const useLogisticStore = defineStore('logistic', () => {
     }
 
     async function addUser(userData) {
+        const apiRole = roleApiValue(userData.role)
+        const isDriver = apiRole === 'DRIVER'
+        const driverId = normalizeDriverLoginId(userData.username, userData.email)
+        const credentialValue = isDriver
+            ? normalizeDriverPin(userData.password)
+            : (userData.password || '12345678')
         const created = await apiRequest('/users', {
             method: 'POST',
             headers: authHeaders(),
             body: JSON.stringify({
                 name: userData.name,
-                username: userData.username || null,
+                username: isDriver ? (driverId || null) : (userData.username || null),
                 email: userData.email,
                 phone: userData.mobile || userData.phone || null,
-                password: userData.password || '12345678',
-                role: roleApiValue(userData.role),
+                password: credentialValue,
+                role: apiRole,
                 warehouse_id: userData.hubId && userData.hubId !== 'all' ? userData.hubId : null,
             }),
         })
 
-        if (userData.email && userData.password) {
+        if (userData.email && credentialValue) {
             credentialCache.value[String(userData.email).toLowerCase()] = {
-                username: created?.username || userData.username || '',
-                password: userData.password,
+                username: created?.username || (isDriver ? driverId : userData.username) || '',
+                password: credentialValue,
             }
             persistCredentialCache(credentialCache.value)
         }

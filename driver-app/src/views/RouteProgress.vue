@@ -11,7 +11,7 @@
                 <div>
                     <h1 class="text-2xl font-black tracking-tight">Route Progress</h1>
                     <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{
-                        routeStore.manifest?.routeId || 'RT-2049-MAR06' }} · Live tracking
+                        routeStore.manifest?.routeId || driverStore.dashboard?.manifest?.route_id || 'No active route' }} · Live tracking
                     </p>
                 </div>
             </div>
@@ -68,7 +68,7 @@
                     </div>
                 </div>
                 <div class="absolute bottom-3 left-3 right-3">
-                    <button @click="$router.push('/navigation')"
+                    <button @click="openNavigation"
                         class="w-full py-2.5 rounded-xl font-bold text-sm text-background-dark flex items-center justify-center gap-2"
                         style="background: rgba(28,231,131,0.9); backdrop-filter: blur(8px);">
                         <span class="material-icons text-sm">near_me</span>
@@ -81,27 +81,90 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useUiStore } from '../stores/uiStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
+import { useJobStore } from '../stores/jobStore.js'
+import { openExternalNavigation } from '../utils/navigation.js'
 
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
 const routeStore = useRouteStore()
+const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme !== 'light')
+const telemetry = computed(() => driverStore.dashboard?.telemetry || {})
+const hos = computed(() => driverStore.dashboard?.hos || {})
+const currentStop = computed(() =>
+    routeStore.currentStop
+    || jobStore.currentStop
+    || jobStore.jobData?.stops?.[0]
+    || routeStore.stops?.[0]
+    || null
+)
 
-const totalStops = computed(() => routeStore.totalStops || 7) // Fallback for UI if empty
-const completedStops = computed(() => routeStore.completedCount || 0)
-const progress = computed(() => routeStore.progressPercent || 0)
-const estimatedDone = computed(() => routeStore.manifest?.endTime || '13:20')
+onMounted(() => {
+    driverStore.refreshDashboard()
+})
+
+const totalStops = computed(() => routeStore.totalStops || driverStore.dashboard?.manifest?.total_stops || 0)
+const completedStops = computed(() => routeStore.completedCount || driverStore.dashboard?.manifest?.completed_stops || 0)
+const progress = computed(() => {
+    if (routeStore.progressPercent) return routeStore.progressPercent
+    return totalStops.value ? Math.round((completedStops.value / totalStops.value) * 100) : 0
+})
+const estimatedDone = computed(() => routeStore.manifest?.endTime || driverStore.dashboard?.manifest?.estimated_end_time || '--:--')
 
 const totalCod = computed(() => {
     return routeStore.codPayments.reduce((sum, p) => sum + (p.amount || 0), 0)
 })
 
-const liveStats = computed(() => [
-    { label: 'Speed', icon: 'speed', value: '38 km/h', color: 'text-accent-blue' },
-    { label: 'Distance Covered', icon: 'timeline', value: '18.4 km', color: 'text-primary' },
-    { label: 'Time Elapsed', icon: 'schedule', value: '2h 14m', color: 'text-accent-gold' },
-    { label: 'COD Collected', icon: 'payments', value: `₹${totalCod.value}`, color: 'text-primary' },
-])
+const liveStats = computed(() => {
+    const stats = [
+        { label: 'Speed', icon: 'speed', value: `${telemetry.value.speed_kmh || 0} km/h`, color: 'text-accent-blue' },
+        { label: 'Distance Covered', icon: 'timeline', value: `${telemetry.value.distance_covered_km || 0} km`, color: 'text-primary' },
+        { label: 'Time Elapsed', icon: 'schedule', value: hos.value.used_label || '0h 00m', color: 'text-accent-gold' },
+    ]
+    if (jobStore.jobType === 'PARCEL_DELIVERY') {
+        stats.push({ label: 'COD Collected', icon: 'payments', value: `₹${totalCod.value.toLocaleString('en-IN')}`, color: 'text-accent-gold' })
+    } else if (jobStore.jobType === 'HOUSE_SHIFT') {
+        stats.push({ label: 'Crew On Board', icon: 'groups', value: String(jobStore.jobData?.crewAssigned?.length ?? 0), color: 'text-purple-400' })
+    } else {
+        stats.push({ label: 'Items Picked', icon: 'inventory', value: String(completedStops.value), color: 'text-accent-blue' })
+    }
+    return stats
+})
+
+function openNavigation() {
+    if (!currentStop.value) {
+        uiStore.showToast('No stop available for navigation', 'error', 2200)
+        return
+    }
+
+    if (!routeStore.stops.length && jobStore.jobData?.stops?.length) {
+        routeStore.loadManifest({
+            routeId: routeStore.manifest?.routeId || jobStore.jobData?.manifestId || null,
+            endTime: routeStore.manifest?.endTime || estimatedDone.value || '--:--',
+            stops: jobStore.jobData.stops,
+        })
+    }
+
+    if (!routeStore.isRouteActive) {
+        routeStore.startRoute()
+    }
+
+    jobStore.setCurrentStopById(currentStop.value.id)
+    routeStore.setCurrentStopById(currentStop.value.id)
+    jobStore.ensureTransitState({
+        startedAt: new Date().toISOString(),
+        stopId: currentStop.value.id,
+    })
+
+    try {
+        openExternalNavigation(currentStop.value)
+        uiStore.showToast('Opening navigation in Maps', 'success', 1600)
+    } catch (error) {
+        uiStore.showToast(error.message || 'Unable to open maps', 'error', 2400)
+    }
+}
 </script>

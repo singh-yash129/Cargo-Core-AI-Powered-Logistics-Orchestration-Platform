@@ -45,6 +45,7 @@ const STATE_ROUTE_MAP = {
         ASSIGNED: '/job-assignment',
         CREW_CHECKIN: '/crew',
         START_ROUTE: '/navigation',
+        IN_TRANSIT: '/navigation',
         IN_TRANSIT_TO_SOURCE: '/navigation',
         ARRIVE_SOURCE: '/house-shift-dashboard',
         PACKING: '/packing-progress',
@@ -54,6 +55,7 @@ const STATE_ROUTE_MAP = {
         UNLOADING_INVENTORY: '/unloading-inventory',
         FINAL_CHECKLIST: '/final-walkthrough',
         POC_CAPTURE: '/customer-signoff',
+        PACKING_RETURN: '/packing-return',
         COMPLETED: '/job-completion',
     }
 }
@@ -87,6 +89,7 @@ export const FLOW_STEPS = {
     HOUSE_SHIFT: [
         { state: 'ASSIGNED', label: 'Job', icon: 'assignment' },
         { state: 'CREW_CHECKIN', label: 'Crew', icon: 'group' },
+        { state: 'IN_TRANSIT', label: 'Transit', icon: 'local_shipping' },
         { state: 'ARRIVE_SOURCE', label: 'Source', icon: 'place' },
         { state: 'PACKING', label: 'Pack', icon: 'inventory' },
         { state: 'LOADING_INVENTORY', label: 'Load', icon: 'local_shipping' },
@@ -95,6 +98,7 @@ export const FLOW_STEPS = {
         { state: 'UNLOADING_INVENTORY', label: 'Unload', icon: 'unarchive' },
         { state: 'FINAL_CHECKLIST', label: 'Checklist', icon: 'checklist' },
         { state: 'POC_CAPTURE', label: 'Sign-off', icon: 'draw' },
+        { state: 'PACKING_RETURN', label: 'Assets', icon: 'inventory_2' },
         { state: 'COMPLETED', label: 'Done', icon: 'check_circle' },
     ]
 }
@@ -112,7 +116,7 @@ export function useFlowRouter() {
         const { jobType, jobState } = jobStore
 
         if (!jobType || !jobState) {
-            uiStore.showToast('No active job. Use Demo Mode to load a job.', 'warning', 3000)
+            uiStore.showToast('No active job assigned.', 'warning', 3000)
             return
         }
 
@@ -122,11 +126,16 @@ export function useFlowRouter() {
             return
         }
 
-        const targetRoute = routeMap[jobState]
+        let targetRoute = routeMap[jobState]
         if (!targetRoute) {
             console.warn(`No route for state: ${jobState} in jobType: ${jobType}`)
             uiStore.showToast(`Unhandled state: ${jobState}`, 'error', 3000)
             return
+        }
+
+        const stopId = jobStore.currentStop?.id || jobStore.currentStopId || jobStore.jobData?.stops?.[jobStore.currentStopIndex]?.id
+        if (targetRoute.includes('/current')) {
+            targetRoute = targetRoute.replace('/current', `/${stopId || 'current'}`)
         }
 
         console.log(`🗺️ FlowRouter: ${jobType}/${jobState} → ${targetRoute}`)
@@ -201,6 +210,7 @@ export function useFlowRouter() {
             UNLOADING_INVENTORY: 'Unload Items',
             FINAL_CHECKLIST: 'Final Walkthrough',
             POC_CAPTURE: 'Get Customer Sign-off',
+            PACKING_RETURN: 'Log Packing Assets',
             COMPLETED: 'View Summary',
         }
 

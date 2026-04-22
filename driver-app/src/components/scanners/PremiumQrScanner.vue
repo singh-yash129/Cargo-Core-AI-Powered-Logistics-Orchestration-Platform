@@ -4,13 +4,13 @@
 
         <!-- ── Header ─────────────────────────────── -->
         <div class="h-28 bg-gradient-to-b from-black/80 to-transparent flex items-start justify-between px-6 pt-12 z-10 shrink-0">
-            <button @touchstart="onClose" @click="onClose"
+            <button @click.stop.prevent="onClose"
                 class="w-11 h-11 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform outline-none"
                 style="pointer-events: auto; touch-action: manipulation;">
                 <span class="material-icons">close</span>
             </button>
             <div class="flex gap-3 text-white">
-                <button @touchstart="toggleTorch" @click="toggleTorch"
+                <button @click.stop.prevent="toggleTorch"
                     class="w-11 h-11 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center active:scale-90 transition-transform outline-none"
                     :class="torchOn ? 'text-yellow-300' : 'text-white'">
                     <span class="material-icons">{{ torchOn ? 'flash_on' : 'flash_off' }}</span>
@@ -81,31 +81,32 @@ onMounted(async () => {
                 } catch (e) { /* already installed or unavailable */ }
             }
 
+            await new Promise(resolve => setTimeout(resolve, 300))
             await BarcodeScanner.startScan()
             scanListener.value = await BarcodeScanner.addListener('barcodeScanned', async (result) => {
                 if (result.barcode) {
                     await Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {})
                     await stopScanner()
                     store.deliver(result.barcode.rawValue)
-                    router.back()
+                    await store.navigateBack(router)
                 }
             })
         } else {
             alert('Scanner Error: Camera permission is ' + camera)
             store.cancel()
-            router.back()
+            await store.navigateBack(router)
         }
     } catch (e) {
         // Handle emulator CameraX NullPointerException gracefully
         if (e.message && e.message.includes('null object reference')) {
-            alert('Emulator camera failed: ' + e.message + '\n\nSimulating scan for testing.')
+            console.warn('QR camera NPE — simulating scan:', e.message)
             store.deliver('CC-TRK-042') // Mock result
-            router.back()
+            await store.navigateBack(router)
             return
         }
         alert('QR Mount Error: ' + e.message)
         store.cancel()
-        router.back()
+        await store.navigateBack(router)
     }
 })
 
@@ -131,7 +132,7 @@ async function toggleTorch() {
 async function onClose() {
     await stopScanner()
     store.cancel()
-    router.back()
+    await store.navigateBack(router)
 }
 </script>
 

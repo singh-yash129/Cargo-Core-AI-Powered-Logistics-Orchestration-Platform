@@ -20,6 +20,7 @@ class LabourerUpdate(BaseModel):
     warehouse_id: UUID | None = None
     skill_tags: list[str] | None = None
     is_active: bool | None = None
+    assigned_order_id: UUID | None = None
 
 
 class LabourerResponse(BaseModel):

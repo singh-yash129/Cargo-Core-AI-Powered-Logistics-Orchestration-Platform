@@ -11,13 +11,21 @@ export const useRouteStore = defineStore('route', () => {
     const dwellTimes = ref({})
     const deviations = ref([])
     const exceptions = ref([])
+    const tripBrief = ref(null)
+    const routeUpdates = ref([])
+    const lastRouteUpdate = ref(null)
 
     const currentStop = computed(() => stops.value[currentStopIndex.value] || null)
     const totalStops = computed(() => stops.value.length)
     const completedCount = computed(() => completedStops.value.length)
+    const isLastStop = computed(() => currentStopIndex.value >= Math.max(0, stops.value.length - 1))
     const progressPercent = computed(() =>
         totalStops.value ? Math.round((completedCount.value / totalStops.value) * 100) : 0
     )
+
+    function getStopIndex(stopId) {
+        return stops.value.findIndex(stop => String(stop.id) === String(stopId))
+    }
 
     function loadManifest(data) {
         manifest.value = data
@@ -26,8 +34,36 @@ export const useRouteStore = defineStore('route', () => {
         isRouteActive.value = false
     }
 
+    function setTripBrief(data) {
+        tripBrief.value = data || null
+    }
+
+    function applyRouteUpdate(update) {
+        if (!update) return
+        lastRouteUpdate.value = update
+        routeUpdates.value.unshift({
+            ...update,
+            receivedAt: update.receivedAt || new Date().toISOString(),
+        })
+        if (update.trip_intelligence) {
+            tripBrief.value = update.trip_intelligence
+        }
+    }
+
+    function clearRouteUpdate() {
+        lastRouteUpdate.value = null
+    }
+
     function startRoute() {
         isRouteActive.value = true
+    }
+
+    function setCurrentStopById(stopId) {
+        const index = getStopIndex(stopId)
+        if (index >= 0) {
+            currentStopIndex.value = index
+        }
+        return index
     }
 
     function completeDelivery(stopId) {
@@ -62,11 +98,29 @@ export const useRouteStore = defineStore('route', () => {
         }
     }
 
+    function reset() {
+        manifest.value = null
+        stops.value = []
+        currentStopIndex.value = 0
+        isRouteActive.value = false
+        codPayments.value = []
+        completedStops.value = []
+        dwellTimes.value = {}
+        deviations.value = []
+        exceptions.value = []
+        tripBrief.value = null
+        routeUpdates.value = []
+        lastRouteUpdate.value = null
+    }
+
     return {
         manifest, stops, currentStopIndex, isRouteActive,
         codPayments, completedStops, dwellTimes, deviations, exceptions,
-        currentStop, totalStops, completedCount, progressPercent,
+        tripBrief, routeUpdates, lastRouteUpdate,
+        currentStop, totalStops, completedCount, isLastStop, progressPercent,
+        getStopIndex, setCurrentStopById,
         loadManifest, startRoute, completeDelivery,
-        logCODPayment, logDeviation, logException, startDwell, endDwell
+        logCODPayment, logDeviation, logException, startDwell, endDwell,
+        setTripBrief, applyRouteUpdate, clearRouteUpdate, reset
     }
 })

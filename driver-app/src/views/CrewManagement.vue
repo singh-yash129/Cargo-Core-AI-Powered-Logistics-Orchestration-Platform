@@ -39,12 +39,12 @@
                 <div class="flex items-center gap-2 mt-1.5">
                     <div class="flex items-center gap-1.5 text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
                         <span class="material-icons text-sm">location_on</span>
-                        <span class="font-semibold">14B Andheri West</span>
+                        <span class="font-semibold">{{ jobStore.jobData?.sourceLocation?.address?.split(',').slice(0, 2).join(', ') || 'Assigned location' }}</span>
                     </div>
                     <span :class="isDark ? 'text-gray-700' : 'text-gray-300'">•</span>
                     <div class="flex items-center gap-1.5 text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
                         <span class="material-icons text-sm">local_shipping</span>
-                        <span class="font-semibold">House Shift</span>
+                        <span class="font-semibold">{{ jobStore.jobTypeLabel || 'House Shift' }}</span>
                     </div>
                 </div>
             </div>
@@ -263,12 +263,12 @@
                         Team Readiness
                     </span>
                     <span class="text-sm font-black" :class="clockedIn === crew.length ? 'text-primary' : isDark ? 'text-gray-400' : 'text-gray-500'">
-                        {{ Math.round((clockedIn / crew.length) * 100) }}%
+                        {{ readinessPercent }}%
                     </span>
                 </div>
                 <div class="w-full h-2 rounded-full overflow-hidden" :class="isDark ? 'bg-gray-800' : 'bg-gray-200'">
                     <div class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-primary to-primary-dark"
-                        :style="`width: ${(clockedIn / crew.length) * 100}%`"></div>
+                        :style="`width: ${readinessPercent}%`"></div>
                 </div>
             </div>
 
@@ -287,12 +287,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useJobStore } from '../stores/jobStore.js'
-import { dummyCrewMembers } from '../utils/dummyData.js'
+import * as api from '../services/api.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -300,11 +300,12 @@ const driverStore = useDriverStore()
 const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
-const crew = ref(dummyCrewMembers.map(m => ({ ...m, reportedReason: null })))
+const crew = ref([])
 const clockedIn = computed(() => crew.value.filter(m => m.checkInTime).length)
 const noShows = computed(() => crew.value.filter(m => m.reportedReason).length)
 // Pending means neither clocked in nor reported
 const pendingCount = computed(() => crew.value.length - clockedIn.value - noShows.value)
+const readinessPercent = computed(() => crew.value.length ? Math.round((clockedIn.value / crew.value.length) * 100) : 100)
 
 // ── Report Modal State ──
 const reportModal = ref(false)
@@ -312,9 +313,50 @@ const selectedMember = ref(null)
 const reportReason = ref(null)
 const reportReasons = ['Absent', 'Sick / Medical', 'Arriving Late', 'Unreachable']
 
-function clockIn(member) {
-    member.checkInTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-    member.reportedReason = null // clocking in overrides reports
+onMounted(async () => {
+    const context = await driverStore.refreshDashboard()
+    const mappedCrew = (context?.crew || []).map(member => ({
+        id: member.labourer_id || member.id,
+        labourerId: member.labourer_id || member.id,
+        name: member.name,
+        role: member.role || 'Crew',
+        photo: member.photo || null,
+        checkInTime: member.check_in_time || null,
+        reportedReason: null,
+    }))
+    crew.value = mappedCrew
+
+    if (jobStore.jobData?.jobType === 'HOUSE_SHIFT') {
+        jobStore.jobData.crewAssigned = mappedCrew.map(member => ({
+            id: member.id,
+            labourerId: member.labourerId,
+            name: member.name,
+            role: member.role,
+            photo: member.photo,
+            checkedIn: Boolean(member.checkInTime),
+            checkInTime: member.checkInTime,
+        }))
+    }
+})
+
+async function clockIn(member) {
+    try {
+        const updated = await api.checkInCrewMember(member.labourerId || member.id)
+        member.checkInTime = updated.check_in_time || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+        member.reportedReason = null
+
+        if (jobStore.jobData?.crewAssigned) {
+            const target = jobStore.jobData.crewAssigned.find(item =>
+                String(item.id) === String(member.id) || String(item.labourerId) === String(member.labourerId)
+            )
+            if (target) {
+                target.checkedIn = true
+                target.checkInTime = member.checkInTime
+            }
+        }
+    } catch (err) {
+        uiStore.showToast(err.message || 'Could not check in crew member', 'error', 2000)
+    }
 }
 
 function openReportModal(member) {

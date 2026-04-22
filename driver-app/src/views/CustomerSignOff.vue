@@ -95,14 +95,17 @@
                 :class="isDark ? 'bg-red-500/10 text-red-400' : 'bg-red-50 text-red-600 border border-red-200'">
                 {{ blockReason }}
             </div>
-            <button @click="completeJob" :disabled="!canComplete"
+            <button @click="completeJob" :disabled="!canComplete || submitting"
                 class="w-full rounded-2xl h-14 flex items-center justify-center gap-3 relative overflow-hidden active:scale-[0.98] transition-all"
-                :class="canComplete ? 'shadow-glow cursor-pointer' : 'opacity-40 cursor-not-allowed'">
+                :class="(canComplete && !submitting) ? 'shadow-glow cursor-pointer' : 'opacity-40 cursor-not-allowed'">
                 <div class="absolute inset-0"
-                    :class="canComplete ? 'bg-gradient-to-r from-green-600 to-green-500' : (isDark ? 'bg-gray-700' : 'bg-gray-200')">
+                    :class="(canComplete && !submitting) ? 'bg-gradient-to-r from-green-600 to-green-500' : (isDark ? 'bg-gray-700' : 'bg-gray-200')">
                 </div>
-                <span class="relative material-icons text-2xl text-white">check_circle</span>
-                <span class="relative text-lg font-black uppercase tracking-wide text-white">Complete Job</span>
+                <span v-if="submitting" class="relative material-icons text-2xl text-white animate-spin">hourglass_empty</span>
+                <span v-else class="relative material-icons text-2xl text-white">check_circle</span>
+                <span class="relative text-lg font-black uppercase tracking-wide text-white">
+                    {{ submitting ? 'Saving...' : 'Complete Job' }}
+                </span>
             </button>
         </div>
     </div>
@@ -110,10 +113,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
+import * as api from '../services/api.js'
 
+const router = useRouter()
 const jobStore = useJobStore()
 const uiStore = useUiStore()
 const { advanceAndNavigate } = useFlowRouter()
@@ -123,6 +129,7 @@ const printedName = ref('')
 const signatureCanvas = ref(null)
 const hasSignature = ref(false)
 const collectedBalance = ref(false)
+const submitting = ref(false)
 let isDrawing = false
 let ctx = null
 
@@ -202,11 +209,50 @@ function clearSignature() {
     hasSignature.value = false
 }
 
-function completeJob() {
-    if (!canComplete.value) return
-    uiStore.showToast('Job completed! 🎉', 'success', 3000)
+async function completeJob() {
+    if (!canComplete.value || submitting.value) return
+    submitting.value = true
+
+    const sigDataUrl = signatureCanvas.value?.toDataURL('image/png')
+    if (!sigDataUrl || sigDataUrl.length < 100) {
+        uiStore.showToast('Failed to capture signature. Please re-sign.', 'error', 2500)
+        submitting.value = false
+        return
+    }
+    const sigBase64 = sigDataUrl.includes(',') ? sigDataUrl.split(',')[1] : sigDataUrl
+
+    // Get the house-shift order ID (top-level job id, not a stop id)
+    const orderId = jobStore.jobData?.id || jobStore.jobData?.jobId || null
+
+    if (!orderId) {
+        console.warn('[CustomerSignOff] No orderId found - sign-off not saved to backend')
+        uiStore.showToast('Order ID missing. Sign-off must be saved before completing the job.', 'error', 3000)
+        submitting.value = false
+        return
+    }
+
+    try {
+        uiStore.showToast('Saving sign-off...', 'info', 1500)
+        await api.submitHouseShiftSignoff(
+            orderId,
+            sigBase64,
+            printedName.value,
+            collectedBalance.value ? 'Balance collected' : null
+        )
+    } catch (err) {
+        console.error('House-shift sign-off error:', err)
+        uiStore.showToast(err?.message || 'Sign-off upload failed. Please retry.', 'error', 3000)
+        submitting.value = false
+        return
+    }
+
+    submitting.value = false
+    uiStore.showToast('Sign-off saved! Logging packing assets next...', 'success', 2500)
     setTimeout(() => {
-        advanceAndNavigate('COMPLETED', {
+        if (jobStore.jobState !== 'POC_CAPTURE') {
+            jobStore.jobState = 'POC_CAPTURE'
+        }
+        advanceAndNavigate('PACKING_RETURN', {
             customerName: printedName.value,
             completedAt: new Date().toISOString(),
             balanceCollected: collectedBalance.value

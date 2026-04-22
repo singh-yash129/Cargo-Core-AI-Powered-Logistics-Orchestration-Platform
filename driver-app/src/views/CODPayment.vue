@@ -20,7 +20,7 @@
                 <p class="text-xs font-bold uppercase tracking-widest text-signal-amber mb-1">Amount to Collect</p>
                 <div class="text-5xl font-black">₹<span :class="amountMatches ? 'text-primary' : ''">{{ targetAmount
                         }}</span></div>
-                <p class="text-xs mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Stop #3 · Neha Gupta</p>
+                <p class="text-xs mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Stop #{{ stop.stopNumber || 1 }} · {{ stop.customerName || 'Customer' }}</p>
             </div>
 
             <!-- Method Tabs -->
@@ -80,9 +80,9 @@
                 </div>
                 <p class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Payment auto-confirmed on receipt
                 </p>
-                <button @click="simulateUpiPaid"
+                <button @click="markUpiPaid"
                     class="px-6 py-2 rounded-full border border-primary/30 bg-primary/10 text-primary text-sm font-bold">
-                    Simulate Payment Received
+                    Mark UPI Received
                 </button>
             </div>
         </div>
@@ -105,6 +105,8 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 import { useLocalNotifications } from '../composables/useLocalNotifications.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
 
@@ -112,11 +114,14 @@ const route = useRoute()
 const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
 const routeStore = useRouteStore()
+const driverStore = useDriverStore()
+const jobStore = useJobStore()
 const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
 const stopId = computed(() => route.params.id || 'STOP-001')
+const stop = computed(() => jobStore.getStopById(stopId.value) || jobStore.currentStop || {})
 
-const targetAmount = 450
+const targetAmount = computed(() => Number(stop.value.codAmount || 0))
 const paymentMethod = ref('cash')
 const upiPaid = ref(false)
 
@@ -126,19 +131,57 @@ const denominations = ref([
 ])
 
 const totalCollected = computed(() => denominations.value.reduce((s, d) => s + d.value * d.count, 0))
-const amountMatches = computed(() => totalCollected.value === targetAmount)
+const amountMatches = computed(() => totalCollected.value === targetAmount.value)
 const canConfirm = computed(() => (paymentMethod.value === 'cash' && amountMatches.value) || (paymentMethod.value === 'upi' && upiPaid.value))
 
-function simulateUpiPaid() { upiPaid.value = true }
-function confirmCOD() {
+function markUpiPaid() { upiPaid.value = true }
+async function confirmCOD() {
+    const nowIso = new Date().toISOString()
+    const hasMoreStops = jobStore.currentStopIndex < (jobStore.totalStops - 1)
+
+    jobStore.setCurrentStopById(stopId.value)
+
     routeStore.logCODPayment({
         stopId: stopId.value,
-        amount: targetAmount,
+        amount: targetAmount.value,
         method: paymentMethod.value,
-        collectedAt: new Date().toISOString()
+        collectedAt: nowIso
     })
-    notify({ title: 'COD Collected', body: `₹${targetAmount} via ${paymentMethod.value} at ${stopId.value}`, type: 'success' })
-    uiStore.showToast(`₹${targetAmount} COD collected ✓`, 'success')
-    advanceAndNavigate('POD_CAPTURE')
+    jobStore.addCODPayment(targetAmount.value, paymentMethod.value)
+
+    // If COD screen opens immediately after POD, enter COD_COLLECTION first.
+    if (jobStore.jobState !== 'COD_COLLECTION') {
+        if (!jobStore.canTransitionTo('COD_COLLECTION')) {
+            uiStore.showToast('Cannot collect COD at this stage.', 'error', 2200)
+            return
+        }
+        try {
+            jobStore.transition('COD_COLLECTION', {
+                stopId: stopId.value,
+                codCollectedAt: nowIso,
+            })
+        } catch (error) {
+            uiStore.showToast(error.message || 'Unable to record COD collection step.', 'error', 2200)
+            return
+        }
+    }
+
+    jobStore.completeCurrentStop()
+    routeStore.completeDelivery(stopId.value)
+    routeStore.endDwell(stopId.value)
+    try {
+        await driverStore.refreshDashboard()
+    } catch (error) {
+        console.warn('Dashboard refresh failed after COD collection:', error)
+    }
+
+    notify({ title: 'COD Collected', body: `₹${targetAmount.value} via ${paymentMethod.value} at ${stopId.value}`, type: 'success' })
+    uiStore.showToast(`₹${targetAmount.value} COD collected ✓`, 'success')
+
+    const nextState = hasMoreStops ? 'NEXT_STOP' : 'COMPLETED'
+    advanceAndNavigate(nextState, {
+        stopId: stopId.value,
+        codCollectedAt: nowIso,
+    })
 }
 </script>

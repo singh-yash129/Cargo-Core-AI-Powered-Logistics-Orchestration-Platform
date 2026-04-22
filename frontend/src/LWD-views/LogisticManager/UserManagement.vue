@@ -626,9 +626,9 @@
                                 <div class="grid grid-cols-2 gap-4 mt-3">
                                     <div class="col-span-2 md:col-span-1">
                                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 uppercase tracking-wider">Driver ID</label>
-                                        <input v-model="formData.username" type="text" placeholder="e.g. DRV-2049"
+                                        <input v-model="formData.username" type="text" placeholder="e.g. driver1"
                                             class="w-full bg-slate-800 border border-white/10 rounded-lg px-4 py-2.5 text-[13px] text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium font-mono"
-                                            style="text-transform: uppercase;" />
+                                             />
                                     </div>
                                     <div class="col-span-2 md:col-span-1">
                                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 uppercase tracking-wider">PIN / Password</label>
@@ -637,7 +637,7 @@
                                             inputmode="numeric" maxlength="4" />
                                     </div>
                                     <p class="col-span-2 text-xs text-gray-400">
-                                        The driver will enter this Driver ID and PIN on the mobile app to log in. Share it with them directly.
+                                        The driver will enter this short Driver ID and 4-digit PIN on the mobile app to log in. Share it with them directly.
                                     </p>
                                 </div>
                             </div>

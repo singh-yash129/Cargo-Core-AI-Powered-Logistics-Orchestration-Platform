@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { getDriverNotifications } from '../services/api.js'
 
 export const useNotificationStore = defineStore('notifications', () => {
     const notifications = ref([])
@@ -44,6 +45,27 @@ export const useNotificationStore = defineStore('notifications', () => {
         notifications.value = []
     }
 
+    async function fetchFromBackend() {
+        try {
+            const data = await getDriverNotifications()
+            const existingIds = new Set(notifications.value.map(n => String(n.id)))
+            const incoming = data
+                .filter(n => !existingIds.has(String(n.id)))
+                .map(n => ({
+                    id: n.id,
+                    title: n.title,
+                    body: n.message,
+                    type: n.type === 'alert' ? 'error' : n.type || 'info',
+                    route: null,
+                    read: n.read ?? false,
+                    timestamp: n.time || new Date().toISOString(),
+                }))
+            if (incoming.length) {
+                notifications.value = [...incoming, ...notifications.value].slice(0, 50)
+            }
+        } catch (_) {}
+    }
+
     return {
         notifications,
         unreadCount,
@@ -51,6 +73,7 @@ export const useNotificationStore = defineStore('notifications', () => {
         markAsRead,
         markAllRead,
         removeNotification,
-        clearAll
+        clearAll,
+        fetchFromBackend,
     }
 })

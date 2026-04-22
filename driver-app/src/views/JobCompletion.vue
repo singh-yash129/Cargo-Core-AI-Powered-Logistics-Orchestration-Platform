@@ -42,27 +42,6 @@
                 </div>
             </div>
 
-            <!-- Rating Prompt -->
-            <div class="w-full rounded-2xl border p-4 mb-4"
-                :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
-                <p class="text-sm font-semibold mb-3 text-center"
-                    :class="isDark ? 'text-gray-300' : 'text-gray-700'">
-                    How was this job?
-                </p>
-                <div class="flex justify-center gap-3">
-                    <button v-for="star in 5" :key="star" @click="selectedRating = star"
-                        class="w-10 h-10 flex items-center justify-center transition-transform active:scale-90">
-                        <span class="material-icons text-3xl"
-                            :class="star <= selectedRating ? 'text-accent-gold' : isDark ? 'text-gray-700' : 'text-gray-300'">
-                            star
-                        </span>
-                    </button>
-                </div>
-                <input v-model="feedbackNote" type="text" placeholder="Feedback note (optional)..."
-                    class="w-full mt-3 rounded-xl px-3 py-2.5 text-sm border outline-none focus:ring-2 focus:ring-primary/50"
-                    :class="isDark ? 'bg-black/20 border-white/10 text-white placeholder-gray-600' : 'bg-gray-50 border-gray-200'" />
-            </div>
-
             <!-- Return to Dashboard -->
             <div class="w-full flex flex-col gap-3">
                 <button @click="returnToDashboard"
@@ -83,18 +62,17 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useJobStore } from '../stores/jobStore.js'
 import { useUiStore } from '../stores/uiStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
 
 const router = useRouter()
 const jobStore = useJobStore()
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
 const isDark = computed(() => uiStore.theme !== 'light')
-const selectedRating = ref(5)
-const feedbackNote = ref('')
-
 const jobBgColor = computed(() => ({
     'PARCEL_DELIVERY': 'bg-green-500',
     'PARCEL_PICKUP': 'bg-blue-500',
@@ -133,19 +111,19 @@ const completionStats = computed(() => {
             { label: 'Duration', icon: 'schedule', color: 'text-primary', value: jobDuration.value },
             { label: 'Crew', icon: 'group', color: 'text-accent-blue', value: job.crewRequired || 0 },
             { label: 'Items Moved', icon: 'inventory', color: 'text-purple-400', value: job.inventory?.length || 0 },
-            { label: 'Earned', icon: 'payments', color: 'text-accent-gold', value: `₹2.4K` },
         ]
     } else {
         return [
             { label: 'Stops', icon: 'place', color: 'text-primary', value: job.stops?.length || 0 },
             { label: 'Duration', icon: 'schedule', color: 'text-accent-blue', value: jobDuration.value },
             { label: 'Distance', icon: 'timeline', color: 'text-green-400', value: `${job.routeDistance || 47} km` },
-            { label: 'Earned', icon: 'payments', color: 'text-accent-gold', value: '₹1.8K' },
         ]
     }
 })
 
 function returnToDashboard() {
+    // Preserve job type so ShiftSummary can show correct stats after reset
+    driverStore.lastJobType = jobStore.jobType
     jobStore.reset()
     router.push('/dashboard')
 }

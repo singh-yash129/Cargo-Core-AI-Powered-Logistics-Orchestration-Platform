@@ -81,11 +81,12 @@
         <!-- ── STICKY FOOTER ────────────────────────── -->
         <div class="screen-footer px-5 py-4 border-t"
             :class="isDark ? 'border-white/5 bg-background-dark' : 'border-gray-100 bg-background-light'">
-            <button @click="submit" :disabled="!amount || !liters"
+            <button @click="submit" :disabled="!amount || !liters || isSubmitting"
                 class="w-full rounded-2xl h-14 flex items-center justify-center gap-2 font-bold text-lg active:scale-[0.98] transition-all"
-                :class="amount && liters ? 'bg-primary text-background-dark shadow-glow' : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
-                <span class="material-icons">receipt</span>
-                Submit Receipt
+                :class="amount && liters && !isSubmitting ? 'bg-primary text-background-dark shadow-glow' : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
+                <span v-if="isSubmitting" class="material-icons animate-spin">hourglass_empty</span>
+                <span v-else class="material-icons">receipt</span>
+                {{ isSubmitting ? 'Submitting…' : 'Submit Receipt' }}
             </button>
         </div>
     </div>
@@ -96,6 +97,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useCamera } from '../composables/useCamera.js'
+import * as api from '../services/api.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -106,6 +108,7 @@ const amount = ref('')
 const liters = ref('')
 const station = ref('')
 const receiptPhoto = ref('')
+const isSubmitting = ref(false)
 
 const amountRef = ref(null)
 const litersRef = ref(null)
@@ -127,15 +130,26 @@ async function captureReceipt() {
     }
 }
 
-function submit() {
-    uiStore.showToast('Fuel receipt submitted ✓', 'success')
-    
-    // Clear state before leaving so KeepAlive cache doesn't hold stale data
-    amount.value = ''
-    liters.value = ''
-    station.value = ''
-    receiptPhoto.value = ''
-    
-    router.back()
+async function submit() {
+    if (isSubmitting.value) return
+    isSubmitting.value = true
+    try {
+        await api.submitFuelReceipt({
+            amount: amount.value,
+            liters: liters.value,
+            station: station.value,
+            photoBase64: receiptPhoto.value || null,
+        })
+        uiStore.showToast('Fuel receipt submitted ✓', 'success')
+        amount.value = ''
+        liters.value = ''
+        station.value = ''
+        receiptPhoto.value = ''
+        router.back()
+    } catch (err) {
+        uiStore.showToast(err.message || 'Failed to submit receipt', 'error')
+    } finally {
+        isSubmitting.value = false
+    }
 }
 </script>

@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -21,6 +22,7 @@ from app.utils.hashing import hash_password
 from app.utils.username import generate_unique_username, normalize_username
 
 WAREHOUSE_SCOPED_ROLES = {"WAREHOUSE_MANAGER", "DISPATCHER", "DRIVER"}
+_DRIVER_PIN_RE = re.compile(r"^\d{4}$")
 
 
 async def _get_user(db: AsyncSession, user_id: UUID) -> User:
@@ -39,6 +41,34 @@ async def _get_role(db: AsyncSession, role_name: str) -> Role:
     if not role:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
     return role
+
+
+def _driver_email_fallback(email: str) -> str:
+    local_part = (email or "").split("@")[0].strip()
+    return local_part or "driver"
+
+
+def _resolve_user_credentials(data: UserAdminCreate) -> tuple[str, str, str]:
+    role_name = str(data.role or "").strip().upper()
+    raw_username = (data.username or "").strip()
+    raw_password = (data.password or "").strip()
+
+    if role_name == "DRIVER":
+        driver_id = raw_username or _driver_email_fallback(data.email)
+        if not _DRIVER_PIN_RE.fullmatch(raw_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Driver PIN must be exactly 4 digits",
+            )
+        return role_name, driver_id, raw_password
+
+    if len(raw_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long",
+        )
+
+    return role_name, raw_username, raw_password
 
 
 def _to_response(user: User) -> UserAdminResponse:
@@ -152,22 +182,24 @@ async def create_user(db: AsyncSession, data: UserAdminCreate) -> UserAdminRespo
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use")
 
-    normalized_username = normalize_username(data.username or data.email.split("@")[0])
-    if data.username:
+    role_name, requested_username, raw_password = _resolve_user_credentials(data)
+
+    normalized_username = normalize_username(requested_username or data.email.split("@")[0])
+    if requested_username:
         existing_username = await db.execute(select(User).where(User.username == normalized_username))
         if existing_username.scalar_one_or_none():
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already in use")
     else:
         normalized_username = await generate_unique_username(db, normalized_username)
 
-    role = await _get_role(db, data.role)
+    role = await _get_role(db, role_name)
     _require_warehouse_for_role(role.name, data.warehouse_id)
     user = User(
         name=data.name,
         username=normalized_username,
         email=data.email.lower(),
         phone=data.phone,
-        password_hash=hash_password(data.password),
+        password_hash=hash_password(raw_password),
         role_id=role.id,
         warehouse_id=data.warehouse_id,
         is_active=True,

@@ -71,12 +71,14 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 import { useCamera } from '../composables/useCamera.js'
 import { useLocalNotifications } from '../composables/useLocalNotifications.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
 const driverStore = useDriverStore()
+const jobStore = useJobStore()
 const { notify } = useLocalNotifications()
 const isDark = computed(() => uiStore.theme !== 'light')
 const { scanQrCode, isCapturing } = useCamera()
@@ -89,11 +91,23 @@ const exitItems = [
 ]
 
 async function scanExit() {
+    const exitMetadata = {
+        gateExitedAt: new Date().toISOString(),
+        stopId: jobStore.currentStopId || jobStore.currentStop?.id || null,
+    }
+
+    const moveIntoTransit = () => {
+        if (!jobStore.ensureTransitState(exitMetadata) && jobStore.jobState !== 'IN_TRANSIT') {
+            console.warn(`Unable to move job into transit from ${jobStore.jobState}`)
+        }
+    }
+
     try {
         const result = await scanQrCode('Scan Gate QR Code')
         // Allow progression even if canceled/failed on web
         if (result || !uiStore.isNativePlatform) {
             driverStore.gateExited = true
+            moveIntoTransit()
             uiStore.showToast('Gate exit logged \u2713', 'success')
             notify({ title: 'Route Started', body: 'Gate exit logged — 7 stops assigned', type: 'navigation', route: '/dashboard' })
             setTimeout(() => router.push('/dashboard'), 600)
@@ -101,6 +115,7 @@ async function scanExit() {
     } catch (e) {
         // Fallback for dev mode
         driverStore.gateExited = true
+        moveIntoTransit()
         uiStore.showToast('Gate exit logged ✓', 'success')
         notify({ title: 'Route Started', body: 'Gate exit logged — 7 stops assigned', type: 'navigation', route: '/dashboard' })
         setTimeout(() => router.push('/dashboard'), 600)

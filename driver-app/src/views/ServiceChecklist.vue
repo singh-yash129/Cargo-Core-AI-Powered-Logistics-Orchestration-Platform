@@ -10,7 +10,7 @@
                 </button>
                 <div>
                     <h1 class="text-2xl font-black tracking-tight">Service Checklist</h1>
-                    <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">House Shift · Stop #1</p>
+                    <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ checklistSubtitle }}</p>
                 </div>
             </div>
             <!-- Progress -->
@@ -38,7 +38,7 @@
                         'circle' }}</span>
                 </div>
                 <div class="flex-1">
-                    <p class="text-sm font-semibold">{{ item.label }}</p>
+                    <p class="text-sm font-semibold">{{ item.label || item.task }}</p>
                     <p v-if="item.required" class="text-[10px] uppercase font-bold mt-0.5"
                         :class="item.checked ? 'text-primary' : 'text-signal-amber'">{{ item.checked ? 'Done' :
                         'Required' }}</p>
@@ -55,31 +55,95 @@
                     ? 'bg-primary text-background-dark shadow-glow'
                     : isDark ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
                 <span class="material-icons">{{ allRequiredDone ? 'check_circle' : 'lock' }}</span>
-                {{ allRequiredDone ? 'Proceed to POD' : 'Complete required items' }}
+                {{ allRequiredDone ? proceedLabel : 'Complete required items' }}
             </button>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
-import { dummyChecklist } from '../utils/dummyData.js'
 
 const route = useRoute()
+const router = useRouter()
 const { advanceAndNavigate } = useFlowRouter()
 const uiStore = useUiStore()
+const jobStore = useJobStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 const stopId = computed(() => route.params.id || 'STOP-001')
+const stop = computed(() => jobStore.getStopById(stopId.value) || jobStore.currentStop || {})
 
-const checklist = ref(dummyChecklist.map(i => ({ ...i })))
+function buildChecklist() {
+    if (jobStore.jobType === 'HOUSE_SHIFT') {
+        return (jobStore.jobData?.checklist || []).map(item => ({
+            ...item,
+            label: item.task || item.label,
+            checked: Boolean(item.completed || item.checked),
+        }))
+    }
+
+    return [
+        {
+            id: 'verify-recipient',
+            label: `Verify recipient for ${stop.value.customerName || 'delivery stop'}`,
+            required: true,
+            checked: false,
+        },
+        {
+            id: 'handover-items',
+            label: `Confirm handover of ${stop.value.packages?.length || stop.value.expectedItems || 0} item(s)`,
+            required: true,
+            checked: false,
+        },
+        {
+            id: 'capture-notes',
+            label: stop.value.specialInstructions || 'Record any delivery notes or exceptions',
+            required: false,
+            checked: false,
+        },
+    ]
+}
+
+const checklist = ref(buildChecklist())
+const checklistSubtitle = computed(() => `${jobStore.jobTypeLabel} · Stop #${stop.value.stopNumber || 1}`)
+const proceedLabel = computed(() =>
+    jobStore.jobType === 'HOUSE_SHIFT' ? 'Proceed to Sign-off' : 'Proceed to POD'
+)
+
+watch([() => stop.value?.id, () => jobStore.jobType, () => jobStore.jobData?.checklist], () => {
+    checklist.value = buildChecklist()
+}, { immediate: true })
+
 const done = computed(() => checklist.value.filter(c => c.checked).length)
-const progressPct = computed(() => Math.round(done.value / checklist.value.length * 100))
+const progressPct = computed(() => checklist.value.length ? Math.round(done.value / checklist.value.length * 100) : 0)
 const allRequiredDone = computed(() => checklist.value.filter(c => c.required).every(c => c.checked))
 
 function proceed() {
-    advanceAndNavigate('POD_CAPTURE')
+    if (jobStore.jobType === 'HOUSE_SHIFT') {
+        // HOUSE_SHIFT path: UNLOADING_INVENTORY → FINAL_CHECKLIST → POC_CAPTURE
+        // Step through FINAL_CHECKLIST first if needed
+        if (jobStore.canTransitionTo('FINAL_CHECKLIST')) {
+            try { jobStore.transition('FINAL_CHECKLIST') } catch { /* already past it */ }
+        }
+        if (jobStore.canTransitionTo('POC_CAPTURE')) {
+            advanceAndNavigate('POC_CAPTURE')
+        } else if (jobStore.jobState === 'COMPLETED') {
+            // Already completed — go straight to completion screen
+            router.push('/job-completion')
+        } else {
+            // FSM state is out of sync — force it to POC_CAPTURE before navigating
+            jobStore.jobState = 'POC_CAPTURE'
+            router.push('/customer-signoff')
+        }
+    } else {
+        if (!jobStore.canTransitionTo('POD_CAPTURE')) {
+            jobStore.jobState = 'SERVICE_CHECKLIST'
+        }
+        advanceAndNavigate('POD_CAPTURE')
+    }
 }
 </script>

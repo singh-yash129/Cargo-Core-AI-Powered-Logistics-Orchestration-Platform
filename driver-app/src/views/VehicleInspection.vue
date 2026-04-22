@@ -72,7 +72,7 @@
                             </div>
                             <h3 class="text-lg font-black">Odometer Reading</h3>
                             <p class="text-xs mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
-                                OCR detected value below — edit if incorrect
+                                {{ odometerAutoDetected ? 'OCR detected value below — edit if incorrect' : 'Photo captured — enter the reading manually if needed' }}
                             </p>
                         </div>
 
@@ -287,7 +287,6 @@ import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useCamera } from '../composables/useCamera.js'
-import { dummyInspection } from '../utils/dummyData.js'
 import { extractNumbersFromText } from '../utils/cameraUtils.js'
 
 const router = useRouter()
@@ -299,12 +298,23 @@ const { takePhoto, scanOdometer } = useCamera()
 // ── Constants ──────────────────────────────────────
 const TANK_CAPACITY = 120
 
+// ── Standard Inspection Checklist ──────────────────
+const defaultInspectionChecklist = [
+    { id: 'fuel_level', label: 'Fuel level recorded', icon: 'local_gas_station', value: '', checked: false },
+    { id: 'tire_pressure', label: 'Tire pressure OK – All 4 tires', icon: 'donut_large', value: '', checked: false },
+    { id: 'odometer', label: 'Odometer reading captured', icon: 'speed', value: '', checked: false },
+    { id: 'lights', label: 'Lights & indicators working', icon: 'lightbulb', value: '', checked: false },
+    { id: 'cargo', label: 'Cargo area clean & secure', icon: 'inventory_2', value: '', checked: false },
+    { id: 'brakes', label: 'Brakes responsive', icon: 'commute', value: '', checked: false },
+]
+
 // ── Detail modal (fuel / odometer) ─────────────────
 const detailModal = ref(false)
 const detailType = ref('')
 const detailItem = ref(null)
 const fuelLiters = ref(null)
 const odometerKm = ref(null)
+const odometerAutoDetected = ref(false)
 const photoUrl = ref(null)
 const fuelInputRef = ref(null)
 const odometerInputRef = ref(null)
@@ -335,6 +345,7 @@ function cancelDetail() {
     detailModal.value = false
     detailItem.value = null
     photoUrl.value = null
+    odometerAutoDetected.value = false
 }
 
 async function removePhoto() {
@@ -347,7 +358,9 @@ async function removePhoto() {
         const result = await scanOdometer('Scan odometer')
         if (result) {
             photoUrl.value = result.base64 || 'data:image/jpeg;base64,MOCK'
-            odometerKm.value = extractNumbersFromText(result.text) || 48230
+            const extractedValue = extractNumbersFromText(result.text)
+            odometerKm.value = extractedValue || null
+            odometerAutoDetected.value = Boolean(extractedValue)
         } else {
             cancelDetail()
         }
@@ -378,6 +391,7 @@ function confirmDetail() {
 
     detailModal.value = false
     detailItem.value = null
+    odometerAutoDetected.value = false
 }
 
 // ── Tire photo modal ───────────────────────────────
@@ -430,10 +444,10 @@ function confirmTires() {
 }
 
 // ── Items ──────────────────────────────────────────
-const items = ref(dummyInspection.map(i => {
+const items = ref(defaultInspectionChecklist.map(i => {
     let hint = 'Tap to confirm'
     if (i.id === 'fuel_level') hint = 'Tap to capture & enter fuel level'
-    if (i.id === 'odometer') hint = 'Tap to scan odometer (OCR)'
+    if (i.id === 'odometer') hint = 'Tap to capture odometer photo'
     if (i.id === 'tire_pressure') hint = 'Tap to photograph all 4 tires'
     return { ...i, hint }
 }))
@@ -476,7 +490,9 @@ async function handleItemClick(item) {
         photoUrl.value = (result.base64 && !result.base64.startsWith('MOCK'))
             ? `data:image/jpeg;base64,${result.base64}`
             : 'https://images.unsplash.com/photo-1627883287040-e2ef6cb90b21?auto=format&fit=crop&q=80&w=400&h=200'
-        odometerKm.value = extractNumbersFromText(result.text) || 48230 // OCR result
+        const extractedValue = extractNumbersFromText(result.text)
+        odometerKm.value = extractedValue || null
+        odometerAutoDetected.value = Boolean(extractedValue)
         detailModal.value = true
         await nextTick()
         odometerInputRef.value?.focus()
@@ -497,7 +513,9 @@ async function handleItemClick(item) {
 
 function handleComplete() {
     driverStore.inspectionDone = true
-    router.push('/job-type-selection')
+    // Keep legacy flag true so persisted sessions from older builds stay consistent.
+    driverStore.jobTypeSelected = true
+    router.push('/dashboard')
 }
 </script>
 

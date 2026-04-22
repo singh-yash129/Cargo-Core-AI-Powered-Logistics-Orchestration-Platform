@@ -164,9 +164,9 @@
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Select Order</label>
                             <select v-model="issueForm.orderId" @change="onOrderSelected"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
-                                <option value="">Select an active order...</option>
+                                <option value="">Select a picking order...</option>
                                 <option v-for="o in ordersAvailableForIssuance" :key="o.id" :value="o.tracking_code">
-                                    {{ o.tracking_code }} — {{ o.status }}
+                                    {{ o.tracking_code }} — {{ getEffectiveWarehouseSubstatus(o, getWarehouseId()) || o.status }}
                                 </option>
                                 <option v-if="ordersAvailableForIssuance.length === 0" disabled value="">
                                     No orders pending material issuance
@@ -252,10 +252,10 @@
                                 <span>Issue To (Driver / Laborer)</span>
                                 <span class="text-[10px] text-green-500 font-semibold">{{ issuableLabourers.length }} selectable</span>
                             </label>
-                            <select v-model="issueForm.issuedTo"
+                            <select v-model="issueForm.issuedToLabourerId"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50">
                                 <option value="">Select staff...</option>
-                                <option v-for="l in issuableLabourers" :key="l.id" :value="l.name || l.full_name">
+                                <option v-for="l in issuableLabourers" :key="l.id" :value="String(l.id)">
                                     {{ l.name || l.full_name }} ({{ labourerIssueLabel(l) }})
                                 </option>
                             </select>
@@ -347,6 +347,7 @@
 import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { apiUrl } from '@/config/api'
+import { getEffectiveWarehouseSubstatus } from '@/utils/warehouseOrderState'
 
 const authStore = useAuthStore()
 
@@ -360,7 +361,7 @@ const loading = ref(false)
 const issuingMaterials = ref(false)
 const restocking = ref(false)
 
-const issueForm = reactive({ orderId: '', issuedTo: '', items: {} })
+const issueForm = reactive({ orderId: '', issuedToLabourerId: '', items: {} })
 const restockForm = reactive({})
 const selectedOrderDetails = ref(null)
 const recommendedMaterials = ref([])
@@ -372,6 +373,7 @@ const labourers = ref([])
 const issuanceLogs = ref([])
 const returnableAssets = ref([])
 const MAX_CACHED_ISSUANCE_LOGS = 200
+const ELIGIBLE_ISSUANCE_SUBSTATUSES = new Set(['ON_HOLD', 'AWAITING_PICK', 'PICKING', 'PICKED', 'PACKING'])
 
 // Emoji map by category/name
 function getEmoji(name = '', category = '') {
@@ -560,7 +562,13 @@ const issuedOrderTrackingCodes = computed(() => {
 
 // Only show orders that haven't had materials issued yet
 const ordersAvailableForIssuance = computed(() => {
-    return activeOrders.value.filter(o => !issuedOrderTrackingCodes.value.has(o.tracking_code))
+    const warehouseId = getWarehouseId()
+    return activeOrders.value.filter(order => {
+        const substatus = getEffectiveWarehouseSubstatus(order, warehouseId)
+        const needsPackingMaterials = Number(order.materials_amount ?? 0) > 0
+        const notIssuedYet = !issuedOrderTrackingCodes.value.has(order.tracking_code)
+        return ELIGIBLE_ISSUANCE_SUBSTATUSES.has(substatus) && needsPackingMaterials && notIssuedYet
+    })
 })
 
 // Filter laborers by availability status
@@ -581,6 +589,12 @@ const issuableLabourers = computed(() => {
     for (const labourer of orderAssignedLabourers.value) byId.set(String(labourer.id), labourer)
     for (const labourer of availableLabourers.value) byId.set(String(labourer.id), labourer)
     return [...byId.values()]
+})
+
+const selectedIssuingLabourer = computed(() => {
+    const selectedId = String(issueForm.issuedToLabourerId || '')
+    if (!selectedId) return null
+    return issuableLabourers.value.find(labourer => String(labourer.id) === selectedId) || null
 })
 
 function labourerIssueLabel(labourer) {
@@ -609,7 +623,7 @@ const issueValidationErrors = computed(() => {
 })
 
 const canSubmitIssue = computed(() => {
-    if (!issueForm.orderId || !issueForm.issuedTo) return false
+    if (!issueForm.orderId || !issueForm.issuedToLabourerId) return false
     if (issueValidationErrors.value.length > 0) return false
     // At least one item must be issued
     const hasItems = issuableItemsForSelectedOrder().some(item => {
@@ -773,7 +787,7 @@ function applyRecommendedQuantities() {
 function closeIssueModal() {
     showIssueModal.value = false
     issueForm.orderId = ''
-    issueForm.issuedTo = ''
+    issueForm.issuedToLabourerId = ''
     issueForm.items = {}
     selectedOrderDetails.value = null
     recommendedMaterials.value = []
@@ -931,6 +945,8 @@ async function submitIssue() {
     issuingMaterials.value = true
     const issuedAt = new Date().toISOString()
     const warehouseId = getWarehouseId()
+    const issuingLabourer = selectedIssuingLabourer.value
+    const issuedToName = issuingLabourer?.name || issuingLabourer?.full_name || 'Selected Labourer'
 
     // Find the selected order to get its ID
     const selectedOrder = activeOrders.value.find(o => o.tracking_code === issueForm.orderId)
@@ -968,14 +984,14 @@ async function submitIssue() {
                     const movement = await response.json().catch(() => null)
                     newLogs.push(normalizeIssuanceLog(movement ? {
                         ...movement,
-                        issuedTo: issueForm.issuedTo,
+                        issuedTo: issuedToName,
                     } : {
                         id: `local-${item.id}-${Date.now()}`,
                         movement_type: 'ISSUE',
                         quantity: qty,
                         reference_order_tracking: issueForm.orderId,
                         item_name: item.name,
-                        issuedTo: issueForm.issuedTo,
+                        issuedTo: issuedToName,
                         created_at: issuedAt,
                     }))
 
@@ -991,6 +1007,35 @@ async function submitIssue() {
                     errorCount++
                     console.error('Failed to issue material:', item.name, await response.text())
                 }
+            }
+        }
+
+        if (
+            successCount > 0 &&
+            issuingLabourer &&
+            referenceOrderId &&
+            String(issuingLabourer.assigned_order_id || '') === String(referenceOrderId)
+        ) {
+            const releaseResponse = await fetch(apiUrl(`api/v1/labourers/${issuingLabourer.id}`), {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({ assigned_order_id: null })
+            })
+
+            if (releaseResponse.ok) {
+                labourers.value = labourers.value.map(labourer =>
+                    String(labourer.id) === String(issuingLabourer.id)
+                        ? {
+                            ...labourer,
+                            assigned_order_id: null,
+                            assigned_order_tracking: null,
+                            assigned_order_substatus: null,
+                            status: 'AVAILABLE',
+                        }
+                        : labourer
+                )
+            } else {
+                console.error('Failed to release labourer after materials issue:', await releaseResponse.text())
             }
         }
 

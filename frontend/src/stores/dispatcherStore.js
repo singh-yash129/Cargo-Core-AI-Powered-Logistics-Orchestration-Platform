@@ -418,6 +418,7 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
         return {
             id: String(o.id || ''),
             trackingCode: o.tracking_code || '',
+            displayId: o.tracking_code || String(o.id || '').slice(0, 8).toUpperCase(),
             warehouse: o.pickup_addr || o.warehouse_id || 'Hub',
             weight: weight ?? 0,
             hasWeight: weight !== null,

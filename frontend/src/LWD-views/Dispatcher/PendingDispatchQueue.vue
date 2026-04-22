@@ -136,7 +136,7 @@
                                     class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed">
                             </td>
                             <td class="p-4">
-                                <div class="font-mono text-gray-900 dark:text-white font-bold">{{ order.id }}</div>
+                                <div class="font-mono text-gray-900 dark:text-white font-bold">{{ order.displayId || order.trackingCode || order.id }}</div>
                                 <span v-if="order.loadingInProgress"
                                     class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                                     <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
@@ -380,7 +380,7 @@
                 <span class="material-symbols-outlined text-primary">assignment_turned_in</span> Assign Driver
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                Order <strong class="text-gray-900 dark:text-white">{{ assignConfirmOrder?.trackingCode || assignConfirmOrder?.id }}</strong>
+                Order <strong class="text-gray-900 dark:text-white">{{ assignConfirmOrder?.displayId || assignConfirmOrder?.trackingCode || assignConfirmOrder?.id }}</strong>
                 · {{ assignConfirmOrder?.priority }}
             </p>
             <div class="space-y-3">
@@ -447,7 +447,7 @@
             </p>
             <div class="max-h-32 overflow-y-auto space-y-1 mb-4">
                 <div v-for="order in selectedOrders" :key="order.id" class="text-xs p-2 bg-gray-50 dark:bg-white/5 rounded-lg flex justify-between">
-                    <span class="text-gray-900 dark:text-white font-bold">{{ order.id }}</span>
+                    <span class="text-gray-900 dark:text-white font-bold">{{ order.displayId || order.trackingCode || order.id }}</span>
                     <span class="text-gray-500">{{ formatOrderWeight(order) }} • {{ order.priority }}</span>
                 </div>
             </div>

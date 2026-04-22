@@ -35,6 +35,58 @@ repositories {
     }
 }
 
+def adbExecutablePath() {
+    def sdkDir = android.sdkDirectory
+    def adbName = System.getProperty('os.name').toLowerCase().contains('windows') ? 'adb.exe' : 'adb'
+    return new File(sdkDir, "platform-tools/${adbName}")
+}
+
+tasks.register('setupUsbDebugReverse') {
+    group = 'device setup'
+    description = 'Configures adb reverse for the local backend during USB debug runs.'
+
+    doLast {
+        def adb = adbExecutablePath()
+        if (!adb.exists()) {
+            logger.lifecycle("Skipping adb reverse: ${adb.absolutePath} not found")
+            return
+        }
+
+        def devicesOutput = new ByteArrayOutputStream()
+        exec {
+            commandLine adb.absolutePath, 'devices'
+            standardOutput = devicesOutput
+            errorOutput = devicesOutput
+            ignoreExitValue true
+        }
+
+        def connectedDevices = devicesOutput
+            .toString('UTF-8')
+            .readLines()
+            .findAll { it ==~ /.+\s+device$/ }
+
+        if (connectedDevices.isEmpty()) {
+            logger.lifecycle('Skipping adb reverse: no authorized USB debug device detected')
+            return
+        }
+
+        def reverseOutput = new ByteArrayOutputStream()
+        exec {
+            commandLine adb.absolutePath, '-d', 'reverse', 'tcp:8000', 'tcp:8000'
+            standardOutput = reverseOutput
+            errorOutput = reverseOutput
+            ignoreExitValue true
+        }
+
+        def reverseResult = reverseOutput.toString('UTF-8').trim()
+        if (reverseResult) {
+            logger.lifecycle("adb reverse result: ${reverseResult}")
+        } else {
+            logger.lifecycle('adb reverse tcp:8000 -> tcp:8000 configured for USB debugging')
+        }
+    }
+}
+
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
@@ -52,6 +104,10 @@ dependencies {
 }
 
 apply from: 'capacitor.build.gradle'
+
+tasks.matching { it.name == 'preDebugBuild' }.configureEach {
+    dependsOn tasks.named('setupUsbDebugReverse')
+}
 
 try {
     def servicesJSON = file('google-services.json')

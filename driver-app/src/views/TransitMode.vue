@@ -51,7 +51,7 @@
                                 :class="isDark ? 'text-gray-500' : 'text-gray-400'">Elapsed</p>
                         </div>
                         <div class="text-center">
-                            <p class="text-xl font-black text-primary">~25 km</p>
+                            <p class="text-xl font-black text-primary">{{ routeDistance }}</p>
                             <p class="text-[10px] uppercase font-semibold mt-0.5"
                                 :class="isDark ? 'text-gray-500' : 'text-gray-400'">Distance</p>
                         </div>
@@ -111,10 +111,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useJobStore } from '../stores/jobStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
 
 const jobStore = useJobStore()
+const driverStore = useDriverStore()
 const uiStore = useUiStore()
 const { advanceAndNavigate } = useFlowRouter()
 const isDark = computed(() => uiStore.theme !== 'light')
@@ -141,14 +143,33 @@ const elapsedTime = computed(() => {
 })
 
 const eta = computed(() => {
+    // Use manifest estimated_end_time if available
+    const endTime = driverStore.dashboard?.manifest?.estimated_end_time
+    if (endTime && endTime !== '--:--') return endTime
+    // Fall back to estimatedDuration from job data
+    const mins = jobStore.jobData?.estimatedDuration
+    if (mins) {
+        const now = new Date()
+        now.setMinutes(now.getMinutes() + Math.max(mins - elapsed.value / 60, 10))
+        return now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    }
+    // Last resort: +45 min
     const now = new Date()
     now.setMinutes(now.getMinutes() + 45)
     return now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
 })
 
-// ── Addresses ─────────────────────────────────────────────────────
+// ── Addresses & route ─────────────────────────────────────────────
 const fromAddress = computed(() => jobStore.jobData?.sourceLocation?.address || 'Source Address')
 const toAddress = computed(() => jobStore.jobData?.destinationLocation?.address || 'Destination Address')
+const routeDistance = computed(() => {
+    let km = jobStore.jobData?.routeDistance ?? driverStore.dashboard?.manifest?.total_distance_km
+    // 8.5 is the parcel-delivery fallback; for house shifts use the 24 km estimate instead
+    if (jobStore.jobType === 'HOUSE_SHIFT' && (km == null || km === 8.5)) {
+        km = 24
+    }
+    return km != null ? `${km} km` : '--'
+})
 
 // ── Crew ──────────────────────────────────────────────────────────
 const crew = computed(() => jobStore.jobData?.crewAssigned || [])

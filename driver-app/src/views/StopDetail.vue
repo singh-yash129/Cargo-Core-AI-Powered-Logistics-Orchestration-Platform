@@ -26,9 +26,9 @@
                 </div>
                 <div class="absolute bottom-2 left-3 right-3 flex items-end justify-between">
                     <div>
-                        <p class="text-xs font-bold">{{ stop.distance }} away · ETA 12 min</p>
+                        <p class="text-xs font-bold">{{ stopDistanceLabel }} away · ETA {{ etaLabel }}</p>
                     </div>
-                    <button @click="$router.push('/navigation')"
+                    <button @click="openNavigation"
                         class="bg-primary text-background-dark text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1">
                         <span class="material-icons text-sm">near_me</span> Navigate
                     </button>
@@ -103,11 +103,11 @@
                 <span class="material-icons">navigation</span>
                 Start Delivery
             </button>
-            <button v-if="stop.cod" @click="$router.push('/cod/' + stop.id)"
+            <button v-if="stop.cod" @click="openCodFlow"
                 class="w-full rounded-2xl flex items-center justify-center gap-2 font-bold text-signal-amber border border-signal-amber/30 active:scale-[0.98]"
                 :class="isDark ? 'bg-signal-amber/10' : 'bg-amber-50'" style="height: 44px;">
                 <span class="material-icons">payments</span>
-                Collect ₹{{ stop.codAmount }} COD
+                {{ codActionLabel }}
             </button>
         </div>
     </div>
@@ -118,21 +118,38 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useJobStore } from '../stores/jobStore.js'
-import { dummyStops } from '../utils/dummyData.js'
+import { useRouteStore } from '../stores/routeStore.js'
+import { useFlowRouter } from '../composables/useFlowRouter.js'
+import { openExternalNavigation } from '../utils/navigation.js'
 
 const route = useRoute()
 const router = useRouter()
 const uiStore = useUiStore()
 const jobStore = useJobStore()
+const routeStore = useRouteStore()
+const { advanceAndNavigate, navigateToCurrentState } = useFlowRouter()
 const isDark = computed(() => uiStore.theme !== 'light')
 
-const stop = computed(() => dummyStops.find(s => s.id === route.params.id) || dummyStops[0])
+const stop = computed(() => jobStore.getStopById(route.params.id) || jobStore.currentStop || jobStore.jobData?.stops?.[0] || {})
+const stopDistanceLabel = computed(() => stop.value.distance || `${jobStore.jobData?.routeDistance || 0} km`)
+const codActionLabel = computed(() => {
+    if (!stop.value.cod) return ''
+    if (stop.value.codCollected) return `COD already collected`
+    if (jobStore.jobState === 'COD_COLLECTION') return `Collect ₹${stop.value.codAmount} COD`
+    if (jobStore.canTransitionTo('COD_COLLECTION')) return `Proceed to collect ₹${stop.value.codAmount}`
+    return `Continue delivery to unlock COD`
+})
+const etaLabel = computed(() => {
+    const window = stop.value.timeWindow
+    if (window?.start) return window.start
+    return '--:--'
+})
 
 const orderDetails = computed(() => [
-    { label: 'Service Type', value: stop.value.serviceType },
-    { label: 'Time Window', value: stop.value.timeWindow, highlight: true },
+    { label: 'Service Type', value: stop.value.stopType || stop.value.type || 'Delivery' },
+    { label: 'Time Window', value: typeof stop.value.timeWindow === 'string' ? stop.value.timeWindow : `${stop.value.timeWindow?.start || '--:--'} - ${stop.value.timeWindow?.end || '--:--'}`, highlight: true },
     { label: 'Stop Number', value: `#${stop.value.stopNumber}` },
-    { label: 'Distance', value: stop.value.distance },
+    { label: 'Distance', value: stopDistanceLabel.value },
     ...(stop.value.cod ? [{ label: 'COD Amount', value: `₹${stop.value.codAmount}`, highlight: true }] : []),
 ])
 
@@ -141,11 +158,76 @@ function typeBadgeClass(type) {
     return map[type] || 'bg-gray-500/10 text-gray-400 border-gray-500/20'
 }
 
+function openNavigation() {
+    if (!stop.value?.id) {
+        uiStore.showToast('No stop available for navigation', 'error', 2200)
+        return
+    }
+
+    if (!routeStore.stops.length && jobStore.jobData?.stops?.length) {
+        routeStore.loadManifest({
+            routeId: jobStore.jobData?.manifestId || null,
+            endTime: '--:--',
+            stops: jobStore.jobData.stops,
+        })
+    }
+
+    if (!routeStore.isRouteActive) {
+        routeStore.startRoute()
+    }
+
+    jobStore.setCurrentStopById(stop.value.id)
+    routeStore.setCurrentStopById(stop.value.id)
+    jobStore.ensureTransitState({
+        startedAt: new Date().toISOString(),
+        stopId: stop.value.id,
+    })
+    try {
+        openExternalNavigation(stop.value)
+        uiStore.showToast('Opening navigation in Maps', 'success', 1600)
+    } catch (error) {
+        uiStore.showToast(error.message || 'Unable to open maps', 'error', 2400)
+        router.push('/navigation')
+    }
+}
+
 function startDelivery() {
+    jobStore.setCurrentStopById(stop.value.id)
+    routeStore.setCurrentStopById(stop.value.id)
     if (jobStore.jobType === 'PARCEL_PICKUP') {
         router.push('/pickup-arrival/' + stop.value.id)
     } else {
         router.push('/geofence-arrival/' + stop.value.id)
     }
+}
+
+function openCodFlow() {
+    if (!stop.value?.id) {
+        uiStore.showToast('No COD stop selected', 'error', 2200)
+        return
+    }
+
+    jobStore.setCurrentStopById(stop.value.id)
+    routeStore.setCurrentStopById(stop.value.id)
+
+    if (stop.value.codCollected) {
+        uiStore.showToast('COD already collected for this stop.', 'info', 1800)
+        return
+    }
+
+    if (jobStore.jobState === 'COD_COLLECTION') {
+        router.push('/cod/' + stop.value.id)
+        return
+    }
+
+    if (jobStore.canTransitionTo('COD_COLLECTION')) {
+        advanceAndNavigate('COD_COLLECTION', {
+            stopId: stop.value.id,
+        })
+        return
+    }
+
+    uiStore.showToast('Finish the current delivery step before collecting COD.', 'warning', 2400)
+    navigateToCurrentState()
 }
 </script>

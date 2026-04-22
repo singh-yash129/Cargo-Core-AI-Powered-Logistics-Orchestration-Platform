@@ -107,24 +107,68 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useUiStore } from '../stores/uiStore.js'
-import { dummyEarnings } from '../utils/dummyData.js'
+import { useDriverStore } from '../stores/driverStore.js'
+import * as api from '../services/api.js'
 
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
 const cashoutRequested = ref(false)
 
-function handleCashout() {
+async function handleCashout() {
     if (cashoutRequested.value) return
+    const total = currentEarnings.value.total
+    if (!total) {
+        uiStore.showToast('No earnings to cashout', 'warning', 2000)
+        return
+    }
     cashoutRequested.value = true
-    uiStore.showToast(`Cashout of ₹${currentEarnings.value.total.toLocaleString('en-IN')} initiated ✓`, 'success', 3000)
-    setTimeout(() => { cashoutRequested.value = false }, 5000)
+    try {
+        await api.requestCashout(total)
+        uiStore.showToast(`Cashout of ₹${total.toLocaleString('en-IN')} requested ✓`, 'success', 3000)
+    } catch (err) {
+        uiStore.showToast(err.message || 'Cashout failed', 'error', 2500)
+        cashoutRequested.value = false
+    }
 }
 
 const periods = ['Today', 'Week', 'Month']
 const activePeriod = ref(0)
-const allEarnings = { today: dummyEarnings.today, week: dummyEarnings.week, month: dummyEarnings.month }
-const currentEarnings = computed(() => allEarnings[periods[activePeriod.value].toLowerCase()])
+
+// Get earnings from driver dashboard or use defaults
+const dashboardEarnings = computed(() => driverStore.dashboard?.earnings || {})
+
+// Build earnings data from dashboard or fallback to zeros
+const allEarnings = computed(() => {
+    const earnings = dashboardEarnings.value
+
+    return {
+        today: {
+            base: earnings.today_base || 0,
+            deliveries: earnings.today_deliveries || 0,
+            move: earnings.today_move || 0,
+            tips: earnings.today_tips || 0,
+            total: (earnings.today_base || 0) + (earnings.today_deliveries || 0) + (earnings.today_move || 0) + (earnings.today_tips || 0)
+        },
+        week: {
+            base: earnings.week_base || 0,
+            deliveries: earnings.week_deliveries || 0,
+            move: earnings.week_move || 0,
+            tips: earnings.week_tips || 0,
+            total: (earnings.week_base || 0) + (earnings.week_deliveries || 0) + (earnings.week_move || 0) + (earnings.week_tips || 0)
+        },
+        month: {
+            base: earnings.month_base || 0,
+            deliveries: earnings.month_deliveries || 0,
+            move: earnings.month_move || 0,
+            tips: earnings.month_tips || 0,
+            total: (earnings.month_base || 0) + (earnings.month_deliveries || 0) + (earnings.month_move || 0) + (earnings.month_tips || 0)
+        }
+    }
+})
+
+const currentEarnings = computed(() => allEarnings.value[periods[activePeriod.value].toLowerCase()])
 
 const earningRows = [
     { label: 'Base Pay', key: 'base', icon: 'payments', bg: 'bg-primary/15', color: 'text-primary' },
@@ -133,9 +177,11 @@ const earningRows = [
     { label: 'Tips', key: 'tips', icon: 'favorite', bg: 'bg-accent-gold/15', color: 'text-accent-gold' },
 ]
 
-const scorecard = [
-    { label: 'Rating', value: '4.9★', color: 'text-accent-gold' },
-    { label: 'On-Time', value: '96%', color: 'text-primary' },
-    { label: 'Safety', value: '98', color: 'text-accent-blue' },
-]
+// Get performance data from driver profile
+const driverProfile = computed(() => driverStore.driver || {})
+const scorecard = computed(() => [
+    { label: 'Rating', value: `${driverProfile.value.rating || 0}★`, color: 'text-accent-gold' },
+    { label: 'On-Time', value: `${driverProfile.value.onTimePercent || 0}%`, color: 'text-primary' },
+    { label: 'Safety', value: `${dashboardEarnings.value.safety_score ?? driverProfile.value.safetyScore ?? 0}`, color: 'text-accent-blue' },
+])
 </script>

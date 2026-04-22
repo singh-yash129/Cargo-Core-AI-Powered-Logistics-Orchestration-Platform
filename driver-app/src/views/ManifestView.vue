@@ -43,7 +43,7 @@
                         :class="isDark ? 'bg-primary/10 border-primary/20' : 'bg-primary/10 border-primary/30'">
                         <div>
                             <p class="text-xs font-bold text-primary uppercase tracking-wide">You are here</p>
-                            <p class="text-sm font-medium">North-East Hub · Gate 7</p>
+                            <p class="text-sm font-medium">{{ manifestSummary?.current_location_label || driverStore.dashboard?.shift?.warehouse_name || 'Awaiting GPS lock' }}</p>
                         </div>
                         <span class="material-icons text-primary">navigation</span>
                     </div>
@@ -87,15 +87,15 @@
 
                         <div class="flex items-center justify-between pt-3 border-t"
                             :class="isDark ? 'border-gray-700/50' : 'border-gray-100'">
-                            <div class="flex items-center gap-3 text-xs"
+                        <div class="flex items-center gap-3 text-xs"
                                 :class="isDark ? 'text-gray-400' : 'text-gray-500'">
                                 <span class="flex items-center gap-1"><span
                                         class="material-icons text-xs">schedule</span>{{
-                                            stop.timeWindow }}</span>
+                                            formatTimeWindow(stop.timeWindow) }}</span>
                                 <span class="flex items-center gap-1"><span
-                                        class="material-icons text-xs">straighten</span>{{ stop.distance }}</span>
+                                        class="material-icons text-xs">straighten</span>{{ stop.distance || fallbackDistance }}</span>
                             </div>
-                            <button v-if="idx === 0" @click.stop="$router.push('/navigation')"
+                            <button v-if="idx === 0" @click.stop="openNavigation(stop)"
                                 class="bg-primary text-background-dark text-xs font-black py-1.5 px-4 rounded-lg flex items-center gap-1 active:scale-95 z-20 relative">
                                 Go <span class="material-icons text-sm">arrow_forward</span>
                             </button>
@@ -127,26 +127,46 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
+import { useDriverStore } from '../stores/driverStore.js'
+import { useJobStore } from '../stores/jobStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
-import { dummyManifest, dummyStops } from '../utils/dummyData.js'
+import { openExternalNavigation } from '../utils/navigation.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
+const driverStore = useDriverStore()
+const jobStore = useJobStore()
 const routeStore = useRouteStore()
 const isDark = computed(() => uiStore.theme !== 'light')
 
-const manifest = ref(dummyManifest)
-const stops = ref(dummyStops)
-const completedCount = computed(() => routeStore.completedCount)
+const manifestSummary = computed(() => driverStore.dashboard?.manifest || null)
+const manifest = computed(() => ({
+    date: manifestSummary.value?.date || 'No manifest',
+    routeId: manifestSummary.value?.route_id || jobStore.jobData?.manifestId || null,
+}))
+const stops = computed(() => jobStore.jobData?.stops || routeStore.stops || [])
+const completedCount = computed(() => {
+    const routeCompleted = routeStore.completedCount || 0
+    const stopCompleted = stops.value.filter(stop => stop.status === 'completed').length
+    return Math.max(routeCompleted, stopCompleted)
+})
+const fallbackDistance = computed(() => manifestSummary.value ? `${manifestSummary.value.total_distance_km} km` : '--')
 
 const summaryStats = computed(() => [
     { label: 'Stops', value: stops.value.length },
-    { label: 'Distance', value: '47 km' },
-    { label: 'Est. Done', value: '13:20' },
+    { label: 'Distance', value: manifestSummary.value ? `${manifestSummary.value.total_distance_km} km` : '--' },
+    { label: 'Est. Done', value: manifestSummary.value?.estimated_end_time || '--:--' },
 ])
+
+function formatTimeWindow(timeWindow) {
+    if (!timeWindow) return '--:--'
+    if (typeof timeWindow === 'string') return timeWindow
+    if (timeWindow.start && timeWindow.end) return `${timeWindow.start} - ${timeWindow.end}`
+    return timeWindow.start || timeWindow.end || '--:--'
+}
 
 function typeBadgeClass(type) {
     const map = {
@@ -158,8 +178,47 @@ function typeBadgeClass(type) {
     return map[type] || 'bg-gray-500/10 text-gray-400 border-gray-500/20'
 }
 
+function ensureRouteManifestLoaded() {
+    const hasSameStops = routeStore.stops.length === stops.value.length
+    const hasSameRoute = routeStore.manifest?.routeId === manifest.value.routeId
+
+    if (!hasSameStops || !hasSameRoute) {
+        routeStore.loadManifest({
+            routeId: manifest.value.routeId,
+            endTime: manifestSummary.value?.estimated_end_time || '--:--',
+            stops: stops.value,
+        })
+    }
+
+    if (!routeStore.isRouteActive) {
+        routeStore.startRoute()
+    }
+}
+
+function openNavigation(stop = null) {
+    const targetStop = stop || stops.value[0]
+    if (!targetStop) {
+        uiStore.showToast('No stop available for navigation', 'error', 2200)
+        return
+    }
+
+    ensureRouteManifestLoaded()
+    jobStore.setCurrentStopById(targetStop.id)
+    routeStore.setCurrentStopById(targetStop.id)
+    jobStore.ensureTransitState({
+        startedAt: new Date().toISOString(),
+        stopId: targetStop.id,
+    })
+    try {
+        openExternalNavigation(targetStop)
+        uiStore.showToast('Opening navigation in Maps', 'success', 1600)
+    } catch (error) {
+        uiStore.showToast(error.message || 'Unable to open maps', 'error', 2400)
+        router.push('/navigation')
+    }
+}
+
 function startRoute() {
-    routeStore.startRoute()
-    router.push('/navigation')
+    openNavigation(stops.value[0] || null)
 }
 </script>

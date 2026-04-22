@@ -25,7 +25,7 @@
                     :class="isDark ? 'bg-primary/10 border border-primary/20' : 'bg-primary/10 border border-primary/30'">
                     <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
                     <span class="text-xs font-bold text-primary uppercase tracking-widest">Vehicle Assigned to
-                        DRV-2049</span>
+                        {{ driverStore.driverId }}</span>
                 </div>
             </div>
         </Transition>
@@ -45,7 +45,7 @@
             </div>
             <h1 class="text-2xl font-black tracking-tight mt-3">Vehicle Binding</h1>
             <p class="text-sm mt-0.5" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Confirm your unit for Shift
-                #402</p>
+                {{ shiftCode }}</p>
         </header>
 
         <!-- ── SCROLLABLE BODY ───────────────────────── -->
@@ -136,7 +136,7 @@
                     <div>
                         <p class="text-xs font-black text-primary uppercase tracking-widest">Vehicle Found</p>
                         <p class="text-[10px]" :class="isDark ? 'text-white/50' : 'text-gray-500'">Roster match
-                            confirmed — Shift #402</p>
+                            confirmed — {{ shiftCode }}</p>
                     </div>
                 </div>
 
@@ -289,13 +289,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUiStore } from '../stores/uiStore.js'
 import { useDriverStore } from '../stores/driverStore.js'
 import { useCamera } from '../composables/useCamera.js'
 import { useLocalNotifications } from '../composables/useLocalNotifications.js'
-import { dummyVehicle } from '../utils/dummyData.js'
+import * as api from '../services/api.js'
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -308,23 +308,52 @@ const focusVehicleInput = () => {
 }
 
 const isDark = computed(() => uiStore.theme !== 'light')
+const shiftCode = computed(() => driverStore.dashboard?.shift?.shift_code || 'No shift')
 
 // ── Phase state: 'scan' → 'confirm' → 'success' ──────────────────
 const phase = ref('scan')
 const manualId = ref('')
 const lookupError = ref('')
 const binding = ref(false)
-const vehicle = ref(dummyVehicle)
+const vehicle = ref(null)
 
-// ── Known fleet (in a real app this comes from the API) ───────────
-const FLEET = { 'CC-TRK-042': dummyVehicle }
+// ── Known fleet (fetched from backend) ───────────
+const fleet = ref([])
 
-const vehicleSpecs = computed(() => [
-    { label: 'Fuel Level', icon: 'local_gas_station', value: vehicle.value.fuelLevel, unit: '%', bar: vehicle.value.fuelLevel, sub: `~${vehicle.value.range} km range` },
-    { label: 'Capacity', icon: 'view_in_ar', value: vehicle.value.capacity, unit: 'T', bar: null, sub: `${vehicle.value.seats} crew seats` },
-    { label: 'Odometer', icon: 'speed', value: vehicle.value.odometer.toLocaleString('en-IN'), unit: 'km', bar: null, sub: 'Recorded today' },
-    { label: 'Last Check', icon: 'build', value: 'Mar 5', unit: '', bar: null, sub: 'Inspection passed' },
-])
+onMounted(async () => {
+    // If vehicle already in persisted store, skip immediately — no API needed
+    if (driverStore.vehicle?.vehicleId || driverStore.vehicle?.id) {
+        driverStore.bindVehicle(driverStore.vehicle)
+        return router.replace({ name: 'vehicle-inspection' })
+    }
+
+    // Try to get vehicle from backend dashboard
+    try {
+        await driverStore.refreshDashboard()
+    } catch { /* offline — continue to manual entry */ }
+
+    const dashVehicle = driverStore.dashboard?.current_vehicle
+    if (dashVehicle?.vehicleId) {
+        driverStore.bindVehicle(dashVehicle)
+        return router.replace({ name: 'vehicle-inspection' })
+    }
+
+    // Seed manual-entry fleet list
+    fleet.value = await driverStore.fetchVehicles().catch(() => [])
+    if (dashVehicle?.vehicleId && !fleet.value.find(v => v.vehicleId === dashVehicle.vehicleId)) {
+        fleet.value = [...fleet.value, dashVehicle]
+    }
+})
+
+const vehicleSpecs = computed(() => {
+    if (!vehicle.value) return []
+    return [
+        { label: 'Fuel Level', icon: 'local_gas_station', value: vehicle.value.fuelLevel, unit: '%', bar: vehicle.value.fuelLevel, sub: `~${vehicle.value.range} km range` },
+        { label: 'Capacity', icon: 'view_in_ar', value: vehicle.value.capacity, unit: 'T', bar: null, sub: `${vehicle.value.seats} crew seats` },
+        { label: 'Odometer', icon: 'speed', value: vehicle.value.odometer.toLocaleString('en-IN'), unit: 'km', bar: null, sub: 'Recorded today' },
+        { label: 'Last Check', icon: 'build', value: vehicle.value.nextService || 'On file', unit: '', bar: null, sub: vehicle.value.maintenanceIssue || 'Inspection on schedule' },
+    ]
+})
 
 // ── Simulate or Actual QR scan (resolves to the assigned vehicle) ──────────
 async function simulateScan() {
@@ -333,9 +362,13 @@ async function simulateScan() {
     const result = await scanQrCode('Align QR code in frame')
     if (result) {
         // Typically we'd use the real result to look up the van
-        // For our prototype, we'll force it to CC-TRK-042 if successful
-        manualId.value = 'CC-TRK-042'
-        handleManualLookup()
+        // For our prototype, we'll force it to the first available vehicle
+        if (fleet.value.length > 0) {
+            manualId.value = fleet.value[0].vehicleId
+            handleManualLookup()
+        } else {
+            lookupError.value = "No vehicles available to scan."
+        }
     }
 }
 
@@ -344,7 +377,7 @@ function handleManualLookup() {
     lookupError.value = ''
     const id = manualId.value.trim().toUpperCase()
     if (!id) return
-    const found = FLEET[id]
+    const found = fleet.value.find(v => v.vehicleId === id || v.plateNumber === id)
     if (!found) {
         lookupError.value = `Vehicle "${id}" not found or not assigned to your roster.`
         return
@@ -363,8 +396,16 @@ function resetToScan() {
 // ── Confirm & bind ────────────────────────────────────────────────
 async function handleBind() {
     binding.value = true
-    await new Promise(r => setTimeout(r, 900))
-    driverStore.bindVehicle(vehicle.value)
+    try {
+        const boundVehicle = await api.bindDriverVehicle({ vehicleId: vehicle.value.id })
+        driverStore.bindVehicle(boundVehicle)
+        vehicle.value = boundVehicle
+        await driverStore.refreshDashboard()
+    } catch (err) {
+        binding.value = false
+        lookupError.value = err.message || 'Failed to bind vehicle'
+        return
+    }
     driverStore.vehicleBound = true
     binding.value = false
     phase.value = 'success'

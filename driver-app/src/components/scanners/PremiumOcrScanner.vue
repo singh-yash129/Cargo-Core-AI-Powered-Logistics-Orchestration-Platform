@@ -4,12 +4,12 @@
 
         <!-- ── Header ─────────────────────────────── -->
         <div class="h-28 bg-gradient-to-b from-black/80 to-transparent flex items-start justify-between px-6 pt-12 z-10 shrink-0">
-            <button @touchstart="onClose" @click="onClose"
+            <button @click.stop.prevent="onClose"
                 class="w-11 h-11 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform outline-none">
                 <span class="material-icons">close</span>
             </button>
             <div class="flex gap-3 text-white">
-                <button @touchstart="toggleTorch" @click="toggleTorch"
+                <button @click.stop.prevent="toggleTorch"
                     class="w-11 h-11 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center active:scale-90 transition-transform outline-none"
                     :class="torchOn ? 'text-yellow-300' : 'text-white'">
                     <span class="material-icons">{{ torchOn ? 'flash_on' : 'flash_off' }}</span>
@@ -44,7 +44,7 @@
                 Initializing camera...
             </div>
 
-            <button @touchstart="captureAndExtract" @click="captureAndExtract" :disabled="extracting || !cameraReady"
+            <button @click.stop.prevent="captureAndExtract" :disabled="extracting || !cameraReady"
                 class="relative w-20 h-20 rounded-full border-4 flex items-center justify-center group transition-all outline-none overflow-hidden bg-black/40 backdrop-blur-md"
                 :class="[
                     cameraReady && !extracting ? 'border-primary text-primary active:scale-90' : 'border-white/30 text-white/30 opacity-50 cursor-not-allowed'
@@ -127,9 +127,10 @@ async function captureAndExtract() {
     await Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {})
     setTimeout(() => { showingFlash.value = false }, 60)
 
+    let base64Pic = ''
+
     try {
-        let base64Pic;
-        let extractedText;
+        let extractedText = ''
 
         if (isNative) {
             const captured = await CameraPreview.capture({ quality: 90 })
@@ -141,10 +142,6 @@ async function captureAndExtract() {
 
             const ocrResult = await Ocr.detectText({ base64Image: base64Pic })
             extractedText = extractOcrText(ocrResult)
-
-            if (!extractedText) {
-                throw new Error(CameraError.NO_TEXT_EXTRACTED)
-            }
         } else {
             base64Pic = MockCameraData ? MockCameraData.TRANSPARENT_PNG : ''; // graceful fallback
             extractedText = '123,456';
@@ -158,14 +155,22 @@ async function captureAndExtract() {
 
         // Small delay to ensure store state is updated before navigation
         await new Promise(resolve => setTimeout(resolve, 50))
-        router.back()
+        await store.navigateBack(router)
     } catch (e) {
         console.error('OCR capture error:', e?.message || String(e))
+        if (isNative && isValidBase64(base64Pic)) {
+            alert('Auto-read failed. Enter the odometer manually.')
+            await stopCamera()
+            store.deliver({ text: '', base64: base64Pic, manualEntryRequired: true })
+            await new Promise(resolve => setTimeout(resolve, 50))
+            await store.navigateBack(router)
+            return
+        }
         alert('Capture failed. Simulating odometer read for testing.')
         await stopCamera()
         store.deliver({ text: '123,456', base64: MockCameraData ? MockCameraData.TRANSPARENT_PNG : '' })
         await new Promise(resolve => setTimeout(resolve, 50))
-        router.back()
+        await store.navigateBack(router)
     } finally {
         extracting.value = false
     }
@@ -199,7 +204,7 @@ async function onClose() {
     store.cancel()
     // Ensure cleanup before navigation
     await new Promise(resolve => setTimeout(resolve, 50))
-    router.back()
+    await store.navigateBack(router)
 }
 </script>
 

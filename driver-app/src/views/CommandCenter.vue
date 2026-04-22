@@ -13,6 +13,11 @@
                         :class="isDark ? 'text-gray-500' : 'text-gray-400'">{{ currentDate }}</p>
                 </div>
                 <div class="flex items-center gap-2">
+                    <button @click="$router.push('/manager-chat')"
+                        class="w-10 h-10 rounded-full flex items-center justify-center border"
+                        :class="isDark ? 'bg-surface-dark/50 border-white/5 text-primary' : 'bg-primary/10 border-primary/20 text-primary shadow-sm'">
+                        <span class="material-icons text-xl">support_agent</span>
+                    </button>
                     <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold"
                         :class="isDark ? 'bg-surface-dark/50 border-white/5 text-primary' : 'bg-primary/10 border-primary/20 text-primary'">
                         <span class="relative w-2 h-2 flex">
@@ -168,11 +173,10 @@
                         Waiting for job assignment from dispatch
                     </p>
 
-                    <!-- Demo Mode Hint -->
                     <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold"
                         :class="isDark ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-primary/10 border-primary/30 text-primary'">
-                        <span class="material-icons leading-none" style="font-size:14px;">science</span>
-                        Use demo mode to test flows
+                        <span class="material-icons leading-none" style="font-size:14px;">notifications_active</span>
+                        Waiting for dispatch assignment
                     </div>
                 </div>
             </div>
@@ -194,10 +198,10 @@
                     </div>
                     <div class="ml-auto text-right">
                         <p class="text-xs font-mono" :class="isDark ? 'text-gray-500' : 'text-gray-400'">{{
-                            driverStore.driverId }}</p>
+                            driverStore.driverId ? 'DRV-' + driverStore.driverId.replace(/-/g, '').slice(0, 8).toUpperCase() : '—' }}</p>
                         <div class="flex items-center gap-1 justify-end mt-0.5">
                             <span class="material-icons text-accent-gold text-xs">star</span>
-                            <span class="text-sm font-bold">4.9</span>
+                            <span class="text-sm font-bold">{{ driverStore.driver?.rating ?? '—' }}</span>
                         </div>
                     </div>
                 </div>
@@ -217,9 +221,11 @@
                     <div>
                         <p class="text-xs uppercase tracking-widest font-semibold mb-0.5"
                             :class="isDark ? 'text-gray-400' : 'text-gray-500'">Today's Manifest</p>
-                        <p class="text-xl font-bold">RT-2049-MAR06</p>
-                        <p class="text-xs mt-0.5" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Mumbai North-East
-                            Hub · Shift A</p>
+                        <p class="text-xl font-bold">{{ manifestSummary?.route_id || jobStore.jobData?.manifestId || 'No Route' }}</p>
+                        <p class="text-xs mt-0.5" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+                            {{ manifestSummary?.zone || dashboard?.shift?.warehouse_name || 'Awaiting assignment' }}
+                            · {{ dashboard?.shift?.shift_code || 'No shift' }}
+                        </p>
                     </div>
                     <div class="p-2 rounded-xl" :class="isDark ? 'bg-primary/10' : 'bg-primary/10'">
                         <span class="material-icons text-primary">local_shipping</span>
@@ -249,7 +255,12 @@
                         :class="isDark ? 'bg-gradient-to-r from-background-dark/90 to-transparent' : 'bg-gradient-to-r from-background-light/90 to-transparent'">
                         <div class="flex items-center gap-2">
                             <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                            <span class="text-xs font-bold">Live Route · 47 km · 5h 20m</span>
+                            <span class="text-xs font-bold">
+                                {{ manifestSummary
+                                    ? `Live Route · ${manifestSummary.total_distance_km} km · ${Math.max(1, Math.round((manifestSummary.estimated_duration_minutes || 0) / 60))}h`
+                                    : 'Live Route pending'
+                                }}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -332,9 +343,6 @@
                 </button>
             </div>
         </div>
-
-        <!-- Job Type Selector (Demo Mode) -->
-        <JobTypeSelector />
     </div>
 </template>
 
@@ -346,8 +354,6 @@ import { useUiStore } from '../stores/uiStore.js'
 import { useRouteStore } from '../stores/routeStore.js'
 import { useJobStore } from '../stores/jobStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
-import { dummyManifest } from '../utils/dummyData.js'
-import JobTypeSelector from '../components/JobTypeSelector.vue'
 
 const router = useRouter()
 const driverStore = useDriverStore()
@@ -356,26 +362,59 @@ const routeStore = useRouteStore()
 const jobStore = useJobStore()
 const { navigateToCurrentState, getNextActionLabel } = useFlowRouter()
 const isDark = computed(() => uiStore.theme !== 'light')
+const dashboard = computed(() => driverStore.dashboard)
+const manifestSummary = computed(() => dashboard.value?.manifest || null)
 
 const currentTime = ref('')
 const period = ref('')
 const currentDate = ref('')
+let clockTimer = null
+let assignmentPollTimer = null
 const greeting = computed(() => {
     const h = new Date().getHours()
-    return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'
+    if (h >= 5 && h < 12) return 'Morning'
+    if (h >= 12 && h < 17) return 'Afternoon'
+    if (h >= 17 && h < 21) return 'Evening'
+    return 'Night'
 })
 
-onMounted(() => {
+async function loadCurrentJob() {
+    const context = await driverStore.refreshDashboard()
+    if (context?.current_job) {
+        jobStore.loadJob(context.current_job)
+    } else {
+        const activeJobs = await jobStore.fetchAssignedOrders()
+        if (activeJobs && activeJobs.length > 0) {
+            jobStore.loadJob(activeJobs[0])
+        } else {
+            jobStore.reset()
+        }
+    }
+}
+
+onMounted(async () => {
     updateTime()
-    setInterval(updateTime, 30000)
-    routeStore.loadManifest(dummyManifest)
+    clockTimer = setInterval(updateTime, 30000)
+    await loadCurrentJob()
+
+    // Poll every 20s for new assignments while driver has no active job (WebSocket fallback)
+    assignmentPollTimer = setInterval(async () => {
+        if (!jobStore.jobType || jobStore.jobState === 'IDLE') {
+            await loadCurrentJob()
+        }
+    }, 20000)
 })
 
 onUnmounted(() => {
-    // Cleanup if tracking
-    if (jobStore.isTracking) {
-        jobStore.stopSimulatedTracking()
+    if (clockTimer) {
+        clearInterval(clockTimer)
+        clockTimer = null
     }
+    if (assignmentPollTimer) {
+        clearInterval(assignmentPollTimer)
+        assignmentPollTimer = null
+    }
+    jobStore.stopSimulatedTracking()
 })
 
 function updateTime() {
@@ -387,26 +426,40 @@ function updateTime() {
 }
 
 const quickStats = computed(() => [
-    { label: 'Stops', value: String(jobStore.totalStops || 7), color: '' },
-    { label: 'Rating', value: '4.9★', color: 'text-accent-gold' },
-    { label: 'On-Time', value: '96%', color: 'text-primary' },
-    { label: '₹ Today', value: '1.8K', color: 'text-primary' },
+    { label: 'Stops', value: String(manifestSummary.value?.total_stops ?? jobStore.totalStops ?? 0), color: '' },
+    { label: 'Rating', value: `${driverStore.driver?.rating ?? 0}★`, color: 'text-accent-gold' },
+    { label: 'On-Time', value: `${driverStore.driver?.onTimePercent ?? 0}%`, color: 'text-primary' },
+    { label: 'Done', value: String(driverStore.driver?.totalDeliveries ?? 0), color: 'text-primary' },
 ])
 
 const manifestMetrics = computed(() => [
     {
         label: 'Stops',
         icon: 'place',
-        value: String(jobStore.totalStops || 7),
-        sub: `${jobStore.completedStopsCount} completed`
+        value: String(manifestSummary.value?.total_stops ?? jobStore.totalStops ?? 0),
+        sub: `${manifestSummary.value?.completed_stops ?? jobStore.completedStopsCount ?? 0} completed`
     },
-    { label: 'Est. Time', icon: 'schedule', value: '5h 20m', sub: 'Ends 1:20 PM' },
-    { label: 'Distance', icon: 'timeline', value: '47 km', sub: 'Total Route' },
+    {
+        label: 'Est. Time',
+        icon: 'schedule',
+        value: manifestSummary.value
+            ? `${Math.max(1, Math.round((manifestSummary.value.estimated_duration_minutes || 0) / 60))}h`
+            : '--',
+        sub: manifestSummary.value?.estimated_end_time ? `Ends ${manifestSummary.value.estimated_end_time}` : 'Awaiting route'
+    },
+    {
+        label: 'Distance',
+        icon: 'timeline',
+        value: manifestSummary.value ? `${manifestSummary.value.total_distance_km} km` : '--',
+        sub: 'Total Route'
+    },
     {
         label: jobStore.jobType === 'HOUSE_SHIFT' ? 'Crew' : 'Parcels',
         icon: jobStore.jobType === 'HOUSE_SHIFT' ? 'group' : 'inventory_2',
-        value: jobStore.jobType === 'HOUSE_SHIFT' ? '5' : '12',
-        sub: jobStore.jobType === 'HOUSE_SHIFT' ? 'Assigned' : 'To Deliver'
+        value: jobStore.jobType === 'HOUSE_SHIFT'
+            ? String(manifestSummary.value?.crew_count ?? jobStore.jobData?.crewAssigned?.length ?? 0)
+            : String(manifestSummary.value?.parcel_count ?? 0),
+        sub: jobStore.jobType === 'HOUSE_SHIFT' ? 'Assigned' : 'In Manifest'
     },
 ])
 
@@ -446,7 +499,7 @@ function beginRoute() {
     if (jobStore.jobType) {
         navigateToCurrentState()
     } else {
-        router.push('/manifest')
+        uiStore.showToast('No active job assigned yet. Waiting for dispatch.', 'warning', 2200)
     }
 }
 

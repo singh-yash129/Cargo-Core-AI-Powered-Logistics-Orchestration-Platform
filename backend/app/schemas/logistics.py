@@ -360,6 +360,8 @@ class LogisticsDriverCreate(BaseModel):
     warehouse_id: UUID | None = None
     status: str = "Active"
     current_location: str | None = None
+    driver_id: str | None = Field(default=None, min_length=3, max_length=64)
+    pin: str | None = Field(default=None, min_length=4, max_length=4)
 
 
 class LogisticsDriverUpdate(BaseModel):

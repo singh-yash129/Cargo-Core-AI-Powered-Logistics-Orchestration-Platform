@@ -93,6 +93,47 @@
                 </div>
             </div>
 
+            <div v-if="tripBrief" class="rounded-2xl border p-4"
+                :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
+                <div class="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                        <p class="text-xs uppercase tracking-wider font-bold text-primary">AI Trip Command</p>
+                        <p class="text-sm font-semibold mt-1">{{ tripBrief.dispatcher_recommendation }}</p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border"
+                        :class="tripStatusClass">
+                        {{ tripBrief.route_status }}
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="rounded-2xl p-3 border text-center"
+                        :class="isDark ? 'bg-black/20 border-white/5' : 'bg-gray-50 border-gray-100'">
+                        <p class="text-[10px] uppercase font-bold tracking-wider"
+                            :class="isDark ? 'text-gray-500' : 'text-gray-400'">ETA</p>
+                        <p class="text-lg font-black mt-1">{{ tripBrief.eta_label }}</p>
+                    </div>
+                    <div class="rounded-2xl p-3 border text-center"
+                        :class="isDark ? 'bg-black/20 border-white/5' : 'bg-gray-50 border-gray-100'">
+                        <p class="text-[10px] uppercase font-bold tracking-wider"
+                            :class="isDark ? 'text-gray-500' : 'text-gray-400'">Risk</p>
+                        <p class="text-lg font-black mt-1" :class="riskTextClass">{{ tripBrief.risk_level }}</p>
+                    </div>
+                    <div class="rounded-2xl p-3 border text-center"
+                        :class="isDark ? 'bg-black/20 border-white/5' : 'bg-gray-50 border-gray-100'">
+                        <p class="text-[10px] uppercase font-bold tracking-wider"
+                            :class="isDark ? 'text-gray-500' : 'text-gray-400'">Confidence</p>
+                        <p class="text-lg font-black mt-1">{{ tripBrief.eta_confidence }}</p>
+                    </div>
+                </div>
+
+                <div v-if="alternateMinutesSaved > 0"
+                    class="mt-3 rounded-2xl px-3 py-2 text-sm font-semibold border"
+                    :class="isDark ? 'bg-signal-amber/10 border-signal-amber/20 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'">
+                    Alternate route available. Estimated recovery: {{ alternateMinutesSaved }} min.
+                </div>
+            </div>
+
             <!-- Stops / Items preview -->
             <div class="rounded-2xl border p-4"
                 :class="isDark ? 'bg-surface-dark/40 border-white/8' : 'bg-white border-gray-100 shadow-sm'">
@@ -165,17 +206,40 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDriverStore } from '../stores/driverStore.js'
 import { useJobStore } from '../stores/jobStore.js'
+import { useRouteStore } from '../stores/routeStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import { useFlowRouter } from '../composables/useFlowRouter.js'
+import { getTripIntelligence } from '../services/api.js'
 
 const router = useRouter()
+const driverStore = useDriverStore()
 const jobStore = useJobStore()
+const routeStore = useRouteStore()
 const uiStore = useUiStore()
-const { advanceAndNavigate } = useFlowRouter()
+const { advanceAndNavigate, navigateToCurrentState } = useFlowRouter()
 const isDark = computed(() => uiStore.theme !== 'light')
+const activeOrderId = computed(() => jobStore.currentStop?.orderId || jobStore.jobData?.id || jobStore.jobData?.stops?.[0]?.orderId || null)
+const tripBrief = computed(() => {
+    if (!routeStore.tripBrief || !activeOrderId.value) return routeStore.tripBrief
+    return String(routeStore.tripBrief.order_id) === String(activeOrderId.value) ? routeStore.tripBrief : null
+})
+const alternateMinutesSaved = computed(() => Math.max(0, -(tripBrief.value?.alternate_route?.delta_minutes || 0)))
+const riskTextClass = computed(() => {
+    const level = tripBrief.value?.risk_level
+    if (level === 'CRITICAL' || level === 'HIGH') return 'text-red-400'
+    if (level === 'MEDIUM') return 'text-signal-amber'
+    return 'text-primary'
+})
+const tripStatusClass = computed(() => {
+    const status = tripBrief.value?.route_status
+    if (status === 'Blocked' || status === 'Delayed') return 'bg-red-500/10 text-red-400 border-red-500/20'
+    if (status === 'Delay Risk') return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+    return 'bg-green-500/10 text-green-400 border-green-500/20'
+})
 
 // ── Job Type Helpers ──────────────────────────────────────────────
 const isPickup = computed(() => jobStore.jobType === 'PARCEL_PICKUP')
@@ -234,17 +298,30 @@ const jobStats = computed(() => {
 // ── Addresses ─────────────────────────────────────────────────────
 const fromAddress = computed(() => {
     const job = jobStore.jobData
+    const dashboard = driverStore.dashboard
     if (!job) return { name: '--', address: '--' }
-    if (isHouseShift.value) return { name: job.sourceLocation?.customerName, address: job.sourceLocation?.address }
-    if (isPickup.value) return { name: 'Pickup Zones', address: job.stops?.[0]?.address || '--' }
-    return { name: 'Central Warehouse', address: 'Mumbai North-East Hub' }
+    if (isHouseShift.value) return { name: job.sourceLocation?.customerName || 'Source Address', address: job.sourceLocation?.address || 'Awaiting address' }
+    if (isPickup.value) return { name: 'Pickup Zones', address: job.stops?.[0]?.address || 'Multiple locations' }
+    
+    // Use warehouse from dashboard if available
+    const warehouseName = dashboard?.shift?.warehouse_name || 'Central Warehouse'
+    const warehouseAddr = dashboard?.manifest?.origin_addr || 'Distribution Hub'
+    return { name: warehouseName, address: warehouseAddr }
 })
 
 const toAddress = computed(() => {
     const job = jobStore.jobData
     if (!job) return null
-    if (isHouseShift.value) return { name: job.destinationLocation?.customerName, address: job.destinationLocation?.address }
-    if (!isPickup.value && job.stops?.length > 0) return { name: 'Delivery Zone', address: `${job.stops.length} stops · Mumbai` }
+    if (isHouseShift.value) return { name: job.destinationLocation?.customerName || 'Destination Address', address: job.destinationLocation?.address || 'Awaiting address' }
+    
+    if (!isPickup.value && job.stops?.length > 0) {
+        const firstStop = job.stops[0]
+        const areaName = firstStop.address?.split(',').slice(-2, -1)[0]?.trim() || 'Delivery Zone'
+        return { 
+            name: `Delivery Zone: ${areaName}`, 
+            address: `${job.stops.length} stop(s) in this area` 
+        }
+    }
     return null
 })
 
@@ -281,8 +358,6 @@ const hasSpecialNotes = computed(() => specialNotes.value.length > 0)
 
 // ── Actions ───────────────────────────────────────────────────────
 function acceptJob() {
-    uiStore.showToast('Job accepted! Starting vehicle inspection...', 'success', 2000)
-
     // Determine next state based on job type
     const nextStates = {
         'PARCEL_DELIVERY': 'LOAD_VERIFICATION',
@@ -290,6 +365,21 @@ function acceptJob() {
         'HOUSE_SHIFT': 'CREW_CHECKIN',
     }
     const nextState = nextStates[jobStore.jobType]
+
+    // Check if we are already in the target state or beyond
+    if (jobStore.jobState === nextState) {
+        navigateToCurrentState()
+        return
+    }
+
+    if (!jobStore.canTransitionTo(nextState)) {
+        console.warn(`Cannot transition from ${jobStore.jobState} to ${nextState}`)
+        // If we're stuck, just try to navigate to the current state
+        navigateToCurrentState()
+        return
+    }
+
+    uiStore.showToast('Job accepted! Starting next step...', 'success', 2000)
 
     setTimeout(() => {
         advanceAndNavigate(nextState, { acceptedAt: new Date().toISOString() })
@@ -303,4 +393,14 @@ function rejectJob() {
         router.push('/dashboard')
     }, 1500)
 }
+
+onMounted(async () => {
+    if (!activeOrderId.value) return
+    if (tripBrief.value && String(tripBrief.value.order_id) === String(activeOrderId.value)) return
+    try {
+        routeStore.setTripBrief(await getTripIntelligence(activeOrderId.value))
+    } catch (error) {
+        console.warn('Unable to load trip intelligence for assignment view', error)
+    }
+})
 </script>
