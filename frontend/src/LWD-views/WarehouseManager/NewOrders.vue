@@ -5,7 +5,7 @@
             <div class="text-gray-500 dark:text-gray-400">Loading orders...</div>
         </div>
 
-        <div v-else>
+        <div v-else class="space-y-6">
         <!-- Header -->
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">New Orders / Demand Management</h2>
