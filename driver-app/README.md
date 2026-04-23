@@ -12,6 +12,14 @@ This is the native Android driver app repository for the **Cargo-Core** logistic
 - **Routing:** [Vue Router](https://router.vuejs.org/)
 - **Native Integrations:** `@capacitor/camera`, `@capacitor/geolocation`, ML-Kit Barcode & OCR
 
+## ✅ Production Status
+
+The driver app is production-ready and connected to backend APIs.
+
+- Driver authentication and workflow APIs are integrated with backend services.
+- Tracking, attendance, and delivery actions are expected to use live backend data.
+- Use valid backend-issued credentials while testing on emulator/device.
+
 ## 🛠️ Project Setup
 
 ### Prerequisites

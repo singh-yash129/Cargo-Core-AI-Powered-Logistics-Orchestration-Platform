@@ -46,11 +46,13 @@ Preview the production build locally:
 npm run preview
 ```
 
-## 🧪 Testing Login Credentials
+## ✅ Production Status
 
-While the backend is in development, you can log in using mock credentials to test the various dashboards (Logistics Manager, Vendor, Customer, etc.). 
+The frontend is production-ready and integrated with the backend APIs.
 
-👉 **[See `TESTING.md`](./TESTING.md) for the full list of test emails and passwords.**
+- Authentication and role-based dashboards are connected to backend services.
+- Use your real backend-provisioned user accounts for login and testing.
+- Legacy mock testing credentials are no longer used.
 
 ## 📁 Project Structure
 
