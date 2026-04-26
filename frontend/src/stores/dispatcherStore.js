@@ -61,6 +61,29 @@ function resolveCargoVolume(order) {
     return estimatedVolume > 0 ? normalizeCargoMetric(estimatedVolume) : null
 }
 
+function isRecurringOrder(order) {
+    const notes = String(order?.delivery_notes || order?.deliveryNotes || '')
+    return notes.includes('RECURRING_RULE:') && notes.includes('|RUN:')
+}
+
+function isDispatcherVisiblePendingOrder(order) {
+    if (!isRecurringOrder(order)) return true
+    if (!order?.scheduled_at) return true
+
+    const scheduledAt = new Date(order.scheduled_at)
+    if (Number.isNaN(scheduledAt.getTime())) return true
+
+    // Match the vendor/customer recurring visibility rule so dispatcher does
+    // not see future recurring runs earlier than the other operational views.
+    const cutoff = new Date()
+    cutoff.setUTCHours(0, 0, 0, 0)
+    cutoff.setUTCDate(cutoff.getUTCDate() + 1)
+    const scheduledDate = new Date(scheduledAt)
+    scheduledDate.setUTCHours(0, 0, 0, 0)
+
+    return scheduledDate <= cutoff
+}
+
 export const useDispatcherStore = defineStore('dispatcher', () => {
     const ls = useLogisticStore()
     const authStore = useAuthStore()
@@ -506,7 +529,9 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
             if (res.ok) {
                 const data = await res.json()
                 const items = Array.isArray(data) ? data : (data.items || data.orders || [])
-                pendingOrders.value = items.map(mapOrder)
+                pendingOrders.value = items
+                    .filter(isDispatcherVisiblePendingOrder)
+                    .map(mapOrder)
             }
         } catch (_) {
         } finally {
