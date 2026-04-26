@@ -11,10 +11,6 @@
                     class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
                     <span class="material-symbols-outlined">inventory_2</span> Asset Checkout
                 </button>
-                <button @click="showBroadcast = true"
-                    class="bg-gray-50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
-                    <span class="material-symbols-outlined">message</span> Broadcast
-                </button>
             </div>
         </div>
 
@@ -253,22 +249,6 @@
 
         <!-- HOS Detail -->
 
-        <!-- Broadcast Modal -->
-        <Teleport to="body">
-        <div v-if="showBroadcast" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showBroadcast = false">
-            <div class="bg-white dark:bg-card-dark shadow-2xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 w-full max-w-md m-4">
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Broadcast Message</h3>
-                <textarea v-model="broadcastMsg" rows="3" placeholder="Type message for all drivers..."
-                    class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none mb-3"></textarea>
-                <div class="flex gap-2">
-                    <button @click="sendBroadcast" class="flex-1 bg-primary text-black font-bold py-2 rounded-lg text-sm">Send to All</button>
-                    <button @click="showBroadcast = false" class="flex-1 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white py-2 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">Cancel</button>
-                </div>
-                <div v-if="broadcastSent" class="mt-2 text-center text-xs text-green-400 font-bold">✓ Broadcast sent to {{ totalDrivers }} drivers</div>
-            </div>
-        </div>
-        </Teleport>
-
         <!-- Driver Chat Modal — real thread via dispatcherContacts -->
         <Teleport to="body">
         <div v-if="showDriverChat" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showDriverChat = false">
@@ -492,7 +472,6 @@ const driverSearch = ref('')
 const statusFilter = ref('')
 const authFilter = ref('')
 const showHOS = ref(false)
-const showBroadcast = ref(false)
 const showDriverChat = ref(false)
 const showDriverProfile = ref(false)
 const chatTargetDriver = ref(null)
@@ -501,8 +480,6 @@ const chatLoading = ref(false)
 const profileTargetDriver = ref(null)
 const driverChatMsg = ref('')
 const driverChatMessages = ref([])
-const broadcastMsg = ref('')
-const broadcastSent = ref(false)
 const moreMenuDriver = ref(null)
 const showSlipPickerModal = ref(false)
 const slipPickerType = ref('')
@@ -626,11 +603,6 @@ function viewDriverProfile(driver) {
 }
 
 function toggleMoreMenu(driver) { moreMenuDriver.value = moreMenuDriver.value === driver.id ? null : driver.id }
-
-function sendBroadcast() {
-    broadcastSent.value = true
-    setTimeout(() => { showBroadcast.value = false; broadcastSent.value = false; broadcastMsg.value = '' }, 1500)
-}
 
 function getHOSBarClass(hours, maxHours) {
     const pct = (hours / maxHours) * 100

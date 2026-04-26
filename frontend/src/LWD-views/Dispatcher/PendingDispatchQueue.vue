@@ -19,10 +19,6 @@
                     class="bg-yellow-100 dark:bg-yellow-500/15 hover:bg-yellow-200 dark:hover:bg-yellow-500/25 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-500/30 py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold">
                     <span class="material-symbols-outlined text-[18px]">verified</span> Feasibility Check
                 </button>
-                <button @click="batchAssign" :disabled="selectedOrders.length === 0"
-                    class="bg-primary hover:bg-primary-dark text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm disabled:opacity-40 disabled:cursor-not-allowed">
-                    <span class="material-symbols-outlined text-[18px]">assignment_turned_in</span> Batch Assign ({{ selectedOrders.length }})
-                </button>
             </div>
         </div>
 
@@ -112,10 +108,6 @@
                 <table class="w-full text-left text-sm">
                     <thead class="bg-gray-50 dark:bg-white/5 text-gray-400 uppercase text-[10px] tracking-wider">
                         <tr>
-                            <th class="p-4">
-                                <input type="checkbox" v-model="selectAll"
-                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary">
-                            </th>
                             <th class="p-4">Order ID</th>
                             <th class="p-4">Pickup Warehouse</th>
                             <th class="p-4">Weight / Volume</th>
@@ -131,10 +123,6 @@
                         <tr v-for="order in filteredOrders" :key="order.id"
                             class="hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
                             :class="order.type === 'PARCEL_PICKUP' ? 'bg-orange-50/40 dark:bg-orange-500/5 border-l-2 border-orange-400' : order.type === 'VENDOR' ? 'bg-blue-50/30 dark:bg-blue-500/5 border-l-2 border-blue-400' : order.loadingInProgress ? 'bg-amber-50/50 dark:bg-amber-500/5 opacity-80' : order.readyForDispatch ? 'bg-emerald-50/50 dark:bg-emerald-500/5' : ''">
-                            <td class="p-4">
-                                <input type="checkbox" v-model="order.selected" :disabled="order.loadingInProgress"
-                                    class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed">
-                            </td>
                             <td class="p-4">
                                 <div class="font-mono text-gray-900 dark:text-white font-bold">{{ order.displayId || order.trackingCode || order.id }}</div>
                                 <span v-if="order.loadingInProgress"
@@ -440,30 +428,6 @@
     </div>
     </Teleport>
 
-    <!-- Batch Assign Confirm Modal -->
-    <Teleport to="body">
-    <div v-if="showBatchConfirm" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showBatchConfirm = false">
-        <div class="bg-white dark:bg-card-dark rounded-2xl p-6 w-full max-w-md m-4 border border-gray-200 dark:border-white/10 shadow-2xl">
-            <h3 class="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">assignment_turned_in</span> Confirm Batch Assignment
-            </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                Dispatch <strong>{{ selectedOrders.length }}</strong> selected orders to available drivers?
-            </p>
-            <div class="max-h-32 overflow-y-auto space-y-1 mb-4">
-                <div v-for="order in selectedOrders" :key="order.id" class="text-xs p-2 bg-gray-50 dark:bg-white/5 rounded-lg flex justify-between">
-                    <span class="text-gray-900 dark:text-white font-bold">{{ order.displayId || order.trackingCode || order.id }}</span>
-                    <span class="text-gray-500">{{ formatOrderWeight(order) }} • {{ order.priority }}</span>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <button @click="confirmBatchAssign" class="flex-1 bg-primary hover:bg-primary-dark text-black font-bold py-2 rounded-lg text-sm transition-colors">Dispatch All</button>
-                <button @click="showBatchConfirm = false" class="flex-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white py-2 rounded-lg text-sm transition-colors">Cancel</button>
-            </div>
-            <div v-if="batchToast" class="mt-3 text-center text-xs text-green-500 font-bold">{{ batchToast }}</div>
-        </div>
-    </div>
-    </Teleport>
     </div>
 </template>
 
@@ -511,7 +475,6 @@ async function manualRefresh() {
         refreshing.value = false
     }
 }
-const selectAll = ref(false)
 const showFeasibilityModal = ref(false)
 const feasCheckOrder = ref(null)
 const feasibilityToast = ref('')
@@ -526,8 +489,6 @@ const assignVehiclesLoading = ref(false)
 const isAssigning = ref(false)
 const assignError = ref('')
 const assignSuccess = ref('')
-const showBatchConfirm = ref(false)
-const batchToast = ref('')
 const globalFeasToast = ref('')
 const globalFeasToastType = ref('success')
 
@@ -662,9 +623,8 @@ function deriveFeasibility(order) {
 }
 
 function hydratePendingOrders(list) {
-    const selectedIds = new Set(pendingOrders.value.filter(order => order.selected).map(order => order.id))
     pendingOrders.value = list.map(order => {
-        const next = { ...order, selected: selectedIds.has(order.id) }
+        const next = { ...order }
         const feasibilityState = deriveFeasibility(next)
         next.feasibility = feasibilityState.feasibility
         next.failReason = feasibilityState.failReason
@@ -691,10 +651,7 @@ const urgentCount = computed(() => pendingOrders.value.filter(o => o.priority ==
 const highCount = computed(() => pendingOrders.value.filter(o => o.priority === 'HIGH').length)
 const totalWeight = computed(() => pendingOrders.value.reduce((sum, o) => sum + Number(o.weight || 0), 0))
 const feasibleCount = computed(() => pendingOrders.value.filter(o => o.feasibility === 'feasible').length)
-const selectedOrders = computed(() => pendingOrders.value.filter(o => o.selected))
 const readyCount = computed(() => pendingOrders.value.filter(o => o.readyForDispatch).length)
-
-watch(selectAll, (val) => { pendingOrders.value.forEach(o => { o.selected = val }) })
 
 const filteredOrders = computed(() => {
     const list = pendingOrders.value.filter(o => {
@@ -924,21 +881,5 @@ function escalateOrder(order) {
 
 function holdOrder(order) {
     applyFeasibilityState(order, 'infeasible', 'On Hold')
-}
-
-function batchAssign() {
-    showBatchConfirm.value = true
-}
-
-function confirmBatchAssign() {
-    const count = selectedOrders.value.length
-    const ids = selectedOrders.value.map(o => o.id)
-    ids.forEach(clearFeasibilityOverride)
-    batchToast.value = `✓ ${count} order${count > 1 ? 's' : ''} dispatched successfully`
-    setTimeout(() => {
-        pendingOrders.value = pendingOrders.value.filter(o => !ids.includes(o.id))
-        selectAll.value = false
-        setTimeout(() => { showBatchConfirm.value = false; batchToast.value = '' }, 300)
-    }, 1200)
 }
 </script>
