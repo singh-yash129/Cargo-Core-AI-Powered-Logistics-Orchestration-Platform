@@ -349,11 +349,13 @@ class InboundShipmentItem(BaseModel):
     issue_status: str | None = None
     issue_ticket_id: UUID | None = None
     issue_ticket_reference: str | None = None
-    issue_blocking_reason: str | None = None
     can_move_to_picking: bool = True
     can_generate_take_back: bool = False
     warehouse_substatus: str | None = None
     order_id: UUID
+    total_amount: float = 0.0
+    auto_debit_enabled: bool = False
+    is_recurring: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -77,7 +77,7 @@ async def soft_delete_user(
     _: Annotated[object, Depends(require_role("LOGISTIC_MANAGER"))],
 ):
     await users_service.soft_delete_user(db, user_id)
-    return MessageResponse(message="User deactivated")
+    return MessageResponse(message="User deleted")
 
 
 @router.post("/{user_id}/assign-role", response_model=UserAdminResponse)

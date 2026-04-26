@@ -888,9 +888,27 @@ function mapServiceMove(order) {
     const driver = store.dispatcherDrivers.find(d => d.id === String(order.assigned_driver_id))
     const crew = driver ? [{ name: driver.name, role: 'Driver', driverId: String(order.assigned_driver_id) }] : []
 
-    // Get vehicle info
-    const vehicle = store.filteredVehicles.find(v => v.id === String(order.assigned_vehicle_id))
-    const vehicleCode = order.assigned_vehicle_code || vehicle?.code || order.vehicle_type || 'Vehicle pending'
+    // Get vehicle info — prefer order-linked vehicle, then fall back to the driver's own vehicle
+    const vehicle = order.assigned_vehicle_id
+        ? store.filteredVehicles.find(v => String(v.id) === String(order.assigned_vehicle_id))
+        : null
+    // If no vehicle on the order, look up the driver's vehicle from the vehicles list
+    const driverVehicleRecord = !vehicle && driver
+        ? store.filteredVehicles.find(v =>
+            (v.code && v.code === driver.vehicle) ||
+            (v.licensePlate && v.licensePlate === driver.vehicle) ||
+            (v.license_plate && v.license_plate === driver.vehicle)
+          )
+        : null
+    const resolvedVehicleRecord = vehicle || driverVehicleRecord
+    const vehicleCode =
+        order.assigned_vehicle_code ||
+        resolvedVehicleRecord?.licensePlate ||
+        resolvedVehicleRecord?.license_plate ||
+        resolvedVehicleRecord?.code ||
+        resolvedVehicleRecord?.model ||
+        driver?.vehicle ||
+        (order.assigned_vehicle_id ? `Vehicle ${String(order.assigned_vehicle_id).slice(0, 6)}` : '—')
 
     // Calculate progress based on status
     let progress = 0
@@ -934,7 +952,7 @@ function mapServiceMove(order) {
         transitTime: '2.5h',
         progress,
         vehicle: vehicleCode,
-        seatsAvailable: vehicle?.seatCapacity || 4,
+        seatsAvailable: resolvedVehicleRecord?.seatCapacity ?? resolvedVehicleRecord?.seat_capacity ?? 4,
         notes: moveMeta.notes || '',
         tracking: false,
         crew

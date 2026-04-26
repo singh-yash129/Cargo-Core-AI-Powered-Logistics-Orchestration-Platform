@@ -249,6 +249,14 @@
                                         class="px-3 py-1.5 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded-lg text-xs font-bold transition-all hover:scale-105 shadow-md border border-green-700 dark:border-green-400">
                                         View PoD
                                     </button>
+                                    <!-- Assign Vehicle: shown for active orders with no vehicle assigned -->
+                                    <button
+                                        v-if="['dispatched', 'in-transit'].includes(order.status) && !order.vehicleId"
+                                        @click="openAssignVehicle(order)"
+                                        class="p-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 transition-colors"
+                                        title="No vehicle assigned — click to assign">
+                                        <span class="material-symbols-outlined text-[16px]">local_shipping</span>
+                                    </button>
                                     <button
                                         v-if="hasMenuActions(order)"
                                         @click="toggleOrderMenu(order)"
@@ -304,6 +312,46 @@
         </div>
 
         <!-- PoD Modal -->
+        <!-- Assign Vehicle Modal -->
+        <Teleport to="body">
+            <div v-if="showAssignVehicleModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center" @click.self="showAssignVehicleModal = false">
+                <div class="bg-white dark:bg-card-darker rounded-2xl p-6 w-full max-w-sm m-4 border border-gray-200 dark:border-white/10 shadow-2xl">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-orange-400">local_shipping</span>
+                        Assign Vehicle
+                    </h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                        Order <strong class="text-gray-900 dark:text-white">{{ assignVehicleOrder?.id }}</strong>
+                        · Driver <strong class="text-gray-900 dark:text-white">{{ assignVehicleOrder?.driver || '—' }}</strong>
+                    </p>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Select Vehicle <span class="text-red-500">*</span></label>
+                            <p v-if="assignVehicleLoading" class="text-xs text-gray-400">Loading vehicles...</p>
+                            <select v-else v-model="assignVehicleSelected"
+                                class="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none">
+                                <option value="">— Select Vehicle —</option>
+                                <option v-for="v in assignVehicleOptions" :key="v.id" :value="v.id">
+                                    {{ v.code }} · {{ v.type || '' }} ({{ v.license_plate || 'no plate' }})
+                                </option>
+                            </select>
+                            <p v-if="!assignVehicleLoading && assignVehicleOptions.length === 0" class="text-xs text-red-400 mt-1">No available vehicles right now.</p>
+                        </div>
+                    </div>
+                    <div v-if="assignVehicleError" class="mt-3 text-xs text-red-400 font-bold">{{ assignVehicleError }}</div>
+                    <div v-if="assignVehicleSuccess" class="mt-3 text-xs text-green-400 font-bold">{{ assignVehicleSuccess }}</div>
+                    <div class="flex gap-2 mt-5">
+                        <button @click="confirmAssignVehicle" :disabled="!assignVehicleSelected || assignVehicleSaving"
+                            class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                            <span v-if="assignVehicleSaving" class="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
+                            {{ assignVehicleSaving ? 'Saving...' : 'Confirm' }}
+                        </button>
+                        <button @click="showAssignVehicleModal = false" class="flex-1 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white py-2 rounded-lg text-sm transition-colors">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
         <Teleport to="body">
             <BaseModal :isOpen="showPoD" @close="showPoD = false">
                 <template #title>Proof of Delivery — {{ podOrder?.id }}</template>
@@ -495,6 +543,96 @@ const actionPending = ref({})
 const transitionPending = ref({})
 const bulkUpdating = ref(false)
 const selectedOrderIds = ref(new Set())
+
+// ── Assign Vehicle Modal ────────────────────────────────────────────────────
+const showAssignVehicleModal = ref(false)
+const assignVehicleOrder = ref(null)
+const assignVehicleSelected = ref('')
+const assignVehicleOptions = ref([])
+const assignVehicleLoading = ref(false)
+const assignVehicleSaving = ref(false)
+const assignVehicleError = ref('')
+const assignVehicleSuccess = ref('')
+
+function authHeaders() {
+    const token = getStoredAccessToken()
+    return token
+        ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+        : { 'Content-Type': 'application/json' }
+}
+
+async function openAssignVehicle(order) {
+    assignVehicleOrder.value = order
+    assignVehicleSelected.value = ''
+    assignVehicleError.value = ''
+    assignVehicleSuccess.value = ''
+    showAssignVehicleModal.value = true
+    assignVehicleLoading.value = true
+    try {
+        // Fetch all vehicles and active orders to exclude busy vehicles
+        const [vRes, aRes, tRes] = await Promise.all([
+            fetch(`${API_BASE}/api/v1/logistics/vehicles`, { headers: authHeaders() }),
+            fetch(`${API_BASE}/api/v1/orders?status_filter=ASSIGNED&page_size=100`, { headers: authHeaders() }),
+            fetch(`${API_BASE}/api/v1/orders?status_filter=IN_TRANSIT&page_size=100`, { headers: authHeaders() }),
+        ])
+        const allVehicles = vRes.ok ? await vRes.json() : []
+        const assigned = aRes.ok ? await aRes.json() : []
+        const transit = tRes.ok ? await tRes.json() : []
+        const activeOrders = [
+            ...(Array.isArray(assigned) ? assigned : assigned.items || []),
+            ...(Array.isArray(transit) ? transit : transit.items || []),
+        ]
+        // Exclude vehicles already committed to another order (not this one)
+        const busyVehicleIds = new Set(
+            activeOrders
+                .filter(o => String(o.id) !== String(order.backendId || order.id))
+                .map(o => String(o.assigned_vehicle_id))
+                .filter(Boolean)
+        )
+        const vehicleArr = Array.isArray(allVehicles) ? allVehicles : (allVehicles.items || [])
+        assignVehicleOptions.value = vehicleArr.filter(v =>
+            !busyVehicleIds.has(String(v.id)) &&
+            (v.status === 'Active' || v.status === 'active')
+        )
+    } catch (_) {
+        assignVehicleOptions.value = []
+    } finally {
+        assignVehicleLoading.value = false
+    }
+}
+
+async function confirmAssignVehicle() {
+    if (!assignVehicleOrder.value || !assignVehicleSelected.value) return
+    assignVehicleSaving.value = true
+    assignVehicleError.value = ''
+    assignVehicleSuccess.value = ''
+    try {
+        const orderId = assignVehicleOrder.value.backendId || assignVehicleOrder.value.id
+        const body = {
+            vehicle_id: assignVehicleSelected.value,
+            driver_id: assignVehicleOrder.value.driverId,   // keep the existing driver
+        }
+        const res = await fetch(`${API_BASE}/api/v1/orders/${orderId}/assign`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify(body),
+        })
+        if (res.ok) {
+            assignVehicleSuccess.value = '✓ Vehicle assigned successfully'
+            setTimeout(async () => {
+                showAssignVehicleModal.value = false
+                await store.fetchActiveOrders().catch(() => {})
+            }, 800)
+        } else {
+            const err = await res.json().catch(() => ({}))
+            assignVehicleError.value = err.detail || 'Failed to assign vehicle. Please try again.'
+        }
+    } catch (_) {
+        assignVehicleError.value = 'Network error. Please try again.'
+    } finally {
+        assignVehicleSaving.value = false
+    }
+}
 const selectAllCheckbox = ref(null)
 
 const orders = ref([])

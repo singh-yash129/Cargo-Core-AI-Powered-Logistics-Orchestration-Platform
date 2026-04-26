@@ -55,7 +55,14 @@ class VendorShipmentSummary(BaseModel):
     labor_count: int = 0
     amount: float = 0
     scheduled_at: datetime | None = None
+    delivered_at: datetime | None = None
     created_at: datetime
+    delivery_notes: str | None = None
+    pod_photos: list[str] = []
+    pod_signature: str | None = None
+    poc_signature: str | None = None
+    customer_name: str | None = None
+    customer_phone: str | None = None
     auto_debit_note: str | None = None
     eta_label: str
     progress: int = 0
@@ -251,3 +258,27 @@ class VendorSupportTicketResponse(BaseModel):
     priority: str
     status: str
     replies: list[VendorSupportReplyResponse]
+
+
+# ── Recurring Order Cost Estimation ─────────────────────────────────────────
+
+class VendorRecurringCostEstimateRequest(BaseModel):
+    hub_name: str
+    hub_id: UUID | None = None
+    destination_lat: float
+    destination_lon: float
+    destination_address: str = ""
+
+
+class VendorRecurringCostEstimate(BaseModel):
+    distance_km: float
+    base_fee: float
+    distance_cost: float
+    total_estimate: float
+    rate_per_km: float
+    distance_method: str = "road_route"
+    resolved_hub_name: str | None = None
+    pickup_source: str = "warehouse_coordinates"
+    pickup_reference: str | None = None
+    currency: str = "INR"
+    note: str = "Estimate based on road-route distance."

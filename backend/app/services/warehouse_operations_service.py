@@ -6,7 +6,7 @@ quality checks, loading dock management, returns grading, and zone metrics.
 import json
 import re
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, UploadFile, status
@@ -94,6 +94,10 @@ async def _get_order(db: AsyncSession, order_id: UUID) -> Order:
     return order
 
 
+def _is_active_inbound_supplier(vendor: User | None) -> bool:
+    return bool(vendor and getattr(vendor, "is_active", False))
+
+
 def _validate_substatus_transition(current: str | None, target: str) -> None:
     if target not in WAREHOUSE_SUBSTATUSES:
         raise HTTPException(
@@ -153,6 +157,7 @@ INBOUND_RECEIVED_SUBSTATUSES = {
     "QC_PASSED",
     "DISPATCHED",
 }
+TERMINAL_ORDER_STATUSES = {"DELIVERED", "CLOSED", "CANCELLED"}
 
 
 def _inbound_tracking_code() -> str:
@@ -234,6 +239,8 @@ async def _latest_inbound_issue_ticket(
 
 
 def _inbound_status(order: Order) -> str | None:
+    if (getattr(order, "status", "") or "").upper() in TERMINAL_ORDER_STATUSES:
+        return None
     substatus = (order.warehouse_substatus or "").upper()
     if substatus in INBOUND_RECEIVED_SUBSTATUSES:
         return "Completed"
@@ -406,7 +413,7 @@ async def get_inbound_overview(
                 Order.warehouse_id == warehouse_id,
                 Order.order_type == "VENDOR",
                 func.coalesce(Order.pickup_type, "hub") == "hub",
-                Order.status != "CANCELLED",
+                Order.status.notin_(TERMINAL_ORDER_STATUSES),
                 or_(
                     Order.warehouse_substatus == "AWAITING_INBOUND",
                     Order.warehouse_substatus == "ON_HOLD",
@@ -426,7 +433,7 @@ async def get_inbound_overview(
             await db.execute(
                 select(User)
                 .options(selectinload(User.role))
-                .where(User.id.in_(vendor_ids))
+                .where(User.id.in_(vendor_ids), User.is_active.is_(True))
             )
         ).scalars().all()
         vendors = {vendor.id: vendor for vendor in vendor_rows}
@@ -493,17 +500,27 @@ async def get_inbound_overview(
 
     shipments: list[InboundShipmentItem] = []
     now = datetime.now(timezone.utc)
+    today = now.date()
+    inbound_cutoff = today + timedelta(days=1)  # show recurring orders 1 day before their run date
     arrived_today = 0
     in_transit = 0
     mismatches_found = 0
     damage_reports = 0
 
     for order in orders:
+        # Recurring inbound orders are only surfaced 1 day before their scheduled date
+        if _is_recurring_inbound(order) and order.scheduled_at:
+            if order.scheduled_at.date() > inbound_cutoff:
+                continue
+
         status_name = _inbound_status(order)
+
         if not status_name:
             continue
 
         vendor = vendors.get(order.customer_id)
+        if not _is_active_inbound_supplier(vendor):
+            continue
         supplier_name = (
             (vendor.company_name if vendor and vendor.company_name else None)
             or (vendor.name if vendor else None)
@@ -563,6 +580,9 @@ async def get_inbound_overview(
                 can_generate_take_back=can_generate_take_back,
                 warehouse_substatus=order.warehouse_substatus,
                 order_id=order.id,
+                total_amount=float(order.total_amount or 0.0),
+                auto_debit_enabled=bool(order.delivery_notes and "autoDebitEnabled\": true" in str(order.delivery_notes).replace(" ", "")),
+                is_recurring=_is_recurring_inbound(order),
                 created_at=order.created_at,
             )
         )
@@ -3180,6 +3200,7 @@ async def get_performance_metrics(
         select(Order).where(
             Order.warehouse_id == warehouse_id,
             Order.warehouse_substatus.in_(active_pipeline_statuses),
+            Order.status.notin_(TERMINAL_ORDER_STATUSES),
         )
     )
     active_orders = result.scalars().all()

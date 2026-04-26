@@ -130,7 +130,7 @@
                     <tbody class="divide-y divide-gray-200 dark:divide-white/5">
                         <tr v-for="order in filteredOrders" :key="order.id"
                             class="hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
-                            :class="order.type === 'PARCEL_PICKUP' ? 'bg-orange-50/40 dark:bg-orange-500/5 border-l-2 border-orange-400' : order.loadingInProgress ? 'bg-amber-50/50 dark:bg-amber-500/5 opacity-80' : order.readyForDispatch ? 'bg-emerald-50/50 dark:bg-emerald-500/5' : ''">
+                            :class="order.type === 'PARCEL_PICKUP' ? 'bg-orange-50/40 dark:bg-orange-500/5 border-l-2 border-orange-400' : order.type === 'VENDOR' ? 'bg-blue-50/30 dark:bg-blue-500/5 border-l-2 border-blue-400' : order.loadingInProgress ? 'bg-amber-50/50 dark:bg-amber-500/5 opacity-80' : order.readyForDispatch ? 'bg-emerald-50/50 dark:bg-emerald-500/5' : ''">
                             <td class="p-4">
                                 <input type="checkbox" v-model="order.selected" :disabled="order.loadingInProgress"
                                     class="rounded border-gray-600 bg-gray-100 dark:bg-black/20 text-primary focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed">
@@ -188,6 +188,10 @@
                                     <span class="material-symbols-outlined text-emerald-400 text-[14px]">local_shipping</span>
                                     <span class="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold">{{ order.vehicle }}</span>
                                 </div>
+                                <div v-else-if="orderAllowsDirectVehicleSelection(order)" class="flex items-center gap-1 text-blue-600 dark:text-blue-400 text-xs">
+                                    <span class="material-symbols-outlined text-[14px]">assignment_ind</span>
+                                    Dispatcher assigns
+                                </div>
                                 <div v-else class="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-xs font-bold">
                                     <span class="material-symbols-outlined text-[14px]">warning</span>
                                     No vehicle
@@ -214,8 +218,8 @@
                                     </button>
                                     <button @click="assignDriver(order)" :disabled="order.loadingInProgress"
                                         class="p-1.5 rounded transition-colors"
-                                        :class="order.loadingInProgress ? 'bg-gray-100 dark:bg-white/5 text-gray-400 cursor-not-allowed opacity-50' : order.vehicleId ? 'bg-green-100 dark:bg-primary/10 hover:bg-green-200 dark:hover:bg-primary/20 text-green-700 dark:text-primary' : 'bg-amber-100 dark:bg-amber-500/10 hover:bg-amber-200 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400'"
-                                        :title="order.loadingInProgress ? 'Awaiting warehouse release' : order.vehicleId ? 'Assign Driver' : 'Assign Driver (no vehicle yet — warehouse must assign first)'">
+                                        :class="order.loadingInProgress ? 'bg-gray-100 dark:bg-white/5 text-gray-400 cursor-not-allowed opacity-50' : (order.vehicleId || orderAllowsDirectVehicleSelection(order)) ? 'bg-green-100 dark:bg-primary/10 hover:bg-green-200 dark:hover:bg-primary/20 text-green-700 dark:text-primary' : 'bg-amber-100 dark:bg-amber-500/10 hover:bg-amber-200 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400'"
+                                        :title="order.loadingInProgress ? 'Awaiting warehouse release' : order.vehicleId ? 'Assign Driver' : orderAllowsDirectVehicleSelection(order) ? 'Assign Driver & Vehicle (vendor/service move — dispatcher selects)' : 'Assign Driver (no vehicle yet — warehouse must assign first)'">
                                         <span class="material-symbols-outlined text-[16px]">person_add</span>
                                     </button>
                                     <button @click="escalateOrder(order)" class="p-1.5 rounded transition-colors" :class="order.priority === 'URGENT' ? 'bg-yellow-100 dark:bg-yellow-500/10 hover:bg-yellow-200 dark:hover:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' : 'bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400'" :title="order.priority === 'URGENT' ? 'Set Normal' : 'Escalate to Urgent'">
@@ -399,7 +403,8 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
                         Vehicle
-                        <span v-if="orderAllowsDirectVehicleSelection(assignConfirmOrder)" class="text-orange-400 font-normal normal-case">(dispatcher can select directly)</span>
+                        <span v-if="orderAllowsDirectVehicleSelection(assignConfirmOrder) && assignConfirmOrder?.type === 'VENDOR'" class="text-blue-400 font-normal normal-case">(vendor order — dispatcher assigns vehicle)</span>
+                        <span v-else-if="orderAllowsDirectVehicleSelection(assignConfirmOrder)" class="text-orange-400 font-normal normal-case">(dispatcher can select directly)</span>
                         <span v-else class="text-gray-400 font-normal normal-case">(assigned by warehouse)</span>
                     </label>
                     <p v-if="assignVehiclesLoading" class="text-xs text-gray-400 mt-1">Loading...</p>
@@ -416,7 +421,7 @@
                     <div v-else class="flex items-center gap-2 px-3 py-2 rounded-lg text-xs border"
                         :class="orderAllowsDirectVehicleSelection(assignConfirmOrder) ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400'">
                         <span class="material-symbols-outlined text-[14px]">warning</span>
-                        <span v-if="orderAllowsDirectVehicleSelection(assignConfirmOrder)">No available vehicles — all vehicles are currently busy</span>
+                        <span v-if="orderAllowsDirectVehicleSelection(assignConfirmOrder)">No available vehicles — all vehicles are currently in use</span>
                         <span v-else>Not yet assigned — Warehouse Manager must assign a vehicle via Loading Dock first</span>
                     </div>
                 </div>
@@ -610,7 +615,8 @@ function evaluateDispatchFeasibility(order) {
         return { feasibility: 'unchecked', failReason: '' }
     }
 
-    if (!order.vehicleId) {
+    // Vendor/service-move orders: dispatcher assigns vehicle directly — no pre-assignment required
+    if (!order.vehicleId && !orderAllowsDirectVehicleSelection(order)) {
         return { feasibility: 'infeasible', failReason: 'No vehicle' }
     }
 
@@ -705,7 +711,9 @@ const filteredOrders = computed(() => {
 
 function orderAllowsDirectVehicleSelection(order) {
     const type = String(order?.type || '').toUpperCase()
-    return type === 'PARCEL_PICKUP' || type === 'SERVICE_MOVE'
+    // VENDOR (hub-based recurring inbound), SERVICE_MOVE, and PARCEL_PICKUP skip the
+    // warehouse loading-dock vehicle assignment step — dispatcher assigns vehicle directly.
+    return type === 'PARCEL_PICKUP' || type === 'SERVICE_MOVE' || type === 'VENDOR'
 }
 
 function getPriorityClass(priority) {

@@ -4,7 +4,7 @@
         <div class="flex justify-between items-center">
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Smart Driver Assignment</h2>
-                <p class="text-sm text-gray-400 mt-1">Real-time driver locations · AI-powered nearest driver assignment</p>
+                <p class="text-sm text-gray-400 mt-1">Real-time driver locations · AI-powered non-packing return-trip matching</p>
             </div>
             <div class="flex items-center gap-3">
                 <!-- AI badge -->
@@ -37,8 +37,8 @@
                 <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Pending Pickups</div>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <div class="text-2xl font-bold text-primary">{{ aiSuggestions.length }}</div>
-                <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">AI Suggestions</div>
+                <div class="text-2xl font-bold text-primary">{{ availableVehicles.length }}</div>
+                <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Free Vehicles</div>
             </div>
         </div>
 
@@ -102,6 +102,9 @@
                                     <span class="font-mono text-primary">{{ s.order_tracking_code }}</span>
                                     <span v-if="s.distance_km != null"> · {{ s.distance_km }}km away</span>
                                 </div>
+                                <div v-if="vehicleLabelForSuggestion(s)" class="text-[10px] text-emerald-400 mt-1 truncate">
+                                    Vehicle: {{ vehicleLabelForSuggestion(s) }}
+                                </div>
                             </div>
                             <div class="flex flex-col items-end gap-1 shrink-0">
                                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -123,10 +126,10 @@
                         </div>
 
                         <button @click.stop="assignAiSuggestion(s)"
-                            :disabled="assigningId === s.order_id"
+                            :disabled="assigningId === s.order_id || !canAssignSuggestion(s)"
                             class="w-full py-1.5 bg-primary hover:bg-primary/80 disabled:opacity-50 text-black text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1">
                             <span class="material-symbols-outlined text-[14px]">{{ assigningId === s.order_id ? 'progress_activity' : 'person_add' }}</span>
-                            {{ assigningId === s.order_id ? 'Assigning...' : 'Assign Driver' }}
+                            {{ assigningId === s.order_id ? 'Assigning...' : aiSuggestionActionLabel(s) }}
                         </button>
                     </div>
                 </div>
@@ -155,15 +158,20 @@
                             {{ order.deliveryAddr || 'Delivery not set' }}
                         </div>
                         <div class="flex gap-2">
+                            <select v-if="needsDispatcherVehicle(order)" v-model="orderVehiclePick[order.id]"
+                                class="flex-1 text-[10px] bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-gray-900 dark:text-white outline-none">
+                                <option value="">AI vehicle: {{ recommendedVehicleLabel(order) || 'No vehicle available' }}</option>
+                                <option v-for="vehicle in availableVehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicleLabel(vehicle) }}</option>
+                            </select>
                             <select v-model="orderDriverPick[order.id]"
                                 class="flex-1 text-[10px] bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-gray-900 dark:text-white outline-none">
                                 <option value="">Select Driver</option>
                                 <option v-for="d in availableDrivers" :key="d.id" :value="d.id">{{ d.name }}</option>
                             </select>
                             <button @click="manualAssign(order)"
-                                :disabled="!orderDriverPick[order.id] || assigningId === order.id"
+                                :disabled="!orderDriverPick[order.id] || assigningId === order.id || !canAssignOrder(order)"
                                 class="px-3 py-1.5 bg-primary disabled:opacity-40 hover:bg-primary/80 text-black text-[10px] font-bold rounded-lg transition-colors">
-                                {{ assigningId === order.id ? '...' : 'Assign' }}
+                                {{ assigningId === order.id ? '...' : needsDispatcherVehicle(order) ? 'Assign Both' : 'Assign' }}
                             </button>
                         </div>
                     </div>
@@ -187,6 +195,7 @@ const refreshing = ref(false)
 const assigningId = ref(null)       // order_id or pending_order_id being assigned
 const selectedSuggestion = ref(null)
 const orderDriverPick = reactive({})
+const orderVehiclePick = reactive({})
 
 // AI suggestion state
 const aiSuggestions = ref([])
@@ -230,6 +239,126 @@ function priorityClass(priority) {
     return 'bg-blue-500/20 text-blue-400'
 }
 
+function orderAllowsDirectVehicleSelection(order) {
+    const type = String(order?.type || '').toUpperCase()
+    return type === 'PARCEL_PICKUP' || type === 'SERVICE_MOVE' || type === 'VENDOR'
+}
+
+function recurringRuleId(order) {
+    const notes = String(order?.deliveryNotes || '')
+    const match = notes.match(/RECURRING_RULE:([^|\n]+)/i)
+    return match?.[1] || null
+}
+
+function needsDispatcherVehicle(order) {
+    return !!order && !order.vehicleId && orderAllowsDirectVehicleSelection(order)
+}
+
+function normalizeVehicleAvailabilityStatus(status) {
+    return String(status || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[_\s]+/g, '-')
+}
+
+function isVehicleDispatchableStatus(status) {
+    const normalized = normalizeVehicleAvailabilityStatus(status)
+    return ['active', 'idle', 'available', 'standby', 'ready'].includes(normalized)
+}
+
+function hasVehicleOpenAssignments(vehicleId) {
+    if (!vehicleId) return false
+    return (store.activeOrders || []).some((order) => {
+        const status = String(order?.status || '').toUpperCase()
+        return String(order?.vehicleId || '') === String(vehicleId)
+            && ['ASSIGNED', 'IN_TRANSIT'].includes(status)
+    })
+}
+
+function vehicleLabel(vehicle) {
+    return vehicle?.licensePlate || vehicle?.code || vehicle?.model || 'Vehicle'
+}
+
+function scoreVehicle(vehicle, order) {
+    let score = 30
+    const vehicleType = String(vehicle?.type || '').trim().toLowerCase()
+    const orderVehicleType = String(order?.vehicleType || '').trim().toLowerCase()
+
+    if (vehicleType && orderVehicleType && vehicleType === orderVehicleType) score += 35
+    else if (!orderVehicleType) score += 10
+
+    const orderWeightTons = Number(order?.weight || 0) / 1000
+    const capacityTons = Number(vehicle?.cargoCapacityTons || 0)
+    if (capacityTons > 0 && orderWeightTons > 0) {
+        if (capacityTons >= orderWeightTons) score += 18
+        else score -= 25
+    }
+
+    return score
+}
+
+const availableVehicles = computed(() =>
+    (store.filteredVehicles || []).filter((vehicle) =>
+        isVehicleDispatchableStatus(vehicle.status)
+        && !hasVehicleOpenAssignments(vehicle.id)
+    )
+)
+
+const ordersById = computed(() => {
+    const mapped = new Map()
+    for (const order of store.pendingOrders || []) {
+        mapped.set(String(order.id), order)
+    }
+    return mapped
+})
+
+function getRecommendedVehicle(order) {
+    if (!needsDispatcherVehicle(order) || !availableVehicles.value.length) return null
+    return [...availableVehicles.value]
+        .map((vehicle) => ({ vehicle, score: scoreVehicle(vehicle, order) }))
+        .sort((a, b) => b.score - a.score)[0]?.vehicle || null
+}
+
+function resolveVehicleIdForOrder(order) {
+    if (!order) return null
+    return order.vehicleId || orderVehiclePick[order.id] || getRecommendedVehicle(order)?.id || null
+}
+
+function recommendedVehicleLabel(order) {
+    return vehicleLabel(getRecommendedVehicle(order))
+}
+
+function canAssignOrder(order) {
+    if (!order) return false
+    if (!orderDriverPick[order.id]) return false
+    if (!needsDispatcherVehicle(order)) return true
+    return !!resolveVehicleIdForOrder(order)
+}
+
+function orderForSuggestion(suggestion) {
+    return ordersById.value.get(String(suggestion?.order_id || '')) || null
+}
+
+function vehicleLabelForSuggestion(suggestion) {
+    const order = orderForSuggestion(suggestion)
+    if (!order) return ''
+    if (order.vehicleId) return order.vehicle
+    const recommended = getRecommendedVehicle(order)
+    return recommended ? vehicleLabel(recommended) : ''
+}
+
+function canAssignSuggestion(suggestion) {
+    const order = orderForSuggestion(suggestion)
+    if (!order) return false
+    if (!needsDispatcherVehicle(order)) return true
+    return !!resolveVehicleIdForOrder(order)
+}
+
+function aiSuggestionActionLabel(suggestion) {
+    const order = orderForSuggestion(suggestion)
+    return needsDispatcherVehicle(order) ? 'Assign Driver + Vehicle' : 'Assign Driver'
+}
+
 // ── Computed data ─────────────────────────────────────────────────────────────
 const driversWithLocation = computed(() => {
     return store.dispatcherDrivers
@@ -252,19 +381,63 @@ const activeDrivers = computed(() =>
 )
 
 const unassignedOrders = computed(() =>
-    store.pendingOrders.filter(o => !o.driverId && !o.packingAmount)
+    {
+        const candidates = store.pendingOrders.filter((order) =>
+            !order.driverId
+            && !order.packingAmount
+            && (order.vehicleId || orderAllowsDirectVehicleSelection(order))
+        )
+        const byRule = new Map()
+        const deduped = []
+
+        for (const order of candidates) {
+            if (!needsDispatcherVehicle(order)) {
+                deduped.push(order)
+                continue
+            }
+
+            const ruleId = recurringRuleId(order)
+            if (!ruleId) {
+                deduped.push(order)
+                continue
+            }
+
+            const existing = byRule.get(ruleId)
+            const orderTs = new Date(order.deadline || order.createdAt || 0).getTime() || Number.MAX_SAFE_INTEGER
+            const existingTs = existing ? (new Date(existing.deadline || existing.createdAt || 0).getTime() || Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER
+            if (!existing || orderTs < existingTs) {
+                byRule.set(ruleId, order)
+            }
+        }
+
+        return [...deduped, ...byRule.values()]
+    }
 )
 
 // ── Fetch AI suggestions ──────────────────────────────────────────────────────
 async function fetchAiSuggestions() {
     aiLoading.value = true
     try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/orders/ai-driver-suggestions`, {
+        const res = await fetch(`${API_BASE_URL}/api/v1/orders/return-suggestions`, {
             headers: { 'Content-Type': 'application/json', ...authHeaders() },
         })
         if (res.ok) {
             const data = await res.json()
-            aiSuggestions.value = data.suggestions || []
+            aiSuggestions.value = (data.suggestions || []).map((item) => ({
+                order_id: item.pending_order_id,
+                order_tracking_code: item.pending_tracking_code,
+                pickup_addr: item.pickup_addr,
+                delivery_addr: item.delivery_addr,
+                priority: item.priority,
+                suggested_driver_id: item.driver_id,
+                suggested_driver_name: item.driver_name,
+                distance_km: item.distance_km,
+                confidence: Math.max(70, 95 - Math.round(Number(item.distance_km || 0) * 4)),
+                reason: item.reason,
+                ai_powered: item.ai_powered,
+                delivered_minutes_ago: item.delivered_minutes_ago,
+                last_delivery_addr: item.last_delivery_addr,
+            }))
         }
     } catch (err) {
         console.warn('AI driver suggestions fetch failed:', err)
@@ -427,7 +600,9 @@ function connectWS() {
 async function assignAiSuggestion(suggestion) {
     assigningId.value = suggestion.order_id
     try {
-        await store.assignOrder(suggestion.order_id, suggestion.suggested_driver_id)
+        const order = orderForSuggestion(suggestion)
+        const vehicleId = resolveVehicleIdForOrder(order)
+        await store.assignOrder(suggestion.order_id, suggestion.suggested_driver_id, vehicleId)
         // Remove from list immediately — don't wait for refetch
         aiSuggestions.value = aiSuggestions.value.filter(s => s.order_id !== suggestion.order_id)
         await store.fetchOrders()
@@ -443,8 +618,9 @@ async function manualAssign(order) {
     if (!driverId) return
     assigningId.value = order.id
     try {
-        await store.assignOrder(order.id, driverId)
+        await store.assignOrder(order.id, driverId, resolveVehicleIdForOrder(order))
         delete orderDriverPick[order.id]
+        delete orderVehiclePick[order.id]
         await refreshMarkers()
     } finally {
         assigningId.value = null

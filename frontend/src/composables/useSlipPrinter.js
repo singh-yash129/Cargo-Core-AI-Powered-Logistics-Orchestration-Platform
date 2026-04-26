@@ -90,6 +90,15 @@ function cleanText(value, fallback = '—') {
   return text || fallback
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function compactAddress(address, fallback = '—') {
   const parts = String(address ?? '')
     .split(',')
@@ -489,6 +498,148 @@ function finalTaxInvoiceReplacements(order, user) {
   }
 }
 
+function podMetricLabel(value, suffix = '', fallback = 'Not specified') {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return `${parsed.toLocaleString('en-IN')}${suffix}`
+}
+
+function buildPodSummarySection(order, pod) {
+  const summaryCards = [
+    {
+      label: 'Cargo Type',
+      value: cleanText(order?.description || order?.category || order?.cargoType || order?.cargo_type, 'Standard shipment'),
+    },
+    {
+      label: 'Declared Weight',
+      value: podMetricLabel(order?.weight || order?.cargo_weight_kg, ' kg'),
+    },
+    {
+      label: 'Volume',
+      value: podMetricLabel(order?.volume || order?.cargo_volume_m3, ' m3'),
+    },
+    {
+      label: 'Pallets',
+      value: podMetricLabel(order?.pallets || order?.palletCount, '', 'Not used'),
+    },
+    {
+      label: 'Handling Mode',
+      value: order?.packingRequired
+        ? 'Packed shipment with material handling'
+        : 'Direct shipment with no packing service booked',
+    },
+    {
+      label: 'Delivery Status',
+      value: pod?.confirmed === false ? 'Pending confirmation' : 'Delivered and acknowledged',
+    },
+  ]
+
+  const cardsMarkup = summaryCards.map((card) => `
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <p class="text-[9px] font-bold text-gray-500 uppercase tracking-wide mb-1">${escapeHtml(card.label)}</p>
+              <p class="text-[11px] font-semibold text-gray-900">${escapeHtml(card.value)}</p>
+            </div>
+  `).join('')
+
+  return `
+        <div>
+          <h3 class="text-[13px] font-bold text-gray-800 mb-3 pb-2 border-b border-gray-300">DELIVERY SUMMARY</h3>
+          <div class="grid grid-cols-2 gap-3">
+            ${cardsMarkup}
+          </div>
+        </div>
+  `
+}
+
+function buildPodServicesSection(order, pod) {
+  const photoCount = Number(pod?.photoCount || pod?.photos?.length || 0)
+  const laborCount = Math.max(0, num(order?.laborCount || order?.labor_count))
+  const services = [
+    {
+      title: 'Final Delivery Handover',
+      description: 'Shipment reached the destination and was acknowledged by the receiver.',
+    },
+    {
+      title: 'Proof of Delivery Capture',
+      description: pod?.signatureCaptured || photoCount > 0
+        ? `Delivery record captured with ${photoCount || 0} photo${photoCount === 1 ? '' : 's'} and recipient confirmation.`
+        : 'Delivery confirmation was recorded for this shipment.',
+    },
+  ]
+
+  if (laborCount > 0) {
+    services.push({
+      title: 'Loading and Unloading Support',
+      description: `${laborCount} crew member${laborCount === 1 ? '' : 's'} assisted with cargo handling.`,
+    })
+  }
+
+  if (order?.packingRequired) {
+    services.push({
+      title: 'Protective Packing Service',
+      description: 'Packing materials and protective handling were included for this order.',
+    })
+  } else {
+    services.push({
+      title: 'Non-Packing Shipment',
+      description: 'No packing or unpacking service was booked for this order.',
+    })
+  }
+
+  const cardsMarkup = services.map((service) => `
+            <div class="flex items-center gap-2 bg-green-50 p-3 rounded border border-green-200">
+              <div class="text-green-600 text-[20px]">&#10003;</div>
+              <div>
+                <p class="text-[11px] font-semibold text-gray-900">${escapeHtml(service.title)}</p>
+                <p class="text-[9px] text-gray-600">${escapeHtml(service.description)}</p>
+              </div>
+            </div>
+  `).join('')
+
+  return `
+        <div>
+          <h3 class="text-[13px] font-bold text-gray-800 mb-3 pb-2 border-b border-gray-300">SERVICES COMPLETED</h3>
+          <div class="grid grid-cols-2 gap-3">
+            ${cardsMarkup}
+          </div>
+        </div>
+  `
+}
+
+function buildPodFeedbackSection(order) {
+  const rating = Number(order?.customerRating ?? order?.customer_rating)
+  const hasRating = Number.isFinite(rating) && rating > 0
+  const feedback = cleanText(order?.customerFeedback || order?.customer_feedback, '')
+
+  if (!hasRating) {
+    return `
+        <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h3 class="text-[11px] font-bold text-blue-900 mb-2">DELIVERY FEEDBACK</h3>
+          <div class="bg-white p-3 rounded border border-blue-200">
+            <p class="text-[10px] text-gray-600">No delivery rating or written feedback has been submitted yet.</p>
+          </div>
+        </div>
+    `
+  }
+
+  const stars = Array.from({ length: 5 }, (_, index) => (
+    `<span class="text-[18px] ${index < rating ? 'text-yellow-500' : 'text-gray-300'}">${index < rating ? '&#9733;' : '&#9734;'}</span>`
+  )).join('')
+
+  return `
+        <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h3 class="text-[11px] font-bold text-blue-900 mb-2">DELIVERY FEEDBACK</h3>
+          <div class="bg-white p-3 rounded border border-blue-200">
+            <div class="flex gap-1 mb-2 items-center">
+              ${stars}
+              <span class="text-[11px] font-semibold text-gray-700 ml-2">${rating.toFixed(1)} / 5.0</span>
+            </div>
+            <p class="text-[10px] text-gray-700 italic">${feedback ? `"${escapeHtml(feedback)}"` : 'Rated delivery with no written feedback.'}</p>
+          </div>
+        </div>
+  `
+}
+
 function proofOfDeliveryReplacements(order, user) {
   const pod = buildPodData(order, {
     timestamp: order?.deliveredAt || order?.delivered_at || order?.pod?.timestamp || order?.eta || order?.createdAt || order?.date || null,
@@ -558,6 +709,9 @@ function proofOfDeliveryReplacements(order, user) {
     'id="pod-p2" class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2"><span class="text-[35px]">📷</span>': photoSlot('pod-p2', photos[1]),
     'id="pod-p3" class="w-full h-[100px] bg-gray-200 rounded flex items-center justify-center mb-2"><span class="text-[35px]">📷</span>': photoSlot('pod-p3', photos[2]),
     'id="pod-sig" class="border-2 border-gray-400 rounded h-[60px] bg-white mb-2">': sigContent,
+    '__POD_DELIVERY_SUMMARY__':      buildPodSummarySection(order, pod),
+    '__POD_SERVICES_COMPLETED__':    buildPodServicesSection(order, pod),
+    '__POD_CUSTOMER_FEEDBACK__':     buildPodFeedbackSection(order),
   }
 }
 

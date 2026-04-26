@@ -1134,16 +1134,16 @@ async def _vendor_support_message(ro_db: AsyncSession, user: User) -> str:
     ).scalar_one()
 
     lines = [
-        "Use the Support section to raise a ticket about a shipment, billing issue, or platform problem.",
-        f"You currently have **{int(open_count or 0)}** open support ticket(s).",
+        f"You currently have {int(open_count or 0)} open support ticket(s).",
     ]
     if tickets:
         latest = tickets[0]
         lines.append(
-            f"Latest ticket: **{latest.subject}** | Status: {latest.status} | Priority: {latest.priority}"
+            f"Latest ticket: {latest.subject} | Status: {latest.status} | Priority: {latest.priority}"
         )
     else:
-        lines.append("You have not raised any support tickets yet.")
+        lines.append("No support tickets have been raised yet.")
+    lines.append("If you need further help, you can raise a new ticket from the Support Tickets tab.")
     return "\n".join(lines)
 
 
@@ -2493,6 +2493,7 @@ async def chat(
         user=user,
         session_id=session_id,
         user_message=effective_user_message,
+        chat_context=chat_context,
     )
     if shortcut is not None:
         return shortcut
@@ -3265,6 +3266,7 @@ async def _try_handle_self_service_shortcuts(
     user: User,
     session_id: uuid.UUID,
     user_message: str,
+    chat_context: str | None = None,
 ) -> ChatResponse | None:
     """
     Only intercept the single most time-critical shortcut: exact current-order
@@ -3346,7 +3348,11 @@ async def _try_handle_self_service_shortcuts(
                 sql_generated=None,
             )
 
-        if _is_support_question(msg):
+        # Skip the "raise a ticket" shortcut when already inside support_chat — the
+        # user is already talking to AI support, so let Gemini answer their real question
+        # instead of short-circuiting with a generic "please raise a ticket" response.
+        is_in_support_chat = (chat_context or "").strip().lower() == SUPPORT_CHAT_CONTEXT
+        if not is_in_support_chat and _is_support_question(msg):
             base_message = await _vendor_support_message(ro_db, user)
             assistant_message = await _answer_with_grounded_ai(
                 user=user,
@@ -3675,7 +3681,10 @@ async def _local_fallback_response(
             return await _vendor_wallet_message(ro_db, user)
         if _is_analytics_section_question(msg):
             return await _vendor_analytics_message(ro_db, user)
-        if _is_support_question(msg):
+        # Only fire the "raise a ticket" shortcut outside support_chat — inside support_chat
+        # the AI should answer directly, not redirect to ticket creation.
+        is_in_support_chat = (chat_context or "").strip().lower() == SUPPORT_CHAT_CONTEXT
+        if not is_in_support_chat and _is_support_question(msg):
             return await _vendor_support_message(ro_db, user)
         if _is_recurring_data_question(msg):
             return await _vendor_recurring_orders_message(ro_db, user)
@@ -3967,7 +3976,14 @@ def _system_instruction_for_user(
             "- Recurring schedules: SELECT name, frequency, route, next_run, active FROM vendor_recurring_rules ORDER BY created_at DESC LIMIT 10\n"
             "- Support tickets: SELECT subject, status, priority, created_at FROM vendor_support_tickets ORDER BY created_at DESC LIMIT 10\n"
             "- Bulk upload meaning: answer directly — it means uploading many shipments at once via CSV/Excel file\n"
-            "- How-to platform questions: answer directly without SQL\n\n"
+            "- How-to platform questions: answer directly without SQL\n"
+            "- General greetings or casual messages: respond conversationally and helpfully, ask what you can assist with\n\n"
+            "== CRITICAL ANTI-DEFLECTION RULES ==\n"
+            "NEVER respond to a vendor query by telling them to raise a support ticket. This is a direct-answer chat interface.\n"
+            "- If data is available: query it and present the result clearly.\n"
+            "- If data is empty: say so directly (e.g., 'You have no overdue invoices right now.').\n"
+            "- If a question is greeting/general: respond warmly and ask how you can help.\n"
+            "- NEVER say 'please raise a ticket', 'contact support', or 'use the Support section' as your primary response.\n\n"
             "== RAIL GUARDS ==\n"
             "Refuse other users' data: say 'I can only show your own account data.'\n"
             "Refuse global metrics: say 'Company-wide analytics are only available to operations managers.'\n"
@@ -3981,18 +3997,21 @@ def _system_instruction_for_user(
                 + "\n"
                 + (order_snapshot + "\n" if order_snapshot else "")
                 + "== SUPPORT CHAT MODE — AUTONOMOUS RESOLUTION FIRST ==\n"
-                "You are in a DEDICATED VENDOR SUPPORT SESSION. Your primary goal is to fully resolve the vendor's concern without involving a human agent.\n"
-                "Always try to answer using live DB data before saying you cannot help.\n\n"
-                "RESOLUTION PLAYBOOK — handle these autonomously:\n"
+                "You are in a DEDICATED VENDOR SUPPORT SESSION. Your PRIMARY goal is to ANSWER the vendor's question directly using DB data.\n"
+                "ALWAYS try to answer using live DB data first. NEVER deflect by saying 'raise a ticket' or 'use the Support section'.\n\n"
+                "RESOLUTION PLAYBOOK — handle all of these autonomously:\n"
+                "- Greetings / 'hey' / 'hello' → Respond warmly: 'Hello! I am your Cargo-Core AI assistant. How can I help you today?'\n"
+                "- 'Do I have overdue invoices?' → Query: SELECT tracking_code, total_amount, created_at FROM orders WHERE payment_status='PENDING' AND status='DELIVERED'. Report findings directly.\n"
                 "- 'Where is my shipment / status' → Query orders for current status + substatus. Give a specific, factual answer with tracking code.\n"
                 "- 'ETA / delivery estimate' → Check scheduled_at and status. If IN_TRANSIT, confirm driver is dispatched with scheduled time. If PENDING/ASSIGNED, explain the processing stage.\n"
                 "- 'Payment pending / invoice overdue' → Query payment_status and payment_mode. Explain the payment cycle and when it will clear.\n"
-                "- 'I want to cancel a shipment' → If PENDING/CONFIRMED, explain the cancellation is possible via the app's shipment detail page and any applicable cancellation policy.\n"
+                "- 'I want to cancel a shipment' → If PENDING/CONFIRMED, explain the cancellation is possible via the app's shipment detail page.\n"
                 "- 'Address correction' → If not yet IN_TRANSIT, guide them to edit via the app. If IN_TRANSIT, acknowledge urgency and say a support manager will be informed.\n"
                 "- 'Damage / loss claim' → Query damage_reports. Explain the claim process: file via app → logistics manager review → refund/replacement decision within 3-5 business days.\n"
                 "- 'Recurring schedule question' → Query vendor_recurring_rules. Give the current schedule status and next run date.\n"
                 "- 'Refund / wallet credit' → Query wallet_transactions and order status. Explain refund eligibility and expected credit timeline.\n"
                 "- 'Bulk upload / CSV feature' → Explain directly: upload multiple shipments at once via the Vendor portal Bulk Upload section.\n"
+                "- 'What can you do?' or general questions → Explain your capabilities as the AI assistant.\n"
                 "- General how-to or feature questions → Answer directly from your knowledge of the Cargo-Core platform.\n\n"
                 "== ESCALATION RAIL GUARD ==\n"
                 "ONLY suggest talking to a human agent when:\n"

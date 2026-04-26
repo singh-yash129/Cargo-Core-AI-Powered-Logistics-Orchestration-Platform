@@ -345,10 +345,12 @@
                         </div>
                         <!-- Actions -->
                         <div v-if="selected.statusKey !== 'delivered' && selected.statusKey !== 'cancelled'" class="flex items-center gap-2">
-                            <button @click="showAddressModal = true" class="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5">
+                            <!-- Update Address: hidden for recurring orders -->
+                            <button v-if="!selected.isRecurring" @click="showAddressModal = true" class="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-[15px]">edit_location</span> Update Address
                             </button>
-                            <button @click="showRescheduleModal = true" class="px-3 py-1.5 bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 text-purple-600 dark:text-purple-400 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5">
+                            <!-- Reschedule: hidden for recurring orders -->
+                            <button v-if="!selected.isRecurring" @click="showRescheduleModal = true" class="px-3 py-1.5 bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 text-purple-600 dark:text-purple-400 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-[15px]">event</span> Reschedule
                             </button>
                             <button @click="showDamageModal = true" class="px-3 py-1.5 bg-orange-50 dark:bg-orange-500/10 hover:bg-orange-100 text-orange-600 dark:text-orange-400 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5">
@@ -371,7 +373,7 @@
                                     layer-type="base"
                                 ></l-tile-layer>
                                 <!-- Driver live position -->
-                                <l-marker v-if="selected?.driverLat && selected?.driverLng"
+                                <l-marker v-if="selectedHasLiveTracking && selected?.driverLat && selected?.driverLng"
                                     :lat-lng="[selected.driverLat, selected.driverLng]">
                                     <l-popup>
                                         <div class="text-xs p-1">
@@ -380,13 +382,22 @@
                                                 {{ selected.driver || 'Driver' }}
                                             </div>
                                             <div class="text-gray-500">Vehicle: <span class="font-medium text-gray-800">{{ selected.vehicle }}</span></div>
-                                            <div class="mt-1 text-[9px] uppercase font-bold bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 inline-block">In Transit</div>
+                                            <div class="mt-1 text-[9px] uppercase font-bold bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 inline-block">{{ selectedDriverMapStatusLabel }}</div>
                                         </div>
                                     </l-popup>
                                 </l-marker>
                             </l-map>
+                            <div v-if="selectedIsDelivered" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none bg-slate-950/25" style="z-index:500;">
+                                <span class="material-symbols-outlined text-3xl text-green-400/90 mb-1">verified</span>
+                                <p class="text-green-100 text-xs font-semibold">Shipment delivered</p>
+                                <p class="text-white/60 text-[11px] mt-1">Live route tracking has ended for this order</p>
+                            </div>
+                            <div v-else-if="selectedIsCancelled" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none bg-slate-950/25" style="z-index:500;">
+                                <span class="material-symbols-outlined text-3xl text-red-300/80 mb-1">cancel</span>
+                                <p class="text-red-100 text-xs font-semibold">Shipment cancelled</p>
+                            </div>
                             <!-- No GPS fallback -->
-                            <div v-if="!selected?.driverLat" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style="z-index:500;">
+                            <div v-else-if="!selectedHasLiveTracking" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style="z-index:500;">
                                 <span class="material-symbols-outlined text-3xl text-gray-400/50 mb-1">gps_off</span>
                                 <p class="text-gray-400/60 text-xs font-medium">Live GPS not available</p>
                             </div>
@@ -423,7 +434,7 @@
                             </div>
                             <div class="text-right">
                                 <div class="text-[10px] text-gray-400 uppercase font-bold">ETA</div>
-                                <div class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ selected.eta }}</div>
+                                <div class="text-sm font-bold" :class="selectedEtaClass">{{ selectedEtaLabel }}</div>
                             </div>
                         </div>
                     </div>
@@ -437,28 +448,42 @@
                             <!-- Shipment details -->
                             <div class="glass-panel rounded-2xl p-5">
                                 <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Shipment Details</h4>
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                    <div class="p-3 bg-green-50 dark:bg-green-500/10 rounded-xl border border-green-100 dark:border-green-500/20">
-                                        <div class="text-[9px] text-green-600 dark:text-green-400 uppercase font-bold mb-1">Amount</div>
-                                        <div class="text-lg font-black text-green-600 dark:text-green-400">₹{{ selected.amount.toLocaleString() }}</div>
+                                <div class="space-y-3">
+                                    <div class="rounded-2xl border border-green-100 dark:border-green-500/20 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-500/10 dark:to-emerald-500/10 p-4 sm:p-5 overflow-hidden">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <div class="text-[10px] text-green-700 dark:text-green-400 uppercase font-bold tracking-[0.18em]">Shipment Amount</div>
+                                                <div class="mt-2 text-[clamp(1.75rem,4vw,2.6rem)] font-black leading-none text-green-600 dark:text-green-400">
+                                                    ₹{{ formatCurrencyAmount(selected.amount) }}
+                                                </div>
+                                            </div>
+                                            <div class="w-11 h-11 rounded-2xl bg-white/80 dark:bg-white/10 border border-green-200/70 dark:border-green-400/20 flex items-center justify-center flex-shrink-0">
+                                                <span class="material-symbols-outlined text-[20px] text-green-600 dark:text-green-400">account_balance_wallet</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
-                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Weight</div>
-                                        <div class="text-base font-bold text-gray-900 dark:text-white">{{ selected.weight.toLocaleString() }}<span class="text-xs font-normal text-gray-400 ml-0.5">kg</span></div>
-                                    </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
-                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Pallets</div>
-                                        <div class="text-base font-bold text-gray-900 dark:text-white">{{ selected.pallets }}</div>
-                                    </div>
-                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
-                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Payment</div>
-                                        <div class="text-xs font-bold text-gray-900 dark:text-white">{{ selected.paymentMode }}</div>
-                                    </div>
-                                    <div class="col-span-2 sm:col-span-4 p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 flex items-center gap-3">
-                                        <span class="material-symbols-outlined text-blue-400 text-[20px]">category</span>
-                                        <div>
-                                            <div class="text-[9px] text-gray-400 uppercase font-bold">Category</div>
-                                            <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ selected.category }}</div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div class="min-w-0 p-3.5 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                            <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Weight</div>
+                                            <div class="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                                                {{ formatMetricValue(selected.weight) }}<span class="text-xs font-medium text-gray-400 ml-1">kg</span>
+                                            </div>
+                                        </div>
+                                        <div class="min-w-0 p-3.5 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                            <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Pallets</div>
+                                            <div class="text-lg font-bold text-gray-900 dark:text-white leading-tight">{{ formatMetricValue(selected.pallets) }}</div>
+                                        </div>
+                                        <div class="min-w-0 p-3.5 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                            <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Payment</div>
+                                            <div class="text-sm font-bold text-gray-900 dark:text-white leading-snug break-words">{{ selected.paymentMode }}</div>
+                                        </div>
+                                        <div class="min-w-0 p-3.5 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 flex items-start gap-3">
+                                            <span class="material-symbols-outlined text-blue-400 text-[20px] mt-0.5">category</span>
+                                            <div class="min-w-0">
+                                                <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Category</div>
+                                                <div class="text-sm font-semibold text-gray-900 dark:text-white leading-snug break-words">{{ selected.category }}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -467,32 +492,39 @@
                             <!-- Driver card -->
                             <div v-if="selected.driver" class="glass-panel rounded-2xl p-5">
                                 <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Driver</h4>
-                                <div class="flex items-center gap-4">
+
+                                <!-- Row 1: Avatar + Name/Vehicle/Status -->
+                                <div class="flex items-center gap-4 mb-4">
                                     <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
                                         <span class="material-symbols-outlined text-white text-[28px]">person</span>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="font-bold text-gray-900 dark:text-white">{{ selected.driver }}</div>
-                                        <div class="text-xs text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
-                                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">directions_car</span>{{ selected.vehicle }}</span>
-                                            <span class="text-gray-300 dark:text-white/20">·</span>
-                                            <span>{{ selected.driverPhone }}</span>
+                                        <div class="font-bold text-gray-900 dark:text-white truncate">{{ selected.driver }}</div>
+                                        <div class="flex items-center gap-1.5 mt-0.5 text-xs text-gray-400">
+                                            <span class="material-symbols-outlined text-[13px]">directions_car</span>
+                                            <span>{{ selected.vehicle || '—' }}</span>
                                         </div>
                                         <div class="flex items-center gap-1 mt-1.5">
-                                            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                            <span class="text-[10px] text-green-500 font-bold">Active · On Route</span>
+                                            <span class="w-2 h-2 rounded-full" :class="selectedDriverStatus.dotClass"></span>
+                                            <span class="text-[10px] font-bold" :class="selectedDriverStatus.textClass">{{ selectedDriverStatus.label }}</span>
                                         </div>
                                     </div>
-                                    <div class="flex gap-2 flex-shrink-0">
-                                        <button @click="showCallModal = true"
-                                            class="w-10 h-10 bg-gray-100 dark:bg-white/10 hover:bg-green-100 dark:hover:bg-green-500/20 rounded-xl text-gray-600 dark:text-gray-300 hover:text-green-600 transition-colors flex items-center justify-center" title="Call">
-                                            <span class="material-symbols-outlined text-[20px]">call</span>
-                                        </button>
-                                        <button @click="showChatModal = true"
-                                            class="w-10 h-10 bg-blue-600 hover:bg-blue-700 rounded-xl text-white transition-colors flex items-center justify-center shadow-md shadow-blue-500/20" title="Chat">
-                                            <span class="material-symbols-outlined text-[20px]">chat</span>
-                                        </button>
+                                </div>
+
+                                <!-- Row 2: Phone + Call button -->
+                                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                                    <div>
+                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Phone</div>
+                                        <div class="text-sm font-bold text-gray-900 dark:text-white tracking-wide">
+                                            {{ selected.driverPhone || '—' }}
+                                        </div>
                                     </div>
+                                    <button @click="showCallModal = true" :disabled="!canCallDriver"
+                                        class="w-10 h-10 rounded-xl text-white transition-colors flex items-center justify-center shadow-md"
+                                        :class="canCallDriver ? 'bg-green-500 hover:bg-green-600 shadow-green-500/20' : 'bg-gray-300 dark:bg-white/10 cursor-not-allowed shadow-none'"
+                                        title="Call Driver">
+                                        <span class="material-symbols-outlined text-[20px]">call</span>
+                                    </button>
                                 </div>
                             </div>
                             <!-- No driver placeholder to keep grid balanced -->
@@ -506,18 +538,26 @@
 
                         <!-- Row 2: Documents (full width) -->
                         <div class="glass-panel rounded-2xl p-5">
-                            <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3">Documents</h4>
-                            <div class="flex gap-3 flex-wrap">
-                                <div class="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-red-300 dark:hover:border-red-500/30 cursor-pointer transition-all group flex-1 min-w-[180px]">
-                                    <span class="material-symbols-outlined text-red-500 text-xl">picture_as_pdf</span>
-                                    <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 flex-1">Commercial Invoice</span>
-                                    <span class="material-symbols-outlined text-gray-400 text-sm group-hover:text-red-500 transition-colors">download</span>
+                            <div class="flex items-start justify-between gap-3 mb-3">
+                                <div>
+                                    <h4 class="text-sm font-bold text-gray-900 dark:text-white">Documents</h4>
+                                    <p class="text-xs text-gray-400 mt-1">Only ready-to-download shipment documents are shown here.</p>
                                 </div>
-                                <div class="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-blue-300 dark:hover:border-blue-500/30 cursor-pointer transition-all group flex-1 min-w-[180px]">
-                                    <span class="material-symbols-outlined text-blue-500 text-xl">description</span>
-                                    <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 flex-1">Bill of Lading</span>
-                                    <span class="material-symbols-outlined text-gray-400 text-sm group-hover:text-blue-500 transition-colors">download</span>
-                                </div>
+                            </div>
+                            <div v-if="availableDocuments.length > 0" class="flex gap-3 flex-wrap">
+                                <button v-for="doc in availableDocuments" :key="doc.key" @click="doc.action()"
+                                    class="flex items-center gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 cursor-pointer transition-all group flex-1 min-w-[220px] text-left"
+                                    :class="doc.hoverClass">
+                                    <span class="material-symbols-outlined text-xl" :class="doc.iconClass">{{ doc.icon }}</span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{{ doc.label }}</div>
+                                        <div class="text-[10px] text-gray-400 mt-0.5 truncate">{{ doc.description }}</div>
+                                    </div>
+                                    <span class="material-symbols-outlined text-gray-400 text-sm transition-colors" :class="doc.downloadClass">download</span>
+                                </button>
+                            </div>
+                            <div v-else class="rounded-xl border border-dashed border-gray-200 dark:border-white/10 bg-gray-50/60 dark:bg-white/5 px-4 py-5 text-sm text-gray-400">
+                                No downloadable documents are available for this shipment yet.
                             </div>
                         </div>
 
@@ -591,10 +631,7 @@
                                 </span>
                                 Proof of Delivery
                             </h4>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="rounded-xl overflow-hidden border border-gray-100 dark:border-white/10">
-                                    <img :src="selected.pod.photo" alt="Delivery proof" class="w-full h-36 object-cover">
-                                </div>
+                            <div class="grid grid-cols-1 gap-4">
                                 <div class="space-y-2">
                                     <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl">
                                         <div class="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Timestamp</div>
@@ -604,12 +641,47 @@
                                         <div class="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Location</div>
                                         <div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.pod.location }}</div>
                                     </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl">
+                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Received By</div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{ selected.pod.signedBy || 'Receiver' }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl">
+                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Recipient Signature</div>
+                                        <div v-if="selected.pod.signature && !podSignatureBroken" class="mt-2 h-20 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-slate-950/60 overflow-hidden flex items-center justify-center">
+                                            <img :src="selected.pod.signature" alt="Recipient signature" class="max-h-full max-w-full object-contain" @error="podSignatureBroken = true">
+                                        </div>
+                                        <div v-else class="text-xs text-gray-400">No signature was uploaded for this delivery.</div>
+                                    </div>
+                                    <div v-if="selected.pod.notes" class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl">
+                                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-0.5">Notes</div>
+                                        <div class="text-xs font-medium text-gray-900 dark:text-white whitespace-pre-line">{{ selected.pod.notes }}</div>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 dark:bg-white/5 rounded-xl">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Delivery Rating</div>
+                                                <div v-if="selected.customerRating" class="flex items-center gap-1.5">
+                                                    <span v-for="n in 5" :key="`pod-rating-${n}`" class="text-base"
+                                                        :class="n <= selected.customerRating ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'">★</span>
+                                                    <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 ml-1">{{ Number(selected.customerRating).toFixed(1) }}/5.0</span>
+                                                </div>
+                                                <div v-else class="text-xs text-gray-400">No delivery rating has been submitted yet.</div>
+                                            </div>
+                                            <button v-if="!selected.customerRating" @click="openVendorRatingModal(selected)"
+                                                class="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-[11px] font-bold transition-colors">
+                                                Rate Delivery
+                                            </button>
+                                        </div>
+                                        <div v-if="selected.customerFeedback" class="mt-2 text-xs text-gray-600 dark:text-gray-300 whitespace-pre-line">
+                                            {{ selected.customerFeedback }}
+                                        </div>
+                                    </div>
                                     <div class="flex gap-2">
-                                        <button @click="openSlipWithData('proofOfDelivery', selected, authStore.currentUser)"
+                                        <button @click="openSlipWithData('proofOfDelivery', selected, currentUser())"
                                             class="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-colors">
                                             <span class="material-symbols-outlined text-[14px]">verified</span> Download PoD
                                         </button>
-                                        <button @click="openSlipWithData('finalTaxInvoice', selected, authStore.currentUser)"
+                                        <button @click="openSlipWithData('finalTaxInvoice', selected, currentUser())"
                                             class="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors">
                                             <span class="material-symbols-outlined text-[14px]">request_quote</span> Tax Invoice
                                         </button>
@@ -618,8 +690,8 @@
                             </div>
                         </div>
 
-                        <!-- Support banner -->
-                        <div @click="showSupportModal = true"
+                        <!-- Need Help banner: navigates to AI Chat Support with this order pre-selected -->
+                        <div @click="goToSupport"
                             class="p-4 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white cursor-pointer hover:from-blue-700 hover:to-blue-800 transition-all group relative overflow-hidden">
                             <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full group-hover:scale-150 transition-transform duration-300"></div>
                             <div class="relative flex items-center gap-3">
@@ -754,6 +826,38 @@
             </BaseModal>
         </Teleport>
 
+        <!-- Driver Rating Modal -->
+        <Teleport to="body">
+            <BaseModal :isOpen="vendorRatingModal.show" @close="vendorRatingModal.show = false">
+                <template #title>Rate Your Driver</template>
+                <div class="space-y-4 text-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">How was your delivery experience? (optional)</p>
+                    <div class="flex justify-center gap-2">
+                        <span v-for="n in 5" :key="n"
+                            @click="vendorRatingModal.selected = n"
+                            @mouseenter="vendorRatingModal.hover = n"
+                            @mouseleave="vendorRatingModal.hover = 0"
+                            class="text-4xl cursor-pointer transition-colors select-none"
+                            :class="(vendorRatingModal.hover || vendorRatingModal.selected) >= n ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'">★</span>
+                    </div>
+                    <textarea v-model="vendorRatingModal.feedback" rows="2" placeholder="Leave a comment (optional)"
+                        class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-400/50 outline-none resize-none"></textarea>
+                </div>
+                <template #footer>
+                    <div class="flex gap-3 w-full">
+                        <button @click="submitVendorRating" :disabled="!vendorRatingModal.selected"
+                            class="flex-1 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-bold disabled:opacity-40">
+                            Submit Rating
+                        </button>
+                        <button @click="vendorRatingModal.show = false"
+                            class="flex-1 py-2 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white rounded-lg text-sm">
+                            Skip
+                        </button>
+                    </div>
+                </template>
+            </BaseModal>
+        </Teleport>
+
         <!-- Driver Call Modal -->
         <Teleport to="body">
             <BaseModal :isOpen="showCallModal" @close="showCallModal = false">
@@ -776,10 +880,13 @@
                 </div>
                 <template #footer>
                     <button @click="showCallModal = false" class="px-4 py-2 text-gray-500 text-sm">Close</button>
-                    <a :href="`tel:${selected?.driverPhone?.replace(/\s+/g, '')}`"
+                    <a v-if="canCallDriver" :href="`tel:${selected?.driverPhone?.replace(/\s+/g, '')}`"
                         class="px-8 py-2 bg-green-500 text-white rounded-lg text-sm font-bold hover:bg-green-600 transition-colors flex items-center gap-2">
                         <span class="material-symbols-outlined text-[18px]">call</span> Call Now
                     </a>
+                    <span v-else class="px-8 py-2 bg-gray-200 dark:bg-white/10 text-gray-500 rounded-lg text-sm font-bold flex items-center gap-2 cursor-not-allowed">
+                        <span class="material-symbols-outlined text-[18px]">call</span> No Phone
+                    </span>
                 </template>
             </BaseModal>
         </Teleport>
@@ -858,7 +965,8 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, watch } from 'vue'
+import { ref, computed, reactive, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useVendorStore } from '@/stores/vendorStore'
 import { useAuthStore } from '@/stores/authStore'
 import BaseModal from '@/components/BaseModal.vue'
@@ -876,8 +984,25 @@ L.Icon.Default.mergeOptions({
     shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
 });
 
-const { openSlip, openSlipWithData } = useSlipPrinter()
+const { openSlipWithData, SLIP_LABELS, SLIP_ICONS } = useSlipPrinter()
 const authStore = useAuthStore()
+const router = useRouter()
+
+function currentUser() {
+    return authStore.currentUser || {}
+}
+
+// Navigate to AI Chat Support page with the current shipment pre-selected
+function goToSupport() {
+    if (!selected.value) return
+    router.push({
+        name: 'VendorSupport',
+        query: {
+            tab: 'chat',
+            shipmentId: selected.value.backendId || selected.value.id,
+        },
+    })
+}
 
 // Chart.js Imports
 import {
@@ -911,6 +1036,29 @@ const selected = ref(null)
 const searchQuery = ref('')
 const statusFilter = ref('all')
 
+// ── Live status refresh ────────────────────────────────────────────────────
+// Re-fetch shipments when the Tracking page is opened so dispatcher status
+// changes (e.g. IN_TRANSIT → DELIVERED) appear immediately without a full
+// page reload. Also poll every 30 s for continuous updates.
+let _pollTimer = null
+onMounted(async () => {
+    try { await store.fetchShipments() } catch (_) {}
+    _pollTimer = setInterval(async () => {
+        try { await store.fetchShipments() } catch (_) {}
+    }, 30_000)
+})
+onUnmounted(() => {
+    if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null }
+})
+
+// When shipments refresh, sync the currently selected shipment so the detail
+// view reflects the latest status (e.g. In Transit → Delivered) automatically.
+watch(() => store.shipments, (list) => {
+    if (!selected.value) return
+    const fresh = list.find(s => s.backendId === selected.value.backendId || s.id === selected.value.id)
+    if (fresh) selected.value = fresh
+}, { deep: false })
+
 // Modals
 const showAddressModal = ref(false)
 const showRescheduleModal = ref(false)
@@ -926,6 +1074,7 @@ const newChatMessage = ref('')
 const chatMessages = ref([])
 const fileInput = ref(null)
 const damageForm = reactive({ severity: 'Medium', description: '' })
+const vendorRatingModal = reactive({ show: false, order: null, selected: 0, hover: 0, feedback: '' })
 const globalTab = ref('map')
 const detailTab = ref('overview')
 
@@ -938,13 +1087,110 @@ const globalMapCenter = computed(() =>
         : [20.5937, 78.9629]
 )
 const globalMapZoom = ref(5)
+const selectedMapZoom = ref(10)
 
+const selectedIsDelivered = computed(() => selected.value?.statusKey === 'delivered')
+const selectedIsCancelled = computed(() => selected.value?.statusKey === 'cancelled')
+const selectedHasLiveTracking = computed(() => {
+    if (!selected.value || selectedIsDelivered.value || selectedIsCancelled.value) return false
+    const lat = Number(selected.value.driverLat)
+    const lng = Number(selected.value.driverLng)
+    return Number.isFinite(lat) && Number.isFinite(lng)
+})
 const selectedMapCenter = computed(() =>
-    selected.value?.driverLat && selected.value?.driverLng
-        ? [selected.value.driverLat, selected.value.driverLng]
+    selectedHasLiveTracking.value
+        ? [Number(selected.value.driverLat), Number(selected.value.driverLng)]
         : [20.5937, 78.9629]
 )
-const selectedMapZoom = ref(10)
+const selectedEtaLabel = computed(() => {
+    if (selectedIsDelivered.value) return 'Delivered'
+    if (selectedIsCancelled.value) return 'Cancelled'
+    return selected.value?.eta || 'TBD'
+})
+const selectedEtaClass = computed(() => {
+    if (selectedIsDelivered.value) return 'text-green-600 dark:text-green-400'
+    if (selectedIsCancelled.value) return 'text-red-600 dark:text-red-400'
+    return 'text-blue-600 dark:text-blue-400'
+})
+const selectedDriverStatus = computed(() => {
+    if (selectedIsDelivered.value) {
+        return {
+            label: 'Trip Completed',
+            dotClass: 'bg-green-500',
+            textClass: 'text-green-500',
+        }
+    }
+    if (selectedIsCancelled.value) {
+        return {
+            label: 'Assignment Closed',
+            dotClass: 'bg-red-500',
+            textClass: 'text-red-500',
+        }
+    }
+    return {
+        label: 'Active · On Route',
+        dotClass: 'bg-green-500 animate-pulse',
+        textClass: 'text-green-500',
+    }
+})
+const selectedDriverMapStatusLabel = computed(() => {
+    if (selectedIsDelivered.value) return 'Delivered'
+    if (selectedIsCancelled.value) return 'Cancelled'
+    return 'In Transit'
+})
+const canCallDriver = computed(() => Boolean(String(selected.value?.driverPhone || '').trim()))
+const podSignatureBroken = ref(false)
+
+watch(selected, () => {
+    podSignatureBroken.value = false
+})
+
+const availableDocuments = computed(() => {
+    if (!selected.value) return []
+
+    const user = currentUser()
+    const docs = [
+        {
+            key: 'bookingConfirmation',
+            label: SLIP_LABELS.bookingConfirmation,
+            description: 'Booking summary and shipment details',
+            icon: SLIP_ICONS.bookingConfirmation,
+            iconClass: 'text-indigo-500',
+            hoverClass: 'hover:border-indigo-300 dark:hover:border-indigo-500/30',
+            downloadClass: 'group-hover:text-indigo-500',
+            action: () => openSlipWithData('bookingConfirmation', selected.value, user),
+        },
+    ]
+
+    if (selected.value.statusKey === 'delivered') {
+        docs.push(
+            {
+                key: 'proofOfDelivery',
+                label: SLIP_LABELS.proofOfDelivery,
+                description: selected.value.pod?.photoCount
+                    ? `${selected.value.pod.photoCount} proof file${selected.value.pod.photoCount === 1 ? '' : 's'} recorded`
+                    : 'Delivery confirmation slip',
+                icon: SLIP_ICONS.proofOfDelivery,
+                iconClass: 'text-green-500',
+                hoverClass: 'hover:border-green-300 dark:hover:border-green-500/30',
+                downloadClass: 'group-hover:text-green-500',
+                action: () => openSlipWithData('proofOfDelivery', selected.value, user),
+            },
+            {
+                key: 'finalTaxInvoice',
+                label: SLIP_LABELS.finalTaxInvoice,
+                description: 'Final billing document for this shipment',
+                icon: SLIP_ICONS.finalTaxInvoice,
+                iconClass: 'text-blue-500',
+                hoverClass: 'hover:border-blue-300 dark:hover:border-blue-500/30',
+                downloadClass: 'group-hover:text-blue-500',
+                action: () => openSlipWithData('finalTaxInvoice', selected.value, user),
+            }
+        )
+    }
+
+    return docs
+})
 
 // Transport Log — real status history from backend
 const STATUS_ICONS = {
@@ -983,6 +1229,22 @@ function formatLogTime(iso) {
     if (!iso) return ''
     try { return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) }
     catch { return iso }
+}
+
+function formatCurrencyAmount(value) {
+    const amount = Number(value || 0)
+    return amount.toLocaleString('en-IN', {
+        minimumFractionDigits: amount % 1 === 0 ? 0 : 1,
+        maximumFractionDigits: 2,
+    })
+}
+
+function formatMetricValue(value) {
+    const numeric = Number(value || 0)
+    return numeric.toLocaleString('en-IN', {
+        minimumFractionDigits: numeric % 1 === 0 ? 0 : 1,
+        maximumFractionDigits: 2,
+    })
 }
 
 const trackingLogs = computed(() => {
@@ -1233,9 +1495,35 @@ async function submitDamage() {
     showToast('Damage report submitted — reverse logistics ticket created')
 }
 
-function showToast(msg) {
+function openVendorRatingModal(shipment = selected.value) {
+    if (!shipment) return
+    Object.assign(vendorRatingModal, {
+        show: true,
+        order: shipment,
+        selected: Number(shipment.customerRating || 0),
+        hover: 0,
+        feedback: shipment.customerFeedback || '',
+    })
+}
+
+async function submitVendorRating() {
+    if (!vendorRatingModal.selected || !vendorRatingModal.order?.backendId) return
+    const result = await store.submitCustomerRating(
+        vendorRatingModal.order.backendId,
+        vendorRatingModal.selected,
+        vendorRatingModal.feedback || null
+    )
+    vendorRatingModal.show = false
+    showToast(
+        result.success ? 'Thanks for rating your driver!' : (result.message || 'Failed to submit rating.'),
+        result.success ? 'success' : 'error'
+    )
+}
+
+function showToast(msg, type = 'success') {
     const t = document.createElement('div')
-    t.className = 'fixed right-4 bottom-4 z-[9999] bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl'
+    const bg = type === 'error' ? 'bg-red-500' : 'bg-green-500'
+    t.className = `fixed right-4 bottom-4 z-[9999] ${bg} text-white text-sm font-bold px-4 py-2 rounded-lg shadow-xl`
     t.textContent = msg
     document.body.appendChild(t)
     setTimeout(() => t.remove(), 3000)

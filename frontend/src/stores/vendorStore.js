@@ -70,6 +70,15 @@ function routeSummary(pickup, delivery) {
     return `${pickup || 'Origin'} → ${delivery || 'Destination'}`
 }
 
+function isRecurringShipment(raw) {
+    const notes = String(raw.delivery_notes || '')
+    return Boolean(
+        raw.recurring_rule_id ||
+        raw.is_recurring ||
+        (notes.includes('RECURRING_RULE:') && notes.includes('|RUN:'))
+    )
+}
+
 export const useVendorStore = defineStore('vendor', () => {
     const { rates } = useRates()
     const initialized = ref(false)
@@ -156,6 +165,7 @@ export const useVendorStore = defineStore('vendor', () => {
         const delivery = raw.delivery_addr || 'Destination'
         const amount = Number(raw.amount ?? raw.cost?.total ?? 0)
         const delivered = statusKey === 'delivered'
+        const isRecurring = isRecurringShipment(raw)
         const driverName = raw.assigned_driver_name || raw.driver_name || raw.driver?.name || null
         const driverPhone = raw.assigned_driver_phone || raw.driver_phone || raw.driver?.phone || null
         const assignedVehicleCode = raw.assigned_vehicle_code || raw.vehicle_code || null
@@ -197,6 +207,7 @@ export const useVendorStore = defineStore('vendor', () => {
             packingRequired: Number(raw.cost?.packing || 0) > 0,
             laborRequired: Number(raw.labor_count || 0) > 0,
             laborCount: Number(raw.labor_count || 0),
+            isRecurring,
             createdAt: safeDateTimeLabel(raw.created_at),
             statusHistory: (raw.status_history || []).map((item) => ({
                 status: item.status,
@@ -288,6 +299,8 @@ export const useVendorStore = defineStore('vendor', () => {
                 id: String(w.id),
                 name: w.name,
                 address: w.address || w.location || '',
+                lat: w.lat ?? null,
+                lng: w.lng ?? null,
             }))
         } catch (e) {
             console.warn('[vendorStore] fetchWarehouses error:', e)
@@ -836,6 +849,25 @@ export const useVendorStore = defineStore('vendor', () => {
         await fetchApiKeys()
     }
 
+    async function estimateRecurringCost({ hubId = '', hubName, destinationLat, destinationLon, destinationAddress = '' }) {
+        const response = await fetch(`${API_BASE}/vendor/recurring/estimate-cost`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({
+                hub_name: hubName || '',
+                hub_id: hubId || null,
+                destination_lat: destinationLat,
+                destination_lon: destinationLon,
+                destination_address: destinationAddress,
+            }),
+        })
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}))
+            throw new Error(errData.detail || 'Failed to estimate recurring cost.')
+        }
+        return await response.json()
+    }
+
     async function addRecurringRule(rule) {
         const response = await fetch(`${API_BASE}/vendor/recurring-rules`, {
             method: 'POST',
@@ -1214,6 +1246,7 @@ export const useVendorStore = defineStore('vendor', () => {
         updateRecurringRule,
         toggleRecurringRule,
         deleteRecurringRule,
+        estimateRecurringCost,
         createBulkOrders,
         addBulkUpload,
         updateBulkUpload,

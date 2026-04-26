@@ -349,11 +349,33 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
         return driver ? driver.name : null
     }
 
-    function resolveVehicleCode(vehicleId) {
-        if (!vehicleId) return null
-        const id = String(vehicleId)
-        const vehicle = ls.filteredVehicles.find(v => v.id === id)
-        if (vehicle) return vehicle.code || vehicle.licensePlate || vehicle.model || null
+    function resolveVehicleCode(vehicleId, driverIdFallback = null) {
+        // Combined vehicle pool: dispatcher's directly-fetched list first, then logistic store.
+        // NOTE: filteredVehicles computed is declared later in this closure, so we read _vehicles.value directly.
+        const localVehicles = _vehicles.value.map(v => ({
+            id: String(v.id),
+            code: v.code || '',
+            licensePlate: v.license_plate || v.licensePlate || '',
+            model: v.model || '',
+            driverId: v.assigned_driver_id ? String(v.assigned_driver_id) : null,
+        }))
+        const allVehicles = localVehicles.length > 0 ? [...localVehicles, ...ls.filteredVehicles] : ls.filteredVehicles
+
+        // 1. Try by vehicleId directly
+        if (vehicleId) {
+            const id = String(vehicleId)
+            const vehicle = allVehicles.find(v => v.id === id)
+            if (vehicle) return vehicle.licensePlate || vehicle.code || vehicle.model || null
+        }
+        // 2. Fall back to finding the vehicle assigned to this driver
+        //    (vehicles table has assigned_driver_id, not the orders table)
+        if (driverIdFallback) {
+            const driverId = String(driverIdFallback)
+            const vehicle = allVehicles.find(v =>
+                v.driverId && String(v.driverId) === driverId
+            )
+            if (vehicle) return vehicle.licensePlate || vehicle.code || vehicle.model || null
+        }
         return null
     }
 
@@ -364,7 +386,8 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
         const volume = resolveCargoVolume(o)
         // Prefer server-resolved names, fall back to local store lookup
         const driverName = o.assigned_driver_name || resolveDriverName(o.assigned_driver_id)
-        const vehicleCode = o.assigned_vehicle_code || resolveVehicleCode(o.assigned_vehicle_id)
+        // assigned_vehicle_code doesn't exist in DB; look up by vehicle_id then by driver assignment
+        const vehicleCode = resolveVehicleCode(o.assigned_vehicle_id, o.assigned_driver_id)
         const deliveryAddr =
             o.unloading_addr ||
             o.unloading_address ||
@@ -494,32 +517,20 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
     async function fetchActiveOrders() {
         activeOrdersLoading.value = true
         try {
-            const [cRes, aRes, tRes, dRes] = await Promise.all([
-                fetch(`${API_BASE}/api/v1/orders?status_filter=CONFIRMED&page_size=100`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } }),
+            // Fetch ASSIGNED, IN_TRANSIT, and DELIVERED orders for the Order Status view
+            // (driver load counting uses only ASSIGNED + IN_TRANSIT, but the UI needs DELIVERED too)
+            const [aRes, tRes, dRes] = await Promise.all([
                 fetch(`${API_BASE}/api/v1/orders?status_filter=ASSIGNED&page_size=100`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } }),
                 fetch(`${API_BASE}/api/v1/orders?status_filter=IN_TRANSIT&page_size=100`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } }),
                 fetch(`${API_BASE}/api/v1/orders?status_filter=DELIVERED&page_size=100`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } }),
             ])
-            const confirmed = cRes.ok ? (await cRes.json()) : []
             const assigned = aRes.ok ? (await aRes.json()) : []
             const inTransit = tRes.ok ? (await tRes.json()) : []
             const delivered = dRes.ok ? (await dRes.json()) : []
-            const confirmedItems = Array.isArray(confirmed) ? confirmed : (confirmed.items || [])
             const assignedItems = Array.isArray(assigned) ? assigned : (assigned.items || [])
             const inTransitItems = Array.isArray(inTransit) ? inTransit : (inTransit.items || [])
             const deliveredItems = Array.isArray(delivered) ? delivered : (delivered.items || [])
-            const allItems = [...confirmedItems, ...assignedItems, ...inTransitItems, ...deliveredItems]
-            console.log('📦 fetchActiveOrders: Received', allItems.length, 'orders')
-            if (allItems.length > 0) {
-                console.log('Sample raw order:', allItems[0])
-            }
-            activeOrders.value = allItems.map(o => mapOrder(o))
-            console.log('📦 After mapping:', activeOrders.value.length, 'orders')
-            const withCoords = activeOrders.value.filter(o => o.deliveryLat && o.deliveryLng)
-            console.log('📦 Orders with delivery coords:', withCoords.length)
-            if (withCoords.length > 0) {
-                console.log('Sample mapped order with coords:', withCoords[0])
-            }
+            activeOrders.value = [...assignedItems, ...inTransitItems, ...deliveredItems].map(o => mapOrder(o))
         } catch (_) {
         } finally {
             activeOrdersLoading.value = false
@@ -543,7 +554,11 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
 
         return source.map((d) => {
             const driverId = String(d.id)
-            const driverOrders = activeOrders.value.filter(o => o.driverId === driverId)
+            // Only ASSIGNED + IN_TRANSIT orders count as active for this driver
+            const driverOrders = activeOrders.value.filter(o =>
+                o.driverId === driverId &&
+                (o.status === 'ASSIGNED' || o.status === 'IN_TRANSIT')
+            )
             const assignedCount = driverOrders.length
 
             // ── Current Load ────────────────────────────────────────────────
@@ -581,10 +596,32 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
             const effectiveStatus = isSuspended ? 'Suspended' : (d.status || 'Active')
             const color = isSuspended ? 'bg-red-500' : driverStatusColor(d.status)
 
+            // Vehicle: resolve the actual plate/code from the vehicles list.
+            // If driver has active orders, resolve from the order's vehicleId;
+            // otherwise show the vehicle stored on the driver profile.
+            let activeVehicle = ''
+            if (driverOrders.length > 0) {
+                const orderVehicleId = driverOrders[0].vehicleId
+                const orderVehicleRecord = orderVehicleId
+                    ? _vehicles.value.find(v => String(v.id) === String(orderVehicleId))
+                        || ls.filteredVehicles.find(v => String(v.id) === String(orderVehicleId))
+                    : null
+                const resolvedCode = orderVehicleRecord
+                    ? (orderVehicleRecord.license_plate || orderVehicleRecord.licensePlate || orderVehicleRecord.code || orderVehicleRecord.model || '')
+                    : ''
+                // Use resolved code; fall back to whatever mapOrder already set
+                activeVehicle = resolvedCode ||
+                    (driverOrders[0].vehicle && driverOrders[0].vehicle !== '—' && !driverOrders[0].vehicle.startsWith('Vehicle ') ? driverOrders[0].vehicle : '') ||
+                    d.vehicle || ''
+            } else {
+                activeVehicle = d.vehicle || ''
+            }
+
             return {
                 ...d,
                 avatar: generateAvatar(d.name, d.id),
                 statusColor: color,
+                vehicle: activeVehicle,
                 // Current Load — real cargo/order weight
                 load: weightBasedLoad,
                 totalWeightKg,
@@ -794,6 +831,8 @@ export const useDispatcherStore = defineStore('dispatcher', () => {
                 type: v.type || v.vehicle_type || '',
                 seatCapacity: v.seat_capacity ?? v.seatCapacity ?? null,
                 cargoCapacityTons: v.cargo_capacity_tons ?? v.cargoCapacityTons ?? null,
+                // Required for driver-based vehicle lookup fallback in resolveVehicleCode
+                driverId: v.assigned_driver_id ? String(v.assigned_driver_id) : null,
             }))
             : ls.filteredVehicles
     )

@@ -116,6 +116,7 @@
 import { ref, watch, nextTick, onUnmounted } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { apiUrl } from '@/config/api'
 
 const props = defineProps({
     isOpen: Boolean,
@@ -220,7 +221,7 @@ async function handleSearch() {
     searchTimeout = setTimeout(async () => {
         try {
             const response = await fetch(
-                `http://localhost:8000/api/v1/geocoding/search?q=${encodeURIComponent(searchQuery.value)}&limit=5`
+                apiUrl(`api/v1/geocoding/search?q=${encodeURIComponent(searchQuery.value)}&limit=5`)
             )
             const data = await response.json()
             searchResults.value = Array.isArray(data) ? data : []
@@ -297,7 +298,7 @@ async function reverseGeocode(lat, lon) {
     isFetchingAddress.value = true
     try {
         const response = await fetch(
-            `http://localhost:8000/api/v1/geocoding/reverse?lat=${lat}&lon=${lon}`
+            apiUrl(`api/v1/geocoding/reverse?lat=${lat}&lon=${lon}`)
         )
 
         if (!response.ok) {

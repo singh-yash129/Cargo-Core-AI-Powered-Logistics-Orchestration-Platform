@@ -100,10 +100,10 @@
                                     <button v-if="s.status === 'Delivered'" @click="openSlipWithData('finalTaxInvoice', s, currentUser())" class="p-1.5 rounded-lg hover:bg-green-500/10 text-gray-400 hover:text-green-500 transition-colors" title="Tax Invoice">
                                         <span class="material-symbols-outlined text-[16px]">request_quote</span>
                                     </button>
-                                    <button v-if="s.status !== 'Delivered' && s.status !== 'Cancelled'" @click="openAddressModal(s)" class="p-1.5 rounded-lg hover:bg-yellow-500/10 text-gray-400 hover:text-yellow-500 transition-colors" title="Update Address">
+                                    <button v-if="!s.isRecurring && s.status !== 'Delivered' && s.status !== 'Cancelled'" @click="openAddressModal(s)" class="p-1.5 rounded-lg hover:bg-yellow-500/10 text-gray-400 hover:text-yellow-500 transition-colors" title="Update Address">
                                         <span class="material-symbols-outlined text-[16px]">edit_location</span>
                                     </button>
-                                    <button v-if="s.status !== 'Delivered' && s.status !== 'Cancelled'" @click="openRescheduleModal(s)" class="p-1.5 rounded-lg hover:bg-purple-500/10 text-gray-400 hover:text-purple-500 transition-colors" title="Reschedule">
+                                    <button v-if="!s.isRecurring && s.status !== 'Delivered' && s.status !== 'Cancelled'" @click="openRescheduleModal(s)" class="p-1.5 rounded-lg hover:bg-purple-500/10 text-gray-400 hover:text-purple-500 transition-colors" title="Reschedule">
                                         <span class="material-symbols-outlined text-[16px]">schedule</span>
                                     </button>
                                     <button v-if="s.status === 'Delivered'" @click="openDamageModal(s)" class="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors" title="Report Damage">

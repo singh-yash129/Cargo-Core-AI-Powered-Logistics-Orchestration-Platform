@@ -946,14 +946,53 @@ function openMoveModal(item) {
     showMoveModal.value = true
 }
 
-function confirmMove() {
-    moveItem.value.zone = newLocation.zone
-    moveItem.value.aisle = newLocation.aisle
-    moveItem.value.rack = newLocation.rack
-    moveItem.value.shelf = newLocation.shelf
-    moveItem.value.bin = newLocation.bin
+async function confirmMove() {
+    const item = moveItem.value
+    const warehouseId = getWarehouseId()
+    const newAisle = `${newLocation.zone}-${newLocation.aisle}`
+
+    // Optimistically update UI immediately
+    item.zone = newLocation.zone
+    item.aisle = newLocation.aisle
+    item.rack = newLocation.rack
+    item.shelf = newLocation.shelf
+    item.bin = newLocation.bin
     showMoveModal.value = false
-    showToast(`${moveItem.value.sku} moved to ${newLocation.zone}-${newLocation.aisle}-${newLocation.rack}-${newLocation.shelf}-${newLocation.bin}`)
+
+    try {
+        const token = getStoredAccessToken()
+        const res = await fetch(`${API_BASE}/api/v1/inventory/${item.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                aisle: newAisle,
+                shelf: newLocation.shelf,
+                bin: newLocation.bin
+            })
+        })
+
+        if (!res.ok) {
+            throw new Error(`Server error: ${res.status}`)
+        }
+
+        // Re-fetch inventory to stay in sync with backend
+        await fetchInventory()
+
+        // Notify Floor Plan to re-sync
+        window.dispatchEvent(new CustomEvent('warehouse-inventory-updated', {
+            detail: { warehouseId, sku: item.sku }
+        }))
+
+        showToast(`${item.sku} moved to ${newLocation.zone}-${newLocation.aisle}-${newLocation.rack}-${newLocation.shelf}-${newLocation.bin}`)
+    } catch (e) {
+        console.error('Failed to save move:', e)
+        // Revert optimistic update on failure
+        await fetchInventory()
+        showToast(`Failed to move ${item.sku} — please try again`)
+    }
 }
 
 function printLabel(item) {

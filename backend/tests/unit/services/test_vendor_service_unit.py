@@ -72,6 +72,12 @@ def test_ensure_vendor_rejects_non_vendor_user() -> None:
     assert exc_info.value.status_code == 403
 
 
+def test_is_active_vendor_owner_helper() -> None:
+    assert vendor_service._is_active_vendor_owner(_make_user()) is True
+    assert vendor_service._is_active_vendor_owner(SimpleNamespace(is_active=False)) is False
+    assert vendor_service._is_active_vendor_owner(None) is False
+
+
 def test_status_key_and_shipment_status_key_mappings() -> None:
     assert vendor_service._status_key("ASSIGNED") == "transit"
     assert vendor_service._shipment_status_key("CONFIRMED", "AWAITING_PICK") == "warehouse"
@@ -176,6 +182,82 @@ def test_safe_float_and_tracking_code() -> None:
     code = vendor_service._tracking_code()
     assert code.startswith("QC-")
     assert len(code) == 13
+
+
+def test_normalize_uuid_and_estimate_note_helpers() -> None:
+    raw = str(uuid4())
+    parsed = vendor_service._normalize_uuid(raw)
+
+    assert parsed is not None
+    assert str(parsed) == raw
+    assert vendor_service._normalize_uuid("not-a-uuid") is None
+
+    zone_note = vendor_service._build_recurring_estimate_note(
+        warehouse_name="BANGALORE-HUB",
+        warehouse_source="hub_id",
+        pickup_source="geofence_zone",
+        pickup_reference="BANGALORE HUB-01",
+        distance_method="road_route",
+    )
+    missing_note = vendor_service._build_recurring_estimate_note(
+        warehouse_name="BANGALORE-HUB",
+        warehouse_source="first_active",
+        pickup_source="missing_coordinates",
+        pickup_reference=None,
+        distance_method="road_route",
+    )
+    fallback_note = vendor_service._build_recurring_estimate_note(
+        warehouse_name="BANGALORE-HUB",
+        warehouse_source="hub_name",
+        pickup_source="warehouse_coordinates",
+        pickup_reference="BANGALORE-HUB",
+        distance_method="road_route_fallback",
+    )
+
+    assert "geofence zone" in zone_note.lower()
+    assert "first active warehouse" in missing_note.lower()
+    assert "fallback estimate" in fallback_note.lower()
+
+
+def test_fallback_route_km_uses_buffered_minimum_distance() -> None:
+    same_point = vendor_service._fallback_route_km(12.97, 77.59, 12.97, 77.59)
+    longer = vendor_service._fallback_route_km(12.97, 77.59, 13.08, 77.61)
+
+    assert same_point == 1.0
+    assert longer > 1.0
+
+
+@pytest.mark.asyncio
+async def test_estimate_recurring_cost_uses_road_route_distance(monkeypatch: pytest.MonkeyPatch) -> None:
+    warehouse = SimpleNamespace(name="BANGALORE-HUB")
+
+    async def fake_resolve_warehouse(*args, **kwargs):
+        return warehouse, "hub_id"
+
+    async def fake_pickup_origin(*args, **kwargs):
+        return 12.97, 77.59, "BANGALORE-HUB", "warehouse_coordinates"
+
+    async def fake_road_route(*args, **kwargs):
+        return 18.4, "road_route"
+
+    monkeypatch.setattr(vendor_service, "_resolve_recurring_warehouse", fake_resolve_warehouse)
+    monkeypatch.setattr(vendor_service, "_resolve_recurring_pickup_origin", fake_pickup_origin)
+    monkeypatch.setattr(vendor_service, "_road_route_distance_km", fake_road_route)
+
+    estimate = await vendor_service.estimate_recurring_cost(
+        None,
+        SimpleNamespace(
+            hub_id=uuid4(),
+            hub_name="BANGALORE-HUB",
+            destination_lat=12.88,
+            destination_lon=77.71,
+        ),
+    )
+
+    assert estimate.distance_km == 18.4
+    assert estimate.distance_method == "road_route"
+    assert estimate.distance_cost == 220.8
+    assert estimate.total_estimate == 440.8
 
 
 def test_next_run_for_frequency_rules() -> None:

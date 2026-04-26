@@ -557,7 +557,46 @@ const suggestions = computed(() => {
     const result = []
     const drivers = store.dispatcherDrivers
     const allOrders = [...(store.pendingOrders || []), ...(store.activeOrders || [])]
-    const readyOrders = allOrders.filter(order => order.readyForDispatch && order.vehicleId && !order.driverId)
+    const recurringRuleId = (order) => {
+        const notes = String(order?.deliveryNotes || '')
+        const match = notes.match(/RECURRING_RULE:([^|\n]+)/i)
+        return match?.[1] || null
+    }
+    const isDirectDispatchAiCandidate = (order) => {
+        const type = String(order?.type || '').toUpperCase()
+        const substatus = String(order?.warehouseSubstatus || '').toUpperCase()
+        const allowsDirectVehicleSelection = type === 'PARCEL_PICKUP' || type === 'SERVICE_MOVE' || type === 'VENDOR'
+        return allowsDirectVehicleSelection
+            && !order?.driverId
+            && Number(order?.packingAmount || 0) === 0
+            && ['AWAITING_INBOUND', 'AWAITING_PICK', 'QC_PASSED', 'READY_FOR_DISPATCH', 'DISPATCHED'].includes(substatus)
+    }
+    const readyOrders = (() => {
+        const candidates = allOrders.filter(order => {
+            const standardWarehouseCandidate = order.readyForDispatch && !order.driverId && !!order.vehicleId
+            return standardWarehouseCandidate || isDirectDispatchAiCandidate(order)
+        })
+        const byRule = new Map()
+        const deduped = []
+        for (const order of candidates) {
+            if (!isDirectDispatchAiCandidate(order)) {
+                deduped.push(order)
+                continue
+            }
+            const ruleId = recurringRuleId(order)
+            if (!ruleId) {
+                deduped.push(order)
+                continue
+            }
+            const existing = byRule.get(ruleId)
+            const orderTs = new Date(order.deadline || order.createdAt || 0).getTime() || Number.MAX_SAFE_INTEGER
+            const existingTs = existing ? (new Date(existing.deadline || existing.createdAt || 0).getTime() || Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER
+            if (!existing || orderTs < existingTs) {
+                byRule.set(ruleId, order)
+            }
+        }
+        return [...deduped, ...byRule.values()]
+    })()
     const freeDrivers = drivers.filter(driver =>
         driver.authorized
         && !driver.suspended
@@ -566,12 +605,16 @@ const suggestions = computed(() => {
     )
 
     if (readyOrders.length && freeDrivers.length) {
+        const firstReady = readyOrders[0]
+        const vehicleLabel = firstReady.vehicleId
+            ? (firstReady.vehicle || 'assigned')
+            : 'dispatcher vehicle selection'
         result.push({
             id: 'best-driver-match',
             title: 'Best Driver Suggestion Ready',
             color: 'text-primary',
             applied: false,
-            message: `<strong>${readyOrders[0].trackingCode || readyOrders[0].id}</strong> is released with vehicle <strong>${readyOrders[0].vehicle || 'assigned'}</strong>. <strong>${freeDrivers[0].name}</strong> is the best free driver to review first.`,
+            message: `<strong>${firstReady.trackingCode || firstReady.id}</strong> is ready with <strong>${vehicleLabel}</strong>. <strong>${freeDrivers[0].name}</strong> is the best free driver to review first.`,
             explanation: 'The suggestion is based on driver availability, shift time remaining, and warehouse-fit signals from current dispatch data.',
             confidence: 94,
             actions: [
@@ -587,7 +630,7 @@ const suggestions = computed(() => {
             title: 'Driver Gap Detected',
             color: 'text-orange-600 dark:text-orange-400',
             applied: false,
-            message: `<strong>${readyOrders.length - freeDrivers.length}</strong> released order(s) have a vehicle assigned but not enough free drivers available right now.`,
+            message: `<strong>${readyOrders.length - freeDrivers.length}</strong> ready order(s) do not have enough free drivers available right now.`,
             explanation: 'Dispatcher attention is needed for escalation, reassignment, or release sequencing.',
             confidence: 92,
             actions: [

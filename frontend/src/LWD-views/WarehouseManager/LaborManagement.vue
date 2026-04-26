@@ -3,7 +3,7 @@
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Labor Management</h2>
             <div class="flex flex-wrap justify-end gap-2">
-                <button @click="showCreateModal = true"
+                <button @click="openCreateModal"
                     class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
                     <span class="material-symbols-outlined">person_add</span>
                     Add Labourer
@@ -332,14 +332,14 @@
         <Teleport to="body">
             <div v-if="showCreateModal"
                 class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                @click.self="showCreateModal = false">
+                @click.self="closeCreateModal">
                 <div class="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl w-full max-w-md border border-gray-200 dark:border-white/10 max-h-[90vh] flex flex-col">
                     <div class="p-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center flex-shrink-0">
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
                             <span class="material-symbols-outlined text-green-500">person_add</span>
                             Add New Labourer
                         </h3>
-                        <button @click="showCreateModal = false"
+                        <button @click="closeCreateModal"
                             class="text-gray-500 hover:text-gray-900 dark:text-white">
                             <span class="material-symbols-outlined">close</span>
                         </button>
@@ -347,18 +347,18 @@
                     <div class="p-4 space-y-3 overflow-y-auto flex-1">
                         <div>
                             <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Full Name *</label>
-                            <input type="text" v-model="newLabourer.name" placeholder="Enter full name"
+                            <input type="text" v-model="newLabourer.name" placeholder="Enter full name" autocomplete="off"
                                 class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50" />
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Email</label>
-                                <input type="email" v-model="newLabourer.email" placeholder="email@example.com"
+                                <input type="email" v-model="newLabourer.email" placeholder="email@example.com" autocomplete="off"
                                     class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm" />
                             </div>
                             <div>
                                 <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Phone</label>
-                                <input type="tel" v-model="newLabourer.phone" placeholder="+91 98765 43210"
+                                <input type="tel" v-model="newLabourer.phone" placeholder="+91 98765 43210" autocomplete="off"
                                     class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:outline-none focus:border-primary/50 text-sm" />
                             </div>
                         </div>
@@ -467,6 +467,16 @@ function resetNewLabourerForm() {
         role: '',
         skills: []
     }
+}
+
+function openCreateModal() {
+    resetNewLabourerForm()
+    showCreateModal.value = true
+}
+
+function closeCreateModal() {
+    showCreateModal.value = false
+    resetNewLabourerForm()
 }
 
 const staffList = ref([])
@@ -761,10 +771,12 @@ async function createLabourer() {
     try {
         // Only send fields defined in LabourerCreate schema
         const warehouseId = authStore.currentUser?.warehouse_id
+        const normalizedEmail = newLabourer.value.email?.trim().toLowerCase()
+        const normalizedPhone = newLabourer.value.phone?.trim()
         const payload = {
-            name: newLabourer.value.name,
-            email: newLabourer.value.email || undefined,
-            phone: newLabourer.value.phone || undefined,
+            name: newLabourer.value.name.trim(),
+            email: normalizedEmail || undefined,
+            phone: normalizedPhone || undefined,
             role: newLabourer.value.role,
             department: newLabourer.value.role,
             skill_tags: newLabourer.value.skills.length > 0 ? newLabourer.value.skills : undefined,
@@ -788,18 +800,26 @@ async function createLabourer() {
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}))
             const detail = errData.detail
-            const msg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail.map(d => d.msg || d.message || JSON.stringify(d)).join(', ') : 'Failed to create labourer')
+            let msg = typeof detail === 'string'
+                ? detail
+                : (Array.isArray(detail)
+                    ? detail.map(d => d.msg || d.message || JSON.stringify(d)).join(', ')
+                    : 'Failed to create labourer')
+            if (msg.startsWith('Email already exists') && payload.email) {
+                msg = `Email already exists: ${payload.email}`
+            }
             throw new Error(msg)
         }
 
         const created = await response.json()
+        const createdName = created.name || created.full_name || newLabourer.value.name
 
         // Add to local list immediately
-        const displayStatus = mapStatus('AVAILABLE')
+        const displayStatus = 'In Warehouse'
         staffList.value.unshift({
             id: created.id,
             rawId: created.id,
-            name: created.name || created.full_name || newLabourer.value.name,
+            name: createdName,
             role: created.role || newLabourer.value.role,
             task: 'Available',
             orderId: null,
@@ -812,9 +832,8 @@ async function createLabourer() {
             dept: created.department || newLabourer.value.role
         })
 
-        showCreateModal.value = false
-        resetNewLabourerForm()
-        showToast(`${created.name || newLabourer.value.name} added successfully!`)
+        closeCreateModal()
+        showToast(`${createdName} added successfully!`)
     } catch (error) {
         console.error('Create labourer error:', error)
         showToast(error.message || 'Failed to create labourer', 'error')

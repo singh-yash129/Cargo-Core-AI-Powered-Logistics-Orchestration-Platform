@@ -3,12 +3,14 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.logistics import LogisticsDriverProfile
+from app.models.order import Order
 from app.models.user import Role, User
+from app.models.vendor import VendorRecurringRule
 from app.models.warehouse import Warehouse
 from app.schemas.users import (
     AssignRoleRequest,
@@ -23,6 +25,8 @@ from app.utils.username import generate_unique_username, normalize_username
 
 WAREHOUSE_SCOPED_ROLES = {"WAREHOUSE_MANAGER", "DISPATCHER", "DRIVER"}
 _DRIVER_PIN_RE = re.compile(r"^\d{4}$")
+SOFT_DELETED_APPROVAL_NOTE = "__SOFT_DELETED__"
+_VENDOR_INBOUND_CLEANUP_SUBSTATUSES = {"AWAITING_INBOUND", "ON_HOLD"}
 
 
 async def _get_user(db: AsyncSession, user_id: UUID) -> User:
@@ -134,7 +138,12 @@ async def list_users(
     is_active: bool | None = None,
     search: str | None = None,
 ) -> UserListResponse:
-    filters = []
+    filters = [
+        or_(
+            User.approval_note.is_(None),
+            User.approval_note != SOFT_DELETED_APPROVAL_NOTE,
+        )
+    ]
     if role:
         filters.append(Role.name == role.upper())
     if warehouse_id:
@@ -253,7 +262,44 @@ async def update_user(db: AsyncSession, user_id: UUID, data: UserAdminUpdate) ->
 
 async def soft_delete_user(db: AsyncSession, user_id: UUID) -> None:
     user = await _get_user(db, user_id)
+    if user.role.name == "LOGISTIC_MANAGER":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Logistic manager account cannot be deleted",
+        )
+
+    await _sync_warehouse_manager_assignment(db, user, user.role.name, None)
     user.is_active = False
+    user.approval_note = SOFT_DELETED_APPROVAL_NOTE
+
+    if user.role.name == "VENDOR":
+        recurring_rules = (
+            await db.execute(
+                select(VendorRecurringRule).where(
+                    VendorRecurringRule.vendor_id == user.id,
+                    VendorRecurringRule.active.is_(True),
+                )
+            )
+        ).scalars().all()
+        for rule in recurring_rules:
+            rule.active = False
+            db.add(rule)
+
+        pending_inbound_orders = (
+            await db.execute(
+                select(Order).where(
+                    Order.customer_id == user.id,
+                    Order.order_type == "VENDOR",
+                    Order.status.notin_(["DELIVERED", "CANCELLED", "CLOSED"]),
+                    Order.warehouse_substatus.in_(_VENDOR_INBOUND_CLEANUP_SUBSTATUSES),
+                )
+            )
+        ).scalars().all()
+        for order in pending_inbound_orders:
+            order.status = "CANCELLED"
+            order.cancel_reason = "Vendor account deleted"
+            db.add(order)
+
     db.add(user)
     await db.flush()
 

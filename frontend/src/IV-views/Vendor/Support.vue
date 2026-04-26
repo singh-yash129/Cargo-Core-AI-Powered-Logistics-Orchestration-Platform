@@ -455,6 +455,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { useVendorStore } from '@/stores/vendorStore'
 import BaseModal from '@/components/BaseModal.vue'
 import { Doughnut } from 'vue-chartjs'
@@ -464,6 +465,7 @@ import { sendChat, fetchConversation } from '@/utils/aiApi'
 ChartJS.register(ArcElement, Tooltip, Legend)
 
 const store = useVendorStore()
+const route = useRoute()
 const SESSION_KEY = 'support_session_vendor'
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -863,12 +865,36 @@ function startNewChat() {
 onMounted(async () => {
     loadingTickets.value = true
     try { await store.fetchTickets() } catch { /* ignore */ } finally { loadingTickets.value = false }
-    // Restore any previous chat session (survives page refresh via sessionStorage)
-    await restoreSession()
-    // If no saved session, still pre-load shipments for the picker
+
+    // Ensure shipments are loaded for the chat picker
     if (!store.shipments.length) {
         try { await store.fetchShipments() } catch { /* ignore */ }
     }
+
+    // ── Deep-link from Tracking "Need Help?" banner ──
+    // Expects: ?tab=chat&shipmentId=<backendId or tracking code>
+    const qTab = route.query.tab
+    const qShipmentId = route.query.shipmentId
+
+    if (qTab === 'chat' && qShipmentId) {
+        // Find the shipment by backendId or tracking code
+        const shipment = store.shipments.find(
+            s => String(s.backendId) === String(qShipmentId) || s.id === String(qShipmentId)
+        )
+        // Clear any saved session so we start fresh for this order
+        sessionStorage.removeItem(SESSION_KEY)
+        selectedShipment.value = shipment || null
+        chatStarted.value = true
+        sessionId.value = null
+        chatMessages.value = []
+        humanHandoffLocked.value = false
+        lastLoadedAt = null
+        activeTab.value = 'chat'
+        return  // skip generic session restore
+    }
+
+    // Restore any previous chat session (survives page refresh via sessionStorage)
+    await restoreSession()
 })
 
 onUnmounted(() => {

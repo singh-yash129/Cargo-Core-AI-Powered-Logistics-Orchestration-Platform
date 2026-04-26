@@ -122,9 +122,13 @@ async def create_labourer(db: AsyncSession, data: LabourerCreate) -> LabourerRes
         email = data.email or f"labourer_{uuid4().hex[:8]}@warehouse.local"
 
         # Check if email already exists
-        existing_user = await db.execute(select(User).where(User.email == email))
+        normalized_email = email.strip().lower()
+        existing_user = await db.execute(select(User).where(func.lower(User.email) == normalized_email))
         if existing_user.scalar_one_or_none():
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Email already exists: {normalized_email}",
+            )
 
         # Look up the LABOURER role_id from the roles table
         from app.models.user import Role
@@ -144,7 +148,7 @@ async def create_labourer(db: AsyncSession, data: LabourerCreate) -> LabourerRes
         new_user = User(
             name=data.name,
             username=username,
-            email=email,
+            email=normalized_email,
             phone=data.phone,
             role_id=labourer_role.id,
             password_hash="",  # No password - managed user

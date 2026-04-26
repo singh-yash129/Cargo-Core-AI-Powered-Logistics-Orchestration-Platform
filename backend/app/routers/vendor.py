@@ -19,6 +19,8 @@ from app.schemas.vendor import (
     VendorDashboardResponse,
     VendorInvoicePayRequest,
     VendorInvoiceRecord,
+    VendorRecurringCostEstimate,
+    VendorRecurringCostEstimateRequest,
     VendorRecurringRuleCreate,
     VendorRecurringRuleResponse,
     VendorSettings,
@@ -184,6 +186,26 @@ async def delete_recurring_rule(
 ):
     await vendor_service.delete_recurring_rule(db, current_user, rule_id)
     return {"message": "Recurring rule deleted"}
+
+
+@router.post("/recurring/estimate-cost", response_model=VendorRecurringCostEstimate)
+async def estimate_recurring_cost(
+    data: VendorRecurringCostEstimateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """Estimate the per-run delivery cost for a recurring schedule.
+
+    Uses road-route distance from the resolved hub pickup point to the
+    destination and applies the platform rate card (baseBookingFee + perKmRate).
+    If live routing is unavailable, the backend falls back to a buffered estimate.
+    This is called from the vendor's Create Schedule form after the vendor
+    selects a destination on the map, so they can see the expected wallet debit
+    before confirming the schedule.
+    """
+    result = await vendor_service.estimate_recurring_cost(db, data)
+    await db.commit()
+    return result
 
 
 @router.get("/bulk-uploads", response_model=list[VendorBulkUploadResponse])

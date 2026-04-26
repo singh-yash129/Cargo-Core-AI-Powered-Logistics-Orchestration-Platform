@@ -878,10 +878,21 @@ async def confirm_order(db: AsyncSession, order_id: UUID, user: User) -> OrderRe
 
 async def assign_order(db: AsyncSession, order_id: UUID, data: OrderAssignRequest) -> OrderResponse:
     order = await _get_order(db, order_id)
-    _validate_transition(order.status, "ASSIGNED")
-    
+
+    # If the order is already dispatched/in-transit and we're patching just the vehicle,
+    # skip the status transition — keep the current status, only update the vehicle.
+    already_active = order.status in ("ASSIGNED", "IN_TRANSIT")
+    vehicle_patch_only = (
+        already_active
+        and data.vehicle_id is not None
+        and (data.driver_id is None or data.driver_id == order.assigned_driver_id)
+    )
+
+    if not vehicle_patch_only:
+        _validate_transition(order.status, "ASSIGNED")
+
     # Check if driver already has an active order (ASSIGNED or IN_TRANSIT)
-    if data.driver_id:
+    if data.driver_id and not vehicle_patch_only:
         existing_order = (await db.execute(
             select(Order).where(
                 Order.assigned_driver_id == data.driver_id,
@@ -894,11 +905,14 @@ async def assign_order(db: AsyncSession, order_id: UUID, data: OrderAssignReques
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Driver is already assigned to an active order ({existing_order.tracking_code}). Complete or unassign that order first."
             )
-    
-    order.assigned_driver_id = data.driver_id
+
+    if data.driver_id:
+        order.assigned_driver_id = data.driver_id
     order.assigned_vehicle_id = data.vehicle_id
-    order.status = "ASSIGNED"
-    
+    if not vehicle_patch_only:
+        order.status = "ASSIGNED"
+
+
     # Update driver profile current_job
     if data.driver_id:
         profile = (await db.execute(select(LogisticsDriverProfile).where(LogisticsDriverProfile.user_id == data.driver_id))).scalar_one_or_none()

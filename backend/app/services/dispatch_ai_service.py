@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import json
 import math
+from uuid import UUID
 from datetime import datetime, timedelta, timezone
 
 from loguru import logger
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.logistics import LogisticsDriverProfile
@@ -59,16 +60,16 @@ def _priority_rank(priority: str | None) -> int:
     )
 
 
-# ── DB fetch helpers ──────────────────────────────────────────────────────────
+def _normalized_text(value: str | None) -> str:
+    return (value or "").strip().lower()
 
-async def _fetch_available_drivers(db: AsyncSession) -> list[dict]:
-    """Return active drivers who do NOT have an active assigned order.
 
-    A driver is excluded if they have any order with assigned_driver_id == their user_id
-    and that order is in an active state (CONFIRMED, IN_TRANSIT, PICKING, PACKING, etc.).
-    This prevents the AI from suggesting a driver who is already on a job.
-    """
-    # Find all driver user_ids that are currently assigned to an active order
+def _active_driver_profile_statuses() -> list[str]:
+    return ["active", "idle", "on_break", "on-duty"]
+
+
+async def _fetch_busy_driver_ids(db: AsyncSession) -> set[str]:
+    """Drivers already tied to a live order should not be suggested again."""
     active_order_statuses = {"ASSIGNED", "CONFIRMED", "IN_TRANSIT", "PICKING", "PACKING", "PICKED", "PACKED"}
     busy_driver_rows = (
         await db.execute(
@@ -80,7 +81,86 @@ async def _fetch_available_drivers(db: AsyncSession) -> list[dict]:
             .distinct()
         )
     ).scalars().all()
-    busy_driver_ids = {str(uid) for uid in busy_driver_rows}
+    return {str(uid) for uid in busy_driver_rows}
+
+
+def _driver_history_match_score(order: Order, driver: dict) -> int:
+    """Score how well a driver's recent non-packing work matches this order."""
+    recent = driver.get("recent_non_packing_order")
+    if not recent:
+        return 0
+
+    score = 0
+    if _normalized_text(getattr(order, "order_type", None)) == _normalized_text(recent.get("order_type")):
+        score += 55
+    if _normalized_text(getattr(order, "cargo_type", None)) == _normalized_text(recent.get("cargo_type")):
+        score += 30
+    if _normalized_text(getattr(order, "vehicle_type", None)) == _normalized_text(recent.get("vehicle_type")):
+        score += 15
+    return score
+
+
+def _driver_history_match_labels(order: Order, driver: dict) -> list[str]:
+    recent = driver.get("recent_non_packing_order")
+    if not recent:
+        return []
+
+    labels: list[str] = []
+    if _normalized_text(getattr(order, "order_type", None)) == _normalized_text(recent.get("order_type")):
+        labels.append("order type")
+    if _normalized_text(getattr(order, "cargo_type", None)) == _normalized_text(recent.get("cargo_type")):
+        labels.append("cargo type")
+    if _normalized_text(getattr(order, "vehicle_type", None)) == _normalized_text(recent.get("vehicle_type")):
+        labels.append("vehicle type")
+    return labels
+
+
+async def _fetch_recent_non_packing_history(
+    db: AsyncSession,
+    driver_ids: list[UUID],
+) -> dict[str, dict]:
+    """Return each driver's most recent delivered non-packing order profile."""
+    if not driver_ids:
+        return {}
+
+    recent_orders = (
+        await db.execute(
+            select(Order)
+            .where(
+                Order.assigned_driver_id.in_(driver_ids),
+                Order.status == "DELIVERED",
+                Order.packing_amount == 0,
+            )
+            .order_by(Order.delivered_at.desc().nullslast(), Order.updated_at.desc())
+        )
+    ).scalars().all()
+
+    history_by_driver: dict[str, dict] = {}
+    for order in recent_orders:
+        driver_id = str(order.assigned_driver_id) if order.assigned_driver_id else None
+        if not driver_id or driver_id in history_by_driver:
+            continue
+        history_by_driver[driver_id] = {
+            "tracking_code": order.tracking_code or "",
+            "order_type": order.order_type or "",
+            "cargo_type": order.cargo_type or "",
+            "vehicle_type": order.vehicle_type or "",
+            "delivered_at": order.delivered_at.isoformat() if order.delivered_at else None,
+        }
+    return history_by_driver
+
+
+# ── DB fetch helpers ──────────────────────────────────────────────────────────
+
+async def _fetch_available_drivers(db: AsyncSession) -> list[dict]:
+    """Return active drivers who do NOT have an active assigned order.
+
+    A driver is excluded if they have any order with assigned_driver_id == their user_id
+    and that order is in an active state (CONFIRMED, IN_TRANSIT, PICKING, PACKING, etc.).
+    This prevents the AI from suggesting a driver who is already on a job.
+    """
+    # Find all driver user_ids that are currently assigned to an active order
+    busy_driver_ids = await _fetch_busy_driver_ids(db)
 
     rows = (
         await db.execute(
@@ -89,11 +169,16 @@ async def _fetch_available_drivers(db: AsyncSession) -> list[dict]:
             .where(
                 User.is_active.is_(True),
                 func.lower(LogisticsDriverProfile.status).in_(
-                    ["active", "idle", "on_break", "on-duty"]
+                    _active_driver_profile_statuses()
                 ),
             )
         )
     ).all()
+
+    history_by_driver = await _fetch_recent_non_packing_history(
+        db,
+        [user.id for _, user in rows],
+    )
 
     drivers = []
     for profile, user in rows:
@@ -108,6 +193,7 @@ async def _fetch_available_drivers(db: AsyncSession) -> list[dict]:
                 "current_job": profile.current_job or "None",
                 "coords": coords,
                 "location_str": profile.current_location or "Unknown",
+                "recent_non_packing_order": history_by_driver.get(str(user.id)),
             }
         )
     return drivers
@@ -162,17 +248,34 @@ def _haversine_suggestions(
             continue
         if not remaining_drivers:
             break  # no more drivers to assign
-        best_driver, best_dist, best_idx = None, float("inf"), -1
+        best_driver, best_dist, best_idx, best_score = None, float("inf"), -1, float("-inf")
         for idx, d in enumerate(remaining_drivers):
             if not d["coords"]:
                 continue
             dist = _haversine_km(
                 d["coords"][0], d["coords"][1], order.pickup_lat, order.pickup_lng
             )
-            if dist < best_dist:
-                best_dist, best_driver, best_idx = dist, d, idx
+            history_score = _driver_history_match_score(order, d)
+            composite_score = 100 - min(dist * 4, 80) + history_score
+            if (
+                composite_score > best_score
+                or (math.isclose(composite_score, best_score) and dist < best_dist)
+            ):
+                best_score, best_dist, best_driver, best_idx = composite_score, dist, d, idx
         if best_driver:
-            conf = max(20, min(95, 95 - int(best_dist * 4)))
+            match_labels = _driver_history_match_labels(order, best_driver)
+            recent = best_driver.get("recent_non_packing_order")
+            conf = max(20, min(98, int(best_score)))
+            if match_labels and recent:
+                reason = (
+                    f"Closest strong-fit available driver at {best_dist:.1f} km from pickup. "
+                    f"Recent non-packing job {recent['tracking_code']} matched on {', '.join(match_labels)}."
+                )
+            else:
+                reason = (
+                    f"Closest available driver at {best_dist:.1f} km from pickup."
+                    " (Gemini unavailable — distance-first match)"
+                )
             suggestions.append(
                 {
                     "order_tracking_code": order.tracking_code or "",
@@ -184,10 +287,7 @@ def _haversine_suggestions(
                     "suggested_driver_name": best_driver["name"],
                     "distance_km": round(best_dist, 1),
                     "confidence": conf,
-                    "reason": (
-                        f"Closest available driver at {best_dist:.1f} km from pickup."
-                        " (Gemini unavailable — distance-only match)"
-                    ),
+                    "reason": reason,
                     "ai_powered": False,
                 }
             )
@@ -234,9 +334,19 @@ async def suggest_drivers_for_orders(db: AsyncSession) -> list[dict]:
             if d["coords"]
             else "location unknown"
         )
+        recent = d.get("recent_non_packing_order") or {}
+        recent_summary = (
+            f"recent_non_packing_order="
+            f"(code={recent.get('tracking_code') or 'none'}, "
+            f"order_type={recent.get('order_type') or 'unknown'}, "
+            f"cargo_type={recent.get('cargo_type') or 'unknown'}, "
+            f"vehicle_type={recent.get('vehicle_type') or 'unknown'})"
+            if recent
+            else "recent_non_packing_order=(none)"
+        )
         drivers_lines.append(
             f'- id="{d["id"]}" name="{d["name"]}" status={d["status"]}'
-            f' location={coord_str} current_job={d["current_job"]}'
+            f' location={coord_str} current_job={d["current_job"]} {recent_summary}'
         )
 
     # Pre-compute distances so Gemini doesn't have to (improves accuracy)
@@ -269,9 +379,16 @@ PRE-COMPUTED DISTANCES (driver → order pickup):
 
 TASK:
 For EACH order above, choose the SINGLE best available driver. Rank by:
-  1. Shortest distance to pickup (weight 50%)
-  2. Driver has no active job (weight 30%)
-  3. Order priority: URGENT > HIGH > NORMAL > LOW (weight 20%)
+  1. Shortest distance to pickup (weight 40%)
+  2. Best match with the driver's most recent DELIVERED non-packing order, using order_type first, then cargo_type, then vehicle_type (weight 35%)
+  3. Driver has no active job (weight 15%)
+  4. Order priority: URGENT > HIGH > NORMAL > LOW (weight 10%)
+
+IMPORTANT MATCH RULE:
+- Prefer drivers whose most recent completed non-packing job is similar to the new order.
+- A match on order_type is strongest.
+- cargo_type and vehicle_type are secondary tie-breakers.
+- Do not invent history that is not listed in AVAILABLE DRIVERS.
 
 IMPORTANT: Each driver can only be assigned to ONE order. Do NOT suggest the same driver for multiple orders. If a driver is the best fit for order A, they must NOT appear again for order B — use the next best available driver for order B.
 
@@ -354,7 +471,7 @@ async def get_return_trip_suggestions(db: AsyncSession) -> list[dict]:
     pickup — perfect candidates for a return-trip assignment.
 
     Logic:
-      1. Query orders DELIVERED in the last 2 hours (get driver + delivery coords).
+      1. Query each driver's latest DELIVERED order in the last 2 hours (get driver + latest known coords).
       2. Query CONFIRMED unassigned orders that have pickup coords.
       3. For each (driver, recent-delivery-point) pair, find pending pickups
          within 8 km — these are return-trip opportunities.
@@ -362,16 +479,27 @@ async def get_return_trip_suggestions(db: AsyncSession) -> list[dict]:
     """
     two_hours_ago = datetime.now(timezone.utc) - timedelta(hours=2)
 
-    # Recent deliveries — need driver user + delivery coordinates
+    busy_driver_ids = await _fetch_busy_driver_ids(db)
+
+    # Recent deliveries — inspect the latest completed job per driver. Drivers
+    # are eligible only when their latest completed job is non-packing.
+    # We accept either stored delivery coordinates OR the driver's live profile
+    # location so recently completed jobs still qualify even if sign-off did not
+    # persist delivery_lat/delivery_lng onto the order row.
     recent_rows = (
         await db.execute(
-            select(Order, User)
+            select(Order, User, LogisticsDriverProfile)
             .join(User, User.id == Order.assigned_driver_id)
+            .join(LogisticsDriverProfile, LogisticsDriverProfile.user_id == User.id)
             .where(
                 Order.status == "DELIVERED",
                 Order.delivered_at >= two_hours_ago,
-                Order.delivery_lat.isnot(None),
-                Order.delivery_lng.isnot(None),
+                User.is_active.is_(True),
+                or_(
+                    (Order.delivery_lat.isnot(None) & Order.delivery_lng.isnot(None)),
+                    LogisticsDriverProfile.current_location.isnot(None),
+                ),
+                func.lower(LogisticsDriverProfile.status).in_(_active_driver_profile_statuses()),
             )
             .order_by(Order.delivered_at.desc())
             .limit(25)
@@ -393,16 +521,31 @@ async def get_return_trip_suggestions(db: AsyncSession) -> list[dict]:
     RETURN_TRIP_RADIUS_KM = 8.0
     raw_matches: list[dict] = []
     seen: set[tuple[str, str]] = set()
+    latest_delivery_by_driver: set[str] = set()
 
-    for delivery_order, driver_user in recent_rows:
+    for delivery_order, driver_user, driver_profile in recent_rows:
+        driver_id = str(driver_user.id)
+        if driver_id in latest_delivery_by_driver:
+            continue
+        latest_delivery_by_driver.add(driver_id)
+
+        if driver_id in busy_driver_ids:
+            continue
+        if float(delivery_order.packing_amount or 0) > 0:
+            continue
+
+        current_coords = _parse_location(driver_profile.current_location)
+        source_lat = current_coords[0] if current_coords else delivery_order.delivery_lat
+        source_lng = current_coords[1] if current_coords else delivery_order.delivery_lng
+
         for pending in pending_with_coords:
             key = (str(driver_user.id), str(pending.id))
             if key in seen:
                 continue
 
             dist = _haversine_km(
-                delivery_order.delivery_lat,
-                delivery_order.delivery_lng,
+                source_lat,
+                source_lng,
                 pending.pickup_lat,
                 pending.pickup_lng,
             )
@@ -420,6 +563,7 @@ async def get_return_trip_suggestions(db: AsyncSession) -> list[dict]:
                 {
                     "driver_id": str(driver_user.id),
                     "driver_name": driver_user.name,
+                    "completed_order_tracking_code": delivery_order.tracking_code or "",
                     "last_delivery_addr": delivery_order.delivery_addr or "",
                     "last_delivery_lat": delivery_order.delivery_lat,
                     "last_delivery_lng": delivery_order.delivery_lng,
@@ -449,7 +593,8 @@ async def get_return_trip_suggestions(db: AsyncSession) -> list[dict]:
         logger.warning("Gemini not configured — returning raw return-trip matches")
         for m in top_matches:
             m["reason"] = (
-                f"{m['driver_name']} completed a delivery {m['delivered_minutes_ago']} min ago "
+                f"{m['driver_name']} is still on duty after completing non-packing order "
+                f"{m['completed_order_tracking_code'] or 'recent job'} {m['delivered_minutes_ago']} min ago "
                 f"and is {m['distance_km']} km from the pickup at {m['pickup_addr']}."
             )
             m["ai_powered"] = False
@@ -458,7 +603,7 @@ async def get_return_trip_suggestions(db: AsyncSession) -> list[dict]:
     if not _GENAI_AVAILABLE:
         for m in top_matches:
             m["reason"] = (
-                f"Driver is {m['distance_km']} km away — efficient return trip opportunity."
+                f"Driver is still on shift after a non-packing delivery and is {m['distance_km']} km away."
             )
             m["ai_powered"] = False
         return top_matches
@@ -472,6 +617,7 @@ For each opportunity write a concise, professional dispatch suggestion (1-2 sent
 - Why this driver is a good return-trip match
 - Approximate time/distance savings
 - Any urgency based on priority
+- Mention that the driver is still on duty after a completed non-packing order when relevant
 
 Return ONLY a JSON array. Each element MUST contain exactly:
 {{

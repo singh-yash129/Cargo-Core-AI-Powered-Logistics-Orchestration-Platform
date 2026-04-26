@@ -100,6 +100,12 @@ def test_format_user_name_helper() -> None:
     assert warehouse_ops._format_user_name(SimpleNamespace(name="Worker One")) == "Worker One"
 
 
+def test_is_active_inbound_supplier_helper() -> None:
+    assert warehouse_ops._is_active_inbound_supplier(SimpleNamespace(is_active=True)) is True
+    assert warehouse_ops._is_active_inbound_supplier(SimpleNamespace(is_active=False)) is False
+    assert warehouse_ops._is_active_inbound_supplier(None) is False
+
+
 def test_inbound_tracking_and_report_reference_format() -> None:
     tracking = warehouse_ops._inbound_tracking_code()
     reference = warehouse_ops._inbound_report_reference("MISMATCH")
@@ -190,6 +196,7 @@ def test_inbound_status_variants() -> None:
         arrived_at=None,
         scheduled_at=datetime.now(timezone.utc) - timedelta(hours=2),
     )
+    delivered = _order(status="DELIVERED", warehouse_substatus="AWAITING_INBOUND")
     none_case = _order(warehouse_substatus=None)
 
     assert warehouse_ops._inbound_status(completed) == "Completed"
@@ -197,6 +204,7 @@ def test_inbound_status_variants() -> None:
     assert warehouse_ops._inbound_status(arrived) == "Arrived"
     assert warehouse_ops._inbound_status(in_transit) == "InTransit"
     assert warehouse_ops._inbound_status(scheduled) == "Scheduled"
+    assert warehouse_ops._inbound_status(delivered) is None
     assert warehouse_ops._inbound_status(none_case) is None
 
 

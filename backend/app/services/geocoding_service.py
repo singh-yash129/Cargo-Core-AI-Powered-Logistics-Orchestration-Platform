@@ -9,6 +9,11 @@ from typing import List, Dict, Any
 NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org"
 PHOTON_BASE_URL = "https://photon.komoot.io"
 USER_AGENT = "CargoCore/1.0 (Logistics App)"
+DEFAULT_HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Accept": "application/json",
+    "Accept-Language": "en",
+}
 _CACHE_TTL_SECONDS = 180
 _search_cache: Dict[str, tuple[float, List[Dict[str, Any]]]] = {}
 _reverse_cache: Dict[str, tuple[float, Dict[str, Any]]] = {}
@@ -83,7 +88,7 @@ async def search_address(query: str, limit: int = 5) -> List[Dict[str, Any]]:
                         "addressdetails": 1,
                         "accept-language": "en",
                     },
-                    headers={"User-Agent": USER_AGENT},
+                    headers=DEFAULT_HEADERS,
                     timeout=10.0,
                 )
                 response.raise_for_status()
@@ -107,6 +112,7 @@ async def search_address(query: str, limit: int = 5) -> List[Dict[str, Any]]:
             photon_response = await client.get(
                 f"{PHOTON_BASE_URL}/api",
                 params={"q": query, "limit": limit, "lang": "en"},
+                headers=DEFAULT_HEADERS,
                 timeout=10.0,
             )
             photon_response.raise_for_status()
@@ -142,7 +148,7 @@ async def reverse_geocode(lat: float, lon: float) -> Dict[str, Any]:
                         "format": "json",
                         "addressdetails": 1,
                     },
-                    headers={"User-Agent": USER_AGENT},
+                    headers=DEFAULT_HEADERS,
                     timeout=5.0,
                 )
                 response.raise_for_status()
@@ -164,6 +170,7 @@ async def reverse_geocode(lat: float, lon: float) -> Dict[str, Any]:
             photon_response = await client.get(
                 f"{PHOTON_BASE_URL}/reverse",
                 params={"lat": lat, "lon": lon, "lang": "en"},
+                headers=DEFAULT_HEADERS,
                 timeout=5.0,
             )
             photon_response.raise_for_status()

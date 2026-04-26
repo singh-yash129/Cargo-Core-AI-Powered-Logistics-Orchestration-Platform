@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from datetime import date, datetime, time, timedelta, timezone
+import httpx
 import json
 import uuid
 
@@ -8,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.logistics import LogisticsVehicle
+from app.models.logistics import LogisticsVehicle, LogisticsZone
 from app.models.order import DamageReport as DamageReportModel
 from app.models.order import Order
 from app.models.user import User
@@ -37,6 +38,8 @@ from app.schemas.vendor import (
     VendorInvoiceRecord,
     VendorInvoiceSummary,
     VendorMonthlyPoint,
+    VendorRecurringCostEstimate,
+    VendorRecurringCostEstimateRequest,
     VendorRecurringRuleCreate,
     VendorRecurringRuleResponse,
     VendorSettings,
@@ -61,6 +64,10 @@ def _ensure_vendor(user: User) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Vendor endpoints are only available for vendor users",
         )
+
+
+def _is_active_vendor_owner(user: User | None) -> bool:
+    return bool(user and getattr(user, "is_active", False))
 
 
 def _profile(user: User) -> UserProfile:
@@ -101,7 +108,13 @@ def _status_key(value: str) -> str:
 
 
 def _shipment_status_key(status: str, warehouse_substatus: str | None) -> str:
-    """Status key shown to vendor — adds 'warehouse' phase for in-warehouse orders."""
+    """Status key shown to vendor — adds 'warehouse' phase for in-warehouse orders.
+
+    Terminal statuses (DELIVERED, CLOSED, CANCELLED) always take priority;
+    never let a lingering warehouse_substatus override them.
+    """
+    if status.upper() in {"DELIVERED", "CLOSED", "CANCELLED"}:
+        return _status_key(status)
     if warehouse_substatus and warehouse_substatus.upper() in _WAREHOUSE_SUBSTATUSES:
         return "warehouse"
     return _status_key(status)
@@ -172,6 +185,8 @@ def _shipment(
     driver_name: str | None = None,
     driver_phone: str | None = None,
     vehicle_code: str | None = None,
+    customer_name: str | None = None,
+    customer_phone: str | None = None,
 ) -> VendorShipmentSummary:
     key = _shipment_status_key(order.status, order.warehouse_substatus)
     return VendorShipmentSummary(
@@ -195,7 +210,14 @@ def _shipment(
         labor_count=order.labor_count,
         amount=order.total_amount,
         scheduled_at=order.scheduled_at,
+        delivered_at=order.delivered_at,
         created_at=order.created_at,
+        delivery_notes=order.delivery_notes,
+        pod_photos=order.pod_photos or [],
+        pod_signature=order.pod_signature,
+        poc_signature=order.poc_signature,
+        customer_name=customer_name,
+        customer_phone=customer_phone,
         auto_debit_note=_latest_auto_debit_note(order.delivery_notes),
         eta_label=_eta_label(order),
         progress=_progress(key),
@@ -216,9 +238,10 @@ def _shipment(
 async def _resolve_assignment_maps(
     db: AsyncSession,
     orders: list[Order],
-) -> tuple[dict, dict, dict]:
+) -> tuple[dict, dict, dict, dict, dict]:
     driver_ids = {order.assigned_driver_id for order in orders if order.assigned_driver_id}
     vehicle_ids = {order.assigned_vehicle_id for order in orders if order.assigned_vehicle_id}
+    customer_ids = {order.customer_id for order in orders if order.customer_id}
 
     driver_names: dict = {}
     driver_phones: dict = {}
@@ -243,7 +266,16 @@ async def _resolve_assignment_maps(
             for row in rows
         }
 
-    return driver_names, driver_phones, vehicle_codes
+    customer_names: dict = {}
+    customer_phones: dict = {}
+    if customer_ids:
+        rows = (
+            await db.execute(select(User.id, User.name, User.phone).where(User.id.in_(customer_ids)))
+        ).all()
+        customer_names = {row.id: row.name for row in rows}
+        customer_phones = {row.id: row.phone for row in rows}
+
+    return driver_names, driver_phones, vehicle_codes, customer_names, customer_phones
 
 
 def _rule_run_marker(rule_id: uuid.UUID, run_iso: str) -> str:
@@ -276,22 +308,46 @@ async def _materialize_rule_run_order(
         return False
 
     details = _parse_rule_details(rule.details)
+    hub_id = _normalize_uuid(details.get("hubId"))
     hub_name = (details.get("hub") or "Vendor Hub").strip()
     destination = (details.get("destinationAddress") or "Destination").strip()
     cargo = (details.get("cargo") or rule.description or "Recurring cargo").strip()
     drop_time = details.get("dropOffTime")
+    dest_lat = _safe_float(details.get("destinationLat"))
+    dest_lon = _safe_float(details.get("destinationLon"))
 
-    target_warehouse_id = owner.warehouse_id
-    if target_warehouse_id is None:
-        fallback_wh = (
-            await db.execute(
-                select(Warehouse.id).where(Warehouse.is_active.is_(True)).order_by(Warehouse.created_at.asc())
-            )
-        ).scalar_one_or_none()
-        target_warehouse_id = fallback_wh
-
-    if target_warehouse_id is None:
+    target_warehouse, _ = await _resolve_recurring_warehouse(
+        db,
+        hub_id=hub_id,
+        hub_name=hub_name,
+        fallback_to_first=True,
+    )
+    if target_warehouse is None:
         return False
+    target_warehouse_id = target_warehouse.id
+
+    # ── Compute pricing from distance ──────────────────────────────────────
+    base_amount = 0.0
+    total_amount = 0.0
+    if dest_lat is not None and dest_lon is not None and target_warehouse_id:
+        pickup_lat, pickup_lng, _, _ = await _resolve_recurring_pickup_origin(
+            db,
+            warehouse=target_warehouse,
+        )
+        if pickup_lat is not None and pickup_lng is not None:
+            from app.routers.rates import _load as _load_rates
+            rate_cfg = _load_rates()
+            base_fee = float(rate_cfg.get("baseBookingFee", 220))
+            per_km = float(rate_cfg.get("perKmRate", 12))
+            dist_km, _ = await _road_route_distance_km(
+                pickup_lat,
+                pickup_lng,
+                dest_lat,
+                dest_lon,
+            )
+            base_amount = round(base_fee, 2)
+            distance_cost = round(dist_km * per_km, 2)
+            total_amount = round(base_fee + distance_cost, 2)
 
     marker = _rule_run_marker(rule.id, run_iso)
     order = Order(
@@ -301,14 +357,22 @@ async def _materialize_rule_run_order(
         warehouse_substatus="AWAITING_INBOUND",
         customer_id=owner.id,
         warehouse_id=target_warehouse_id,
-        pickup_addr=hub_name,
+        pickup_addr=target_warehouse.name or hub_name,
         pickup_type="hub",
         delivery_addr=destination,
-        delivery_lat=_safe_float(details.get("destinationLat")),
-        delivery_lng=_safe_float(details.get("destinationLon")),
+        delivery_lat=dest_lat,
+        delivery_lng=dest_lon,
         cargo_type=cargo,
         vehicle_type="Mini Truck",
         labor_count=0,
+        base_amount=base_amount,
+        vehicle_amount=0.0,
+        labor_amount=0.0,
+        materials_amount=0.0,
+        packing_amount=0.0,
+        platform_fee=0.0,
+        tax_amount=0.0,
+        total_amount=total_amount,
         payment_mode="invoice",
         payment_status="pending",
         scheduled_at=_scheduled_datetime(run_iso, drop_time),
@@ -348,11 +412,26 @@ def _invoice_record(order: Order, now: datetime) -> VendorInvoiceRecord:
 
 
 async def _orders_for_vendor(db: AsyncSession, user: User) -> list[Order]:
-    return (
+    today = datetime.now(timezone.utc).date()
+    cutoff = today + timedelta(days=1)  # show recurring orders 1 day before their run date
+
+    all_orders = (
         await db.execute(
             select(Order).where(Order.customer_id == user.id).order_by(Order.created_at.desc())
         )
     ).scalars().all()
+
+    result = []
+    for order in all_orders:
+        # Recurring orders (identified by RECURRING_RULE marker) are only visible
+        # from the day before their scheduled date so the vendor/WH doesn't see
+        # them too far in advance.
+        if order.delivery_notes and "RECURRING_RULE:" in order.delivery_notes:
+            if order.scheduled_at and order.scheduled_at.date() > cutoff:
+                continue
+        result.append(order)
+    return result
+
 
 
 def _monthly_points(orders: list[Order]) -> list[VendorMonthlyPoint]:
@@ -663,6 +742,222 @@ def _safe_float(value) -> float | None:
         return None
 
 
+def _normalize_uuid(value) -> uuid.UUID | None:
+    if not value:
+        return None
+    if isinstance(value, uuid.UUID):
+        return value
+    try:
+        return uuid.UUID(str(value))
+    except Exception:
+        return None
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Return the great-circle distance in km between two lat/lon points."""
+    import math
+    R = 6371.0  # Earth radius in km
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+_OSRM_BASE_URL = "https://router.project-osrm.org/route/v1/driving"
+_OSRM_TIMEOUT_SECONDS = 5.0
+
+
+def _fallback_route_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Fallback heuristic when route service is unavailable."""
+    return max(1.0, round(_haversine_km(lat1, lon1, lat2, lon2) * 1.35, 1))
+
+
+async def _road_route_distance_km(
+    lat1: float,
+    lon1: float,
+    lat2: float,
+    lon2: float,
+) -> tuple[float, str]:
+    """Return road-route km using OSRM, falling back to a padded estimate."""
+    url = f"{_OSRM_BASE_URL}/{lon1},{lat1};{lon2},{lat2}"
+    params = {"overview": "false"}
+    try:
+        async with httpx.AsyncClient(timeout=_OSRM_TIMEOUT_SECONDS) as client:
+            response = await client.get(url, params=params)
+        response.raise_for_status()
+        payload = response.json()
+        route = (payload.get("routes") or [None])[0]
+        if payload.get("code") != "Ok" or not route:
+            return _fallback_route_km(lat1, lon1, lat2, lon2), "road_route_fallback"
+        meters = float(route.get("distance") or 0.0)
+        return max(1.0, round(meters / 1000.0, 1)), "road_route"
+    except Exception:
+        return _fallback_route_km(lat1, lon1, lat2, lon2), "road_route_fallback"
+
+
+async def _resolve_recurring_warehouse(
+    db: AsyncSession,
+    *,
+    hub_id: uuid.UUID | None = None,
+    hub_name: str | None = None,
+    fallback_to_first: bool = True,
+) -> tuple[Warehouse | None, str]:
+    warehouse = None
+    if hub_id:
+        warehouse = (
+            await db.execute(
+                select(Warehouse).where(
+                    Warehouse.id == hub_id,
+                    Warehouse.is_active.is_(True),
+                )
+            )
+        ).scalar_one_or_none()
+        if warehouse:
+            return warehouse, "hub_id"
+
+    normalized_hub_name = (hub_name or "").strip()
+    if normalized_hub_name:
+        warehouse = (
+            await db.execute(
+                select(Warehouse).where(
+                    Warehouse.is_active.is_(True),
+                    Warehouse.name.ilike(f"%{normalized_hub_name}%"),
+                ).order_by(Warehouse.created_at.asc()).limit(1)
+            )
+        ).scalar_one_or_none()
+        if warehouse:
+            return warehouse, "hub_name"
+
+    if not fallback_to_first:
+        return None, "unresolved"
+
+    warehouse = (
+        await db.execute(
+            select(Warehouse).where(Warehouse.is_active.is_(True)).order_by(Warehouse.created_at.asc()).limit(1)
+        )
+    ).scalar_one_or_none()
+    return warehouse, "first_active" if warehouse else "unresolved"
+
+
+async def _resolve_recurring_pickup_origin(
+    db: AsyncSession,
+    *,
+    warehouse: Warehouse | None,
+) -> tuple[float | None, float | None, str | None, str]:
+    if warehouse and warehouse.lat is not None and warehouse.lng is not None:
+        return warehouse.lat, warehouse.lng, warehouse.name, "warehouse_coordinates"
+
+    if warehouse:
+        zone = (
+            await db.execute(
+                select(LogisticsZone).where(
+                    LogisticsZone.warehouse_id == warehouse.id,
+                    LogisticsZone.status.ilike("active"),
+                    LogisticsZone.lat.is_not(None),
+                    LogisticsZone.lng.is_not(None),
+                ).order_by(LogisticsZone.created_at.asc()).limit(1)
+            )
+        ).scalar_one_or_none()
+        if zone:
+            return zone.lat, zone.lng, zone.name or warehouse.name, "geofence_zone"
+
+    return None, None, warehouse.name if warehouse else None, "missing_coordinates"
+
+
+def _build_recurring_estimate_note(
+    *,
+    warehouse_name: str | None,
+    warehouse_source: str,
+    pickup_source: str,
+    pickup_reference: str | None,
+    distance_method: str,
+) -> str:
+    hub_label = warehouse_name or "selected hub"
+    used_fallback = distance_method == "road_route_fallback"
+    if pickup_source == "geofence_zone":
+        zone_label = pickup_reference or hub_label
+        prefix = (
+            f"Estimate uses road-route distance from active geofence zone '{zone_label}' because "
+            f"'{hub_label}' has no saved warehouse coordinates."
+        )
+    elif pickup_source == "missing_coordinates":
+        prefix = f"'{hub_label}' has no saved warehouse coordinates or active geofence center, so only the base fee is shown."
+    else:
+        prefix = f"Estimate uses road-route distance from '{hub_label}' warehouse coordinates."
+
+    if used_fallback and pickup_source != "missing_coordinates":
+        prefix = f"{prefix} Live routing was unavailable, so a buffered fallback estimate was used."
+
+    if warehouse_source == "first_active":
+        return f"{prefix} Selected hub could not be matched exactly, so the first active warehouse was used."
+    if warehouse_source == "unresolved":
+        return f"{prefix} No matching active warehouse was found."
+    return prefix
+
+
+async def estimate_recurring_cost(
+    db: AsyncSession,
+    data: "VendorRecurringCostEstimateRequest",
+) -> "VendorRecurringCostEstimate":
+    """Estimate the per-run cost for a recurring schedule.
+
+    Calculates road-route distance from the resolved warehouse pickup origin to
+    the destination coordinates, then applies the configured rate card
+    (baseBookingFee + perKmRate). Falls back to a buffered estimate if live
+    routing is unavailable.
+    """
+    from app.routers.rates import _load as _load_rates
+
+    wh, warehouse_source = await _resolve_recurring_warehouse(
+        db,
+        hub_id=data.hub_id,
+        hub_name=data.hub_name,
+        fallback_to_first=True,
+    )
+
+    rate_cfg = _load_rates()
+    base_fee = float(rate_cfg.get("baseBookingFee", 220))
+    per_km = float(rate_cfg.get("perKmRate", 12))
+
+    pickup_lat, pickup_lng, pickup_reference, pickup_source = await _resolve_recurring_pickup_origin(
+        db,
+        warehouse=wh,
+    )
+    dist_km = 0.0
+    distance_method = "road_route"
+    if pickup_lat is not None and pickup_lng is not None:
+        dist_km, distance_method = await _road_route_distance_km(
+            pickup_lat,
+            pickup_lng,
+            data.destination_lat,
+            data.destination_lon,
+        )
+
+    distance_cost = round(dist_km * per_km, 2)
+    total_estimate = round(base_fee + distance_cost, 2)
+    resolved_hub_name = wh.name if wh else (data.hub_name or None)
+
+    return VendorRecurringCostEstimate(
+        distance_km=round(dist_km, 2),
+        base_fee=base_fee,
+        distance_cost=distance_cost,
+        total_estimate=total_estimate,
+        rate_per_km=per_km,
+        distance_method=distance_method,
+        resolved_hub_name=resolved_hub_name,
+        pickup_source=pickup_source,
+        pickup_reference=pickup_reference,
+        note=_build_recurring_estimate_note(
+            warehouse_name=resolved_hub_name,
+            warehouse_source=warehouse_source,
+            pickup_source=pickup_source,
+            pickup_reference=pickup_reference,
+            distance_method=distance_method,
+        ),
+    )
+
+
 def _next_run_for_frequency(current_due: date, frequency: str) -> date:
     label = (frequency or "").strip().lower()
     if label == "daily":
@@ -732,7 +1027,7 @@ async def run_due_recurring_rules(
 
     vendor_ids = {rule.vendor_id for rule in rules}
     users = (
-        await db.execute(select(User).where(User.id.in_(vendor_ids)))
+        await db.execute(select(User).where(User.id.in_(vendor_ids), User.is_active.is_(True)))
     ).scalars().all()
     user_by_id = {user.id: user for user in users}
 
@@ -747,7 +1042,7 @@ async def run_due_recurring_rules(
             continue
 
         owner = user_by_id.get(rule.vendor_id)
-        if not owner:
+        if not _is_active_vendor_owner(owner):
             continue
 
         run_iso = rule.next_run
@@ -802,17 +1097,25 @@ async def ensure_upcoming_recurring_orders(
         return 0
 
     vendor_ids = {rule.vendor_id for rule in rules}
-    users = (await db.execute(select(User).where(User.id.in_(vendor_ids)))).scalars().all()
+    users = (
+        await db.execute(select(User).where(User.id.in_(vendor_ids), User.is_active.is_(True)))
+    ).scalars().all()
     user_by_id = {user.id: user for user in users}
+
+    today = datetime.now(timezone.utc).date()
+    cutoff = today + timedelta(days=1)  # only materialize 1 day before the scheduled run
 
     created = 0
     for rule in rules:
         owner = user_by_id.get(rule.vendor_id)
-        if not owner:
+        if not _is_active_vendor_owner(owner):
             continue
         try:
-            date.fromisoformat(rule.next_run)
+            next_run_date = date.fromisoformat(rule.next_run)
         except Exception:
+            continue
+        # Do not create the order until 1 day before its run date
+        if next_run_date > cutoff:
             continue
         if await _materialize_rule_run_order(db, rule=rule, owner=owner, run_iso=rule.next_run):
             created += 1
@@ -846,7 +1149,7 @@ def _ticket_response(ticket: VendorSupportTicket) -> VendorSupportTicketResponse
 async def get_vendor_dashboard(db: AsyncSession, user: User) -> VendorDashboardResponse:
     _ensure_vendor(user)
     orders = await _orders_for_vendor(db, user)
-    driver_names, driver_phones, vehicle_codes = await _resolve_assignment_maps(db, orders)
+    driver_names, driver_phones, vehicle_codes, customer_names, customer_phones = await _resolve_assignment_maps(db, orders)
     analytics = _analytics(orders)
     status_keys = [_status_key(order.status) for order in orders]
     current_month = datetime.now().strftime("%Y-%m")
@@ -884,6 +1187,8 @@ async def get_vendor_dashboard(db: AsyncSession, user: User) -> VendorDashboardR
                 driver_name=driver_names.get(order.assigned_driver_id),
                 driver_phone=driver_phones.get(order.assigned_driver_id),
                 vehicle_code=vehicle_codes.get(order.assigned_vehicle_id),
+                customer_name=customer_names.get(order.customer_id),
+                customer_phone=customer_phones.get(order.customer_id),
             )
             for order in orders[:5]
         ],
@@ -895,7 +1200,7 @@ async def get_vendor_dashboard(db: AsyncSession, user: User) -> VendorDashboardR
 async def get_vendor_shipments(db: AsyncSession, user: User) -> VendorShipmentsResponse:
     _ensure_vendor(user)
     orders = await _orders_for_vendor(db, user)
-    driver_names, driver_phones, vehicle_codes = await _resolve_assignment_maps(db, orders)
+    driver_names, driver_phones, vehicle_codes, customer_names, customer_phones = await _resolve_assignment_maps(db, orders)
     return VendorShipmentsResponse(
         shipments=[
             _shipment(
@@ -903,6 +1208,8 @@ async def get_vendor_shipments(db: AsyncSession, user: User) -> VendorShipmentsR
                 driver_name=driver_names.get(order.assigned_driver_id),
                 driver_phone=driver_phones.get(order.assigned_driver_id),
                 vehicle_code=vehicle_codes.get(order.assigned_vehicle_id),
+                customer_name=customer_names.get(order.customer_id),
+                customer_phone=customer_phones.get(order.customer_id),
             )
             for order in orders
         ]
@@ -1194,6 +1501,26 @@ async def toggle_recurring_rule(
     if not rule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurring rule not found")
     rule.active = not rule.active
+
+    if not rule.active:
+        # Cancel any pending materialized orders for this rule so they don't linger in Warehouse Inbound
+        marker = f"RECURRING_RULE:{rule.id}|RUN:"
+        pending_orders = (
+            await db.execute(
+                select(Order).where(
+                    Order.customer_id == user.id,
+                    Order.delivery_notes.contains(marker),
+                    Order.status.notin_(["DELIVERED", "CANCELLED", "CLOSED"]),
+                    Order.warehouse_substatus == "AWAITING_INBOUND",
+                )
+            )
+        ).scalars().all()
+
+        for order in pending_orders:
+            order.status = "CANCELLED"
+            order.cancel_reason = "Recurring schedule paused by vendor"
+            db.add(order)
+
     db.add(rule)
     await db.flush()
     await db.refresh(rule)
@@ -1212,6 +1539,25 @@ async def delete_recurring_rule(db: AsyncSession, user: User, rule_id: uuid.UUID
     ).scalar_one_or_none()
     if not rule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurring rule not found")
+    
+    # Cancel any pending materialized orders for this rule so they don't linger in Warehouse Inbound
+    marker = f"RECURRING_RULE:{rule.id}|RUN:"
+    pending_orders = (
+        await db.execute(
+            select(Order).where(
+                Order.customer_id == user.id,
+                Order.delivery_notes.contains(marker),
+                Order.status.notin_(["DELIVERED", "CANCELLED", "CLOSED"]),
+                Order.warehouse_substatus == "AWAITING_INBOUND",
+            )
+        )
+    ).scalars().all()
+
+    for order in pending_orders:
+        order.status = "CANCELLED"
+        order.cancel_reason = "Recurring schedule deleted by vendor"
+        db.add(order)
+
     await db.delete(rule)
 
 
