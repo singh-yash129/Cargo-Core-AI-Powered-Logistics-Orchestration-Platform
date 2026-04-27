@@ -130,8 +130,11 @@ async def logout(
     summary="Get current user profile",
 )
 async def get_me(
+    db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
 ):
+    await db.refresh(current_user, attribute_names=["warehouse", "role"])
+    warehouse = current_user.warehouse
     return UserProfile(
         id=current_user.id,
         name=current_user.name,
@@ -141,6 +144,10 @@ async def get_me(
         address=current_user.address,
         role=current_user.role.name,
         warehouse_id=current_user.warehouse_id,
+        warehouse_name=warehouse.name if warehouse else None,
+        warehouse_address=warehouse.address if warehouse else None,
+        warehouse_is_active=warehouse.is_active if warehouse else None,
+        warehouse_status="Archived" if warehouse and warehouse.is_active is False else ("Active" if warehouse else None),
         is_active=current_user.is_active,
         approval_status=current_user.approval_status,
         company_name=current_user.company_name,

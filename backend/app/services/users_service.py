@@ -47,6 +47,23 @@ async def _get_role(db: AsyncSession, role_name: str) -> Role:
     return role
 
 
+async def _ensure_active_warehouse(db: AsyncSession, warehouse_id: UUID) -> Warehouse:
+    warehouse = (
+        await db.execute(
+            select(Warehouse).where(
+                Warehouse.id == warehouse_id,
+                Warehouse.is_active.is_(True),
+            )
+        )
+    ).scalar_one_or_none()
+    if not warehouse:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot assign warehouse-scoped users to an archived warehouse",
+        )
+    return warehouse
+
+
 def _driver_email_fallback(email: str) -> str:
     local_part = (email or "").split("@")[0].strip()
     return local_part or "driver"
@@ -203,6 +220,8 @@ async def create_user(db: AsyncSession, data: UserAdminCreate) -> UserAdminRespo
 
     role = await _get_role(db, role_name)
     _require_warehouse_for_role(role.name, data.warehouse_id)
+    if role.name in WAREHOUSE_SCOPED_ROLES and data.warehouse_id is not None:
+        await _ensure_active_warehouse(db, data.warehouse_id)
     user = User(
         name=data.name,
         username=normalized_username,
@@ -308,6 +327,8 @@ async def assign_role(db: AsyncSession, user_id: UUID, data: AssignRoleRequest) 
     user = await _get_user(db, user_id)
     role = await _get_role(db, data.role)
     _require_warehouse_for_role(role.name, user.warehouse_id)
+    if role.name in WAREHOUSE_SCOPED_ROLES and user.warehouse_id is not None:
+        await _ensure_active_warehouse(db, user.warehouse_id)
     user.role_id = role.id
     db.add(user)
     await db.flush()
@@ -322,6 +343,10 @@ async def assign_warehouse(
     data: AssignWarehouseRequest,
 ) -> UserAdminResponse:
     user = await _get_user(db, user_id)
+    if user.role.name in WAREHOUSE_SCOPED_ROLES:
+        _require_warehouse_for_role(user.role.name, data.warehouse_id)
+        if data.warehouse_id is not None:
+            await _ensure_active_warehouse(db, data.warehouse_id)
     user.warehouse_id = data.warehouse_id
     db.add(user)
     await db.flush()

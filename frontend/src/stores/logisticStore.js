@@ -275,7 +275,8 @@ export const useLogisticStore = defineStore('logistic', () => {
             vehiclesActive: hub.vehicles_active,
             vehiclesTotal: hub.vehicles_total,
             processRate: hub.process_rate,
-            status: hub.status,
+            status: hub.status || 'Active',
+            isActive: (hub.status || 'Active') !== 'Archived',
             statusColor: hub.status_color,
             bg: hub.bg,
         }))
@@ -504,6 +505,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         const hub = hubs.value.find((item) => item.id === activeWarehouse.value)
         return hub ? hub.name : 'Unknown Hub'
     })
+    const activeHubs = computed(() => hubs.value.filter((hub) => hub.isActive !== false && hub.status !== 'Archived'))
 
     const unreadNotificationsCount = computed(() => notifications.value.filter((item) => !item.read).length)
     const filterByWarehouse = (items) => (
@@ -1220,8 +1222,33 @@ export const useLogisticStore = defineStore('logistic', () => {
                 name: hubData.name,
                 address: hubData.location,
                 capacity_limit: hubData.capacity || 1000,
-                is_active: hubData.status !== 'Inactive',
+                is_active: !['Inactive', 'Archived'].includes(hubData.status),
                 hub_status: hubData.status || null,
+            }),
+        })
+        await refresh()
+    }
+
+    async function archiveHub(hubId) {
+        await apiRequest(`/warehouses/${hubId}`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                is_active: false,
+                hub_status: 'Archived',
+            }),
+        })
+        if (activeWarehouse.value === String(hubId)) activeWarehouse.value = 'all'
+        await refresh()
+    }
+
+    async function restoreHub(hubId) {
+        await apiRequest(`/warehouses/${hubId}`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                is_active: true,
+                hub_status: 'Active',
             }),
         })
         await refresh()
@@ -1483,6 +1510,7 @@ export const useLogisticStore = defineStore('logistic', () => {
         refresh,
         addFunds,
         activeWarehouseName,
+        activeHubs,
         unreadNotificationsCount,
         filteredDrivers,
         filteredTopDrivers,
@@ -1551,6 +1579,8 @@ export const useLogisticStore = defineStore('logistic', () => {
         addDriver,
         addHub,
         updateHub,
+        archiveHub,
+        restoreHub,
         deleteHub,
         addUser,
         updateUser,

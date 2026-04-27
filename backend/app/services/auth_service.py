@@ -103,6 +103,12 @@ def _build_registration_response(user: User) -> RegistrationResponse:
 
 
 def _to_profile(user: User) -> UserProfile:
+    warehouse = getattr(user, "warehouse", None)
+    warehouse_is_active = None if warehouse is None else warehouse.is_active
+    warehouse_status = None
+    if warehouse is not None:
+        warehouse_status = "Archived" if warehouse.is_active is False else "Active"
+
     return UserProfile(
         id=user.id,
         name=user.name,
@@ -112,6 +118,10 @@ def _to_profile(user: User) -> UserProfile:
         address=user.address,
         role=user.role.name,
         warehouse_id=user.warehouse_id,
+        warehouse_name=getattr(warehouse, "name", None),
+        warehouse_address=getattr(warehouse, "address", None),
+        warehouse_is_active=warehouse_is_active,
+        warehouse_status=warehouse_status,
         is_active=user.is_active,
         approval_status=user.approval_status or _APPROVAL_APPROVED,
         company_name=user.company_name,
@@ -333,7 +343,7 @@ async def login_user(db: AsyncSession, data: UserLogin) -> LoginResponse:
     user.last_login = datetime.now(timezone.utc)
     db.add(user)
     await db.flush()
-    await db.refresh(user, attribute_names=["role"])
+    await db.refresh(user, attribute_names=["role", "warehouse"])
     return _build_login_response(user)
 
 
@@ -366,7 +376,7 @@ async def refresh_tokens(
 
     _ensure_user_session_valid(user)
 
-    await db.refresh(user, attribute_names=["role"])
+    await db.refresh(user, attribute_names=["role", "warehouse"])
     return _build_token_response(user)
 
 
@@ -418,7 +428,7 @@ async def get_current_user_from_token(
 
     _ensure_user_session_valid(user)
 
-    await db.refresh(user, attribute_names=["role"])
+    await db.refresh(user, attribute_names=["role", "warehouse"])
     return user
 
 
@@ -438,7 +448,7 @@ async def update_profile(
         user.address = data.address
     db.add(user)
     await db.flush()
-    await db.refresh(user, attribute_names=["role"])
+    await db.refresh(user, attribute_names=["role", "warehouse"])
     return _to_profile(user)
 
 
@@ -701,7 +711,7 @@ async def verify_login_otp(db: AsyncSession, redis: Redis | None, data: VerifyOT
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
-    await db.refresh(user, attribute_names=["role"])
+    await db.refresh(user, attribute_names=["role", "warehouse"])
     _ensure_user_can_authenticate(user)
     logger.info(f"Login via OTP for user: {email}")
     return _build_login_response(user)
@@ -744,7 +754,7 @@ async def google_login_or_register(db: AsyncSession, redis: Redis, data: GoogleL
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Account is deactivated",
                 )
-            await db.refresh(user, attribute_names=["role"])
+            await db.refresh(user, attribute_names=["role", "warehouse"])
             return _build_login_response(user)
         else:
             # register flow

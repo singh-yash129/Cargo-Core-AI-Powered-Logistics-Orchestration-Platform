@@ -107,6 +107,25 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+async def _ensure_active_warehouse(db: AsyncSession, warehouse_id: UUID | None) -> Warehouse | None:
+    if warehouse_id is None:
+        return None
+    warehouse = (
+        await db.execute(
+            select(Warehouse).where(
+                Warehouse.id == warehouse_id,
+                Warehouse.is_active.is_(True),
+            )
+        )
+    ).scalar_one_or_none()
+    if not warehouse:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot assign drivers to an archived warehouse",
+        )
+    return warehouse
+
+
 def _fmt_relative(dt: datetime | None) -> str:
     if not dt:
         return "Never"
@@ -1859,7 +1878,7 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
         hub_vehicles = [vehicle for vehicle in vehicles if vehicle.warehouse_id == warehouse.id]
         capacity = int((len(hub_orders) / max(warehouse.capacity_limit or 10, 10)) * 100)
         computed_status = "Optimal" if capacity < 70 else ("High Load" if capacity < 90 else "Congested")
-        status = warehouse.hub_status if warehouse.hub_status else computed_status
+        status = "Archived" if not warehouse.is_active else (warehouse.hub_status if warehouse.hub_status else computed_status)
         efficiency = min(99, max(72, 82 + len(hub_orders) * 3))
         fallback_manager = next(
             (
@@ -1893,8 +1912,8 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
                 vehicles_total=len(hub_vehicles),
                 process_rate=len(hub_orders) * 120,
                 status=status,
-                status_color="text-green-500" if status == "Optimal" else ("text-yellow-500" if status == "High Load" else "text-red-500"),
-                bg="bg-green-500" if status == "Optimal" else ("bg-yellow-500" if status == "High Load" else "bg-red-500"),
+                status_color="text-slate-500" if status == "Archived" else ("text-green-500" if status == "Optimal" else ("text-yellow-500" if status == "High Load" else "text-red-500")),
+                bg="bg-slate-500" if status == "Archived" else ("bg-green-500" if status == "Optimal" else ("bg-yellow-500" if status == "High Load" else "bg-red-500")),
             )
         )
 
@@ -3831,6 +3850,7 @@ async def list_drivers(db: AsyncSession, warehouse_id: UUID | None = None) -> li
 
 
 async def create_driver(db: AsyncSession, data: LogisticsDriverCreate) -> LogisticsDriverItem:
+    await _ensure_active_warehouse(db, data.warehouse_id)
     existing = (await db.execute(select(User).where(User.email == data.email))).scalar_one_or_none()
     driver_id = _normalize_driver_login_id(data.driver_id, data.email)
     driver_pin = _validate_driver_pin(data.pin)
@@ -3909,6 +3929,7 @@ async def update_driver(db: AsyncSession, driver_id: UUID, data: LogisticsDriver
     if data.current_job is not None:
         profile.current_job = data.current_job
     if data.warehouse_id is not None:
+        await _ensure_active_warehouse(db, data.warehouse_id)
         profile.warehouse_id = data.warehouse_id
         user.warehouse_id = data.warehouse_id
     if data.efficiency_score is not None:

@@ -94,6 +94,10 @@ class UserProfile(BaseModel):
     address: str | None
     role: str
     warehouse_id: UUID | None = None
+    warehouse_name: str | None = None
+    warehouse_address: str | None = None
+    warehouse_is_active: bool | None = None
+    warehouse_status: str | None = None
     is_active: bool
     approval_status: str = "APPROVED"
     company_name: str | None = None

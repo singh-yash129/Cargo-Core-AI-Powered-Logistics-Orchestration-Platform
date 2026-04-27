@@ -162,6 +162,11 @@ function refreshWarehouseHeaderStats() {
 
 onMounted(async () => {
     document.body.classList.add('warehouse-theme-portal')
+    const hubAccess = await authStore.ensureHubOperationalAccess(true)
+    if (hubAccess?.isArchived) {
+        router.replace('/warehouse/archived-access')
+        return
+    }
     await authStore.ensureWarehouseContext()
     warehouseContextReady.value = true
     await fetchWarehouseHeaderStats()

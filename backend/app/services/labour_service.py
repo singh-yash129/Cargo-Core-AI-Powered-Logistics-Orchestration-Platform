@@ -36,6 +36,25 @@ async def _get_labourer(db: AsyncSession, labourer_id: UUID) -> Labourer:
     return labourer
 
 
+async def _ensure_active_warehouse(db: AsyncSession, warehouse_id: UUID):
+    from app.models.warehouse import Warehouse
+
+    warehouse = (
+        await db.execute(
+            select(Warehouse).where(
+                Warehouse.id == warehouse_id,
+                Warehouse.is_active.is_(True),
+            )
+        )
+    ).scalar_one_or_none()
+    if not warehouse:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot assign labour to an archived warehouse",
+        )
+    return warehouse
+
+
 def _to_labourer_response(labourer: Labourer) -> LabourerResponse:
     # Determine status based on assignment and active state
     if not labourer.is_active:
@@ -166,14 +185,21 @@ async def create_labourer(db: AsyncSession, data: LabourerCreate) -> LabourerRes
 
     # Get a default warehouse if not provided
     warehouse_id = data.warehouse_id
-    if not warehouse_id:
+    if warehouse_id:
+        await _ensure_active_warehouse(db, warehouse_id)
+    else:
         from app.models.warehouse import Warehouse
-        result = await db.execute(select(Warehouse).limit(1))
+        result = await db.execute(
+            select(Warehouse)
+            .where(Warehouse.is_active.is_(True))
+            .order_by(Warehouse.created_at.asc())
+            .limit(1)
+        )
         warehouse = result.scalar_one_or_none()
         if warehouse:
             warehouse_id = warehouse.id
         else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No warehouse available")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active warehouse available")
 
     labourer = Labourer(
         user_id=user_id,
@@ -215,6 +241,8 @@ async def update_labourer(
     data: LabourerUpdate,
 ) -> LabourerResponse:
     labourer = await _get_labourer(db, labourer_id)
+    if data.warehouse_id is not None:
+        await _ensure_active_warehouse(db, data.warehouse_id)
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(labourer, key, value)
 

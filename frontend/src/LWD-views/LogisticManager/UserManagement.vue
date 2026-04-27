@@ -247,7 +247,7 @@
                                             <div v-if="isHubMenuOpen"
                                                 class="absolute left-0 right-0 top-full mt-2 rounded-xl border border-white/10 bg-slate-900 shadow-2xl overflow-hidden z-40">
                                                 <div class="max-h-56 overflow-y-auto py-2">
-                                                    <button v-for="h in store.hubs" :key="h.id" type="button"
+                                                    <button v-for="h in assignableHubs" :key="h.id" type="button"
                                                         @click.stop="selectHub(h.id)"
                                                         class="w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between gap-3 hover:bg-white/5"
                                                         :class="formData.hubId === h.id ? 'bg-primary/10 text-white' : 'text-gray-300'">
@@ -307,7 +307,7 @@
                                         <div class="relative">
                                             <select v-model="formData.hubId"
                                                 class="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none">
-                                                <option v-for="h in store.hubs" :key="h.id" :value="h.id"
+                                                <option v-for="h in assignableHubs" :key="h.id" :value="h.id"
                                                     class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                                                     {{
                                                         h.name }}
@@ -586,7 +586,7 @@
                                                 <option value="all"
                                                     class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                                                     Global (All Warehouses)</option>
-                                                <option v-for="h in store.hubs" :key="h.id" :value="h.id"
+                                                <option v-for="h in hubOptionsForEdit" :key="h.id" :value="h.id"
                                                     class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                                                     {{
                                                         h.name }}
@@ -1019,9 +1019,20 @@ const verifyOtp = () => {
 
 const formData = ref({})
 const unlockedFields = ref({})
-const defaultHubId = () => store.activeWarehouse !== 'all'
-    ? store.activeWarehouse
-    : (store.hubs[0]?.id || null)
+const assignableHubs = computed(() => store.activeHubs || store.hubs.filter((hub) => hub.status !== 'Archived'))
+const hubOptionsForEdit = computed(() => {
+    const selectedHub = store.hubs.find((hub) => hub.id === formData.value.hubId)
+    if (!selectedHub || assignableHubs.value.some((hub) => hub.id === selectedHub.id)) {
+        return assignableHubs.value
+    }
+    return [...assignableHubs.value, selectedHub]
+})
+const defaultHubId = () => {
+    if (store.activeWarehouse !== 'all' && assignableHubs.value.some((hub) => hub.id === store.activeWarehouse)) {
+        return store.activeWarehouse
+    }
+    return assignableHubs.value[0]?.id || null
+}
 
 const initEmptyForm = (mode) => {
     if (mode === 'create') {
@@ -1203,6 +1214,11 @@ const submitForm = async () => {
         if (modalMode.value === 'create' || modalMode.value === 'create-support' || modalMode.value === 'create-driver') {
             if (!formData.value.hubId || formData.value.hubId === 'all') {
                 toast.error('Please assign the user to a warehouse hub.')
+                return
+            }
+            const selectedHub = store.hubs.find((hub) => hub.id === formData.value.hubId)
+            if (!selectedHub || selectedHub.status === 'Archived') {
+                toast.error('Archived hubs cannot receive new user assignments.')
                 return
             }
             await store.addUser({

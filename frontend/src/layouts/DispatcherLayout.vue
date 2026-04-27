@@ -84,7 +84,10 @@
 
             <!-- Page Content - Responsive Padding -->
             <div class="flex-1 relative" :class="route.meta.fullWidth ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 sm:p-6 lg:p-8'">
-                <RouterView />
+                <div v-if="!dispatcherAccessReady" class="flex items-center justify-center h-48 text-gray-500 dark:text-gray-400">
+                    Loading dispatch access...
+                </div>
+                <RouterView v-else />
             </div>
         </main>
     </div>
@@ -107,9 +110,16 @@ const dispatchStore = useDispatcherStore()
 const authStore = useAuthStore()
 const router = useRouter()
 let notificationPoll = null
+const dispatcherAccessReady = ref(false)
 
-onMounted(() => {
+onMounted(async () => {
     document.body.classList.add('dispatcher-theme-portal')
+    const hubAccess = await authStore.ensureHubOperationalAccess(true)
+    if (hubAccess?.isArchived) {
+        router.replace('/dispatcher/archived-access')
+        return
+    }
+    dispatcherAccessReady.value = true
     store.fetchNotifications().catch(() => {})
     notificationPoll = window.setInterval(() => {
         store.fetchNotifications().catch(() => {})

@@ -55,7 +55,7 @@
                     <!-- Filter Dropdown -->
                     <div v-show="isFilterOpen"
                         class="absolute right-0 mt-2 w-48 bg-white dark:bg-card-dark rounded-xl shadow-lg border border-gray-200 dark:border-white/10 py-1 z-10">
-                        <button v-for="status in ['All', 'Optimal', 'Congested', 'Active']" :key="status"
+                        <button v-for="status in ['All', 'Optimal', 'Congested', 'Active', 'Archived']" :key="status"
                             @click="setStatusFilter(status)"
                             class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                             :class="{ 'bg-primary/10 text-primary dark:text-primary font-medium': statusFilter === status }">
@@ -109,6 +109,7 @@
                             </td>
                             <td class="p-4">
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border" :class="[
+                                    hub.status.toLowerCase() === 'archived' ? 'bg-slate-100 border-slate-300 text-slate-600 dark:bg-slate-500/10 dark:border-slate-500/30 dark:text-slate-300' :
                                     hub.status.toLowerCase() === 'optimal' ? 'bg-green-50 border-green-200 text-green-600 dark:bg-green-500/10 dark:border-green-500/20 dark:text-green-500' :
                                         (hub.status.toLowerCase() === 'congested' ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-500' :
                                             'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-500')
@@ -133,7 +134,21 @@
                                             <span class="material-symbols-outlined text-[16px]">edit</span>
                                             Edit Hub
                                         </button>
-                                        <button @click="handleDeleteHub(hub)"
+                                        <button
+                                            v-if="hub.status !== 'Archived'"
+                                            @click="openHubActionModal('archive', hub)"
+                                            class="w-full text-left px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[16px]">inventory_2</span>
+                                            Archive Hub
+                                        </button>
+                                        <button
+                                            v-else
+                                            @click="openHubActionModal('restore', hub)"
+                                            class="w-full text-left px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[16px]">unarchive</span>
+                                            Restore Hub
+                                        </button>
+                                        <button @click="openHubActionModal('delete', hub)"
                                             class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center gap-2">
                                             <span class="material-symbols-outlined text-[16px]">delete</span>
                                             Delete Hub
@@ -220,6 +235,7 @@
                                 <option value="Optimal" class="bg-slate-900 text-white">Optimal</option>
                                 <option value="Active" class="bg-slate-900 text-white">Active</option>
                                 <option value="Congested" class="bg-slate-900 text-white">Congested</option>
+                                <option value="Archived" class="bg-slate-900 text-white">Archived</option>
                             </select>
                         </div>
                     </div>
@@ -238,6 +254,50 @@
                 </div>
             </div>
         </Teleport>
+
+        <BaseModal :is-open="isHubActionModalOpen" @close="closeHubActionModal">
+            <template #title>
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl flex items-center justify-center border"
+                        :class="hubActionModal.iconWrapClass">
+                        <span class="material-symbols-outlined text-[20px]" :class="hubActionModal.iconClass">
+                            {{ hubActionModal.icon }}
+                        </span>
+                    </div>
+                    <div>
+                        <div class="text-lg font-bold text-white">{{ hubActionModal.title }}</div>
+                        <div class="text-xs uppercase tracking-[0.25em] text-slate-400">{{ hubActionModal.hubName }}</div>
+                    </div>
+                </div>
+            </template>
+
+            <div class="space-y-4 text-sm">
+                <p class="leading-7 text-slate-200">
+                    {{ hubActionModal.message }}
+                </p>
+
+                <div class="rounded-2xl border p-4" :class="hubActionModal.panelClass">
+                    <div class="text-[11px] font-semibold uppercase tracking-[0.3em]" :class="hubActionModal.labelClass">
+                        What Happens Next
+                    </div>
+                    <p class="mt-2 leading-6" :class="hubActionModal.noteClass">
+                        {{ hubActionModal.note }}
+                    </p>
+                </div>
+            </div>
+
+            <template #footer>
+                <button @click="closeHubActionModal" :disabled="isHubActionPending"
+                    class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 border border-white/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                    Cancel
+                </button>
+                <button @click="confirmHubAction" :disabled="isHubActionPending"
+                    class="px-5 py-2 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    :class="hubActionModal.confirmButtonClass">
+                    {{ isHubActionPending ? hubActionModal.pendingLabel : hubActionModal.confirmLabel }}
+                </button>
+            </template>
+        </BaseModal>
     </div>
 </template>
 
@@ -246,6 +306,7 @@ import { ref, computed } from 'vue'
 import { useLogisticStore } from '@/stores/logisticStore'
 import { storeToRefs } from 'pinia'
 import { useToast } from '@/composables/useToast'
+import BaseModal from '@/components/BaseModal.vue'
 
 const store = useLogisticStore()
 const { hubs } = storeToRefs(store)
@@ -296,6 +357,8 @@ const avgCapacity = computed(() => {
 const isModalOpen = ref(false)
 const isEditing = ref(false)
 const isSavingHub = ref(false)
+const isHubActionModalOpen = ref(false)
+const isHubActionPending = ref(false)
 
 const draftHub = ref({
     id: null,
@@ -306,6 +369,82 @@ const draftHub = ref({
     capacity: 0,
     status: 'Optimal'
 })
+
+const createDefaultHubActionModal = () => ({
+    action: '',
+    hubId: null,
+    hubName: '',
+    title: '',
+    message: '',
+    note: '',
+    icon: 'warehouse',
+    iconWrapClass: 'bg-slate-900 border-white/10',
+    iconClass: 'text-slate-200',
+    panelClass: 'border-white/10 bg-white/5',
+    labelClass: 'text-slate-300',
+    noteClass: 'text-slate-200',
+    confirmLabel: 'Confirm',
+    pendingLabel: 'Processing...',
+    confirmButtonClass: 'bg-primary hover:bg-primary/90 border border-primary/30 shadow-sm'
+})
+
+const hubActionModal = ref(createDefaultHubActionModal())
+
+const openHubActionModal = (action, hub) => {
+    const hubName = hub?.name || 'this hub'
+    const configs = {
+        archive: {
+            title: 'Archive Hub',
+            message: `Archive ${hubName} from live operations?`,
+            note: 'New bookings and fresh staff assignments will stop for this hub, while its order and warehouse history stays intact.',
+            icon: 'inventory_2',
+            iconWrapClass: 'bg-amber-500/10 border-amber-500/20',
+            iconClass: 'text-amber-400',
+            panelClass: 'border-amber-500/20 bg-amber-500/10',
+            labelClass: 'text-amber-300',
+            noteClass: 'text-amber-50',
+            confirmLabel: 'Archive Hub',
+            pendingLabel: 'Archiving...',
+            confirmButtonClass: 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm'
+        },
+        restore: {
+            title: 'Restore Hub',
+            message: `Restore ${hubName} and reopen it for operations?`,
+            note: 'The hub will become available again for booking, assignment, and warehouse selection across the system.',
+            icon: 'unarchive',
+            iconWrapClass: 'bg-emerald-500/10 border-emerald-500/20',
+            iconClass: 'text-emerald-400',
+            panelClass: 'border-emerald-500/20 bg-emerald-500/10',
+            labelClass: 'text-emerald-300',
+            noteClass: 'text-emerald-50',
+            confirmLabel: 'Restore Hub',
+            pendingLabel: 'Restoring...',
+            confirmButtonClass: 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-sm'
+        },
+        delete: {
+            title: 'Delete Hub',
+            message: `Permanently delete ${hubName}?`,
+            note: 'This only succeeds when no users, orders, inventory, or labour records are still linked to the hub.',
+            icon: 'delete_forever',
+            iconWrapClass: 'bg-red-500/10 border-red-500/20',
+            iconClass: 'text-red-400',
+            panelClass: 'border-red-500/20 bg-red-500/10',
+            labelClass: 'text-red-300',
+            noteClass: 'text-red-50',
+            confirmLabel: 'Delete Hub',
+            pendingLabel: 'Deleting...',
+            confirmButtonClass: 'bg-red-500 hover:bg-red-400 text-white shadow-sm'
+        }
+    }
+
+    hubActionModal.value = {
+        action,
+        hubId: hub.id,
+        hubName: hubName.toUpperCase(),
+        ...configs[action]
+    }
+    isHubActionModalOpen.value = true
+}
 
 const openAddModal = () => {
     isEditing.value = false
@@ -333,19 +472,45 @@ const closeModal = () => {
     isModalOpen.value = false
 }
 
-const handleDeleteHub = async (hub) => {
-    const confirmed = window.confirm(`Delete ${hub.name}? This will only work if no users, orders, inventory, or labour records are linked to it.`)
-    if (!confirmed) return
+const closeHubActionModal = (force = false) => {
+    if (isHubActionPending.value && !force) return
+    isHubActionModalOpen.value = false
+    hubActionModal.value = createDefaultHubActionModal()
+}
 
+const confirmHubAction = async () => {
+    if (!hubActionModal.value.hubId || !hubActionModal.value.action) return
+
+    isHubActionPending.value = true
     try {
-        await store.deleteHub(hub.id)
-        toast.success('Hub deleted successfully.')
+        if (hubActionModal.value.action === 'archive') {
+            await store.archiveHub(hubActionModal.value.hubId)
+            toast.success('Hub archived successfully.')
+        } else if (hubActionModal.value.action === 'restore') {
+            await store.restoreHub(hubActionModal.value.hubId)
+            toast.success('Hub restored successfully.')
+        } else if (hubActionModal.value.action === 'delete') {
+            await store.deleteHub(hubActionModal.value.hubId)
+            toast.success('Hub deleted successfully.')
+        }
+
+        closeHubActionModal(true)
     } catch (error) {
         if (/Cannot delete warehouse with dependent records/i.test(error?.message || '')) {
             toast.error('Cannot delete this hub because warehouse users, dispatchers, orders, inventory, or labour records are still linked to it.')
             return
         }
+        if (hubActionModal.value.action === 'archive') {
+            toast.error(error?.message || 'Unable to archive this hub right now.')
+            return
+        }
+        if (hubActionModal.value.action === 'restore') {
+            toast.error(error?.message || 'Unable to restore this hub right now.')
+            return
+        }
         toast.error(error?.message || 'Unable to delete this hub right now.')
+    } finally {
+        isHubActionPending.value = false
     }
 }
 

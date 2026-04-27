@@ -36,6 +36,56 @@ const ROLE_DASHBOARD_MAP = {
   driver: '/driver/dashboard',
 }
 
+const HUB_ARCHIVED_ROUTE_MAP = {
+  WAREHOUSE_MANAGER: '/warehouse/archived-access',
+  warehouse_manager: '/warehouse/archived-access',
+  warehouse: '/warehouse/archived-access',
+  DISPATCHER: '/dispatcher/archived-access',
+  dispatcher: '/dispatcher/archived-access',
+}
+
+const HUB_SCOPED_ROLES = new Set([
+  'WAREHOUSE_MANAGER',
+  'warehouse_manager',
+  'warehouse',
+  'DISPATCHER',
+  'dispatcher',
+])
+
+function isHubScopedRole(role = '') {
+  return HUB_SCOPED_ROLES.has(role)
+}
+
+function getArchivedHubRoute(role = '') {
+  return HUB_ARCHIVED_ROUTE_MAP[role] || null
+}
+
+function buildHubAccessState(userData) {
+  const role = userData?.role ?? ''
+  const warehouseId = userData?.warehouse_id ?? null
+  const warehouseIsActive = userData?.warehouse_is_active
+  const warehouseStatus = userData?.warehouse_status
+    || (warehouseIsActive === false ? 'Archived' : (warehouseId ? 'Active' : null))
+
+  return {
+    role,
+    warehouseId,
+    warehouseName: userData?.warehouse_name || '',
+    warehouseAddress: userData?.warehouse_address || '',
+    warehouseStatus,
+    isArchived: Boolean(isHubScopedRole(role) && warehouseId && warehouseIsActive === false),
+  }
+}
+
+function resolveRoleHome(userData) {
+  const archivedRoute = getArchivedHubRoute(userData?.role)
+  if (archivedRoute && buildHubAccessState(userData).isArchived) {
+    return archivedRoute
+  }
+
+  return ROLE_DASHBOARD_MAP[userData?.role] || '/login'
+}
+
 export const useAuthStore = defineStore('auth', () => {
   // ── Core auth state ──────────────────────────────────────────
   const user = ref(getStoredUser())
@@ -63,6 +113,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // ── Warehouse context (warehouse manager only) ────────────────
   const currentWarehouse = ref(null)
+  const assignedHubAccess = ref(buildHubAccessState(user.value))
 
   // ── Getters ──────────────────────────────────────────────────
   const isLockedOut = computed(() => {
@@ -93,7 +144,42 @@ export const useAuthStore = defineStore('auth', () => {
     return role
   })
 
-  const dashboardPath = computed(() => ROLE_DASHBOARD_MAP[userRole.value] || '/login')
+  const dashboardPath = computed(() => resolveRoleHome(user.value))
+  const isAssignedHubArchived = computed(() => assignedHubAccess.value.isArchived)
+
+  function syncWarehouseStateFromUser(userData = user.value) {
+    assignedHubAccess.value = buildHubAccessState(userData)
+
+    const warehouseId = userData?.warehouse_id ?? null
+    if (!warehouseId) {
+      currentWarehouse.value = null
+      return
+    }
+
+    const existingWarehouse = currentWarehouse.value || {}
+    const resolvedIsActive = typeof userData?.warehouse_is_active === 'boolean'
+      ? userData.warehouse_is_active
+      : existingWarehouse.is_active
+    const resolvedStatus = userData?.warehouse_status
+      || (typeof resolvedIsActive === 'boolean' ? (resolvedIsActive ? 'Active' : 'Archived') : existingWarehouse.status)
+
+    currentWarehouse.value = {
+      ...existingWarehouse,
+      id: warehouseId,
+      name: userData?.warehouse_name || existingWarehouse.name || 'Assigned Warehouse',
+      address: userData?.warehouse_address || existingWarehouse.address || '',
+      is_active: resolvedIsActive,
+      status: resolvedStatus,
+    }
+  }
+
+  function persistUserProfile(profile) {
+    const mergedProfile = { ...(user.value || {}), ...(profile || {}) }
+    user.value = mergedProfile
+    storeAuthSession({ user: mergedProfile })
+    syncWarehouseStateFromUser(mergedProfile)
+    return mergedProfile
+  }
 
   // ── Session sync ──────────────────────────────────────────────
   if (typeof window !== 'undefined') {
@@ -101,7 +187,12 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = getStoredAccessToken()
       user.value = getStoredUser()
       isAuthenticated.value = !!token.value
-      if (!token.value) currentWarehouse.value = null
+      if (!token.value) {
+        currentWarehouse.value = null
+        assignedHubAccess.value = buildHubAccessState(null)
+        return
+      }
+      syncWarehouseStateFromUser(user.value)
     }
     window.addEventListener('auth:session-changed', syncSession)
     window.addEventListener('storage', syncSession)
@@ -113,6 +204,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = accessToken
     isAuthenticated.value = true
     storeAuthSession({ accessToken, refreshToken, user: userData })
+    syncWarehouseStateFromUser(userData)
     resetLoginAttempts()
   }
 
@@ -121,6 +213,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null
     isAuthenticated.value = false
     currentWarehouse.value = null
+    assignedHubAccess.value = buildHubAccessState(null)
     clearAuthSession()
   }
 
@@ -188,11 +281,11 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.removeItem('remember_email')
       }
 
-      if (data.user.role === 'WAREHOUSE_MANAGER') {
+      if (data.user.role === 'WAREHOUSE_MANAGER' && data.user.warehouse_is_active !== false) {
         await ensureWarehouseContext()
       }
 
-      return { success: true, redirect: ROLE_DASHBOARD_MAP[data.user.role] || '/individual/dashboard' }
+      return { success: true, redirect: resolveRoleHome(data.user) }
     } catch {
       incrementAttempts()
       error.value = 'Unable to connect to the server. Please try again.'
@@ -233,11 +326,11 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await response.json()
       setAuthState(data.user, data.access_token, data.refresh_token)
 
-      if (data.user.role === 'WAREHOUSE_MANAGER') {
+      if (data.user.role === 'WAREHOUSE_MANAGER' && data.user.warehouse_is_active !== false) {
         await ensureWarehouseContext()
       }
 
-      return { success: true, redirect: ROLE_DASHBOARD_MAP[data.user.role] || '/individual/dashboard' }
+      return { success: true, redirect: resolveRoleHome(data.user) }
     } catch {
       error.value = 'Google login failed. Please try again.'
       return { success: false }
@@ -547,12 +640,12 @@ export const useAuthStore = defineStore('auth', () => {
       }
       const data = await response.json()
       setAuthState(data.user, data.access_token, data.refresh_token)
-      if (data.user.role === 'WAREHOUSE_MANAGER') await ensureWarehouseContext()
+      if (data.user.role === 'WAREHOUSE_MANAGER' && data.user.warehouse_is_active !== false) await ensureWarehouseContext()
       return {
         success: true,
         message: `Welcome back, ${data.user.name}!`,
         status: response.status,
-        redirect: ROLE_DASHBOARD_MAP[data.user.role] || '/individual/dashboard',
+        redirect: resolveRoleHome(data.user),
       }
     } catch {
       error.value = 'Unable to connect.'
@@ -571,9 +664,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const refreshedProfile = await authenticatedJsonRequest('api/v1/auth/me')
-      const profile = { ...user.value, ...refreshedProfile }
-      user.value = profile
-      storeAuthSession({ user: profile })
+      const profile = persistUserProfile(refreshedProfile)
 
       const data = await authenticatedJsonRequest('api/v1/warehouses?page=1&page_size=100')
       const warehouses = data.items || []
@@ -581,15 +672,44 @@ export const useAuthStore = defineStore('auth', () => {
         w.id === profile.warehouse_id || w.manager_id === profile.id
       ) || (warehouses.length === 1 ? warehouses[0] : null)
 
-      currentWarehouse.value = linked
+      currentWarehouse.value = linked ? {
+        ...linked,
+        status: profile.warehouse_status || (linked.is_active === false ? 'Archived' : 'Active'),
+      } : currentWarehouse.value
       if (linked && profile.warehouse_id !== linked.id) {
-        user.value = { ...user.value, warehouse_id: linked.id }
-        storeAuthSession({ user: user.value })
+        persistUserProfile({ warehouse_id: linked.id })
       }
       return linked
     } catch {
       return null
     }
+  }
+
+  async function ensureHubOperationalAccess(force = false) {
+    if (!getStoredAccessToken() || !user.value) {
+      assignedHubAccess.value = buildHubAccessState(null)
+      return assignedHubAccess.value
+    }
+
+    if (!isHubScopedRole(user.value?.role) || !user.value?.warehouse_id) {
+      syncWarehouseStateFromUser(user.value)
+      return assignedHubAccess.value
+    }
+
+    const hasKnownHubStatus = typeof user.value?.warehouse_is_active === 'boolean'
+    if (!force && hasKnownHubStatus) {
+      syncWarehouseStateFromUser(user.value)
+      return assignedHubAccess.value
+    }
+
+    try {
+      const profile = await authenticatedJsonRequest('api/v1/auth/me')
+      persistUserProfile(profile)
+    } catch {
+      syncWarehouseStateFromUser(user.value)
+    }
+
+    return assignedHubAccess.value
   }
 
   function logout() {
@@ -616,6 +736,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function getDashboardRoute(role = user.value?.role) {
+    if (role === user.value?.role) {
+      return resolveRoleHome(user.value)
+    }
     return ROLE_DASHBOARD_MAP[role] || '/login'
   }
 
@@ -635,6 +758,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = getStoredAccessToken()
     user.value = getStoredUser()
     isAuthenticated.value = !!token.value
+    syncWarehouseStateFromUser(user.value)
   }
 
   return {
@@ -654,6 +778,7 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     successMessage,
     currentWarehouse,
+    assignedHubAccess,
 
     // ── Getters ────────────────────────────────────────────────
     isLockedOut,
@@ -663,6 +788,7 @@ export const useAuthStore = defineStore('auth', () => {
     userEmail,
     userRoleLabel,
     dashboardPath,
+    isAssignedHubArchived,
 
     // ── New auth actions (used by new auth-views) ───────────────
     login,
@@ -680,6 +806,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // ── Backward-compat (used by existing role dashboards) ─────
     googleLogin,
+    ensureHubOperationalAccess,
     ensureWarehouseContext,
     logout,
     getDashboardRoute,

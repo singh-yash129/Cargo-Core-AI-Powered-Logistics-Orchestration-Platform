@@ -186,6 +186,11 @@ const routes = [
 
   // ── Warehouse Manager Routes ────────────────────────────────────
   {
+    path: '/warehouse/archived-access',
+    name: 'WarehouseArchivedAccess',
+    component: () => import('../views/HubArchivedAccess.vue'),
+  },
+  {
     path: '/warehouse',
     component: () => import('../layouts/WarehouseLayout.vue'),
     redirect: '/warehouse/dashboard',
@@ -209,6 +214,11 @@ const routes = [
   },
 
   // ── Dispatcher Routes ───────────────────────────────────────────
+  {
+    path: '/dispatcher/archived-access',
+    name: 'DispatcherArchivedAccess',
+    component: () => import('../views/HubArchivedAccess.vue'),
+  },
   {
     path: '/dispatcher',
     component: () => import('../layouts/DispatcherLayout.vue'),
