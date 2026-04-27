@@ -111,7 +111,7 @@
                                     </span>
                                     <!-- Normal status badge -->
                                     <span v-else class="text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
-                                        :class="driver.status === 'active' ? 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400' : 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400'">
+                                        :class="String(driver.status || '').toLowerCase() === 'active' ? 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400' : 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400'">
                                         {{ driver.status }}
                                     </span>
                                 </div>
@@ -208,7 +208,7 @@
                             <tr v-for="vehicle in searchedVehicles" :key="vehicle.id"
                                 @click.stop="openVehicleProfile(vehicle)"
                                 class="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer relative">
-                                <td class="py-3 px-2 text-gray-700 dark:text-white font-mono font-medium">{{ vehicle.id
+                                <td class="py-3 px-2 text-gray-700 dark:text-white font-mono font-medium">{{ vehicle.code || vehicle.id
                                 }}<br /><span class="text-[10px] text-gray-500">{{ vehicle.licensePlate }}</span>
                                 </td>
                                 <td class="py-3 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">
@@ -1357,7 +1357,7 @@ const searchedVehicles = computed(() => {
     const q = searchQuery.value.toLowerCase()
     return store.filteredVehicles.filter(v => 
         !q || 
-        v.id.toLowerCase().includes(q) || 
+        String(v.code || v.id || '').toLowerCase().includes(q) || 
         v.type.toLowerCase().includes(q) || 
         v.model.toLowerCase().includes(q) ||
         v.driver.toLowerCase().includes(q) ||
@@ -1584,7 +1584,7 @@ const generateMaintenanceReport = () => {
     const rows = [
         ['Vehicle ID', 'License Plate', 'Type', 'Model', 'Year', 'Driver', 'Status', 'Warehouse', 'Fuel Efficiency', 'Current Location'],
         ...vehicles.map(v => [
-            v.id, v.licensePlate || '—', v.type || '—', v.model || '—', v.year || '—',
+            v.code || v.id, v.licensePlate || '—', v.type || '—', v.model || '—', v.year || '—',
             v.driver || '—', v.status || '—',
             store.hubs.find(h => h.id === v.hubId)?.name || 'Main Hub',
             v.fuelEfficiency || '—', v.currentLocation || '—'

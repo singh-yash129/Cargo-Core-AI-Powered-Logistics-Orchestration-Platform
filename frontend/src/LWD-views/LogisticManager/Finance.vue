@@ -307,11 +307,11 @@
                                 </span>
                             </div>
                             <div class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                                <div v-for="user in bulkTargetUsers" :key="user.username" class="flex items-center gap-2 p-2 rounded bg-slate-900 border border-white/10 transition-all hover:translate-x-1">
+                                <div v-for="user in bulkTargetUsers" :key="user.id" class="flex items-center gap-2 p-2 rounded bg-slate-900 border border-white/10 transition-all hover:translate-x-1">
                                     <img :src="user.avatar" class="w-8 h-8 rounded-full bg-gray-200">
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ user.name }}</p>
-                                        <p class="text-[10px] text-gray-500 truncate">{{ user.role }} • Rating: {{ user.rating || 'N/A' }}</p>
+                                        <p class="text-[10px] text-gray-500 truncate">{{ user.role }} • Rating: {{ formatBulkRating(user.rating) }}</p>
                                     </div>
                                     <span class="text-xs font-bold" :class="bulkForm.type === 'Bonus' ? 'text-green-600' : 'text-red-600'">
                                         {{ bulkForm.type === 'Bonus' ? '+' : '-' }}₹{{ bulkForm.amount }}
@@ -578,6 +578,8 @@ const store = useLogisticStore()
 const {
     filteredTransactions,
     filteredUsers,
+    filteredDrivers,
+    filteredTopDrivers,
     activeFinanceSummary,
     filteredFinanceCodRecords,
     filteredFinanceStaffRecords,
@@ -631,36 +633,76 @@ const bulkForm = ref({
     minTrips: 10
 })
 
+const EXCLUDED_BULK_ROLES = new Set(['Logistic Manager', 'Vendor', 'Customer Support'])
+
+const bulkCandidateUsers = computed(() => {
+    const driverById = new Map(
+        filteredDrivers.value.map((driver) => [String(driver.id), driver])
+    )
+    const driverByName = new Map(
+        filteredDrivers.value.map((driver) => [String(driver.name || '').trim().toLowerCase(), driver])
+    )
+    const topDriverById = new Map(
+        filteredTopDrivers.value.map((driver) => [String(driver.id), driver])
+    )
+    const topDriverByName = new Map(
+        filteredTopDrivers.value.map((driver) => [String(driver.name || '').trim().toLowerCase(), driver])
+    )
+
+    return filteredUsers.value
+        .filter((user) =>
+            !EXCLUDED_BULK_ROLES.has(user.role) &&
+            String(user.status || '').toLowerCase() === 'active'
+        )
+        .map((user) => {
+            const normalizedName = String(user.name || '').trim().toLowerCase()
+            const driverRecord = driverById.get(String(user.id)) || driverByName.get(normalizedName) || null
+            const topDriverRecord = topDriverById.get(String(user.id)) || topDriverByName.get(normalizedName) || null
+
+            const resolvedRating = driverRecord?.rating ?? topDriverRecord?.rating ?? null
+            const resolvedTrips = topDriverRecord?.trips ?? null
+
+            return {
+                ...user,
+                role: driverRecord ? 'Driver' : user.role,
+                rating: resolvedRating == null || Number.isNaN(Number(resolvedRating)) ? null : Number(resolvedRating),
+                trips: resolvedTrips == null || Number.isNaN(Number(resolvedTrips)) ? null : Number(resolvedTrips),
+                avatar: user.avatar || topDriverRecord?.avatar || null,
+            }
+        })
+})
+
+const formatBulkRating = (rating) => (
+    rating == null || Number.isNaN(Number(rating))
+        ? 'N/A'
+        : Number(rating).toFixed(1)
+)
+
 // Bulk Computed Logic
 const bulkTargetUsers = computed(() => {
     const hasRoleFilter = bulkForm.value.role !== 'all'
     const hasRatingFilter = bulkForm.value.filterByRating
     const hasTripFilter = bulkForm.value.filterByTrips
+    const performanceFilterActive = hasRatingFilter || hasTripFilter
 
-    // Safety: require at least one filter to be active
-    if (!hasRoleFilter && !hasRatingFilter && !hasTripFilter) {
-        return []
-    }
-
-    return filteredUsers.value.filter(user => {
-        // Role filter
+    return bulkCandidateUsers.value.filter((user) => {
         if (hasRoleFilter && user.role !== bulkForm.value.role) return false
 
-        const topDriver = store.topDrivers.find(driver => driver.name === user.name)
-        const derivedRating = user.rating || topDriver?.rating || 4.0
-        const derivedTrips = user.trips || topDriver?.trips || Math.max(0, Math.round(user.pending_payout / 50))
+        // Driver performance criteria should only ever evaluate drivers.
+        if (performanceFilterActive && user.role !== 'Driver') return false
 
-        // Rating filter (only when checkbox is ticked)
-        if (hasRatingFilter && parseFloat(derivedRating) < bulkForm.value.minRating) return false
-        // Trip filter (only when checkbox is ticked)
-        if (hasTripFilter && derivedTrips < bulkForm.value.minTrips) return false
+        if (hasRatingFilter) {
+            if (user.rating == null) return false
+            if (Number(user.rating) < Number(bulkForm.value.minRating)) return false
+        }
+
+        if (hasTripFilter) {
+            if (user.trips == null) return false
+            if (Number(user.trips) < Number(bulkForm.value.minTrips)) return false
+        }
 
         return true
-    }).map(u => ({
-        ...u,
-        _mockRating: u.rating || store.topDrivers.find(driver => driver.name === u.name)?.rating || 4.0,
-        _mockTrips: u.trips || store.topDrivers.find(driver => driver.name === u.name)?.trips || Math.max(0, Math.round(u.pending_payout / 50))
-    }))
+    })
 })
 
 // Bulk Methods

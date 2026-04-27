@@ -290,6 +290,74 @@ export const useLogisticStore = defineStore('logistic', () => {
             timestamp: alert.timestamp,
         }))
 
+        drivers.value = asArray(payload.drivers).map((driver) => ({
+            id: asStringId(driver.id),
+            hubId: asWarehouseId(driver.hub_id ?? driver.hubId),
+            name: driver.name,
+            status: driver.status || 'Active',
+            location: driver.location || '',
+            vehicle: driver.vehicle || '',
+            efficiency: Number(driver.efficiency ?? 0),
+            rating: Number(driver.rating ?? 0),
+            safetyIncidents: Number(driver.safety_incidents ?? driver.safetyIncidents ?? 0),
+            fuelEfficiencyScore: driver.fuel_efficiency_score || driver.fuelEfficiencyScore || '',
+            avgSpeed: driver.avg_speed || driver.avgSpeed || '',
+            phone: driver.phone || '',
+            currentJob: driver.current_job || driver.currentJob || '',
+            avatarColor: driver.avatar_color || driver.avatarColor || 'bg-blue-600',
+            chatHistory: asArray(driver.chat_history ?? driver.chatHistory),
+        }))
+
+        topDrivers.value = asArray(payload.top_drivers).map((driver) => {
+            const linkedDriver = drivers.value.find((item) =>
+                item.id === asStringId(driver.id) || item.name === driver.name
+            )
+
+            return {
+                id: asStringId(driver.id),
+                hubId: asWarehouseId(driver.hubId ?? driver.hub_id ?? linkedDriver?.hubId),
+                name: driver.name,
+                rating: Number(driver.rating ?? linkedDriver?.rating ?? 0),
+                trips: Number(driver.trips ?? 0),
+                ontime: Number(driver.ontime ?? 0),
+                avatar: driver.avatar || null,
+                avatarColor: linkedDriver?.avatarColor || 'bg-blue-600',
+                status: linkedDriver?.status || 'Active',
+                vehicle: linkedDriver?.vehicle || '',
+                currentJob: linkedDriver?.currentJob || '',
+            }
+        })
+
+        vehicles.value = asArray(payload.vehicles).map((vehicle) => ({
+            id: asStringId(vehicle.id),
+            hubId: asWarehouseId(vehicle.hub_id ?? vehicle.hubId),
+            code: vehicle.code || asStringId(vehicle.id),
+            type: vehicle.type || vehicle.vehicle_type || '',
+            model: vehicle.model || '',
+            year: vehicle.year || null,
+            licensePlate: vehicle.license_plate || vehicle.licensePlate || '',
+            status: vehicle.status || 'Active',
+            driver: vehicle.driver || 'Unassigned',
+            fuelEfficiency: vehicle.fuel_efficiency || vehicle.fuelEfficiency || '',
+            mileage: vehicle.mileage ?? 0,
+            nextService: vehicle.next_service || vehicle.nextService || '',
+            issue: vehicle.maintenance_issue || vehicle.issue || null,
+            fuelLevelPct: vehicle.fuel_level_pct ?? vehicle.fuelLevelPct ?? null,
+            rangeKm: vehicle.range_km ?? vehicle.rangeKm ?? null,
+            seatCapacity: vehicle.seat_capacity ?? vehicle.seatCapacity ?? null,
+            cargoCapacityTons: vehicle.cargo_capacity_tons ?? vehicle.cargoCapacityTons ?? null,
+            telemetryStatus: vehicle.telemetry_status || vehicle.telemetryStatus || null,
+            telemetryLastSeen: vehicle.telemetry_last_seen || vehicle.telemetryLastSeen || null,
+        }))
+
+        maintenance.value = asArray(payload.maintenance).map((item) => ({
+            id: asStringId(item.id),
+            hubId: asWarehouseId(item.hub_id ?? item.hubId),
+            issue: item.issue || '',
+            status: item.status || '',
+            statusClass: item.status_class || item.statusClass || '',
+        }))
+
         users.value = asArray(payload.users).map(normalizeUserRecord)
 
         returns.value = asArray(payload.returns).map(mapReturnRecord)
