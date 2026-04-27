@@ -136,6 +136,12 @@
                             </button>
                         </div>
 
+                        <div
+                            v-if="warehouseBookingBlocked"
+                            class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+                            {{ warehouseBookingMessage }}
+                        </div>
+
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div v-if="form.pickupType === 'hub'">
                                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">
@@ -341,6 +347,9 @@
                                     class="text-blue-500 text-lg">₹{{ quote.total.toLocaleString() }}</span>
                             </div>
                         </div>
+                        <div v-if="bookingNotice" class="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+                            {{ bookingNotice }}
+                        </div>
                         <div v-if="!formValid" class="mb-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                             <div class="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Required fields
                                 missing</div>
@@ -348,10 +357,11 @@
                                 <li v-for="e in validationErrors" :key="e">{{ e }}</li>
                             </ul>
                         </div>
-                        <button @click="submitShipment" :disabled="!formValid"
+                        <button @click="submitShipment" :disabled="!formValid || warehouseBookingBlocked"
                             class="w-full py-3 rounded-xl font-bold text-sm transition-all"
-                            :class="formValid ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg' : 'bg-gray-200 dark:bg-white/10 text-gray-400 cursor-not-allowed'">Confirm
-                            Shipment</button>
+                            :class="(!formValid || warehouseBookingBlocked) ? 'bg-gray-200 dark:bg-white/10 text-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'">
+                            {{ warehouseBookingBlocked ? 'Shipment Booking Unavailable' : 'Confirm Shipment' }}
+                        </button>
                         <button @click="saveDraft"
                             class="mt-2 w-full py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 text-sm font-medium transition-colors">Save
                             Draft</button>
@@ -1075,6 +1085,7 @@ const shipmentStatusFilter = ref('all')
 const editingEntry = ref(null)
 const isDark = ref(false)
 const showSampleData = ref(false)
+const bookingNotice = ref('')
 let themeObserver = null
 
 // ── Map Picker ────────────────────────────────────────────────────────
@@ -1135,6 +1146,18 @@ watch(
 )
 
 const quote = ref({ baseTransport: 500, laborCharges: 0, packingFee: 0, insurance: 0, total: 500 })
+const warehousePreviewError = computed(() => store.assignmentPreviewError || '')
+const warehouseBookingBlocked = computed(() =>
+    /No active warehouses available for assignment/i.test(warehousePreviewError.value)
+)
+const warehouseBookingMessage = computed(() =>
+    warehouseBookingBlocked.value
+        ? 'Currently no warehouse is available for booking. Please try again later or contact support.'
+        : warehousePreviewError.value
+)
+const selectedPickupWarehouseId = computed(() =>
+    store.warehouses.find((warehouse) => warehouse.name === form.pickupHub)?.id || null
+)
 
 const bulkUploads = ref([
     {
@@ -1237,6 +1260,7 @@ const validationErrors = computed(() => {
         if (!form.pickupCity) e.push('Pickup city required')
         if (!form.pickupPincode) e.push('Pickup pincode required')
     }
+    if (form.pickupType === 'hub' && !form.pickupHub) e.push('Pickup hub required')
 
     if (!form.weight || form.weight < 1) e.push('Weight required')
     if (!form.destination) e.push('Destination required')
@@ -1260,15 +1284,24 @@ const filteredShipments = computed(() => {
 })
 
 async function submitShipment() {
+    bookingNotice.value = ''
     if (!formValid.value) return
-    const s = await store.createShipment({ ...form, quotedPrice: quote.value.total, quoteBreakdown: { ...quote.value } })
-    confirmedOrderId.value = s.id
-    confirmedOrder.value = s
-    if (form.paymentMode === 'Full Payment') {
-        pendingPayOrder.value = s
-        showPayModal.value = true
-    } else {
-        showConfirmModal.value = true
+    if (warehouseBookingBlocked.value) {
+        bookingNotice.value = warehouseBookingMessage.value
+        return
+    }
+    try {
+        const s = await store.createShipment({ ...form, quotedPrice: quote.value.total, quoteBreakdown: { ...quote.value } })
+        confirmedOrderId.value = s.id
+        confirmedOrder.value = s
+        if (form.paymentMode === 'Full Payment') {
+            pendingPayOrder.value = s
+            showPayModal.value = true
+        } else {
+            showConfirmModal.value = true
+        }
+    } catch (error) {
+        bookingNotice.value = error?.message || 'Unable to create this shipment right now.'
     }
 }
 
@@ -1422,6 +1455,14 @@ watch(() => store.warehouses, (list) => {
     if (!form.pickupHub && list.length) form.pickupHub = list[0].name
 }, { immediate: true })
 
+watch(
+    () => [form.pickupType, selectedPickupWarehouseId.value],
+    async ([pickupType, warehouseId]) => {
+        await store.fetchOrderAssignmentPreview(pickupType === 'hub' ? warehouseId : null)
+    },
+    { immediate: true }
+)
+
 onMounted(async () => {
     if (typeof document !== 'undefined') {
         isDark.value = document.documentElement.classList.contains('dark')
@@ -1436,6 +1477,7 @@ onMounted(async () => {
 
     // Always re-fetch warehouses when page loads so new hubs are visible immediately
     await store.fetchWarehouses()
+    await store.fetchOrderAssignmentPreview(selectedPickupWarehouseId.value)
 })
 
 onBeforeUnmount(() => {

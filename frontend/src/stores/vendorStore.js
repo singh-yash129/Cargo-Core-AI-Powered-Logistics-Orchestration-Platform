@@ -94,6 +94,8 @@ export const useVendorStore = defineStore('vendor', () => {
     const tickets = ref([])
     const notifications = ref([])
     const warehouses = ref([])
+    const assignmentPreview = ref(null)
+    const assignmentPreviewError = ref('')
 
     const companySettings = ref({
         companyName: '',
@@ -295,15 +297,44 @@ export const useVendorStore = defineStore('vendor', () => {
                 return
             }
             const data = await res.json()
-            warehouses.value = (Array.isArray(data) ? data : data.items || []).map(w => ({
-                id: String(w.id),
-                name: w.name,
-                address: w.address || w.location || '',
-                lat: w.lat ?? null,
-                lng: w.lng ?? null,
-            }))
+            warehouses.value = (Array.isArray(data) ? data : data.items || [])
+                .filter((warehouse) => warehouse?.is_active !== false)
+                .map(w => ({
+                    id: String(w.id),
+                    name: w.name,
+                    address: w.address || w.location || '',
+                    lat: w.lat ?? null,
+                    lng: w.lng ?? null,
+                }))
         } catch (e) {
             console.warn('[vendorStore] fetchWarehouses error:', e)
+        }
+    }
+
+    async function fetchOrderAssignmentPreview(warehouseId = null) {
+        try {
+            const query = warehouseId ? `?warehouse_id=${encodeURIComponent(warehouseId)}` : ''
+            const response = await fetch(`${API_BASE}/orders/assignment-preview${query}`, {
+                headers: getAuthHeaders(),
+            })
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}))
+                throw new Error(errData.detail || 'Failed to resolve assignment preview')
+            }
+
+            const data = await response.json()
+            assignmentPreviewError.value = ''
+            assignmentPreview.value = {
+                ...data,
+                warehouse_id: String(data.warehouse_id),
+            }
+            return assignmentPreview.value
+        } catch (error) {
+            console.warn('[vendorStore] fetchOrderAssignmentPreview failed:', error)
+            assignmentPreview.value = null
+            assignmentPreviewError.value = error?.message || 'Failed to resolve assignment preview'
+            return null
         }
     }
 
@@ -529,6 +560,9 @@ export const useVendorStore = defineStore('vendor', () => {
         const selectedWarehouse = data.pickupType === 'hub'
             ? warehouses.value.find((warehouse) => warehouse.name === data.pickupHub) || null
             : null
+        if (data.pickupType === 'hub' && data.pickupHub && !selectedWarehouse) {
+            throw new Error('Selected hub is not available right now. Please choose another active warehouse.')
+        }
         const pickupAddr = data.pickupType === 'doorstep'
             ? [data.pickupAddress, data.pickupCity, data.pickupPincode].filter(Boolean).join(', ')
             : data.pickupHub || 'Origin Hub'
@@ -1218,9 +1252,12 @@ export const useVendorStore = defineStore('vendor', () => {
         totalPaidThisMonth,
         creditBalance,
         warehouses,
+        assignmentPreview,
+        assignmentPreviewError,
         initializeVendorData,
         refreshVendorData,
         fetchWarehouses,
+        fetchOrderAssignmentPreview,
         fetchDashboardSummary,
         fetchShipments,
         fetchSettings,

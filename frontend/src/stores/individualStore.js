@@ -69,6 +69,7 @@ export const useIndividualStore = defineStore('individual', () => {
     const paymentsSummary = ref(null)
     const warehouses = ref([])
     const assignmentPreview = ref(null)
+    const assignmentPreviewError = ref('')
 
     const savedAddresses = ref([
         { id: 1, label: 'Home', icon: 'home', address: '42, Green Park', city: 'New Delhi', state: 'Delhi', pincode: '110016', phone: '+91 0000000000' },
@@ -288,11 +289,13 @@ export const useIndividualStore = defineStore('individual', () => {
                 throw new Error(errData.detail || 'Failed to load hubs')
             }
             const data = await res.json()
-            warehouses.value = (Array.isArray(data) ? data : data.items || []).map((warehouse) => ({
-                id: String(warehouse.id),
-                name: warehouse.name,
-                address: warehouse.address || '',
-            }))
+            warehouses.value = (Array.isArray(data) ? data : data.items || [])
+                .filter((warehouse) => warehouse?.is_active !== false)
+                .map((warehouse) => ({
+                    id: String(warehouse.id),
+                    name: warehouse.name,
+                    address: warehouse.address || '',
+                }))
             return warehouses.value
         } catch (error) {
             console.warn('[individualStore] fetchWarehouses failed:', error)
@@ -312,6 +315,7 @@ export const useIndividualStore = defineStore('individual', () => {
                 throw new Error(errData.detail || 'Failed to resolve assignment preview')
             }
             const data = await res.json()
+            assignmentPreviewError.value = ''
             assignmentPreview.value = {
                 ...data,
                 warehouse_id: String(data.warehouse_id),
@@ -319,7 +323,9 @@ export const useIndividualStore = defineStore('individual', () => {
             return assignmentPreview.value
         } catch (error) {
             console.warn('[individualStore] fetchOrderAssignmentPreview failed:', error)
-            return assignmentPreview.value
+            assignmentPreview.value = null
+            assignmentPreviewError.value = error?.message || 'Failed to resolve assignment preview'
+            return null
         }
     }
 
@@ -1731,7 +1737,7 @@ export const useIndividualStore = defineStore('individual', () => {
         ordersLoading, ordersError, fetchOrders, cancelOrderRemote,
         user, userInitials,
         warehouses, fetchWarehouses,
-        assignmentPreview, fetchOrderAssignmentPreview,
+        assignmentPreview, assignmentPreviewError, fetchOrderAssignmentPreview,
         orders, activeOrders, pendingOrders, deliveredOrders, cancelledOrders, totalSpent,
         walletBalance, addFunds, fetchWalletBalance,
         pendingTransportCharge,

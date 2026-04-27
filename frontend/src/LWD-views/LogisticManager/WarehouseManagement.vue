@@ -133,7 +133,7 @@
                                             <span class="material-symbols-outlined text-[16px]">edit</span>
                                             Edit Hub
                                         </button>
-                                        <button @click="store.deleteHub(hub.id)"
+                                        <button @click="handleDeleteHub(hub)"
                                             class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center gap-2">
                                             <span class="material-symbols-outlined text-[16px]">delete</span>
                                             Delete Hub
@@ -331,6 +331,22 @@ const openEditModal = (hub) => {
 const closeModal = () => {
     if (isSavingHub.value) return
     isModalOpen.value = false
+}
+
+const handleDeleteHub = async (hub) => {
+    const confirmed = window.confirm(`Delete ${hub.name}? This will only work if no users, orders, inventory, or labour records are linked to it.`)
+    if (!confirmed) return
+
+    try {
+        await store.deleteHub(hub.id)
+        toast.success('Hub deleted successfully.')
+    } catch (error) {
+        if (/Cannot delete warehouse with dependent records/i.test(error?.message || '')) {
+            toast.error('Cannot delete this hub because warehouse users, dispatchers, orders, inventory, or labour records are still linked to it.')
+            return
+        }
+        toast.error(error?.message || 'Unable to delete this hub right now.')
+    }
 }
 
 const saveHub = async () => {

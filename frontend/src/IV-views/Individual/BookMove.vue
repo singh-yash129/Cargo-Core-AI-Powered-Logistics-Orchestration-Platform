@@ -121,15 +121,23 @@
                                     </option>
                                 </select>
                             </div>
-                            <div class="rounded-lg border border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 px-4 py-3">
-                                <div class="text-[11px] uppercase tracking-wider font-bold text-green-700 dark:text-green-300">
-                                    {{ routingPreview?.assignment_type === 'selected' ? 'Selected Hub' : 'Routing Preview' }}
+                            <div
+                                class="rounded-lg px-4 py-3"
+                                :class="warehouseBookingBlocked
+                                    ? 'border border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10'
+                                    : 'border border-green-200 bg-green-50 dark:border-green-500/20 dark:bg-green-500/5'">
+                                <div
+                                    class="text-[11px] uppercase tracking-wider font-bold"
+                                    :class="warehouseBookingBlocked ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'">
+                                    {{ warehouseBookingBlocked ? 'Hub Availability' : (routingPreview?.assignment_type === 'selected' ? 'Selected Hub' : 'Routing Preview') }}
                                 </div>
                                 <div class="text-sm font-bold text-gray-900 dark:text-white mt-1">
-                                    {{ routingPreview?.warehouse_name || 'Resolving best available hub...' }}
+                                    {{ warehouseBookingBlocked ? 'Currently no warehouse is available' : (routingPreview?.warehouse_name || 'Resolving best available hub...') }}
                                 </div>
-                                <div class="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                                    {{ routingPreview?.message || 'We will choose the best available operational hub if you do not select one.' }}
+                                <div
+                                    class="text-xs mt-1"
+                                    :class="warehouseBookingBlocked ? 'text-red-600 dark:text-red-200' : 'text-gray-600 dark:text-gray-300'">
+                                    {{ warehouseBookingBlocked ? warehouseBookingMessage : (routingPreview?.message || 'We will choose the best available operational hub if you do not select one.') }}
                                 </div>
                             </div>
                         </div>
@@ -617,10 +625,19 @@
 
                     <!-- Dummy Payment text removed -->
 
+                    <div
+                        v-if="warehouseBookingBlocked"
+                        class="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+                        {{ warehouseBookingMessage }}
+                    </div>
+
                     <button @click="handleBookingClick"
+                        :disabled="warehouseBookingBlocked"
                         class="w-full py-3 font-bold rounded-xl transition-colors text-lg mb-2 shadow-sm"
-                        :class="moveType === 'house-shift' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'">
-                        {{ moveType === 'house-shift' ? 'Confirm Booking' : 'Schedule Pickup' }}
+                        :class="warehouseBookingBlocked
+                            ? 'bg-gray-200 dark:bg-white/10 text-gray-400 cursor-not-allowed shadow-none'
+                            : (moveType === 'house-shift' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white')">
+                        {{ warehouseBookingBlocked ? 'Booking Unavailable' : (moveType === 'house-shift' ? 'Confirm Booking' : 'Schedule Pickup') }}
                     </button>
                     <button @click="saveQuote"
                         class="w-full py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white font-bold rounded-xl transition-colors mb-2">
@@ -831,6 +848,15 @@ const timeSlots = [
 ]
 
 const routingPreview = computed(() => store.assignmentPreview)
+const warehousePreviewError = computed(() => store.assignmentPreviewError || '')
+const warehouseBookingBlocked = computed(() =>
+    /No active warehouses available for assignment/i.test(warehousePreviewError.value)
+)
+const warehouseBookingMessage = computed(() =>
+    warehouseBookingBlocked.value
+        ? 'Currently no warehouse is available for booking. Please try again later or contact support.'
+        : warehousePreviewError.value
+)
 
 const selectedVehicle = computed(() => store.vehicleTypes.find(v => v.key === form.vehicleType))
 const serviceTimeBlock = computed(() => { const v = selectedVehicle.value; return v?.key === 'hcv' ? '4-5 hours' : v?.key === 'lcv' ? '3-4 hours' : v?.key === 'tempo' ? '2-3 hours' : '1-2 hours' })
@@ -874,6 +900,10 @@ const paymentAmount = computed(() => {
 })
 
 function handleBookingClick() {
+    if (warehouseBookingBlocked.value) {
+        showToast(warehouseBookingMessage.value, 'error')
+        return
+    }
     if (!form.pickup || !form.destination) { showToast('Please fill pickup and destination.', 'error'); return }
     if (moveType.value === 'house-shift' && !form.date) { showToast('Please select a date.', 'error'); return }
     if (moveType.value === 'small-package' && !pkg.preferredDate) { showToast('Please select a pickup date.', 'error'); return }
