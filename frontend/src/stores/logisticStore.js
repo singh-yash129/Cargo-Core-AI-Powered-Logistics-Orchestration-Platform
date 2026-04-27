@@ -288,10 +288,6 @@ export const useLogisticStore = defineStore('logistic', () => {
             severity: alert.severity,
             icon: alert.icon || 'warning',
             timestamp: alert.timestamp,
-            title: report.title,
-            date: report.date,
-            icon: report.icon,
-            color: report.color,
         }))
 
         users.value = asArray(payload.users).map(normalizeUserRecord)
@@ -383,6 +379,21 @@ export const useLogisticStore = defineStore('logistic', () => {
         }))
         // Bootstrap correctly computes total_revenue, total_expenses, total_payroll_due, pending_cod
         financeSummary.value = payload.finance_summary || {}
+
+        // ── Transactions (Overview tab) ────────────────────────────────────────
+        transactions.value = asArray(payload.transactions).map((tx) => ({
+            id: asStringId(tx.id),
+            hubId: asWarehouseId(tx.hub_id),
+            transactionCode: tx.transaction_code || '',
+            date: tx.date,
+            desc: tx.desc || tx.description || '',
+            type: tx.type || tx.transaction_type || '',
+            amount: Number(tx.amount ?? 0),
+            status: tx.status || 'Completed',
+            metadataJson: tx.metadata_json || {},
+            relatedOrder: tx.related_order || null,
+        }))
+
         financeCodRecords.value = asArray(payload.finance_cod_records).map((item) => ({ ...item, id: asStringId(item.id), hubId: asWarehouseId(item.hubId ?? item.hub_id ?? item.warehouse_id) }))
         financeStaffRecords.value = asArray(payload.finance_staff_records).map((item) => ({ ...item, id: asStringId(item.id), userId: asStringId(item.userId), hubId: asWarehouseId(item.hubId ?? item.hub_id ?? item.warehouse_id) }))
         financeDriverRecords.value = asArray(payload.finance_driver_records).map((item) => ({ ...item, id: asStringId(item.id), userId: asStringId(item.userId), hubId: asWarehouseId(item.hubId ?? item.hub_id ?? item.warehouse_id) }))
@@ -504,6 +515,20 @@ export const useLogisticStore = defineStore('logistic', () => {
             total_payroll_due: summaryMatchesScope && financeSummary.value?.total_payroll_due != null ? financeSummary.value.total_payroll_due : fallbackPayrollDue,
             procurement_expenses: summaryMatchesScope && financeSummary.value?.procurement_expenses != null ? financeSummary.value.procurement_expenses : fallbackProcurement,
             capital_invested: summaryMatchesScope && financeSummary.value?.capital_invested != null ? financeSummary.value.capital_invested : fallbackCapital,
+            // capital_flow_empty:
+            // 1. Trust backend flag when available (most accurate)
+            // 2. Fall back to local computation ONLY after store is initialized
+            //    (prevents false-positive flash before data loads)
+            capital_flow_empty: (() => {
+                // Backend confirmed it
+                if (summaryMatchesScope && financeSummary.value?.capital_flow_empty === true) return true
+                // Backend confirmed it's NOT empty
+                if (summaryMatchesScope && financeSummary.value?.capital_flow_empty === false) return false
+                // No backend data yet — only use local fallback AFTER full init (no flash)
+                if (!initialized.value || isLoading.value) return false
+                // Alert when revenue is drained to 0 (capital still may cover, but warn now)
+                return fallbackRevenue <= 0
+            })(),
         }
     })
 
@@ -586,7 +611,12 @@ export const useLogisticStore = defineStore('logistic', () => {
             financeSummary.value.total_revenue = (financeSummary.value.total_revenue || 0) + created.amount
             creditBalance.value += created.amount
         } else {
-            financeSummary.value.total_expenses = (financeSummary.value.total_expenses || 0) + Math.abs(created.amount)
+            const expense = Math.abs(created.amount)
+            // Only update the Expenses counter — never touch Revenue.
+            // Revenue = what customers paid; Expenses = what we spent. They are separate.
+            // Capital absorbs the shortfall if expenses exceed revenue.
+            financeSummary.value.total_expenses = (financeSummary.value.total_expenses || 0) + expense
+            financeSummary.value.capital_invested = Math.max(0, (financeSummary.value.capital_invested || 0) - expense)
         }
     }
 
@@ -1311,11 +1341,11 @@ export const useLogisticStore = defineStore('logistic', () => {
             headers: authHeaders(),
             body: JSON.stringify({ user_payouts: userPayouts }),
         })
-        // Deduct total paid from revenue (payroll is an outflow)
+        // Payroll is an outflow — only update Expenses and Capital, never Revenue.
         const total = result.total || 0
         if (total > 0) {
-            financeSummary.value.total_revenue = Math.max(0, (financeSummary.value.total_revenue || 0) - total)
             financeSummary.value.total_expenses = (financeSummary.value.total_expenses || 0) + total
+            financeSummary.value.capital_invested = Math.max(0, (financeSummary.value.capital_invested || 0) - total)
         }
         return result
     }

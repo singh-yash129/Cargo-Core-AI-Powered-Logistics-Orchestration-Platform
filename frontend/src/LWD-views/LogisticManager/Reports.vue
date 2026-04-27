@@ -58,6 +58,54 @@
 
             <!-- 1. CONTROL TOWER (Executive Summary) -->
             <div v-if="activeTab === 'control_tower'" class="space-y-6 animate-fade-in">
+
+                <!-- ⚠ CRITICAL FINANCIAL ALERT: Both Revenue and Capital Flow Empty -->
+                <!-- Guard on store.initialized so this never flashes during loading -->
+                <div v-if="store.initialized && financeSummary.capital_flow_empty"
+                    class="relative overflow-hidden rounded-2xl border-2 border-red-500 shadow-2xl animate-pulse-border">
+                    <!-- Animated background -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-red-900/90 via-orange-900/90 to-red-900/90 animate-gradient-x"></div>
+                    <div class="absolute inset-0 bg-red-500/10 backdrop-blur-sm"></div>
+
+                    <div class="relative z-10 p-6 flex flex-col md:flex-row items-start md:items-center gap-6">
+                        <!-- Icon + Pulsing Ring -->
+                        <div class="relative shrink-0">
+                            <div class="absolute inset-0 rounded-full bg-red-500/30 animate-ping"></div>
+                            <div class="w-20 h-20 rounded-full bg-red-500/20 border-2 border-red-400 flex items-center justify-center relative z-10">
+                                <span class="material-symbols-outlined text-5xl text-red-300 animate-bounce">emergency</span>
+                            </div>
+                        </div>
+
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="px-3 py-1 rounded-full bg-red-500 text-white text-xs font-black uppercase tracking-widest animate-pulse">🚨 CRITICAL ALERT</span>
+                                <span class="text-red-300 text-xs font-mono">System Level Alert • Finance & Payroll</span>
+                            </div>
+                            <h2 class="text-2xl md:text-3xl font-black text-white mb-2">
+                                ⚠ Revenue Flow is at Zero!
+                            </h2>
+                            <p class="text-red-200 text-sm leading-relaxed mb-4">
+                                <strong>Revenue (MTD) has been fully consumed by expenses and payouts.</strong>
+                                Further payments — staff bonuses, payroll, or procurement — will draw from Capital Inflow.
+                                If capital is also exhausted, all payments will fail. <strong>Add a capital investment now</strong>
+                                via <strong>Reports → Finances → Capital Investment Log</strong> to restore funding.
+                            </p>
+                            <div class="flex flex-wrap gap-3">
+                                <button @click="activeTab = 'financials'"
+                                    class="px-5 py-2 bg-orange-500 hover:bg-orange-400 text-white font-bold rounded-xl text-sm flex items-center gap-2 transition-all shadow-lg shadow-orange-500/30 border border-orange-400">
+                                    <span class="material-symbols-outlined text-[18px]">add_card</span>
+                                    Fund Now — Log Capital Investment
+                                </button>
+                                <div class="flex items-center gap-3 text-xs text-red-300 font-mono">
+                                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">payments</span> Revenue: ₹{{ (financeSummary.total_revenue || 0).toLocaleString() }}</span>
+                                    <span>•</span>
+                                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">add_card</span> Capital: ₹{{ (financeSummary.capital_invested || 0).toLocaleString() }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Top Row Alerts -->
                 <div v-if="crisisAlerts.length > 0" class="flex gap-4 overflow-x-auto pb-2">
                     <div v-for="alert in crisisAlerts" :key="alert.id"
@@ -1035,11 +1083,25 @@ const authStore = useAuthStore()
 
 // Poll alerts every 30s so LM sees dispatcher resolutions without manual refresh
 let alertPollTimer = null
-onMounted(() => {
+
+function handleGotoTab(e) {
+    if (e.detail) activeTab.value = e.detail
+}
+
+onMounted(async () => {
     store.fetchAlerts()
     alertPollTimer = setInterval(() => store.fetchAlerts(), 30000)
+    // Listen for tab-jump from the global emergency overlay pill
+    document.addEventListener('lm:goto-tab', handleGotoTab)
+    // Ensure finance summary is fresh so the capital_flow_empty alert renders correctly
+    await store.initialize().catch(() => {})
+    store.fetchFinanceSummary(store.activeWarehouse).catch(() => {})
 })
-onUnmounted(() => clearInterval(alertPollTimer))
+onUnmounted(() => {
+    clearInterval(alertPollTimer)
+    document.removeEventListener('lm:goto-tab', handleGotoTab)
+})
+
 const financeSummary = computed(() => store.activeFinanceSummary)
 
 // State
@@ -1617,5 +1679,23 @@ const doughnutOptions = {
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: rgba(156, 163, 175, 0.5);
     border-radius: 20px;
+}
+
+/* Capital Flow Empty - Critical Alert Animations */
+@keyframes gradient-x {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+@keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7), 0 0 20px rgba(239, 68, 68, 0.3); border-color: rgb(239, 68, 68); }
+    50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0), 0 0 40px rgba(239, 68, 68, 0.6); border-color: rgb(251, 146, 60); }
+}
+
+.animate-gradient-x {
+    background-size: 200% 200%;
+    animation: gradient-x 3s ease infinite;
+}
+.animate-pulse-border {
+    animation: pulse-border 2s ease-in-out infinite;
 }
 </style>

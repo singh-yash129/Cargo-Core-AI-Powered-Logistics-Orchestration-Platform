@@ -281,6 +281,8 @@ async def get_finance_summary(db: AsyncSession, warehouse_id: UUID | None = None
         .join(Order, Order.id == OrderPayment.order_id)
         .where(
             OrderPayment.status == "completed",
+            # Exclude REFUND reversals; WALLET payments are now covered via
+            # REVENUE_WALLET LogisticsTransaction rows created by wallet_service.
             OrderPayment.payment_mode.notin_(["WALLET", "REFUND"]),
         )
     )
@@ -347,6 +349,7 @@ async def get_finance_summary(db: AsyncSession, warehouse_id: UUID | None = None
 
     total_refunds_issued = 0.0
     return_charge_revenue = 0.0
+    wallet_revenue = 0.0
     for tx in scoped_transactions:
         tx_amount = float(tx.amount or 0.0)
         if tx.transaction_type == "REVENUE_REFUND":
@@ -360,14 +363,28 @@ async def get_finance_summary(db: AsyncSession, warehouse_id: UUID | None = None
             revenue_by_mode_acc["RETURN_CHARGE"] += tx_amount
             if tx.transaction_date:
                 revenue_by_day_acc[tx.transaction_date.date()] += tx_amount
+        # ── Wallet-paid bookings recorded as REVENUE_WALLET transactions ──
+        if tx.transaction_type == "REVENUE_WALLET" and tx_amount > 0:
+            wallet_revenue += tx_amount
+            revenue_by_mode_acc["WALLET"] += tx_amount
+            if tx.transaction_date:
+                revenue_by_day_acc[tx.transaction_date.date()] += tx_amount
 
-    total_revenue = max(0.0, normalized_revenue + legacy_revenue + return_charge_revenue - total_refunds_issued)
+    gross_revenue = max(0.0, normalized_revenue + legacy_revenue + return_charge_revenue + wallet_revenue - total_refunds_issued)
 
     expense_breakdown_acc: dict[str, float] = defaultdict(float)
     total_expenses = 0.0
     total_payroll_due = 0.0
     procurement_expenses = 0.0
     capital_invested = 0.0
+    # Bonus/staff payouts drawn from revenue (EXPENSE_BONUS, Expense, PAYROLL_RUN, etc.)
+    revenue_debit_expenses = 0.0
+
+    # Types that should be paid FROM revenue (not from external capital)
+    REVENUE_DEBIT_TYPES = {
+        "EXPENSE_BONUS", "PAYROLL_RUN", "EXPENSE_DRIVER", "EXPENSE_LABOUR",
+        "Expense", "Payroll"
+    }
 
     for tx in scoped_transactions:
         amount = float(tx.amount or 0.0)
@@ -380,8 +397,31 @@ async def get_finance_summary(db: AsyncSession, warehouse_id: UUID | None = None
                 total_payroll_due += abs_amount
             if tx_type == "EXPENSE_PROCUREMENT":
                 procurement_expenses += abs_amount
+            # Track which expenses debit from revenue vs capital
+            if tx_type in REVENUE_DEBIT_TYPES:
+                revenue_debit_expenses += abs_amount
         elif tx_type == "CAPITAL_INVESTMENT" and amount > 0:
             capital_invested += amount
+
+    # ─── Revenue vs Expenses vs Capital ───────────────────────────────────────
+    # total_revenue = what customers ACTUALLY PAID (gross).  This is what the
+    # "Revenue (MTD)" stat card should always display — it must NEVER be zeroed
+    # out by expenses, because expenses are a separate outflow.
+    # The capital overflow logic is for internal accounting only:
+    #   If gross_revenue < expenses, the shortfall is drawn from capital_invested.
+    total_revenue = gross_revenue   # ← always show real customer payments
+
+    # Capital accounting: how much capital remains after covering the expense
+    # shortfall that revenue could not cover.
+    expense_shortfall = max(0.0, total_expenses - gross_revenue)
+    effective_capital = max(0.0, capital_invested - expense_shortfall)
+
+    # Net profit uses actual revenue minus actual expenses (may be negative)
+    net_profit_value = gross_revenue - total_expenses
+
+    # Alert: fire when revenue alone cannot cover expenses and capital is also
+    # running low (i.e. operations are being funded entirely from capital reserve).
+    capital_flow_empty = gross_revenue <= 0.0
 
     pending_cod = float(sum(
         order.total_amount or 0.0
@@ -414,13 +454,16 @@ async def get_finance_summary(db: AsyncSession, warehouse_id: UUID | None = None
     }
 
     return {
-        "total_revenue": round(total_revenue, 2),
+        "total_revenue": round(total_revenue, 2),          # gross customer payments
         "total_expenses": round(total_expenses, 2),
-        "net_profit": round(total_revenue - total_expenses, 2),
+        "net_profit": round(net_profit_value, 2),
         "pending_cod": round(pending_cod, 2),
         "total_payroll_due": round(total_payroll_due, 2),
         "procurement_expenses": round(procurement_expenses, 2),
-        "capital_invested": round(capital_invested, 2),
+        "capital_invested": round(effective_capital, 2),    # remaining capital after covering shortfall
+        "gross_capital_invested": round(capital_invested, 2),
+        "capital_flow_empty": capital_flow_empty,           # true only when zero customer revenue
+        "revenue_debit_expenses": round(revenue_debit_expenses, 2),
         "total_refunds_issued": round(total_refunds_issued, 2),
         "total_orders": total_orders,
         "delivered_orders": delivered_orders,

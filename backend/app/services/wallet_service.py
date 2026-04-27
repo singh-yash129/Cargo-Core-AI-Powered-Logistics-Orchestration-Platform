@@ -201,6 +201,33 @@ async def apply_wallet_payment(
         payment_amount=applied,
         collection_source="ORDER_WALLET",
     )
+
+    # ── Record in Finance: create a REVENUE_WALLET LogisticsTransaction so
+    #    wallet bookings appear in the Finance overview table and MTD revenue. ──
+    from app.models.logistics import LogisticsTransaction
+    from app.services.finance_service import _upsert_daily_stats, _gen_ref
+
+    db.add(
+        LogisticsTransaction(
+            warehouse_id=order.warehouse_id,
+            transaction_code=_gen_ref("WLT"),
+            description=f"Wallet payment - Order {order.tracking_code}",
+            transaction_type="REVENUE_WALLET",
+            amount=applied,
+            status="Completed",
+            metadata_json={
+                "order_id": str(order.id),
+                "tracking_code": order.tracking_code,
+                "payment_mode": "WALLET",
+                "payment_method": "Internal Wallet",
+                "customer_id": str(user.id),
+            },
+        )
+    )
+    await _upsert_daily_stats(db, delta_revenue=applied)
+    if order.warehouse_id:
+        await _upsert_daily_stats(db, delta_revenue=applied, warehouse_id=order.warehouse_id)
+
     await db.flush()
 
     from app.schemas.wallet import WalletPaymentResponse

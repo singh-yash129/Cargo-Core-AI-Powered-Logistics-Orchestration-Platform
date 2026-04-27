@@ -2476,8 +2476,8 @@ async def build_bootstrap(db: AsyncSession) -> LogisticsBootstrapResponse:
         ],
         reports=[LogisticsReportItem(id=f"report-{index}", hub_id=hub.id, title=f"{hub.name} Performance Report", date=_fmt_relative(_now() - timedelta(days=index)), icon="analytics", color=color) for index, (hub, color) in enumerate(zip(hubs, ["blue", "green", "orange"]), start=1)],
         users=[LogisticsUserItem(id=user.id, hub_id=user.warehouse_id, name=user.name, email=user.email, role=role_by_id.get(user.role_id, ""), status="Active" if user.is_active else "Inactive", last_login=user.last_login.isoformat() if user.last_login else "", username=user.username, pending_payout=(
-                    next((item["amount"] for item in finance_staff_records if item["userId"] == str(user.id)), 0.0)
-                    or next((item["amount"] for item in finance_driver_records if item["userId"] == str(user.id)), 0.0)
+                    next((item["amount"] for item in finance_staff_records if item["userId"] == str(user.id) and item.get("status") == "Pending"), 0.0)
+                    or next((item["amount"] for item in finance_driver_records if item["userId"] == str(user.id) and item.get("status") == "Pending"), 0.0)
                 ), mobile=user.phone, mobile_verified=bool(user.phone), email_verified=True, avatar=f"https://i.pravatar.cc/150?u={user.id}", approval_status=user.approval_status, approval_note=user.approval_note, approval_reviewed_at=user.approval_reviewed_at, company_name=user.company_name, tax_id=user.tax_id, contact_person=user.contact_person, business_email=user.business_email, business_phone=user.business_phone, submitted_at=user.created_at) for user in users if role_by_id.get(user.role_id) != "INDIVIDUAL"],
         returns=[_to_return_case_item(item) for item in return_cases],
         zones=[LogisticsZoneItem(id=zone.id, hub_id=zone.warehouse_id, name=zone.name, type=zone.zone_type, radius=zone.radius_km, status=zone.status, color=zone.color_token, lat=zone.lat, lng=zone.lng) for zone in zones],
@@ -2945,10 +2945,10 @@ async def update_vehicle(db: AsyncSession, vehicle_id: UUID, data: LogisticsVehi
 
 
 async def create_transaction(db: AsyncSession, data: LogisticsTransactionCreate) -> LogisticsTransactionItem:
-    total = (await db.execute(select(func.count(LogisticsTransaction.id)))).scalar_one()
+    import uuid as _uuid
     tx = LogisticsTransaction(
         warehouse_id=data.warehouse_id,
-        transaction_code=f"TX-{99212 + total + 1}",
+        transaction_code=f"TX-{str(_uuid.uuid4()).replace('-', '').upper()[:12]}",
         description=data.description,
         transaction_type=data.transaction_type,
         amount=data.amount,

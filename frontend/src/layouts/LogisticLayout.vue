@@ -1,6 +1,59 @@
 <template>
     <div
-        class="logistic-theme min-h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased overflow-x-hidden relative">
+        class="logistic-theme min-h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased overflow-x-hidden relative"
+        :class="{ 'lm-critical-state': criticalEmptyFunds }"
+    >
+        <!-- ═══════════════════════════════════════════════════════════
+             CRITICAL FINANCIAL EMERGENCY OVERLAY
+             Fires only when both revenue AND capital are drained to 0.
+             pointer-events-none so it never blocks any UI interaction.
+        ════════════════════════════════════════════════════════════════ -->
+        <Transition name="critical-overlay">
+            <div v-if="criticalEmptyFunds" class="critical-overlay" aria-hidden="true">
+
+                <!-- Edge glow border (all 4 sides) -->
+                <div class="critical-edge critical-edge--top"></div>
+                <div class="critical-edge critical-edge--bottom"></div>
+                <div class="critical-edge critical-edge--left"></div>
+                <div class="critical-edge critical-edge--right"></div>
+
+                <!-- Corner brackets (HUD / Command-Center style) -->
+                <div class="critical-corner critical-corner--tl">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                        <path d="M2 18V2H18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="critical-corner critical-corner--tr">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                        <path d="M34 18V2H18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="critical-corner critical-corner--bl">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                        <path d="M2 18V34H18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="critical-corner critical-corner--br">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                        <path d="M34 18V34H18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+
+                <!-- Subtle red vignette (does NOT obscure content) -->
+                <div class="critical-vignette"></div>
+
+                <!-- Floating status pill — top-center -->
+                <div class="critical-pill">
+                    <span class="critical-pill__dot"></span>
+                    <span class="material-symbols-outlined" style="font-size:14px;line-height:1">emergency</span>
+                    <span class="critical-pill__text">FINANCIAL LOCKDOWN &nbsp;·&nbsp; Revenue &amp; Capital Drained</span>
+                    <span class="critical-pill__sep">|</span>
+                    <span class="critical-pill__action" @click.stop="goToFinances">Fund Now ↗</span>
+                </div>
+
+            </div>
+        </Transition>
+
         <!-- Sidebar -->
         <LogisticSidebar />
 
@@ -93,11 +146,30 @@ import NotificationPopover from '@/components/NotificationPopover.vue'
 import HeaderTodo from '@/components/HeaderTodo.vue'
 import HeaderMeetingScheduler from '@/components/HeaderMeetingScheduler.vue'
 import { useLogisticStore } from '@/stores/logisticStore'
-import { RouterView, useRoute } from 'vue-router'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 
 const store = useLogisticStore()
 const route = useRoute()
+const router = useRouter()
+
+// Critical lockdown: both revenue AND capital are fully drained.
+// Guard on store.initialized so this NEVER fires during the loading
+// flash (all values are 0 by default before bootstrap data arrives).
+const criticalEmptyFunds = computed(() => {
+    if (!store.initialized || store.isLoading) return false
+    const s = store.activeFinanceSummary
+    return (s.total_revenue ?? 1) <= 0 && (s.capital_invested ?? 1) <= 0
+})
+
+function goToFinances() {
+    router.push('/logistic/reports').then(() => {
+        // Brief delay so Reports.vue mounts, then switch to financials tab
+        // (Reports.vue reads activeTab from its own local ref, so we use
+        //  a CustomEvent the page can listen to)
+        setTimeout(() => document.dispatchEvent(new CustomEvent('lm:goto-tab', { detail: 'financials' })), 150)
+    })
+}
 let notificationPoll = null
 
 onMounted(() => {
@@ -380,4 +452,148 @@ body.logistic-theme-portal {
     background-color: rgb(15 23 42);
     color: var(--logistic-text-dark);
 }
+
+/* ═══════════════════════════════════════════════════
+   CRITICAL FINANCIAL EMERGENCY OVERLAY
+   Aesthetic: HUD / Mission-Control / Command-Center
+═══════════════════════════════════════════════════ */
+
+/* Transition */
+.critical-overlay-enter-active,
+.critical-overlay-leave-active { transition: opacity 0.6s ease; }
+.critical-overlay-enter-from,
+.critical-overlay-leave-to   { opacity: 0; }
+
+/* Base overlay container — covers the entire viewport */
+.critical-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;   /* never blocks any click */
+    --cc-red: #ff2d55;
+    --cc-orange: #ff6b35;
+}
+
+/* ── Edge glow lines ── */
+.critical-edge {
+    position: absolute;
+    background: linear-gradient(90deg, transparent, var(--cc-red), var(--cc-orange), var(--cc-red), transparent);
+    animation: cc-edge-pulse 2s ease-in-out infinite;
+}
+.critical-edge--top    { top: 0;    left: 0;  right: 0;  height: 2px; }
+.critical-edge--bottom { bottom: 0; left: 0;  right: 0;  height: 2px; }
+.critical-edge--left  {
+    top: 0; bottom: 0; left: 0; width: 2px;
+    background: linear-gradient(180deg, transparent, var(--cc-red), var(--cc-orange), var(--cc-red), transparent);
+}
+.critical-edge--right {
+    top: 0; bottom: 0; right: 0; width: 2px;
+    background: linear-gradient(180deg, transparent, var(--cc-red), var(--cc-orange), var(--cc-red), transparent);
+}
+
+@keyframes cc-edge-pulse {
+    0%, 100% { opacity: 0.4; filter: blur(0px); }
+    50%       { opacity: 1;   filter: blur(1px) drop-shadow(0 0 6px var(--cc-red)); }
+}
+
+/* ── Corner brackets ── */
+.critical-corner {
+    position: absolute;
+    color: var(--cc-red);
+    animation: cc-corner-pulse 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 6px var(--cc-red));
+}
+.critical-corner--tl { top: 12px;    left: 12px;  }
+.critical-corner--tr { top: 12px;    right: 12px; }
+.critical-corner--bl { bottom: 12px; left: 12px;  }
+.critical-corner--br { bottom: 12px; right: 12px; }
+
+/* Stagger corner animations for a living feel */
+.critical-corner--tr { animation-delay: 0.5s; }
+.critical-corner--bl { animation-delay: 1.0s; }
+.critical-corner--br { animation-delay: 1.5s; }
+
+@keyframes cc-corner-pulse {
+    0%, 100% { opacity: 0.5; transform: scale(1);    color: var(--cc-red); }
+    50%       { opacity: 1;   transform: scale(1.08); color: var(--cc-orange); }
+}
+
+/* ── Vignette ── */
+.critical-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 55%,
+        rgba(255, 45, 85, 0.08) 100%
+    );
+    animation: cc-vignette-pulse 3s ease-in-out infinite;
+}
+@keyframes cc-vignette-pulse {
+    0%, 100% { opacity: 0.6; }
+    50%       { opacity: 1;   }
+}
+
+/* ── Floating emergency pill (top-center) ── */
+.critical-pill {
+    pointer-events: all;    /* pill IS clickable */
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px 5px 10px;
+    background: rgba(15, 0, 5, 0.82);
+    border: 1px solid rgba(255, 45, 85, 0.55);
+    border-radius: 999px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 0 16px rgba(255, 45, 85, 0.35), 0 2px 8px rgba(0,0,0,0.5);
+    animation: cc-pill-in 0.5s cubic-bezier(.34,1.56,.64,1) both;
+    white-space: nowrap;
+}
+@keyframes cc-pill-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.92); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0)       scale(1);    }
+}
+.critical-pill__dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--cc-red);
+    box-shadow: 0 0 6px var(--cc-red);
+    animation: cc-dot-blink 1.2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+@keyframes cc-dot-blink {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.3; transform: scale(0.7); }
+}
+.critical-pill .material-symbols-outlined {
+    color: var(--cc-red);
+    flex-shrink: 0;
+}
+.critical-pill__text {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #ffbac8;
+    font-family: 'Courier New', monospace;
+}
+.critical-pill__sep {
+    color: rgba(255,255,255,0.2);
+    font-size: 11px;
+}
+.critical-pill__action {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--cc-orange);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    letter-spacing: 0.03em;
+    transition: color 0.2s;
+}
+.critical-pill__action:hover { color: #fff; }
 </style>

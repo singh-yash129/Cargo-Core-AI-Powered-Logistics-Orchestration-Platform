@@ -621,31 +621,39 @@ const paymentSuccess = ref(false)
 const showBulkActionModal = ref(false)
 const bulkApplying = ref(false)
 const bulkForm = ref({
-    type: 'Bonus', // Bonus or Deduct
+    type: 'Bonus',
     amount: 0,
     reason: '',
-    role_filter: 'All', // All, Driver, warehouse_staff
-    min_rating: 0,
-    min_trips: 0
+    role: 'all',
+    filterByRating: false,
+    minRating: 4.5,
+    filterByTrips: false,
+    minTrips: 10
 })
 
 // Bulk Computed Logic
 const bulkTargetUsers = computed(() => {
-    if (!bulkForm.value.min_rating && !bulkForm.value.min_trips && bulkForm.value.role_filter === 'All') {
-        return [] // Safety: Don't select everyone by default if no filters
+    const hasRoleFilter = bulkForm.value.role !== 'all'
+    const hasRatingFilter = bulkForm.value.filterByRating
+    const hasTripFilter = bulkForm.value.filterByTrips
+
+    // Safety: require at least one filter to be active
+    if (!hasRoleFilter && !hasRatingFilter && !hasTripFilter) {
+        return []
     }
 
     return filteredUsers.value.filter(user => {
-        // 1. Role Filter
-        if (bulkForm.value.role_filter !== 'All' && user.role !== bulkForm.value.role_filter) return false
-        
+        // Role filter
+        if (hasRoleFilter && user.role !== bulkForm.value.role) return false
+
         const topDriver = store.topDrivers.find(driver => driver.name === user.name)
         const derivedRating = user.rating || topDriver?.rating || 4.0
         const derivedTrips = user.trips || topDriver?.trips || Math.max(0, Math.round(user.pending_payout / 50))
 
-        // 3. Apply Filters
-        if (bulkForm.value.min_rating > 0 && parseFloat(derivedRating) < bulkForm.value.min_rating) return false
-        if (bulkForm.value.min_trips > 0 && derivedTrips < bulkForm.value.min_trips) return false
+        // Rating filter (only when checkbox is ticked)
+        if (hasRatingFilter && parseFloat(derivedRating) < bulkForm.value.minRating) return false
+        // Trip filter (only when checkbox is ticked)
+        if (hasTripFilter && derivedTrips < bulkForm.value.minTrips) return false
 
         return true
     }).map(u => ({
@@ -661,9 +669,11 @@ const openBulkActionModal = () => {
         type: 'Bonus',
         amount: 50,
         reason: 'Performance Bonus',
-        role_filter: 'Driver',
-        min_rating: 4.5,
-        min_trips: 10
+        role: 'Driver',
+        filterByRating: true,
+        minRating: 4.5,
+        filterByTrips: true,
+        minTrips: 10
     }
     showBulkActionModal.value = true
 }
@@ -673,22 +683,37 @@ const applyBulkAction = async () => {
     bulkApplying.value = true
     try {
         const isBonus = bulkForm.value.type === 'Bonus'
-        const txType = isBonus ? 'Expense' : 'Income'
+        // Use EXPENSE_BONUS so the backend's finance_service correctly debits revenue
+        const txType = isBonus ? 'EXPENSE_BONUS' : 'REVENUE_ONLINE'
         const amountSign = isBonus ? -1 : 1
         const date = new Date().toISOString().split('T')[0]
 
-        // Create one transaction record per affected user
-        await Promise.all(bulkTargetUsers.value.map(user =>
-            store.addTransaction({
-                date,
-                desc: `${bulkForm.value.type} – ${user.name}${bulkForm.value.reason ? ': ' + bulkForm.value.reason : ''}`,
-                amount: bulkForm.value.amount * amountSign,
-                type: txType,
-                status: 'Completed',
-                hubId: store.activeWarehouse
-            })
-        ))
+        // Use allSettled so all users are processed independently
+        // (one failure doesn't block the rest)
+        const results = await Promise.allSettled(
+            bulkTargetUsers.value.map(user =>
+                store.addTransaction({
+                    date,
+                    desc: `Bonus – ${user.name}: ${bulkForm.value.reason || 'Performance Bonus'}`,
+                    amount: bulkForm.value.amount * amountSign,
+                    type: txType,
+                    status: 'Completed',
+                    hubId: store.activeWarehouse
+                })
+            )
+        )
+
+        const failed = results.filter(r => r.status === 'rejected').length
+        const succeeded = results.length - failed
+
+        // Refresh finance summary from DB so Revenue card reflects the deduction
+        await store.fetchFinanceSummary(store.activeWarehouse).catch(() => {})
+
         showBulkActionModal.value = false
+
+        if (failed > 0) {
+            alert(`Applied to ${succeeded}/${results.length} users. ${failed} failed.`)
+        }
     } catch (e) {
         alert(`Failed to apply: ${e.message || 'Unknown error'}`)
     } finally {
@@ -698,17 +723,19 @@ const applyBulkAction = async () => {
 
 const openPayrollModal = () => {
     payrollSuccess.value = false
-    const pending = filteredUsers.value.filter(u => u.pending_payout > 0)
-    
-    if (pending.length === 0) {
-        // Optional: show a toast or small notification instead of alert
-        return
-    }
+
+    // Use the finance records (same source as Payroll Due stat card) so
+    // they stay in sync — users.pending_payout is always set regardless of paid status.
+    const pendingStaff = filteredFinanceStaffRecords.value.filter(r => r.status === 'Pending')
+    const pendingDrivers = filteredFinanceDriverRecords.value.filter(r => r.status === 'Pending')
+    const allPending = [...pendingStaff, ...pendingDrivers]
+
+    if (allPending.length === 0) return
 
     payrollSummary.value = {
-        count: pending.length,
-        total: pending.reduce((sum, u) => sum + u.pending_payout, 0),
-        pendingUsers: pending
+        count: allPending.length,
+        total: allPending.reduce((sum, r) => sum + (r.amount || 0), 0),
+        pendingUsers: allPending.map(r => ({ ...r, name: r.name, pending_payout: r.amount }))
     }
     showPayrollModal.value = true
 }
@@ -902,7 +929,7 @@ const isPayrollSlip = (item) => (
     || item.type === 'PAYROLL_RUN'
 )
 
-const isBookingSlip = (item) => ['REVENUE_ONLINE', 'REVENUE_COD', 'COD'].includes(item.type)
+const isBookingSlip = (item) => ['REVENUE_ONLINE', 'REVENUE_COD', 'REVENUE_WALLET', 'COD'].includes(item.type)
 
 const buildBookingSlipPayload = (item) => {
     const order = findRelatedOrder(item)
@@ -936,6 +963,7 @@ const financeSlipTitle = (item) => {
     if (item.type === 'REVENUE_RETURN_CHARGE') return 'Transport Charge Slip'
     if (item.type === 'REVENUE_REFUND' && item.desc?.toLowerCase().includes('damage')) return 'Damage Return Refund Slip'
     if (item.type === 'REVENUE_REFUND') return 'Refund / Reversal Slip'
+    if (item.type === 'REVENUE_WALLET') return 'Wallet Booking Slip'
     if (item.type === 'DRIVER_CASHOUT') return 'Driver Cashout Slip'
     if (item.type === 'CAPITAL_INVESTMENT') return 'Capital Investment Slip'
     return 'Finance Transaction Slip'
@@ -1034,8 +1062,10 @@ const downloadSlip = async (item) => {
 const TX_TYPE_LABELS = {
     'REVENUE_ONLINE': 'Online Payment',
     'REVENUE_COD': 'COD Collection',
+    'REVENUE_WALLET': 'Wallet Payment',
     'REVENUE_RETURN_CHARGE': 'Return Transport Charge',
     'REVENUE_REFUND': 'Refund / Reversal',
+    'EXPENSE_BONUS': 'Performance Bonus',
     'EXPENSE_DRIVER': 'Driver Cost',
     'EXPENSE_LABOUR': 'Labour Cost',
     'EXPENSE_FUEL': 'Fuel',
