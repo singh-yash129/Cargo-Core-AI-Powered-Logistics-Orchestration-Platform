@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cargo-Core — Enterprise Logistics Platform</title>
+    <meta name="description" content="Cargo-Core is a premium enterprise logistics platform. Move smarter, deliver faster, and control every mile with real-time visibility across 161 feature modules and 8 operational roles." />
+    <meta name="theme-color" content="#020509" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Cargo-Core — Enterprise Logistics Platform" />
+    <meta property="og:description" content="Move Smarter. Deliver Faster. Control Every Mile." />
+    <meta property="og:type" content="website" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+
+    <!-- Animated Canvas Background -->
+    <canvas id="bg-canvas" aria-hidden="true"></canvas>
+
+    <!-- Noise texture overlay -->
+    <div class="noise" aria-hidden="true"></div>
+
+    <!-- Ambient Orbs -->
+    <div class="orb orb-1" aria-hidden="true"></div>
+    <div class="orb orb-2" aria-hidden="true"></div>
+    <div class="orb orb-3" aria-hidden="true"></div>
+    <div class="orb orb-4" aria-hidden="true"></div>
+
+    <!-- Scroll Progress Bar -->
+    <div id="progress-bar" aria-hidden="true"></div>
+
+    <!-- Custom Cursor -->
+    <div id="cursor-dot"  aria-hidden="true"></div>
+    <div id="cursor-ring" aria-hidden="true"></div>
+
+    <!-- ═══ NAVIGATION ═══════════════════════════ -->
+    <header class="topbar" id="topbar">
+      <a class="brand" href="#home" aria-label="Cargo-Core home">
+        <img src="assets/brand/cargo-core-logo.png" alt="Cargo-Core logo" width="38" height="38" />
+        <span class="brand-name">Cargo-Core</span>
+      </a>
+
+      <nav id="mainNav" role="navigation" aria-label="Main navigation">
+        <a class="nav-link" href="#demo">Demo</a>
+        <a class="nav-link" href="#deck">Deck</a>
+        <a class="nav-link" href="#developers">Team</a>
+        <a class="nav-link nav-cta" href="#links">Platform Links ↗</a>
+      </nav>
+
+      <!-- Hamburger (mobile only) -->
+      <button class="hamburger" id="navToggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobileNav">
+        <span class="ham-line"></span>
+        <span class="ham-line"></span>
+        <span class="ham-line"></span>
+      </button>
+    </header>
+
+    <!-- Mobile nav drawer -->
+    <div class="mobile-nav" id="mobileNav" aria-hidden="true">
+      <a class="mobile-nav-link" href="#demo">Demo</a>
+      <a class="mobile-nav-link" href="#deck">Deck</a>
+      <a class="mobile-nav-link" href="#developers">Team</a>
+      <a class="mobile-nav-link mobile-nav-cta" href="#links">Platform Links ↗</a>
+    </div>
+
+    <!-- ═══ MAIN CONTENT ══════════════════════════ -->
+    <main id="home">
+
+      <!-- ─── HERO ────────────────────────────── -->
+      <section class="hero" aria-labelledby="hero-heading">
+        <div class="hero-bg-grid" aria-hidden="true"></div>
+
+        <div class="container" style="position:relative;z-index:1;">
+          <p class="hero-eyebrow">
+            <span class="eyebrow-dot" aria-hidden="true"></span>
+            Enterprise Logistics Platform
+          </p>
+
+          <h1 class="hero-title" id="hero-heading">
+            <span class="hero-title-line"><span class="hero-title-text">Move Smarter.</span></span>
+            <span class="hero-title-line"><span class="hero-title-text">Deliver Faster.</span></span>
+            <span class="hero-title-line"><span class="hero-title-text">Control Every Mile.</span></span>
+          </h1>
+
+          <p class="hero-sub">
+            A full-scale enterprise logistics platform with real-time visibility,
+            multi-role access, and 161 precision-engineered feature modules — built
+            to handle every shipment, warehouse, and delivery at scale.
+          </p>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#links" id="hero-cta-links">
+              Open Platform
+              <span class="btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M10 4l6 6-6 6"/></svg>
+              </span>
+            </a>
+            <a class="btn btn-ghost" href="#demo" id="hero-cta-demo">
+              <span aria-hidden="true">▶</span>
+              Watch Demo
+            </a>
+          </div>
+
+          <div class="hero-stats" role="list">
+            <div class="stat-item" role="listitem">
+              <span class="stat-num" data-count="161">0</span>
+              <span class="stat-label">Feature Modules</span>
+            </div>
+            <div class="stat-item" role="listitem">
+              <span class="stat-num" data-count="8">0</span>
+              <span class="stat-label">Operational Roles</span>
+            </div>
+            <div class="stat-item" role="listitem">
+              <span class="stat-num">24/7</span>
+              <span class="stat-label">Live Visibility</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="scroll-hint" aria-hidden="true">
+          <div class="scroll-mouse"></div>
+          <span>Scroll</span>
+        </div>
+      </section>
+
+      <!-- ─── DIVIDER ──────────────────────── -->
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <!-- ─── DEMO VIDEO ───────────────────── -->
+      <section id="demo" class="section" aria-labelledby="demo-heading">
+        <div class="section-inner">
+          <div class="section-head reveal">
+            <p class="section-label">
+              <span class="section-label-line" aria-hidden="true"></span>
+              Video Greeting
+            </p>
+            <h2 class="section-title" id="demo-heading">Live Product Introduction</h2>
+            <p class="section-desc">
+              Watch the product walkthrough to understand how Cargo-Core
+              simplifies complex logistics workflows end-to-end.
+            </p>
+          </div>
+
+          <div class="media-wrap reveal">
+            <div class="media-glow" aria-hidden="true"></div>
+            <div class="media-card">
+              <div class="media-chrome" aria-hidden="true">
+                <div class="chrome-dots">
+                  <div class="chrome-dot red"></div>
+                  <div class="chrome-dot yellow"></div>
+                  <div class="chrome-dot green"></div>
+                </div>
+                <div class="chrome-address">cargo-core · platform demo</div>
+              </div>
+              <iframe
+                id="demoFrame"
+                title="Cargo-Core platform demo"
+                src="about:blank"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                loading="lazy"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── DIVIDER ──────────────────────── -->
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <!-- ─── PITCH DECK ───────────────────── -->
+      <section id="deck" class="section" aria-labelledby="deck-heading">
+        <div class="section-inner">
+          <div class="section-head reveal">
+            <p class="section-label">
+              <span class="section-label-line" aria-hidden="true"></span>
+              Presentation
+            </p>
+            <h2 class="section-title" id="deck-heading">Pitch Deck Viewer</h2>
+            <p class="section-desc">
+              Explore the full presentation covering platform architecture,
+              business model, and delivery roadmap.
+            </p>
+          </div>
+
+          <div class="media-wrap reveal">
+            <div class="media-glow" aria-hidden="true"></div>
+            <div class="media-card slide-viewer-card" id="slideViewerCard">
+
+              <!-- Chrome bar with page counter -->
+              <div class="media-chrome">
+                <div class="chrome-dots" aria-hidden="true">
+                  <div class="chrome-dot red"></div>
+                  <div class="chrome-dot yellow"></div>
+                  <div class="chrome-dot green"></div>
+                </div>
+                <div class="chrome-address">cargo-core · pitch deck · 2026</div>
+                <div class="slide-page-indicator" id="slideIndicator" aria-live="polite">— / —</div>
+              </div>
+
+              <!-- Canvas slide area -->
+              <div class="slide-canvas-wrap" id="slideCanvasWrap">
+                <canvas id="slideCanvas" aria-label="Presentation slide"></canvas>
+                <!-- Link annotation overlay (populated by JS) -->
+                <div id="pdfAnnotLayer" class="pdf-annot-layer" aria-hidden="true"></div>
+                <div class="slide-loading" id="slideLoading">
+                  <div class="slide-spinner" aria-hidden="true"></div>
+                  <p>Loading deck…</p>
+                </div>
+                <!-- Click zones for prev / next -->
+                <button class="slide-zone slide-zone-prev" id="slideZonePrev" aria-label="Previous slide" tabindex="-1">‹</button>
+                <button class="slide-zone slide-zone-next" id="slideZoneNext" aria-label="Next slide"     tabindex="-1">›</button>
+              </div>
+
+              <!-- Controls bar -->
+              <div class="slide-controls">
+                <button class="slide-ctrl-btn" id="slidePrev" aria-label="Previous slide">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 4l-6 6 6 6"/></svg>
+                  Prev
+                </button>
+
+                <div class="slide-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                  <div class="slide-progress-fill" id="slideProgressFill"></div>
+                </div>
+
+                <button class="slide-ctrl-btn slide-auto-btn" id="slideAuto" aria-label="Toggle auto-advance">
+                  <svg id="slideAutoIcon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path d="M6 4l10 6-10 6V4z"/></svg>
+                  <span id="slideAutoLabel">Auto</span>
+                </button>
+
+                <div class="slide-zoom-group" role="group" aria-label="Zoom controls">
+                  <button class="slide-ctrl-btn slide-zoom-btn" id="slideZoomOut" aria-label="Zoom out">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 10h12"/></svg>
+                  </button>
+                  <button class="slide-ctrl-btn slide-zoom-btn" id="slideZoomIn" aria-label="Zoom in">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M10 4v12M4 10h12"/></svg>
+                  </button>
+                  <span class="slide-zoom-level" id="slideZoomLevel" aria-live="polite">100%</span>
+                </div>
+
+                <button class="slide-ctrl-btn slide-fs-btn" id="slideFullscreen" aria-label="Toggle fullscreen">
+                  <svg id="slideFsIcon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                    <path d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4"/>
+                  </svg>
+                </button>
+
+                <button class="slide-ctrl-btn" id="slideNext" aria-label="Next slide">
+                  Next
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M8 4l6 6-6 6"/></svg>
+                </button>
+              </div>
+
+            </div><!-- /.media-card -->
+          </div><!-- /.media-wrap -->
+        </div>
+      </section>
+
+      <!-- ─── DIVIDER ──────────────────────── -->
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <!-- ─── TEAM ─────────────────────────── -->
+      <section id="developers" class="section" aria-labelledby="dev-heading">
+        <div class="section-inner">
+          <div class="section-head reveal">
+            <p class="section-label">
+              <span class="section-label-line" aria-hidden="true"></span>
+              The Team
+            </p>
+            <h2 class="section-title" id="dev-heading">Meet Our Engineers</h2>
+            <p class="section-desc">
+              The engineering leadership driving Cargo-Core's architecture,
+              quality, and cross-team delivery velocity.
+            </p>
+          </div>
+
+          <div class="dev-grid">
+
+            <!-- Dev 1 -->
+            <article class="dev-card reveal" id="dev-gautham">
+              <div class="dev-card-glow" style="background:radial-gradient(circle, rgba(0,212,255,0.6), transparent 70%);" aria-hidden="true"></div>
+              <div class="dev-avatar" aria-hidden="true">GK</div>
+              <p class="dev-name">Gautham Krishna S</p>
+              <p class="dev-role">Backend Engineer · Testing &amp; Validation</p>
+              <ul class="dev-tags" aria-label="Skills">
+                <li>API Reliability</li>
+                <li>Integration QA</li>
+                <li>Release Checks</li>
+              </ul>
+              <div class="dev-links">
+                <a class="dev-link-btn" href="https://www.linkedin.com/in/heyitsgautham" target="_blank" rel="noreferrer" aria-label="Gautham LinkedIn">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                  LinkedIn
+                </a>
+                <a class="dev-link-btn" href="https://github.com/heyitsgautham" target="_blank" rel="noreferrer" aria-label="Gautham GitHub">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                  GitHub
+                </a>
+              </div>
+            </article>
+
+            <!-- Dev 2 -->
+            <article class="dev-card reveal" id="dev-pruthvi" style="transition-delay:0.1s">
+              <div class="dev-card-glow" style="background:radial-gradient(circle, rgba(139,92,246,0.6), transparent 70%);" aria-hidden="true"></div>
+              <div class="dev-avatar" style="color:var(--violet);" aria-hidden="true">PP</div>
+              <p class="dev-name">Pruthvi Prasad S</p>
+              <p class="dev-role">Full-Stack Engineer · Frontend &amp; Backend Delivery</p>
+              <ul class="dev-tags" aria-label="Skills">
+                <li>UI Engineering</li>
+                <li>Service Logic</li>
+                <li>Performance Fixes</li>
+              </ul>
+              <div class="dev-links">
+                <a class="dev-link-btn" href="https://www.linkedin.com/in/pruthvi-prasad-s-a047a8260" target="_blank" rel="noreferrer" aria-label="Pruthvi LinkedIn">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                  LinkedIn
+                </a>
+                <a class="dev-link-btn" href="https://github.com/23f1002103" target="_blank" rel="noreferrer" aria-label="Pruthvi GitHub">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                  GitHub
+                </a>
+              </div>
+            </article>
+
+            <!-- Dev 3 -->
+            <article class="dev-card reveal" id="dev-siddarth" style="transition-delay:0.2s">
+              <div class="dev-card-glow" style="background:radial-gradient(circle, rgba(0,245,164,0.6), transparent 70%);" aria-hidden="true"></div>
+              <div class="dev-avatar" style="color:var(--emerald);" aria-hidden="true">SS</div>
+              <p class="dev-name">Siddarth S</p>
+              <p class="dev-role">Product Manager · Scrum &amp; Delivery Coordination</p>
+              <ul class="dev-tags" aria-label="Skills">
+                <li>Sprint Leadership</li>
+                <li>Roadmap Planning</li>
+                <li>Execution Rhythm</li>
+              </ul>
+              <div class="dev-links">
+                <a class="dev-link-btn" href="https://www.linkedin.com/in/siiddaarrtthh/" target="_blank" rel="noreferrer" aria-label="Siddarth LinkedIn">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                  LinkedIn
+                </a>
+                <a class="dev-link-btn" href="https://github.com/23f3001439" target="_blank" rel="noreferrer" aria-label="Siddarth GitHub">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                  GitHub
+                </a>
+              </div>
+            </article>
+
+            <!-- Dev 4 -->
+            <article class="dev-card reveal" id="dev-yash" style="transition-delay:0.3s">
+              <div class="dev-card-glow" style="background:radial-gradient(circle, rgba(245,200,66,0.6), transparent 70%);" aria-hidden="true"></div>
+              <div class="dev-avatar" style="color:var(--gold);" aria-hidden="true">YV</div>
+              <p class="dev-name">Yash (Yashvardhan)</p>
+              <p class="dev-role">Full-Stack Lead · Frontend, Review, Product &amp; Coordination</p>
+              <ul class="dev-tags" aria-label="Skills">
+                <li>System Ownership</li>
+                <li>Code Quality</li>
+                <li>Cross-Team Delivery</li>
+              </ul>
+              <div class="dev-links">
+                <a class="dev-link-btn" href="https://www.linkedin.com/in/singh-yash129" target="_blank" rel="noreferrer" aria-label="Yash LinkedIn">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                  LinkedIn
+                </a>
+                <a class="dev-link-btn" href="https://github.com/singh-yash129" target="_blank" rel="noreferrer" aria-label="Yash GitHub">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                  GitHub
+                </a>
+              </div>
+            </article>
+
+          </div><!-- /.dev-grid -->
+        </div>
+      </section>
+
+      <!-- ─── DIVIDER ──────────────────────── -->
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <!-- ─── LINKS ─────────────────────────── -->
+      <section id="links" class="section" aria-labelledby="links-heading">
+        <div class="section-inner">
+          <div class="section-head reveal">
+            <p class="section-label">
+              <span class="section-label-line" aria-hidden="true"></span>
+              Platform Access
+            </p>
+            <h2 class="section-title" id="links-heading">Launch &amp; References</h2>
+          </div>
+
+          <div class="link-grid" role="list">
+
+            <a class="link-card reveal" href="https://github.com/singh-yash129/QuadCore-Devs" target="_blank" rel="noreferrer" role="listitem" id="link-github">
+              <div class="link-card-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--text-muted)"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+              </div>
+              <p class="link-card-title">GitHub Repository</p>
+              <p class="link-card-desc">Source code, branching strategy, and full project history for Cargo-Core.</p>
+              <span class="link-card-arrow">Open Repository →</span>
+            </a>
+
+            <a class="link-card reveal" href="https://github.com/singh-yash129/QuadCore-Devs/wiki" target="_blank" rel="noreferrer" role="listitem" id="link-wiki" style="transition-delay:0.1s">
+              <div class="link-card-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              </div>
+              <p class="link-card-title">GitHub Wiki</p>
+              <p class="link-card-desc">Role documentation, platform architecture diagrams, and feature reference guides.</p>
+              <span class="link-card-arrow">Open Wiki →</span>
+            </a>
+
+            <a class="link-card reveal" href="https://drive.google.com/drive/folders/1FMmcp-HIdtqpkZ7XWqRCjMWysd5V9F0a?usp=drive_link" target="_blank" rel="noreferrer" role="listitem" id="link-docs" style="transition-delay:0.2s">
+              <div class="link-card-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <p class="link-card-title">Docs &amp; Deliverables</p>
+              <p class="link-card-desc">All project reports, deliverables, and supporting documents in one place on Google Drive.</p>
+              <span class="link-card-arrow">Open Drive →</span>
+            </a>
+
+          </div><!-- /.link-grid -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ═══ FOOTER ════════════════════════════════ -->
+    <footer class="footer" role="contentinfo">
+      <a class="footer-brand" href="#home" aria-label="Back to top">
+        <img src="assets/brand/cargo-core-logo.png" alt="" width="30" height="30" />
+        <span class="footer-brand-name">Cargo-Core</span>
+      </a>
+      <div class="footer-links">
+        <a href="https://github.com/singh-yash129/QuadCore-Devs" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/singh-yash129/QuadCore-Devs/wiki" target="_blank" rel="noreferrer">Docs</a>
+        <a href="#developers">Team</a>
+      </div>
+      <p class="footer-copy">© 2026 Cargo-Core &amp; QuadCore Devs. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
